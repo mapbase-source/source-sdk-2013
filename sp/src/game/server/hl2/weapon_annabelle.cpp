@@ -280,7 +280,7 @@ void CWeaponAnnabelle::Pump( void )
 	WeaponSound( SPECIAL1 );
 
 	// Finish reload animation
-	SendWeaponAnim( ACT_SHOTGUN_PUMP );
+//	SendWeaponAnim( ACT_SHOTGUN_PUMP );
 
 	pOwner->m_flNextAttack	= gpGlobals->curtime + SequenceDuration();
 	m_flNextPrimaryAttack	= gpGlobals->curtime + SequenceDuration();

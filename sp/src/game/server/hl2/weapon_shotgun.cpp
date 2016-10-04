@@ -71,7 +71,7 @@ public:
 	void FillClip( void );
 	void FinishReload( void );
 	void CheckHolsterReload( void );
-	void Pump( void );
+//	void Pump( void );
 //	void WeaponIdle( void );
 	void ItemHolsterFrame( void );
 	void ItemPostFrame( void );
@@ -404,7 +404,7 @@ void CWeaponShotgun::FillClip( void )
 // Input  :
 // Output :
 //-----------------------------------------------------------------------------
-void CWeaponShotgun::Pump( void )
+/*/void CWeaponShotgun::Pump( void )
 {
 	CBaseCombatCharacter *pOwner  = GetOwner();
 
@@ -421,7 +421,7 @@ void CWeaponShotgun::Pump( void )
 	pOwner->m_flNextAttack	= gpGlobals->curtime + SequenceDuration();
 	m_flNextPrimaryAttack	= gpGlobals->curtime + SequenceDuration();
 }
-
+/*/
 //-----------------------------------------------------------------------------
 // Purpose: 
 //
@@ -604,11 +604,11 @@ void CWeaponShotgun::ItemPostFrame( void )
 		SetBodygroup(1,1);
 	}
 
-	if ((m_bNeedPump) && (m_flNextPrimaryAttack <= gpGlobals->curtime))
-	{
-		Pump();
-		return;
-	}
+//	if ((m_bNeedPump) && (m_flNextPrimaryAttack <= gpGlobals->curtime))
+//	{
+//		Pump();
+//		return;
+//	}
 	
 	// Shotgun uses same timing and ammo for secondary attack
 	if ((m_bDelayedFire2 || pOwner->m_nButtons & IN_ATTACK2)&&(m_flNextPrimaryAttack <= gpGlobals->curtime))

@@ -33,9 +33,9 @@ public:
 
 	DECLARE_SERVERCLASS();
 	
-	void	Precache( void );
+//	void	Precache( void );
 	void	AddViewKick( void );
-	void	SecondaryAttack( void );
+//	void	SecondaryAttack( void );
 
 	int		GetMinBurst() { return 2; }
 	int		GetMaxBurst() { return 5; }
@@ -43,9 +43,9 @@ public:
 	virtual void Equip( CBaseCombatCharacter *pOwner );
 	bool	Reload( void );
 
-	float	GetFireRate( void ) { return 0.075f; }	// 13.3hz
+	float	GetFireRate(void) { return 0.08f; }	// 13.3hz
 	int		CapabilitiesGet( void ) { return bits_CAP_WEAPON_RANGE_ATTACK1; }
-	int		WeaponRangeAttack2Condition( float flDot, float flDist );
+//	int		WeaponRangeAttack2Condition( float flDot, float flDist );
 	Activity	GetPrimaryAttackActivity( void );
 
 	virtual const Vector& GetBulletSpread( void )
@@ -142,16 +142,6 @@ CWeaponSMG1::CWeaponSMG1( )
 	m_fMaxRange1		= 1400;
 
 	m_bAltFiresUnderwater = false;
-}
-
-//-----------------------------------------------------------------------------
-// Purpose: 
-//-----------------------------------------------------------------------------
-void CWeaponSMG1::Precache( void )
-{
-	UTIL_PrecacheOther("grenade_ar2");
-
-	BaseClass::Precache();
 }
 
 //-----------------------------------------------------------------------------
@@ -270,13 +260,10 @@ Activity CWeaponSMG1::GetPrimaryAttackActivity( void )
 	if ( m_nShotsFired < 2 )
 		return ACT_VM_PRIMARYATTACK;
 
-	if ( m_nShotsFired < 3 )
+	if (m_nShotsFired < 3)
 		return ACT_VM_RECOIL1;
-	
-	if ( m_nShotsFired < 4 )
-		return ACT_VM_RECOIL2;
 
-	return ACT_VM_RECOIL3;
+	return ACT_VM_RECOIL2;
 }
 
 //-----------------------------------------------------------------------------
@@ -284,7 +271,7 @@ Activity CWeaponSMG1::GetPrimaryAttackActivity( void )
 bool CWeaponSMG1::Reload( void )
 {
 	bool fRet;
-	float fCacheTime = m_flNextSecondaryAttack;
+//	float fCacheTime = m_flNextSecondaryAttack;
 
 	fRet = DefaultReload( GetMaxClip1(), GetMaxClip2(), ACT_VM_RELOAD );
 	if ( fRet )
@@ -292,7 +279,7 @@ bool CWeaponSMG1::Reload( void )
 		// Undo whatever the reload process has done to our secondary
 		// attack timer. We allow you to interrupt reloading to fire
 		// a grenade.
-		m_flNextSecondaryAttack = GetOwner()->m_flNextAttack = fCacheTime;
+//		m_flNextSecondaryAttack = GetOwner()->m_flNextAttack = fCacheTime;
 
 		WeaponSound( RELOAD );
 	}
@@ -321,7 +308,7 @@ void CWeaponSMG1::AddViewKick( void )
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void CWeaponSMG1::SecondaryAttack( void )
+/*/void CWeaponSMG1::SecondaryAttack( void )
 {
 	// Only the player fires this way so we can cast
 	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
@@ -385,7 +372,7 @@ void CWeaponSMG1::SecondaryAttack( void )
 	m_iSecondaryAttacks++;
 	gamestats->Event_WeaponFired( pPlayer, false, GetClassname() );
 }
-
+/*/
 #define	COMBINE_MIN_GRENADE_CLEAR_DIST 256
 
 //-----------------------------------------------------------------------------
@@ -394,19 +381,19 @@ void CWeaponSMG1::SecondaryAttack( void )
 //			flDist - 
 // Output : int
 //-----------------------------------------------------------------------------
-int CWeaponSMG1::WeaponRangeAttack2Condition( float flDot, float flDist )
+/*/int CWeaponSMG1::WeaponRangeAttack2Condition( float flDot, float flDist )
 {
 	CAI_BaseNPC *npcOwner = GetOwner()->MyNPCPointer();
 
 	return COND_NONE;
 
-/*
+
 	// --------------------------------------------------------
 	// Assume things haven't changed too much since last time
 	// --------------------------------------------------------
 	if (gpGlobals->curtime < m_flNextGrenadeCheck )
 		return m_lastGrenadeCondition;
-*/
+
 
 	// -----------------------
 	// If moving, don't check.
@@ -493,7 +480,7 @@ int CWeaponSMG1::WeaponRangeAttack2Condition( float flDot, float flDist )
 		return COND_WEAPON_SIGHT_OCCLUDED;
 	}
 }
-
+/*/
 //-----------------------------------------------------------------------------
 const WeaponProficiencyInfo_t *CWeaponSMG1::GetProficiencyValues()
 {

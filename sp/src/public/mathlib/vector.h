@@ -1955,7 +1955,7 @@ inline QAngle& QAngle::operator=(const QAngle &vOther)
 //-----------------------------------------------------------------------------
 inline vec_t& QAngle::operator[](int i)
 {
-	Assert( (i >= 0) && (i < 3) );
+	Assert( (i >= 0) && (i < 4) );
 	return ((vec_t*)this)[i];
 }
 
