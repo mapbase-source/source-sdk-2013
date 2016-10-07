@@ -25,6 +25,7 @@
 #define CL_EVENT_NPC_MUZZLEFLASH3	5033	// Muzzleflash on attachment 3 for third person views
 #define CL_EVENT_SOUND				5004	// Emit a sound // NOTE THIS MUST MATCH THE DEFINE AT CBaseEntity::PrecacheModel on the server!!!!!
 #define CL_EVENT_EJECTBRASS1		6001	// Eject a brass shell from attachment 1
+#define CL_EVENT_EJECTBRASS2		6011	//"EjectBrass_9mm"
 
 #define CL_EVENT_DISPATCHEFFECT0	9001	// Hook into a DispatchEffect on attachment 0
 #define CL_EVENT_DISPATCHEFFECT1	9011	// Hook into a DispatchEffect on attachment 1
