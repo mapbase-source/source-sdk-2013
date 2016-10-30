@@ -98,3 +98,6 @@ materialsrc/boxobama.bmp
 *.max
 *.dll
 *.exe
+*.xml
+*.codeanalysis
+*.lastcodeanalysissucceeded

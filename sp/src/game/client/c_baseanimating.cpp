@@ -3309,20 +3309,24 @@ void C_BaseAnimating::ProcessMuzzleFlashEvent()
 		//FIXME: We should really use a named attachment for this
 		if (m_Attachments.Count() > 0)
 		{
-			Vector vAttachment;
-			QAngle dummyAngles;
-			GetAttachment(1, vAttachment, dummyAngles);
+			Vector vAttachment, vAng;
+			QAngle angles;
+#ifdef HL2_EPISODIC
+			GetAttachment(1, vAttachment, angles); // set 1 instead "muzzle"
+#else
+			GetAttachment("muzzle", vAttachment, angles);
+#endif
+			AngleVectors(angles, &vAng);
+			vAttachment += vAng * 2;
 
-			// Make an elight
-			dlight_t *el = effects->CL_AllocElight(LIGHT_INDEX_MUZZLEFLASH + index);
-			el->origin = vAttachment;
-			el->radius = random->RandomInt(32, 64);
-			el->decay = el->radius / 0.05f;
-			el->die = gpGlobals->curtime + 0.05f;
-			el->color.r = 255;
-			el->color.g = 192;
-			el->color.b = 64;
-			el->color.exponent = 5;
+			dlight_t *dl = effects->CL_AllocDlight(index);
+			dl->origin = vAttachment;
+			dl->color.r = 231;
+			dl->color.g = 219;
+			dl->color.b = 14;
+			dl->die = gpGlobals->curtime + 0.05f;
+			dl->radius = random->RandomFloat(245.0f, 256.0f);
+			dl->decay = 512.0f;
 		}
 	}
 }
@@ -3825,21 +3829,6 @@ void C_BaseAnimating::FireEvent(const Vector& origin, const QAngle& angles, int 
 
 	// Eject brass
 	case CL_EVENT_EJECTBRASS1:
-		if (m_Attachments.Count() > 0)
-		{
-			if (MainViewOrigin().DistToSqr(GetAbsOrigin()) < (256 * 256))
-			{
-				Vector attachOrigin;
-				QAngle attachAngles;
-
-				if (GetAttachment(2, attachOrigin, attachAngles))
-				{
-					tempents->EjectBrass(attachOrigin, attachAngles, GetAbsAngles(), atoi(options));
-				}
-			}
-		}
-		break;
-	case CL_EVENT_EJECTBRASS2:
 		if (m_Attachments.Count() > 0)
 		{
 			if (MainViewOrigin().DistToSqr(GetAbsOrigin()) < (256 * 256))

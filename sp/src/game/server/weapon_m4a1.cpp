@@ -150,8 +150,6 @@ CWeaponM4A1::CWeaponM4A1()
 //-----------------------------------------------------------------------------
 void CWeaponM4A1::Precache(void)
 {
-	UTIL_PrecacheOther("grenade_ar2");
-
 	BaseClass::Precache();
 }
 
