@@ -63,3 +63,7 @@ config.cfg
 *.lastcodeanalysissucceeded
 *.codeanalysis
 *.db-shm
+*.exe
+*.dll
+*.lib
+utils/sapi51
