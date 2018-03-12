@@ -21,7 +21,7 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
-extern ConVar    sk_plr_dmg_m4a1_grenade;
+// extern ConVar    sk_plr_dmg_m4a1_grenade;
 
 class CWeaponM4A1 : public CHLSelectFireMachineGun
 {
