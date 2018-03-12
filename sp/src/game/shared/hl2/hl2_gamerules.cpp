@@ -1764,10 +1764,10 @@ bool CHalfLife2::ShouldBurningPropsEmitLight()
 #ifdef HL2_EPISODIC
 	return IsAlyxInDarknessMode();
 #else
-	return false;
+//	return false;
+	return true;
 #endif // HL2_EPISODIC
 }
-
 
 #endif//CLIENT_DLL
 

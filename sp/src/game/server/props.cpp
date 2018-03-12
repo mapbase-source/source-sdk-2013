@@ -440,10 +440,10 @@ void CBreakableProp::Ignite( float flFlameLifetime, bool bNPCOnly, float flSize,
 
 	BaseClass::Ignite( flFlameLifetime, bNPCOnly, flSize, bCalledByLevelDesigner );
 
-	if ( g_pGameRules->ShouldBurningPropsEmitLight() )
-	{
+//	if ( g_pGameRules->ShouldBurningPropsEmitLight() )
+//	{
 		GetEffectEntity()->AddEffects( EF_DIMLIGHT );
-	}
+//	}
 
 	// Frighten AIs, just in case this is an exploding thing.
 	CSoundEnt::InsertSound( SOUND_DANGER, GetAbsOrigin(), 128.0f, 1.0f, this, SOUNDENT_CHANNEL_REPEATED_DANGER );

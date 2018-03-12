@@ -385,7 +385,7 @@ public:
 	virtual const char *GetChatFormat( bool bTeamOnly, CBasePlayer *pPlayer ) { return NULL; }
 
 	// Whether props that are on fire should get a DLIGHT.
-	virtual bool ShouldBurningPropsEmitLight() { return false; }
+	virtual bool ShouldBurningPropsEmitLight() { return true; } //false;
 
 	virtual bool CanEntityBeUsePushed( CBaseEntity *pEnt ) { return true; }
 
