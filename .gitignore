@@ -66,4 +66,5 @@ config.cfg
 *.exe
 *.dll
 *.lib
-utils/sapi51
+sp/src/utils/sapi51
+*.db-wal
