@@ -431,7 +431,7 @@ void CreateDefaultCubemaps( bool bHDR )
 	}
 
 	// Write the puppy out!
-	char dstVTFFileName[1024];
+/*	char dstVTFFileName[1024];
 	if( bHDR )
 	{
 		sprintf( dstVTFFileName, "materials/maps/%s/cubemapdefault.hdr.vtf", mapbase );
@@ -447,11 +447,11 @@ void CreateDefaultCubemaps( bool bHDR )
 		Warning( "Error serializing default cubemap %s\n", dstVTFFileName );
 		return;
 	}
-
+*/
 	IZip *pak = GetPakFile();
 
 	// spit out the default one.
-	AddBufferToPak( pak, dstVTFFileName, outputBuf.Base(), outputBuf.TellPut(), false );
+//	AddBufferToPak( pak, dstVTFFileName, outputBuf.Base(), outputBuf.TellPut(), false );
 
 	// spit out all of the ones that are attached to world geometry.
 	int i;
@@ -463,7 +463,7 @@ void CreateDefaultCubemaps( bool bHDR )
 		{
 			continue;
 		}
-		AddBufferToPak( pak, vtfName, outputBuf.Base(),outputBuf.TellPut(), false );
+//		AddBufferToPak( pak, vtfName, outputBuf.Base(),outputBuf.TellPut(), false );
 	}
 
 	// Clean up the textures
