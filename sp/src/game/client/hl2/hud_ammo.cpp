@@ -344,7 +344,7 @@ void CHudAmmo::Paint( void )
 
 		// Figure out where we're going to put this
 		int x = text_xpos + ( nLabelWidth - m_iconPrimaryAmmo->Width() ) / 2;
-		int y = text_ypos - ( nLabelHeight + ( m_iconPrimaryAmmo->Height() / 2 ) );
+		int y = text_ypos - ( nLabelHeight + ( m_iconPrimaryAmmo->Height() / 5 ) );
 		
 		m_iconPrimaryAmmo->DrawSelf( x, y, GetFgColor() );
 	}
