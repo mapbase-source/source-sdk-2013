@@ -154,31 +154,37 @@ void CGrenadeFrag::OnRestore( void )
 //-----------------------------------------------------------------------------
 void CGrenadeFrag::CreateEffects( void )
 {
-	// Start up the eye glow
-	m_pMainGlow = CSprite::SpriteCreate( "sprites/redglow1.vmt", GetLocalOrigin(), false );
+	int	nAttachment = LookupAttachment("fuse");
 
-	int	nAttachment = LookupAttachment( "fuse" );
-
-	if ( m_pMainGlow != NULL )
+	if (m_pMainGlow == NULL)
 	{
-		m_pMainGlow->FollowEntity( this );
-		m_pMainGlow->SetAttachment( this, nAttachment );
-		m_pMainGlow->SetTransparency( kRenderGlow, 255, 255, 255, 200, kRenderFxNoDissipation );
-		m_pMainGlow->SetScale( 0.2f );
-		m_pMainGlow->SetGlowProxySize( 4.0f );
+		// Start up the eye glow
+		m_pMainGlow = CSprite::SpriteCreate("sprites/redglow1.vmt", GetLocalOrigin(), false);
+
+		if (m_pMainGlow != NULL)
+		{
+			m_pMainGlow->FollowEntity(this);
+			m_pMainGlow->SetAttachment(this, nAttachment);
+			m_pMainGlow->SetTransparency(kRenderGlow, 255, 255, 255, 200, kRenderFxNoDissipation);
+			m_pMainGlow->SetScale(0.2f);
+			m_pMainGlow->SetGlowProxySize(4.0f);
+		}
 	}
 
-	// Start up the eye trail
-	m_pGlowTrail	= CSpriteTrail::SpriteTrailCreate( "sprites/bluelaser1.vmt", GetLocalOrigin(), false );
-
-	if ( m_pGlowTrail != NULL )
+	if (m_pGlowTrail == NULL)
 	{
-		m_pGlowTrail->FollowEntity( this );
-		m_pGlowTrail->SetAttachment( this, nAttachment );
-		m_pGlowTrail->SetTransparency( kRenderTransAdd, 255, 0, 0, 255, kRenderFxNone );
-		m_pGlowTrail->SetStartWidth( 8.0f );
-		m_pGlowTrail->SetEndWidth( 1.0f );
-		m_pGlowTrail->SetLifeTime( 0.5f );
+		// Start up the eye trail
+		m_pGlowTrail = CSpriteTrail::SpriteTrailCreate("sprites/bluelaser1.vmt", GetLocalOrigin(), false);
+
+		if (m_pGlowTrail != NULL)
+		{
+			m_pGlowTrail->FollowEntity(this);
+			m_pGlowTrail->SetAttachment(this, nAttachment);
+			m_pGlowTrail->SetTransparency(kRenderTransAdd, 255, 0, 0, 255, kRenderFxNone);
+			m_pGlowTrail->SetStartWidth(8.0f);
+			m_pGlowTrail->SetEndWidth(1.0f);
+			m_pGlowTrail->SetLifeTime(0.5f);
+		}
 	}
 }
 
@@ -242,7 +248,13 @@ void CGrenadeFrag::VPhysicsUpdate( IPhysicsObject *pPhysics )
 #else
 	UTIL_TraceLine( start, start + vel * gpGlobals->frametime, CONTENTS_HITBOX|CONTENTS_MONSTER|CONTENTS_SOLID, &filter, &tr );
 #endif
-	if ( tr.startsolid )
+
+	// Integrate this check into the below solid test, to compensate bug that caused the frag to traverse solids
+	// when player throws it close to edges and aiming to them
+	CUtlVector<CBaseEntity *> list;
+	PhysGetListOfPenetratingEntities(this, list);
+
+	if ( tr.startsolid || !list.IsEmpty() )
 	{
 		if ( !m_inSolid )
 		{
@@ -250,10 +262,13 @@ void CGrenadeFrag::VPhysicsUpdate( IPhysicsObject *pPhysics )
 			vel *= -GRENADE_COEFFICIENT_OF_RESTITUTION; // bounce backwards
 			pPhysics->SetVelocity( &vel, NULL );
 		}
+
 		m_inSolid = true;
 		return;
 	}
+
 	m_inSolid = false;
+
 	if ( tr.DidHit() )
 	{
 		Vector dir = vel;
