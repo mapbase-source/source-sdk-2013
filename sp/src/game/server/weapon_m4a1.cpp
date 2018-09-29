@@ -51,7 +51,7 @@ public:
 
 	virtual const Vector& GetBulletSpread(void)
 	{
-		static const Vector cone = VECTOR_CONE_5DEGREES;
+		static const Vector cone = VECTOR_CONE_3DEGREES;
 		return cone;
 	}
 
