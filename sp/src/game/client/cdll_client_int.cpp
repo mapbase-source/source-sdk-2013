@@ -141,6 +141,7 @@
 
 #if defined( TF_CLIENT_DLL )
 #include "econ/tool_items/custom_texture_cache.h"
+
 #endif
 
 #ifdef WORKSHOP_IMPORT_ENABLED
@@ -331,10 +332,9 @@ static ConVar s_CV_ShowParticleCounts("showparticlecounts", "0", 0, "Display num
 static ConVar s_cl_team("cl_team", "default", FCVAR_USERINFO|FCVAR_ARCHIVE, "Default team when joining a game");
 static ConVar s_cl_class("cl_class", "default", FCVAR_USERINFO|FCVAR_ARCHIVE, "Default class when joining a game");
 
-//#ifdef HL1MP_CLIENT_DLL
+#ifdef HL1MP_CLIENT_DLL
 static ConVar s_cl_load_hl1_content("cl_load_hl1_content", "0", FCVAR_ARCHIVE, "Mount the content from Half-Life: Source if possible");
-//#endif
-
+#endif
 
 // Physics system
 bool g_bLevelInitialized;
@@ -854,33 +854,6 @@ ISourceVirtualReality *g_pSourceVR = NULL;
 // Output : int
 //-----------------------------------------------------------------------------
 
-static void MountAdditionalContent()
-{
-	KeyValues *pMainFile = new KeyValues("gameinfo.txt");
-#ifndef _WINDOWS
-	// case sensitivity
-	pMainFile->LoadFromFile(filesystem, "GameInfo.txt", "MOD");
-	if (!pMainFile)
-#endif
-		pMainFile->LoadFromFile(filesystem, "gameinfo.txt", "MOD");
-
-	if (pMainFile)
-	{
-		KeyValues* pFileSystemInfo = pMainFile->FindKey("FileSystem");
-		if (pFileSystemInfo)
-			for (KeyValues *pKey = pFileSystemInfo->GetFirstSubKey(); pKey; pKey = pKey->GetNextKey())
-			{
-				if (strcmp(pKey->GetName(), "AdditionalContentId") == 240)
-				{
-					int appid = abs(pKey->GetInt());
-					if (appid)
-						if (filesystem->MountSteamContent(-appid) != FILESYSTEM_MOUNT_OK)
-							Warning("Unable to mount extra content with appId: %i\n", appid);
-				}
-			}
-	}
-}
-
 int CHLClient::Init( CreateInterfaceFn appSystemFactory, CreateInterfaceFn physicsFactory, CGlobalVarsBase *pGlobals )
 {
 	InitCRTMemDebug();
@@ -989,11 +962,19 @@ int CHLClient::Init( CreateInterfaceFn appSystemFactory, CreateInterfaceFn physi
 		return false;
 	}
 
-	filesystem->AddSearchPath("cstrike", "GAME");
-	if (filesystem->MountSteamContent(-240) == FILESYSTEM_MOUNT_FAILED)
-		return false;
+	if ( steamapicontext && steamapicontext->SteamApps() )
+	{
+		char szPath[ MAX_PATH*2 ];
+		int ccFolder= steamapicontext->SteamApps()->GetAppInstallDir( 240, szPath, sizeof(szPath) );
+		if ( ccFolder > 0 )
+		{
+			V_AppendSlash( szPath, sizeof(szPath) );
+			V_strncat( szPath, "cstrike", sizeof( szPath ) );
 
-	MountAdditionalContent();
+			g_pFullFileSystem->AddSearchPath( szPath, "CSTRIKE" );
+			g_pFullFileSystem->AddSearchPath( szPath, "GAME" );
+		}
+	}
 
 	if ( CommandLine()->FindParm( "-textmode" ) )
 		g_bTextMode = true;
@@ -1171,25 +1152,21 @@ void CHLClient::PostInit()
 
 	g_ClientVirtualReality.StartupComplete();
 
-//#ifdef HL1MP_CLIENT_DLL
+#ifdef HL1MP_CLIENT_DLL
 	if ( s_cl_load_hl1_content.GetBool() && steamapicontext && steamapicontext->SteamApps() )
 	{
 		char szPath[ MAX_PATH*2 ];
-		int ccFolder= steamapicontext->SteamApps()->GetAppInstallDir( 240, szPath, sizeof(szPath) );
+		int ccFolder= steamapicontext->SteamApps()->GetAppInstallDir( 280, szPath, sizeof(szPath) );
 		if ( ccFolder > 0 )
 		{
 			V_AppendSlash( szPath, sizeof(szPath) );
-			V_strncat( szPath, "cstrike", sizeof( szPath ) );
+			V_strncat( szPath, "hl1", sizeof( szPath ) );
 
-			g_pFullFileSystem->AddSearchPath( szPath, "CSTRIKE" );
+			g_pFullFileSystem->AddSearchPath( szPath, "HL1" );
 			g_pFullFileSystem->AddSearchPath( szPath, "GAME" );
-			filesystem->AddSearchPath("cstrike", "GAME");
-			g_pFullFileSystem->AddSearchPath("cstrike", "GAME");
-			filesystem->MountSteamContent(240);
-			filesystem->MountSteamContent(-240);
 		}
 	}
-//#endif
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -2599,8 +2576,8 @@ void CHLClient::ClientAdjustStartSoundParams( StartSoundParams_t& params )
 		// Halloween voice futzery?
 		else
 		{
-			float flHeadScale = 1.f;
-			CALL_ATTRIB_HOOK_FLOAT_ON_OTHER( pEntity, flHeadScale, head_scale );
+			float flVoicePitchScale = 1.f;
+			CALL_ATTRIB_HOOK_FLOAT_ON_OTHER( pEntity, flVoicePitchScale, voice_pitch_scale );
 
 			int iHalloweenVoiceSpell = 0;
 			CALL_ATTRIB_HOOK_INT_ON_OTHER( pEntity, iHalloweenVoiceSpell, halloween_voice_modulation );
@@ -2608,17 +2585,9 @@ void CHLClient::ClientAdjustStartSoundParams( StartSoundParams_t& params )
 			{
 				params.pitch *= 0.8f;
 			}
-			else if( flHeadScale != 1.f )
+			else if( flVoicePitchScale != 1.f )
 			{
-				// Big head, deep voice
-				if( flHeadScale > 1.f )
-				{
-					params.pitch *= 0.8f;
-				}
-				else	// Small head, high voice
-				{
-					params.pitch *= 1.3f;
-				}
+				params.pitch *= flVoicePitchScale;
 			}
 		}
 	}
