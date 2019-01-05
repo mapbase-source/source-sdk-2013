@@ -141,7 +141,6 @@
 
 #if defined( TF_CLIENT_DLL )
 #include "econ/tool_items/custom_texture_cache.h"
-
 #endif
 
 #ifdef WORKSHOP_IMPORT_ENABLED
@@ -335,6 +334,7 @@ static ConVar s_cl_class("cl_class", "default", FCVAR_USERINFO|FCVAR_ARCHIVE, "D
 #ifdef HL1MP_CLIENT_DLL
 static ConVar s_cl_load_hl1_content("cl_load_hl1_content", "0", FCVAR_ARCHIVE, "Mount the content from Half-Life: Source if possible");
 #endif
+
 
 // Physics system
 bool g_bLevelInitialized;
@@ -853,7 +853,6 @@ ISourceVirtualReality *g_pSourceVR = NULL;
 // Input  : engineFactory - 
 // Output : int
 //-----------------------------------------------------------------------------
-
 int CHLClient::Init( CreateInterfaceFn appSystemFactory, CreateInterfaceFn physicsFactory, CGlobalVarsBase *pGlobals )
 {
 	InitCRTMemDebug();
@@ -2576,8 +2575,8 @@ void CHLClient::ClientAdjustStartSoundParams( StartSoundParams_t& params )
 		// Halloween voice futzery?
 		else
 		{
-			float flVoicePitchScale = 1.f;
-			CALL_ATTRIB_HOOK_FLOAT_ON_OTHER( pEntity, flVoicePitchScale, voice_pitch_scale );
+			float flHeadScale = 1.f;
+			CALL_ATTRIB_HOOK_FLOAT_ON_OTHER( pEntity, flHeadScale, head_scale );
 
 			int iHalloweenVoiceSpell = 0;
 			CALL_ATTRIB_HOOK_INT_ON_OTHER( pEntity, iHalloweenVoiceSpell, halloween_voice_modulation );
@@ -2585,9 +2584,17 @@ void CHLClient::ClientAdjustStartSoundParams( StartSoundParams_t& params )
 			{
 				params.pitch *= 0.8f;
 			}
-			else if( flVoicePitchScale != 1.f )
+			else if( flHeadScale != 1.f )
 			{
-				params.pitch *= flVoicePitchScale;
+				// Big head, deep voice
+				if( flHeadScale > 1.f )
+				{
+					params.pitch *= 0.8f;
+				}
+				else	// Small head, high voice
+				{
+					params.pitch *= 1.3f;
+				}
 			}
 		}
 	}
