@@ -637,18 +637,14 @@ bool CServerGameDLL::DLLInit( CreateInterfaceFn appSystemFactory,
 	if ( !soundemitterbase->Connect( appSystemFactory ) )
 		return false;
 
-	if ( steamapicontext && steamapicontext->SteamApps() )
+	char szPath[ MAX_PATH*2 ];
+	int ccFolder= steamapicontext->SteamApps()->GetAppInstallDir( 240, szPath, sizeof(szPath) );
+	if ( ccFolder > 0 )
 	{
-		char szPath[ MAX_PATH*2 ];
-		int ccFolder= steamapicontext->SteamApps()->GetAppInstallDir( 240, szPath, sizeof(szPath) );
-		if ( ccFolder > 0 )
-		{
-			V_AppendSlash( szPath, sizeof(szPath) );
-			V_strncat( szPath, "cstrike", sizeof( szPath ) );
+		V_AppendSlash( szPath, sizeof(szPath) ); //required
+		V_strncat( szPath, "cstrike", sizeof( szPath ) ); //required
 
-			g_pFullFileSystem->AddSearchPath( szPath, "CSTRIKE" );
-			g_pFullFileSystem->AddSearchPath( szPath, "GAME" );
-		}
+		g_pFullFileSystem->AddSearchPath(szPath, "GAME", PATH_ADD_TO_HEAD); //required
 	}
 
 	// cache the globals
