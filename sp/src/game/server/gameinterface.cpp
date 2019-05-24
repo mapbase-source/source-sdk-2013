@@ -188,6 +188,7 @@ IServerReplayContext *g_pReplayServerContext = NULL;
 #endif
 
 IGameSystem *SoundEmitterSystem();
+IGameSystem *ContentMounter();
 
 bool ModelSoundsCacheInit();
 void ModelSoundsCacheShutdown();
@@ -565,6 +566,20 @@ EXPOSE_SINGLE_INTERFACE_GLOBALVAR(CServerGameDLL, IServerGameDLL, INTERFACEVERSI
 // When bumping the version to this interface, check that our assumption is still valid and expose the older version in the same way
 COMPILE_TIME_ASSERT( INTERFACEVERSION_SERVERGAMEDLL_INT == 9 );
 
+//SMOD: SMMOD added this so I guess we should too
+void GetPrimaryModDirectory( char *pcModPath, int nSize )
+{
+	g_pFullFileSystem->GetSearchPath( "MOD", false, pcModPath, nSize );
+
+	// It's possible that we have multiple MOD directories if there is DLC installed. If that's the case get the last one
+	// in the semi-colon delimited list
+	char *pSemi = V_strrchr( pcModPath, ';');
+	if ( pSemi )
+	{
+		V_strncpy( pcModPath, ++pSemi, MAX_PATH );
+	}
+}
+
 bool CServerGameDLL::DLLInit( CreateInterfaceFn appSystemFactory, 
 		CreateInterfaceFn physicsFactory, CreateInterfaceFn fileSystemFactory, 
 		CGlobalVars *pGlobals)
@@ -637,16 +652,6 @@ bool CServerGameDLL::DLLInit( CreateInterfaceFn appSystemFactory,
 	if ( !soundemitterbase->Connect( appSystemFactory ) )
 		return false;
 
-	char szPath[ MAX_PATH*2 ];
-	int ccFolder= steamapicontext->SteamApps()->GetAppInstallDir( 240, szPath, sizeof(szPath) );
-	if ( ccFolder > 0 )
-	{
-		V_AppendSlash( szPath, sizeof(szPath) ); //required
-		V_strncat( szPath, "cstrike", sizeof( szPath ) ); //required
-
-		g_pFullFileSystem->AddSearchPath(szPath, "GAME", PATH_ADD_TO_HEAD); //required
-	}
-
 	// cache the globals
 	gpGlobals = pGlobals;
 
@@ -694,6 +699,8 @@ bool CServerGameDLL::DLLInit( CreateInterfaceFn appSystemFactory,
 
 	// The string system must init first + shutdown last
 	IGameSystem::Add( GameStringSystem() );
+
+	IGameSystem::Add( ContentMounter() );
 
 	// Physics must occur before the sound envelope manager
 	IGameSystem::Add( PhysicsGameSystem() );
@@ -2597,6 +2604,7 @@ void CServerGameEnts::CheckTransmit( CCheckTransmitInfo *pInfo, const unsigned s
 
 
 CServerGameClients g_ServerGameClients;
+IServerGameClients *servergameclients = &g_ServerGameClients;
 // INTERFACEVERSION_SERVERGAMECLIENTS_VERSION_3 is compatible with the latest since we're only adding things to the end, so expose that as well.
 EXPOSE_SINGLE_INTERFACE_GLOBALVAR(CServerGameClients, IServerGameClients003, INTERFACEVERSION_SERVERGAMECLIENTS_VERSION_3, g_ServerGameClients );
 EXPOSE_SINGLE_INTERFACE_GLOBALVAR(CServerGameClients, IServerGameClients, INTERFACEVERSION_SERVERGAMECLIENTS, g_ServerGameClients );

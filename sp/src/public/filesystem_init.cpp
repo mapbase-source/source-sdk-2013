@@ -6,6 +6,8 @@
 
 #undef PROTECTED_THINGS_ENABLE
 #undef PROTECT_FILEIO_FUNCTIONS
+#undef PROTECTED_STRINGS_ENABLE
+#undef sprintf
 #ifndef POSIX
 #undef fopen
 #endif
@@ -15,6 +17,7 @@
 #include <direct.h>
 #include <io.h>
 #include <process.h>
+#include <stdio.h>
 #elif defined( POSIX )
 #include <unistd.h>
 #define _chdir chdir
@@ -468,7 +471,6 @@ static void FileSystem_AddLoadedSearchPath(
 	const char *fullLocationPath, 
 	bool bLowViolence )
 {
-
 	// Check for mounting LV game content in LV builds only
 	if ( V_stricmp( pPathID, "game_lv" ) == 0 )
 	{
@@ -493,6 +495,15 @@ static void FileSystem_AddLoadedSearchPath(
 		pPathID = "game";
 	}
 
+	if ( V_stricmp( pPathID, "game_write" ) == 0 ||
+		V_stricmp( pPathID, "mod_write" ) == 0 ||
+		V_stricmp( pPathID, "default_write_path" ) == 0 ||
+		V_stricmp( pPathID, "platform" ) == 0 ||
+		V_stricmp( pPathID, "gamebin" ) == 0)
+	{
+		if ( initInfo.m_bGameOnly )
+			return;
+	}
 
 	// Special processing for ordinary game folders
 	if ( V_stristr( fullLocationPath, ".vpk" ) == NULL && Q_stricmp( pPathID, "game" ) == 0 )
@@ -501,10 +512,85 @@ static void FileSystem_AddLoadedSearchPath(
 		{
 			char szPath[MAX_PATH];
 			Q_snprintf( szPath, sizeof(szPath), "%s_tempcontent", fullLocationPath );
-			initInfo.m_pFileSystem->AddSearchPath( szPath, pPathID, PATH_ADD_TO_TAIL );
+			initInfo.m_pFileSystem->RemoveSearchPath( szPath, pPathID );
 		}
 	}
 
+
+	if ( initInfo.m_pLanguage &&
+		Q_stricmp( initInfo.m_pLanguage, "english" ) &&
+		V_strstr( fullLocationPath, "_english" ) != NULL )
+	{
+		char szPath[MAX_PATH];
+		char szLangString[MAX_PATH];
+
+		// Need to add a language version of this path first
+
+		Q_snprintf( szLangString, sizeof(szLangString), "_%s", initInfo.m_pLanguage);
+		V_StrSubst( fullLocationPath, "_english", szLangString, szPath, sizeof( szPath ), true );
+		
+		if( V_stristr(fullLocationPath, ".vpk") == NULL )
+			initInfo.m_pFileSystem->RemoveSearchPath( szPath, pPathID );
+		else
+			FileSystem_UnloadVPK( initInfo.m_pFileSystem, pPathID, szPath );
+	}
+
+	if( V_stristr(fullLocationPath, ".vpk") == NULL )
+		initInfo.m_pFileSystem->RemoveSearchPath( fullLocationPath, pPathID );
+	else
+		FileSystem_UnloadVPK( initInfo.m_pFileSystem, pPathID, fullLocationPath );
+}
+
+static void FileSystem_AddLoadedSearchPath(
+	CFSSearchPathsInit &initInfo,
+	const char *pPathID,
+	const char *fullLocationPath,
+	bool bLowViolence )
+{
+	// Check for mounting LV game content in LV builds only
+	if ( V_stricmp( pPathID, "game_lv" ) == 0 )
+	{
+
+		// Not in LV build, don't mount
+		if ( !initInfo.m_bLowViolence )
+			return;
+
+		// Mount, as a game path
+		pPathID = "game";
+	}
+
+	// Check for mounting HD game content if enabled
+	if ( V_stricmp( pPathID, "game_hd" ) == 0 )
+	{
+
+		// Not in LV build, don't mount
+		if ( !initInfo.m_bMountHDContent )
+			return;
+
+		// Mount, as a game path
+		pPathID = "game";
+	}
+
+	if ( V_stricmp( pPathID, "game_write" ) == 0 ||
+		V_stricmp( pPathID, "mod_write" ) == 0 ||
+		V_stricmp( pPathID, "default_write_path" ) == 0 ||
+		V_stricmp( pPathID, "platform" ) == 0 ||
+		V_stricmp( pPathID, "gamebin" ) == 0)
+	{
+		if ( initInfo.m_bGameOnly )
+			return;
+	}
+
+	// Special processing for ordinary game folders
+	if ( V_stristr( fullLocationPath, ".vpk" ) == NULL && Q_stricmp( pPathID, "game" ) == 0 )
+	{
+		if ( CommandLine()->FindParm( "-tempcontent" ) != 0 )
+		{
+			char szPath[MAX_PATH];
+			Q_snprintf( szPath, sizeof(szPath), "%s_tempcontent", fullLocationPath );
+			initInfo.m_pFileSystem->AddSearchPath( szPath, pPathID, initInfo.m_nPathAdd );
+		}
+	}
 	
 	if ( initInfo.m_pLanguage &&
 	     Q_stricmp( initInfo.m_pLanguage, "english" ) &&
@@ -517,15 +603,339 @@ static void FileSystem_AddLoadedSearchPath(
 
 		Q_snprintf( szLangString, sizeof(szLangString), "_%s", initInfo.m_pLanguage);
 		V_StrSubst( fullLocationPath, "_english", szLangString, szPath, sizeof( szPath ), true );
-		initInfo.m_pFileSystem->AddSearchPath( szPath, pPathID, PATH_ADD_TO_TAIL );		
+
+		if( V_stristr( fullLocationPath, ".vpk" ) == NULL )
+			initInfo.m_pFileSystem->AddSearchPath( szPath, pPathID, initInfo.m_nPathAdd );
+		else
+			FileSystem_LoadVPK( initInfo.m_pFileSystem, pPathID, szPath, initInfo.m_nPathAdd );
 	}
 
-	initInfo.m_pFileSystem->AddSearchPath( fullLocationPath, pPathID, PATH_ADD_TO_TAIL );
+	if( V_stristr( fullLocationPath, ".vpk" ) == NULL )
+		initInfo.m_pFileSystem->AddSearchPath( fullLocationPath, pPathID, initInfo.m_nPathAdd );
+	else
+		FileSystem_LoadVPK( initInfo.m_pFileSystem, pPathID, fullLocationPath, initInfo.m_nPathAdd );
 }
 
 static int SortStricmp( char * const * sz1, char * const * sz2 )
 {
 	return V_stricmp( *sz1, *sz2 );
+}
+
+FSReturnCode_t FileSystem_LoadVPK( IFileSystem *pFileSystem, const char *pathid, const char *vpk, SearchPathAdd_t type )
+{
+	if ( !pFileSystem || !pathid || !vpk )
+		return SetupFileSystemError( false, FS_INVALID_PARAMETERS, "FileSystem_LoadVPK: Invalid parameters specified." );
+
+	char fullpath[MAX_PATH];
+	V_strcpy_safe(fullpath, vpk);
+	if(V_stristr(vpk, "_dir.vpk")) {
+		V_StrSlice(fullpath, 0, V_strlen(fullpath)-V_strlen("_dir.vpk"), fullpath, sizeof(fullpath));
+		V_SetExtension(fullpath, ".vpk", sizeof(fullpath));
+	}
+
+	class CPackedStore
+	{
+		char pad[12];
+		public:
+		char m_pszFileBaseName[MAX_PATH];
+		char m_pszFullPathName[MAX_PATH];
+	};
+
+	class CSearchPath { char pad[24]; };
+
+	class CPathIDInfo
+	{
+		public:
+		bool m_bByRequestOnly;
+		CUtlSymbol m_PathID;
+		const char *m_pDebugPathID;
+	};
+
+	pFileSystem->AsyncFinishAll();
+	
+	bool found = false;
+
+	CUtlVector<CSearchPath> *m_SearchPaths = &*(CUtlVector<CSearchPath> *)((uint8 *)pFileSystem + 72);
+	const CThreadMutex *m_SearchPathsMutex = &*(CThreadMutex *)((uint8 *)pFileSystem + 40);
+
+	m_SearchPathsMutex->Lock();
+	int c = m_SearchPaths->Count();
+	for(int i = 0; i < c; i++) {
+		const CSearchPath &search = m_SearchPaths->Element(i);
+		const CPackedStore *m_pPackFile = *(CPackedStore **)((uint8 *)&search + 20);
+		const CPathIDInfo *m_pPathIDInfo = *(CPathIDInfo **)((uint8 *)&search + 4);
+		if(m_pPackFile) {
+			if(V_stricmp(m_pPathIDInfo->m_pDebugPathID, pathid) == 0 &&
+			   V_stricmp(m_pPackFile->m_pszFullPathName, fullpath) == 0) {
+				found = true;
+				break;
+			}
+		}
+	}
+	m_SearchPathsMutex->Unlock();
+
+	if(!found)
+		pFileSystem->AddSearchPath(vpk, pathid, type);
+
+	return FS_OK;
+}
+
+FSReturnCode_t FileSystem_UnloadVPK( IFileSystem *pFileSystem, const char *pathid, const char *vpk )
+{
+	if ( !pFileSystem || !vpk )
+		return SetupFileSystemError( false, FS_INVALID_PARAMETERS, "FileSystem_UnloadVPK: Invalid parameters specified." );
+
+	char fullpath[MAX_PATH];
+	V_strcpy_safe(fullpath, vpk);
+	if(V_stristr(vpk, "_dir.vpk")) {
+		V_StrSlice(fullpath, 0, V_strlen(fullpath)-V_strlen("_dir.vpk"), fullpath, sizeof(fullpath));
+		V_SetExtension(fullpath, ".vpk", sizeof(fullpath));
+	}
+
+	class CPackedStore
+	{
+		char pad[12];
+		public:
+		char m_pszFileBaseName[MAX_PATH];
+		char m_pszFullPathName[MAX_PATH];
+	};
+
+	class CSearchPath { char pad[24]; };
+
+	class CPathIDInfo
+	{
+		public:
+		bool m_bByRequestOnly;
+		CUtlSymbol m_PathID;
+		const char *m_pDebugPathID;
+	};
+
+	pFileSystem->AsyncFinishAll();
+
+	CUtlVector<CSearchPath> *m_SearchPaths = &*(CUtlVector<CSearchPath> *)((uint8 *)pFileSystem + 72);
+	const CThreadMutex *m_SearchPathsMutex = &*(CThreadMutex *)((uint8 *)pFileSystem + 40);
+
+	m_SearchPathsMutex->Lock();
+	int c = m_SearchPaths->Count();
+	for(int i = 0; i < c; i++) {
+		const CSearchPath &search = m_SearchPaths->Element(i);
+		const CPackedStore *m_pPackFile = *(CPackedStore **)((uint8 *)&search + 20);
+		const CPathIDInfo *m_pPathIDInfo = *(CPathIDInfo **)((uint8 *)&search + 4);
+		if(m_pPackFile) {
+			bool remove = false;
+			if(pathid) {
+				if((V_stricmp(pathid, m_pPathIDInfo->m_pDebugPathID) == 0))
+					remove = true;
+			} else
+				remove = true;
+			if(remove && V_stricmp(fullpath, m_pPackFile->m_pszFullPathName) == 0) {
+				m_SearchPaths->Remove(i);
+				i--;
+				c--;
+				break;
+			}
+		}
+	}
+	m_SearchPathsMutex->Unlock();
+
+	return FS_OK;
+}
+
+FSReturnCode_t FileSystem_UnloadSearchPaths( CFSSearchPathsInit &initInfo )
+{
+	if ( !initInfo.m_pFileSystem || !initInfo.m_pDirectoryName )
+		return SetupFileSystemError( false, FS_INVALID_PARAMETERS, "FileSystem_UnloadSearchPaths: Invalid parameters specified." );
+
+	KeyValues *pMainFile, *pFileSystemInfo, *pSearchPaths;
+	FSReturnCode_t retVal = LoadGameInfoFile( initInfo.m_pDirectoryName, pMainFile, pFileSystemInfo, pSearchPaths );
+	if ( retVal != FS_OK )
+		return retVal;
+
+	// All paths except those marked with |gameinfo_path| are relative to the base dir.
+	char baseDir[MAX_PATH];
+	if( initInfo.m_pBaseDir == NULL ) {
+		if ( !FileSystem_GetBaseDir( baseDir, sizeof( baseDir ) ) )
+			return SetupFileSystemError( false, FS_INVALID_PARAMETERS, "FileSystem_GetBaseDir failed." );
+	} else {
+		sprintf(baseDir, initInfo.m_pBaseDir);
+	}
+
+	// The MOD directory is always the one that contains gameinfo.txt
+	Q_strncpy( initInfo.m_ModPath, initInfo.m_pDirectoryName, sizeof( initInfo.m_ModPath ) );
+
+	#define GAMEINFOPATH_TOKEN		"|gameinfo_path|"
+	#define BASESOURCEPATHS_TOKEN	"|all_source_engine_paths|"
+
+	const char *pszExtraSearchPath = CommandLine()->ParmValue( "-remove_search_path" );
+	if ( pszExtraSearchPath )
+	{
+		CUtlStringList vecPaths;
+		V_SplitString( pszExtraSearchPath, ",", vecPaths );
+		FOR_EACH_VEC( vecPaths, idxExtraPath )
+		{
+			char szAbsSearchPath[MAX_PATH];
+			Q_StripPrecedingAndTrailingWhitespace( vecPaths[ idxExtraPath ] );
+			V_MakeAbsolutePath( szAbsSearchPath, sizeof( szAbsSearchPath ), vecPaths[ idxExtraPath ], baseDir );
+			V_FixSlashes( szAbsSearchPath );
+			if ( !V_RemoveDotSlashes( szAbsSearchPath ) )
+				Error( "Bad -remove_search_path - Can't resolve pathname for '%s'", szAbsSearchPath );
+			V_StripTrailingSlash( szAbsSearchPath );
+			FileSystem_RemoveLoadedSearchPath( initInfo, "GAME", szAbsSearchPath, false );
+			FileSystem_RemoveLoadedSearchPath( initInfo, "MOD", szAbsSearchPath, false );
+		}
+	}
+
+	bool bLowViolence = initInfo.m_bLowViolence;
+	for ( KeyValues *pCur=pSearchPaths->GetFirstValue(); pCur; pCur=pCur->GetNextValue() )
+	{
+		const char *pLocation = pCur->GetString();
+		const char *pszBaseDir = baseDir;
+
+		if ( Q_stristr( pLocation, GAMEINFOPATH_TOKEN ) == pLocation )
+		{
+			pLocation += strlen( GAMEINFOPATH_TOKEN );
+			pszBaseDir = initInfo.m_pDirectoryName;
+		}
+		else if ( Q_stristr( pLocation, BASESOURCEPATHS_TOKEN ) == pLocation )
+		{
+			// This is a special identifier that tells it to add the specified path for all source engine versions equal to or prior to this version.
+			// So in Orange Box, if they specified:
+			//		|all_source_engine_paths|hl2
+			// it would add the ep2\hl2 folder and the base (ep1-era) hl2 folder.
+			//
+			// We need a special identifier in the gameinfo.txt here because the base hl2 folder exists in different places.
+			// In the case of a game or a Steam-launched dedicated server, all the necessary prior engine content is mapped in with the Steam depots,
+			// so we can just use the path as-is.
+			pLocation += strlen( BASESOURCEPATHS_TOKEN );
+		}
+
+		CUtlStringList vecFullLocationPaths;
+		char szAbsSearchPath[MAX_PATH];
+		V_MakeAbsolutePath( szAbsSearchPath, sizeof( szAbsSearchPath ), pLocation, pszBaseDir );
+
+		// Now resolve any ./'s.
+		V_FixSlashes( szAbsSearchPath );
+		if ( !V_RemoveDotSlashes( szAbsSearchPath ) )
+			Error( "FileSystem_UnloadSearchPaths - Can't resolve pathname for '%s'", szAbsSearchPath );
+		V_StripTrailingSlash( szAbsSearchPath );
+
+		// Don't bother doing any wildcard expansion unless it has wildcards.  This avoids the weird
+		// thing with xxx_dir.vpk files being referred to simply as xxx.vpk.
+		if ( V_stristr( pLocation, "?") == NULL && V_stristr( pLocation, "*") == NULL )
+		{
+			vecFullLocationPaths.CopyAndAddToTail( szAbsSearchPath );
+		}
+		else
+		{
+			FileFindHandle_t findHandle = NULL;
+			const char *pszFoundShortName = initInfo.m_pFileSystem->FindFirst( szAbsSearchPath, &findHandle );
+			if ( pszFoundShortName )
+			{
+				do
+				{
+
+					// We only know how to mount VPK's and directories
+					if ( pszFoundShortName[0] != '.' && ( initInfo.m_pFileSystem->FindIsDirectory( findHandle ) || V_stristr( pszFoundShortName, ".vpk" ) ) )
+					{
+						char szAbsName[MAX_PATH];
+						V_ExtractFilePath( szAbsSearchPath, szAbsName, sizeof( szAbsName ) );
+						V_AppendSlash( szAbsName, sizeof(szAbsName) );
+						V_strcat_safe( szAbsName, pszFoundShortName );
+
+						vecFullLocationPaths.CopyAndAddToTail( szAbsName );
+
+						// Check for a common mistake
+						if (
+							!V_stricmp( pszFoundShortName, "materials" )
+							|| !V_stricmp( pszFoundShortName, "maps" )
+							|| !V_stricmp( pszFoundShortName, "resource" )
+							|| !V_stricmp( pszFoundShortName, "scripts" )
+							|| !V_stricmp( pszFoundShortName, "sound" )
+							|| !V_stricmp( pszFoundShortName, "models" ) )
+						{
+
+							char szReadme[MAX_PATH];
+							V_ExtractFilePath( szAbsSearchPath, szReadme, sizeof( szReadme ) );
+							V_AppendSlash( szReadme, sizeof(szReadme) );
+							V_strcat_safe( szReadme, "readme.txt" );
+
+							Error(
+								"Tried to add %s as a search path.\n"
+								"\nThis is probably not what you intended.\n"
+								"\nCheck %s for more info\n",
+								szAbsName, szReadme );
+						}
+
+					}
+					pszFoundShortName = initInfo.m_pFileSystem->FindNext( findHandle );
+				} while ( pszFoundShortName );
+				initInfo.m_pFileSystem->FindClose( findHandle );
+			}
+
+			// Sort alphabetically.  Also note that this will put
+			// all the xxx_000.vpk packs just before the corresponding
+			// xxx_dir.vpk
+			vecFullLocationPaths.Sort( SortStricmp );
+
+			// Now for any _dir.vpk files, remove the _nnn.vpk ones.
+			int idx = vecFullLocationPaths.Count()-1;
+			while ( idx > 0 )
+			{
+				char szTemp[ MAX_PATH ];
+				V_strcpy_safe( szTemp, vecFullLocationPaths[ idx ] );
+				--idx;
+
+				char *szDirVpk = V_stristr( szTemp, "_dir.vpk" );
+				if ( szDirVpk != NULL )
+				{
+					*szDirVpk = '\0';
+					while ( idx >= 0 )
+					{
+						char *pszPath = vecFullLocationPaths[ idx ];
+						if ( V_stristr( pszPath, szTemp ) != pszPath )
+							break;
+						delete pszPath;
+						vecFullLocationPaths.Remove( idx );
+						--idx;
+					}
+				}
+			}
+		}
+
+		// Parse Path ID list
+		CUtlStringList vecPathIDs;
+		V_SplitString( pCur->GetName(), "+", vecPathIDs );
+		FOR_EACH_VEC( vecPathIDs, idxPathID )
+		{
+			Q_StripPrecedingAndTrailingWhitespace( vecPathIDs[ idxPathID ] );
+		}
+
+		// Mount them.
+		FOR_EACH_VEC_BACK( vecFullLocationPaths, idxLocation )
+		{
+			FOR_EACH_VEC_BACK( vecPathIDs, idxPathID )
+			{
+				FileSystem_RemoveLoadedSearchPath( initInfo, vecPathIDs[ idxPathID ], vecFullLocationPaths[ idxLocation ], bLowViolence );
+			}
+		}
+	}
+
+	pMainFile->deleteThis();
+
+	// Also, mark specific path IDs as "by request only". That way, we won't waste time searching in them
+	// when people forget to specify a search path.
+	initInfo.m_pFileSystem->MarkPathIDByRequestOnly( "executable_path", true );
+	initInfo.m_pFileSystem->MarkPathIDByRequestOnly( "gamebin", true );
+	initInfo.m_pFileSystem->MarkPathIDByRequestOnly( "download", true );
+	initInfo.m_pFileSystem->MarkPathIDByRequestOnly( "mod", true );
+	initInfo.m_pFileSystem->MarkPathIDByRequestOnly( "game_write", true );
+	initInfo.m_pFileSystem->MarkPathIDByRequestOnly( "mod_write", true );
+
+	#ifdef _DEBUG
+	// initInfo.m_pFileSystem->PrintSearchPaths();
+	#endif
+
+	return FS_OK;
 }
 
 FSReturnCode_t FileSystem_LoadSearchPaths( CFSSearchPathsInit &initInfo )
@@ -540,8 +950,12 @@ FSReturnCode_t FileSystem_LoadSearchPaths( CFSSearchPathsInit &initInfo )
 	
 	// All paths except those marked with |gameinfo_path| are relative to the base dir.
 	char baseDir[MAX_PATH];
-	if ( !FileSystem_GetBaseDir( baseDir, sizeof( baseDir ) ) )
-		return SetupFileSystemError( false, FS_INVALID_PARAMETERS, "FileSystem_GetBaseDir failed." );
+	if( initInfo.m_pBaseDir == NULL ) {
+		if ( !FileSystem_GetBaseDir( baseDir, sizeof( baseDir ) ) )
+			return SetupFileSystemError( false, FS_INVALID_PARAMETERS, "FileSystem_GetBaseDir failed." );
+	} else {
+		sprintf(baseDir, initInfo.m_pBaseDir);
+	}
 
 	// The MOD directory is always the one that contains gameinfo.txt
 	Q_strncpy( initInfo.m_ModPath, initInfo.m_pDirectoryName, sizeof( initInfo.m_ModPath ) );

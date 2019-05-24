@@ -148,6 +148,8 @@ public:
 	// This specifies the directory where gameinfo.txt is. This must be set.
 	const char		*m_pDirectoryName;
 
+	const char		*m_pBaseDir;
+
 	// If this is set, then any search paths with a _english will be replaced with _m_pLanguage and added before the
 	// _english path
 	// (default: null)
@@ -158,6 +160,8 @@ public:
 
 	bool m_bMountHDContent;
 	bool m_bLowViolence;
+	bool m_bGameOnly;
+	SearchPathAdd_t m_nPathAdd;
 
 // Outputs.
 public:
@@ -188,6 +192,9 @@ FSReturnCode_t FileSystem_MountContent( CFSMountContentInfo &fsInfo );
 
 // Step 4: Load the search paths out of pGameDirectory\gameinfo.txt.
 FSReturnCode_t FileSystem_LoadSearchPaths( CFSSearchPathsInit &initInfo );
+FSReturnCode_t FileSystem_UnloadSearchPaths( CFSSearchPathsInit &initInfo );
+FSReturnCode_t FileSystem_UnloadVPK( IFileSystem *pFileSystem, const char *pathid, const char *vpk );
+FSReturnCode_t FileSystem_LoadVPK( IFileSystem *pFileSystem, const char *pathid, const char *vpk, SearchPathAdd_t type );
 
 // This is automatically done during step 3, but if you want to redo all the search
 // paths (like Hammer does), you can call this to reset executable_path.

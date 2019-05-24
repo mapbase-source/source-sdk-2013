@@ -149,6 +149,9 @@
 
 extern vgui::IInputInternal *g_InputInternal;
 
+//SMOD: SMMOD added this for some reason
+const char *COM_GetModDirectory(); // return the mod dir (rather than the complete -game param, which can be a path)
+
 //=============================================================================
 // HPE_BEGIN
 // [dwenger] Necessary for stats display
@@ -849,6 +852,21 @@ extern IGameSystem *ViewportClientSystem();
 //-----------------------------------------------------------------------------
 ISourceVirtualReality *g_pSourceVR = NULL;
 
+//SMOD: SMMOD added this for some reason, looks like it could be somewhat useful
+void GetPrimaryModDirectory(char *pcModPath, int nSize)
+{
+	g_pFullFileSystem->GetSearchPath("MOD", false, pcModPath, nSize);
+
+	// It's possible that we have multiple MOD directories if there is DLC installed. If that's the case get the last one
+	// in the semi-colon delimited list
+	char *pSemi = V_strrchr(pcModPath, ';');
+	if (pSemi)
+	{
+		V_strncpy(pcModPath, ++pSemi, MAX_PATH);
+	}
+}
+
+//-----------------------------------------------------------------------------
 // Purpose: Called when the DLL is first loaded.
 // Input  : engineFactory - 
 // Output : int
@@ -959,16 +977,6 @@ int CHLClient::Init( CreateInterfaceFn appSystemFactory, CreateInterfaceFn physi
 	if ( !soundemitterbase->Connect( appSystemFactory ) )
 	{
 		return false;
-	}
-
-	char szPath[ MAX_PATH*2 ];
-	int ccFolder= steamapicontext->SteamApps()->GetAppInstallDir( 240, szPath, sizeof(szPath) );
-	if ( ccFolder > 0 )
-	{
-		V_AppendSlash( szPath, sizeof(szPath) ); //required
-		V_strncat( szPath, "cstrike", sizeof( szPath ) ); //required
-
-		g_pFullFileSystem->AddSearchPath(szPath, "GAME", PATH_ADD_TO_HEAD); //required
 	}
 
 	if ( CommandLine()->FindParm( "-textmode" ) )

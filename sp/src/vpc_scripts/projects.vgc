@@ -17,6 +17,7 @@ $Project "client"
 {
 	"game\client\client_hl2.vpc"		[($WIN32||$X360||$POSIX) && $HL2]
 	"game\client\client_episodic.vpc"	[($WIN32||$X360||$POSIX) && $EPISODIC]
+	"game\client\client_boxobama.vpc"	[($WIN32||$X360||$POSIX) && $BOXOBAMA]
 }
 
 $Project "fgdlib"
@@ -44,6 +45,7 @@ $Project "server"
 {
 	"game\server\server_hl2.vpc"		[($WIN32||$X360||$POSIX) && $HL2]
 	"game\server\server_episodic.vpc"	[($WIN32||$X360||$POSIX) && $EPISODIC]
+	"game\server\server_boxobama.vpc"	[($WIN32||$X360||$POSIX) && $BOXOBAMA]
 }
 
 $Project "mathlib"

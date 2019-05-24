@@ -111,7 +111,7 @@ public:
 		return m_Lookup.Count();
 	}
 
-protected:
+public:
 	class CStringPoolIndex
 	{
 	public:
@@ -157,8 +157,10 @@ protected:
 		char m_Data[1];
 	};
 
+protected:
 	CTree m_Lookup;
 	bool m_bInsensitive;
+	//mutable unsigned short m_nUserSearchStringHash;
 	mutable const char* m_pUserSearchString;
 
 	// stores the string data
