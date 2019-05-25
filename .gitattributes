@@ -1,8 +1,5 @@
 * text eol=lf
 
-creategameprojects text
-createallprojects text
-xcode_ccache_wrapper text
 vpc text
 vpc_linux binary
 vpc_osx binary
@@ -48,8 +45,6 @@ LICENSE text
 *.exe binary
 *.dll binary
 *.bsp binary
-protoc binary
-ccache binary
 
 gtest_output_test_golden_lin.txt binary
 mod_*_english.txt binary
