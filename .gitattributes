@@ -2,7 +2,7 @@
 
 creategameprojects text eol=lf
 createallprojects text eol=lf
-xcode_ccache_wrapper text
+xcode_ccache_wrapper text eol=lf
 vpc text
 vpc_linux binary
 vpc_osx binary
