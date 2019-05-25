@@ -1,7 +1,7 @@
 * text eol=crlf
 
-creategameprojects text
-createallprojects text
+creategameprojects text eol=lf
+createallprojects text eol=lf
 xcode_ccache_wrapper text
 vpc text
 vpc_linux binary
@@ -46,6 +46,7 @@ CONTRIBUTING text
 LICENSE text
 
 *.exe binary
+*.dll binary
 *.bsp binary
 protoc binary
 ccache binary
