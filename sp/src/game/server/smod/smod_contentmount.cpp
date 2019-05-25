@@ -258,7 +258,7 @@ void CSoundEmitterSystemBase::ParseManifest(const char *path)
 
 void CContentMounter::Refresh()
 {
-//	SoundEmitterBase()->Flush();
+	SoundEmitterBase()->Flush();
 	SoundEmitterBase()->ParseManifest("scripts/game_sounds_smod_manifest.txt");
 
 	mdlcache->Flush(MDLCACHE_FLUSH_VCOLLIDE);

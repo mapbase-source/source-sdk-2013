@@ -465,7 +465,7 @@ FSReturnCode_t LoadGameInfoFile(
 }
 
 
-static void FileSystem_AddLoadedSearchPath( 
+static void FileSystem_RemoveLoadedSearchPath(
 	CFSSearchPathsInit &initInfo, 
 	const char *pPathID, 
 	const char *fullLocationPath, 
