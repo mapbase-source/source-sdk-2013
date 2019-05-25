@@ -1,4 +1,4 @@
-text eol=crlf
+* text eol=crlf
 
 creategameprojects text
 createallprojects text
