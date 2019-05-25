@@ -46,6 +46,8 @@ CONTRIBUTING text
 LICENSE text
 
 *.exe binary
+*.dll binary
+*.bsp binary
 protoc binary
 ccache binary
 
