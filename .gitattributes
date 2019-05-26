@@ -48,6 +48,8 @@ LICENSE text
 *.exe binary
 *.dll binary
 *.bsp binary
+*.lib binary
+*.mak text
 protoc binary
 ccache binary
 
