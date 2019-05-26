@@ -55,7 +55,7 @@ public:
 	}
 	bool MyTouch( CBasePlayer *pPlayer )
 	{
-		if (ITEM_GiveAmmo( pPlayer, SIZE_AMMO_PISTOL, "Pistol"))
+		if (ITEM_GiveAmmo( pPlayer, SIZE_AMMO_556, "556"))
 		{
 			if ( g_pGameRules->ItemShouldRespawn( this ) == GR_ITEM_RESPAWN_NO )
 			{
@@ -68,7 +68,7 @@ public:
 	}
 };
 LINK_ENTITY_TO_CLASS(item_box_srounds, CItem_BoxSRounds);
-LINK_ENTITY_TO_CLASS(item_ammo_pistol, CItem_BoxSRounds);
+LINK_ENTITY_TO_CLASS(item_ammo_556, CItem_BoxSRounds);
 
 // ========================================================================
 //	>> LargeBoxSRounds
@@ -90,7 +90,7 @@ public:
 	}
 	bool MyTouch( CBasePlayer *pPlayer )
 	{
-		if (ITEM_GiveAmmo( pPlayer, SIZE_AMMO_PISTOL_LARGE, "Pistol"))
+		if (ITEM_GiveAmmo( pPlayer, SIZE_AMMO_556_LARGE, "556"))
 		{
 			if ( g_pGameRules->ItemShouldRespawn( this ) == GR_ITEM_RESPAWN_NO )
 			{
@@ -124,7 +124,7 @@ public:
 	}
 	bool MyTouch( CBasePlayer *pPlayer )
 	{
-		if (ITEM_GiveAmmo( pPlayer, SIZE_AMMO_SMG1, "SMG1"))
+		if (ITEM_GiveAmmo( pPlayer, SIZE_AMMO_9MM, "9MM"))
 		{
 			if ( g_pGameRules->ItemShouldRespawn( this ) == GR_ITEM_RESPAWN_NO )
 			{
@@ -136,7 +136,7 @@ public:
 	}
 };
 LINK_ENTITY_TO_CLASS(item_box_mrounds, CItem_BoxMRounds);
-LINK_ENTITY_TO_CLASS(item_ammo_smg1, CItem_BoxMRounds);
+LINK_ENTITY_TO_CLASS(item_ammo_9mm, CItem_BoxMRounds);
 
 // ========================================================================
 //	>> LargeBoxMRounds
@@ -158,7 +158,7 @@ public:
 	}
 	bool MyTouch( CBasePlayer *pPlayer )
 	{
-		if (ITEM_GiveAmmo( pPlayer, SIZE_AMMO_SMG1_LARGE, "SMG1"))
+		if (ITEM_GiveAmmo( pPlayer, SIZE_AMMO_9MM_LARGE, "9MM"))
 		{
 			if ( g_pGameRules->ItemShouldRespawn( this ) == GR_ITEM_RESPAWN_NO )
 			{
@@ -170,7 +170,7 @@ public:
 	}
 };
 LINK_ENTITY_TO_CLASS(item_large_box_mrounds, CItem_LargeBoxMRounds);
-LINK_ENTITY_TO_CLASS(item_ammo_smg1_large, CItem_LargeBoxMRounds);
+LINK_ENTITY_TO_CLASS(item_ammo_9mm_large, CItem_LargeBoxMRounds);
 
 // ========================================================================
 //	>> BoxLRounds
@@ -244,10 +244,10 @@ LINK_ENTITY_TO_CLASS(item_ammo_ar2_large, CItem_LargeBoxLRounds);
 // ========================================================================
 //	>> CItem_Box357Rounds
 // ========================================================================
-class CItem_Box357Rounds : public CItem
+class CItem_Box50AERounds : public CItem
 {
 public:
-	DECLARE_CLASS( CItem_Box357Rounds, CItem );
+	DECLARE_CLASS( CItem_Box50AERounds, CItem );
 
 	void Precache( void )
 	{
@@ -262,7 +262,7 @@ public:
 
 	bool MyTouch( CBasePlayer *pPlayer )
 	{
-		if (ITEM_GiveAmmo( pPlayer, SIZE_AMMO_357, "357"))
+		if (ITEM_GiveAmmo( pPlayer, SIZE_AMMO_50AE, "50AE"))
 		{
 			if ( g_pGameRules->ItemShouldRespawn( this ) == GR_ITEM_RESPAWN_NO )
 			{
@@ -273,16 +273,16 @@ public:
 		return false;
 	}
 };
-LINK_ENTITY_TO_CLASS(item_ammo_357, CItem_Box357Rounds);
+LINK_ENTITY_TO_CLASS(item_ammo_50ae, CItem_Box50AERounds);
 
 
 // ========================================================================
 //	>> CItem_LargeBox357Rounds
 // ========================================================================
-class CItem_LargeBox357Rounds : public CItem
+class CItem_LargeBox50AERounds : public CItem
 {
 public:
-	DECLARE_CLASS( CItem_LargeBox357Rounds, CItem );
+	DECLARE_CLASS( CItem_LargeBox50AERounds, CItem );
 
 	void Precache( void )
 	{
@@ -297,7 +297,7 @@ public:
 
 	bool MyTouch( CBasePlayer *pPlayer )
 	{
-		if (ITEM_GiveAmmo( pPlayer, SIZE_AMMO_357_LARGE, "357"))
+		if (ITEM_GiveAmmo( pPlayer, SIZE_AMMO_50AE_LARGE, "50AE"))
 		{
 			if ( g_pGameRules->ItemShouldRespawn( this ) == GR_ITEM_RESPAWN_NO )
 			{
@@ -308,7 +308,7 @@ public:
 		return false;
 	}
 };
-LINK_ENTITY_TO_CLASS(item_ammo_357_large, CItem_LargeBox357Rounds);
+LINK_ENTITY_TO_CLASS(item_ammo_50ae_large, CItem_LargeBox50AERounds);
 
 
 // ========================================================================
@@ -699,7 +699,7 @@ const char *CItem_AmmoCrate::m_lpzModelNames[NUM_AMMO_CRATE_TYPES] =
 const char *CItem_AmmoCrate::m_lpzAmmoNames[NUM_AMMO_CRATE_TYPES] =
 {
 	"Pistol",		
-	"SMG1",			
+	"9MM",			
 	"AR2",			
 	"RPG_Round",	
 	"Buckshot",		

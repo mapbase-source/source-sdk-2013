@@ -324,7 +324,6 @@ typedef enum
 	// Shotgun Specialty Activities
 	ACT_SHOTGUN_RELOAD_START,
 	ACT_SHOTGUN_RELOAD_FINISH,
-	ACT_SHOTGUN_PUMP,
 
 	// SMG2 special activities
 	ACT_SMG2_IDLE2,

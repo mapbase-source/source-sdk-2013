@@ -2318,40 +2318,7 @@ void CNPC_Combine::HandleAnimEvent( animevent_t *pEvent )
 
 	if (pEvent->type & AE_TYPE_NEWEVENTSYSTEM)
 	{
-		if ( pEvent->event == COMBINE_AE_BEGIN_ALTFIRE )
-		{
-			EmitSound( "Weapon_CombineGuard.Special1" );
-			handledEvent = true;
-		}
-		else if ( pEvent->event == COMBINE_AE_ALTFIRE )
-		{
-			if( IsElite() )
-			{
-				animevent_t fakeEvent;
-
-				fakeEvent.pSource = this;
-				fakeEvent.event = EVENT_WEAPON_AR2_ALTFIRE;
-				GetActiveWeapon()->Operator_HandleAnimEvent( &fakeEvent, this );
-
-				// Stop other squad members from combine balling for a while.
-				DelaySquadAltFireAttack( 10.0f );
-
-				// I'm disabling this decrementor. At the time of this change, the elites
-				// don't bother to check if they have grenades anyway. This means that all
-				// elites have infinite combine balls, even if the designer marks the elite
-				// as having 0 grenades. By disabling this decrementor, yet enabling the code
-				// that makes sure the elite has grenades in order to fire a combine ball, we
-				// preserve the legacy behavior while making it possible for a designer to prevent
-				// elites from shooting combine balls by setting grenades to '0' in hammer. (sjb) EP2_OUTLAND_10
-				// m_iNumGrenades--;
-			}
-
-			handledEvent = true;
-		}
-		else
-		{
-			BaseClass::HandleAnimEvent( pEvent );
-		}
+		BaseClass::HandleAnimEvent(pEvent);
 	}
 	else
 	{

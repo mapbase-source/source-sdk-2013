@@ -264,22 +264,6 @@ void CNPC_Alyx::HandleAnimEvent( animevent_t *pEvent )
 		}
 		return;
 	}
-	else if ( pEvent->event == COMBINE_AE_BEGIN_ALTFIRE )
-	{
-		EmitSound( "Weapon_CombineGuard.Special1" );
-		return;
-	}
-	else if ( pEvent->event == COMBINE_AE_ALTFIRE )
-	{
-		animevent_t fakeEvent;
-
-		fakeEvent.pSource = this;
-		fakeEvent.event = EVENT_WEAPON_AR2_ALTFIRE;
-		GetActiveWeapon()->Operator_HandleAnimEvent( &fakeEvent, this );
-		//m_iNumGrenades--;
-
-		return;
-	}
 
 	switch( pEvent->event )
 	{

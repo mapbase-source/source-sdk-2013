@@ -364,7 +364,7 @@ void GuessDamageForce( CTakeDamageInfo *info, const Vector &vecForceDir, const V
 {
 	if ( info->GetDamageType() & DMG_BULLET )
 	{
-		CalculateBulletDamageForce( info, GetAmmoDef()->Index("SMG1"), vecForceDir, vecForceOrigin, flScale );
+		CalculateBulletDamageForce( info, GetAmmoDef()->Index("9MM"), vecForceDir, vecForceOrigin, flScale );
 	}
 	else if ( info->GetDamageType() & DMG_BLAST )
 	{

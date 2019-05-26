@@ -28,16 +28,10 @@ public:
 
 	void	ItemPostFrame( void );
 	void	Precache( void );
-	
-	void	SecondaryAttack( void );
-	void	DelayedAttack( void );
-
-	const char *GetTracerType( void ) { return "AR2Tracer"; }
 
 	void	AddViewKick( void );
 
 	void	FireNPCPrimaryAttack( CBaseCombatCharacter *pOperator, bool bUseWeaponAngles );
-	void	FireNPCSecondaryAttack( CBaseCombatCharacter *pOperator, bool bUseWeaponAngles );
 	void	Operator_ForceNPCFire( CBaseCombatCharacter  *pOperator, bool bSecondary );
 	void	Operator_HandleAnimEvent( animevent_t *pEvent, CBaseCombatCharacter *pOperator );
 
@@ -45,15 +39,10 @@ public:
 	int		GetMaxBurst( void ) { return 5; }
 	float	GetFireRate( void ) { return 0.1f; }
 
-	bool	CanHolster( void );
-	bool	Reload( void );
-
 	int		CapabilitiesGet( void ) { return bits_CAP_WEAPON_RANGE_ATTACK1; }
 
 	Activity	GetPrimaryAttackActivity( void );
 	
-	void	DoImpactEffect( trace_t &tr, int nDamageType );
-
 	virtual const Vector& GetBulletSpread( void )
 	{
 		static Vector cone;

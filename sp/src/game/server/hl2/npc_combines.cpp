@@ -114,7 +114,6 @@ void CNPC_CombineS::Precache()
 
 	UTIL_PrecacheOther( "item_healthvial" );
 	UTIL_PrecacheOther( "weapon_frag" );
-	UTIL_PrecacheOther( "item_ammo_ar2_altfire" );
 
 	BaseClass::Precache();
 }
@@ -300,45 +299,6 @@ void CNPC_CombineS::Event_Killed( const CTakeDamageInfo &info )
 
 	if ( pPlayer != NULL )
 	{
-		// Elites drop alt-fire ammo, so long as they weren't killed by dissolving.
-		if( IsElite() )
-		{
-#ifdef HL2_EPISODIC
-			if ( HasSpawnFlags( SF_COMBINE_NO_AR2DROP ) == false )
-#endif
-			{
-				CBaseEntity *pItem = DropItem( "item_ammo_ar2_altfire", WorldSpaceCenter()+RandomVector(-4,4), RandomAngle(0,360) );
-
-				if ( pItem )
-				{
-					IPhysicsObject *pObj = pItem->VPhysicsGetObject();
-
-					if ( pObj )
-					{
-						Vector			vel		= RandomVector( -64.0f, 64.0f );
-						AngularImpulse	angImp	= RandomAngularImpulse( -300.0f, 300.0f );
-
-						vel[2] = 0.0f;
-						pObj->AddVelocity( &vel, &angImp );
-					}
-
-					if( info.GetDamageType() & DMG_DISSOLVE )
-					{
-						CBaseAnimating *pAnimating = dynamic_cast<CBaseAnimating*>(pItem);
-
-						if( pAnimating )
-						{
-							pAnimating->Dissolve( NULL, gpGlobals->curtime, false, ENTITY_DISSOLVE_NORMAL );
-						}
-					}
-					else
-					{
-						WeaponManager_AddManaged( pItem );
-					}
-				}
-			}
-		}
-
 		CHalfLife2 *pHL2GameRules = static_cast<CHalfLife2 *>(g_pGameRules);
 
 		// Attempt to drop health
@@ -383,8 +343,8 @@ bool CNPC_CombineS::IsHeavyDamage( const CTakeDamageInfo &info )
 	if ( info.GetAmmoType() == GetAmmoDef()->Index("AR2") )
 		return true;
 
-	// 357 rounds are heavy damage
-	if ( info.GetAmmoType() == GetAmmoDef()->Index("357") )
+	// 50AE rounds are heavy damage
+	if ( info.GetAmmoType() == GetAmmoDef()->Index("50AE") )
 		return true;
 
 	// Shotgun blasts where at least half the pellets hit me are heavy damage

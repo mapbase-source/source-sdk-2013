@@ -71,8 +71,6 @@ public:
 	void FillClip( void );
 	void FinishReload( void );
 	void CheckHolsterReload( void );
-	void Pump( void );
-//	void WeaponIdle( void );
 	void ItemHolsterFrame( void );
 	void ItemPostFrame( void );
 	void PrimaryAttack( void );
@@ -400,29 +398,6 @@ void CWeaponShotgun::FillClip( void )
 }
 
 //-----------------------------------------------------------------------------
-// Purpose: Play weapon pump anim
-// Input  :
-// Output :
-//-----------------------------------------------------------------------------
-void CWeaponShotgun::Pump( void )
-{
-	CBaseCombatCharacter *pOwner  = GetOwner();
-
-	if ( pOwner == NULL )
-		return;
-	
-	m_bNeedPump = false;
-	
-	WeaponSound( SPECIAL1 );
-
-	// Finish reload animation
-	SendWeaponAnim( ACT_SHOTGUN_PUMP );
-
-	pOwner->m_flNextAttack	= gpGlobals->curtime + SequenceDuration();
-	m_flNextPrimaryAttack	= gpGlobals->curtime + SequenceDuration();
-}
-
-//-----------------------------------------------------------------------------
 // Purpose: 
 //
 //
@@ -602,12 +577,6 @@ void CWeaponShotgun::ItemPostFrame( void )
 	{			
 		// Make shotgun shell invisible
 		SetBodygroup(1,1);
-	}
-
-	if ((m_bNeedPump) && (m_flNextPrimaryAttack <= gpGlobals->curtime))
-	{
-		Pump();
-		return;
 	}
 	
 	// Shotgun uses same timing and ammo for secondary attack

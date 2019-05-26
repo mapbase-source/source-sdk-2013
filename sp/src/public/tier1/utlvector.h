@@ -1161,6 +1161,16 @@ public:
 
 };
 
+template<class T> class CCopyableUtlVectorAutoPurge : public CCopyableUtlVector< T, CUtlMemory< T, int> >
+{
+	public:
+	~CCopyableUtlVectorAutoPurge( void )
+	{
+		this->PurgeAndDeleteElements();
+	}
+
+};
+
 // easy string list class with dynamically allocated strings. For use with V_SplitString, etc.
 // Frees the dynamic strings in destructor.
 class CUtlStringList : public CUtlVectorAutoPurge< char *>
@@ -1193,7 +1203,35 @@ public:
 	}
 };
 
+class CCopyableUtlStringList : public CCopyableUtlVectorAutoPurge< char *>
+{
+	public:
+	void CopyAndAddToTail( char const *pString )			// clone the string and add to the end
+	{
+		char *pNewStr = new char[1 + strlen( pString )];
+		V_strcpy( pNewStr, pString );
+		AddToTail( pNewStr );
+	}
 
+	static int __cdecl SortFunc( char * const * sz1, char * const * sz2 )
+	{
+		return strcmp( *sz1, *sz2 );
+	}
+
+	inline void PurgeAndDeleteElements()
+	{
+		for( int i=0; i < m_Size; i++ )
+		{
+			delete [] Element(i);
+		}
+		Purge();
+	}
+
+	~CCopyableUtlStringList( void )
+	{
+		this->PurgeAndDeleteElements();
+	}
+};
 
 // <Sergiy> placing it here a few days before Cert to minimize disruption to the rest of codebase
 class CSplitString: public CUtlVector<char*, CUtlMemory<char*, int> >
