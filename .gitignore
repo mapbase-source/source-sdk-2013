@@ -17,11 +17,8 @@ ipch
 *.sdf
 *.opensdf
 *.idb
-*.vcxproj
-*.sln
 
 # OSX/Linux build products
-*.mak
 *.mak.vpc_crc
 *.xcodeproj/
 obj*/
@@ -54,3 +51,13 @@ config.cfg
 # shader files
 *.tmp
 
+*.db
+*.pdb
+*.filters
+*.vpc_crc
+*.sentinel
+*.lastcodeanalysissucceeded
+*.codeanalysis
+*.db-shm
+sp/src/utils/sapi51
+*.db-wal

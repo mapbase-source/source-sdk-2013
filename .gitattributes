@@ -1,3 +1,5 @@
+* text eol=lf
+
 creategameprojects text
 createallprojects text
 xcode_ccache_wrapper text
@@ -35,8 +37,14 @@ vpc_osx binary
 *.vmt text
 *.inl text
 *.asm text
+*.gcc text
+*.dsw text
+*.dsp text
+*.mak text
 
 .gitignore text
+makefile text
+makefile_con text
 sourcesdk_def.mak text
 smdlexp.mak text
 README text
@@ -44,6 +52,14 @@ CONTRIBUTING text
 LICENSE text
 
 *.exe binary
+*.dll binary
+*.bsp binary
+*.lib binary
+*.doc binary
+*.bmp binary
+*.a binary
+*.so binary
+*.dylib binary
 protoc binary
 ccache binary
 
