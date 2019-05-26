@@ -19,7 +19,7 @@
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <CharacterSet>MultiByte</CharacterSet>
     <TargetName>server</TargetName>
-    <PlatformToolset>v120</PlatformToolset>
+    <PlatformToolset>v120_xp</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
@@ -71,7 +71,7 @@ if ERRORLEVEL 1 exit /b 1
       <AdditionalOptions>/Zm200 /Gw</AdditionalOptions>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>..\..\common;..\..\public;..\..\public\tier0;..\..\public\tier1;..\..\game\server\generated_proto_boxobama;..\..\thirdparty\protobuf-2.3.0\src;.\;..\..\game\shared;..\..\utils\common;..\..\game\shared\econ;..\..\game\server\NextBot;..\..\game\shared\hl2;..\..\game\shared\episodic;.\hl2;.\episodic;..\..\game\shared\smod;.\smod</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>VPC;RAD_TELEMETRY_DISABLED;_HAS_ITERATOR_DEBUGGING=0;WIN32;_WIN32;_DEBUG;DEBUG;_WINDOWS;_USRDLL;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_ALLOW_RUNTIME_LIBRARY_MISMATCH;_ALLOW_ITERATOR_DEBUG_LEVEL_MISMATCH;_ALLOW_MSC_VER_MISMATCH;%(PreprocessorDefinitions);COMPILER_MSVC32;COMPILER_MSVC32;COMPILER_MSVC;_DLL_EXT=.dll;DLLNAME=server;BINK_VIDEO;AVI_VIDEO;WMV_VIDEO;DEV_BUILD;FRAME_POINTER_OMISSION_DISABLED;GAME_DLL;VECTOR;VERSION_SAFE_STEAM_API_INTERFACES;PROTECTED_THINGS_ENABLE;sprintf=use_Q_snprintf_instead_of_sprintf;strncpy=use_Q_strncpy_instead;_snprintf=use_Q_snprintf_instead;fopen=dont_use_fopen;HL2_DLL;HL2_EPISODIC;USES_SAVERESTORE;_EXTERNAL_DLL_EXT=.dll;VPCGAMECAPS=BOXOBAMA;PROJECTDIR=E:\boxobama\sp\src\game\server;_DLL_EXT=.dll;VPCGAME=boxobama;SOURCE1=1</PreprocessorDefinitions>
+      <PreprocessorDefinitions>VPC;RAD_TELEMETRY_DISABLED;_HAS_ITERATOR_DEBUGGING=0;WIN32;_WIN32;_DEBUG;DEBUG;_WINDOWS;_USRDLL;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_ALLOW_RUNTIME_LIBRARY_MISMATCH;_ALLOW_ITERATOR_DEBUG_LEVEL_MISMATCH;_ALLOW_MSC_VER_MISMATCH;%(PreprocessorDefinitions);COMPILER_MSVC32;COMPILER_MSVC32;COMPILER_MSVC;_DLL_EXT=.dll;DLLNAME=server;BINK_VIDEO;AVI_VIDEO;WMV_VIDEO;DEV_BUILD;FRAME_POINTER_OMISSION_DISABLED;GAME_DLL;VECTOR;VERSION_SAFE_STEAM_API_INTERFACES;PROTECTED_THINGS_ENABLE;sprintf=use_Q_snprintf_instead_of_sprintf;strncpy=use_Q_strncpy_instead;_snprintf=use_Q_snprintf_instead;fopen=dont_use_fopen;HL2_DLL;HL2_EPISODIC;USES_SAVERESTORE;_EXTERNAL_DLL_EXT=.dll;VPCGAMECAPS=BOXOBAMA;PROJECTDIR=E:\boxobama\sp\src\game\server;_DLL_EXT=.dll;SOURCE1=1;VPCGAME=boxobama</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <ExceptionHandling>false</ExceptionHandling>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
@@ -167,7 +167,7 @@ if ERRORLEVEL 1 exit /b 1
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <AdditionalIncludeDirectories>..\..\common;..\..\public;..\..\public\tier0;..\..\public\tier1;..\..\game\server\generated_proto_boxobama;..\..\thirdparty\protobuf-2.3.0\src;.\;..\..\game\shared;..\..\utils\common;..\..\game\shared\econ;..\..\game\server\NextBot;..\..\game\shared\hl2;..\..\game\shared\episodic;.\hl2;.\episodic;..\..\game\shared\smod;.\smod</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>VPC;RAD_TELEMETRY_DISABLED;WIN32;_WIN32;NDEBUG;_WINDOWS;_USRDLL;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_ALLOW_RUNTIME_LIBRARY_MISMATCH;_ALLOW_ITERATOR_DEBUG_LEVEL_MISMATCH;_ALLOW_MSC_VER_MISMATCH;%(PreprocessorDefinitions);COMPILER_MSVC32;COMPILER_MSVC32;COMPILER_MSVC;_DLL_EXT=.dll;DLLNAME=server;BINK_VIDEO;AVI_VIDEO;WMV_VIDEO;DEV_BUILD;FRAME_POINTER_OMISSION_DISABLED;GAME_DLL;VECTOR;VERSION_SAFE_STEAM_API_INTERFACES;PROTECTED_THINGS_ENABLE;sprintf=use_Q_snprintf_instead_of_sprintf;strncpy=use_Q_strncpy_instead;_snprintf=use_Q_snprintf_instead;fopen=dont_use_fopen;HL2_DLL;HL2_EPISODIC;USES_SAVERESTORE;_EXTERNAL_DLL_EXT=.dll;VPCGAMECAPS=BOXOBAMA;PROJECTDIR=E:\boxobama\sp\src\game\server;_DLL_EXT=.dll;VPCGAME=boxobama;SOURCE1=1</PreprocessorDefinitions>
+      <PreprocessorDefinitions>VPC;RAD_TELEMETRY_DISABLED;WIN32;_WIN32;NDEBUG;_WINDOWS;_USRDLL;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_ALLOW_RUNTIME_LIBRARY_MISMATCH;_ALLOW_ITERATOR_DEBUG_LEVEL_MISMATCH;_ALLOW_MSC_VER_MISMATCH;%(PreprocessorDefinitions);COMPILER_MSVC32;COMPILER_MSVC32;COMPILER_MSVC;_DLL_EXT=.dll;DLLNAME=server;BINK_VIDEO;AVI_VIDEO;WMV_VIDEO;DEV_BUILD;FRAME_POINTER_OMISSION_DISABLED;GAME_DLL;VECTOR;VERSION_SAFE_STEAM_API_INTERFACES;PROTECTED_THINGS_ENABLE;sprintf=use_Q_snprintf_instead_of_sprintf;strncpy=use_Q_strncpy_instead;_snprintf=use_Q_snprintf_instead;fopen=dont_use_fopen;HL2_DLL;HL2_EPISODIC;USES_SAVERESTORE;_EXTERNAL_DLL_EXT=.dll;VPCGAMECAPS=BOXOBAMA;PROJECTDIR=E:\boxobama\sp\src\game\server;_DLL_EXT=.dll;SOURCE1=1;VPCGAME=boxobama</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <ExceptionHandling>false</ExceptionHandling>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
@@ -746,6 +746,7 @@ exit 1
     <ClInclude Include="..\..\game\shared\weapon_proficiency.h" />
     <ClInclude Include="world.h" />
     <ClInclude Include="hl2\ai_behavior_actbusy.h" />
+    <ClInclude Include="episodic\ai_behavior_alyx_injured.h" />
     <ClInclude Include="hl2\ai_behavior_functank.h" />
     <ClInclude Include="hl2\ai_behavior_holster.h" />
     <ClInclude Include="hl2\ai_behavior_operator.h" />
@@ -774,6 +775,7 @@ exit 1
     <ClInclude Include="episodic\ep2_gamestats.h" />
     <ClInclude Include="hl2\func_bulletshield.h" />
     <ClInclude Include="hl2\func_tank.h" />
+    <ClInclude Include="hl2\grenade_ar2.h" />
     <ClInclude Include="hl2\grenade_bugbait.h" />
     <ClInclude Include="hl2\grenade_frag.h" />
     <ClInclude Include="hl2\grenade_spit.h" />
@@ -817,7 +819,9 @@ exit 1
     <ClInclude Include="hl2\vehicle_apc.h" />
     <ClInclude Include="hl2\vehicle_crane.h" />
     <ClInclude Include="episodic\vehicle_jeep_episodic.h" />
+    <ClInclude Include="hl2\weapon_alyxgun.h" />
     <ClInclude Include="hl2\weapon_ar2.h" />
+    <ClInclude Include="hl2\weapon_citizenpackage.h" />
     <ClInclude Include="hl2\weapon_crowbar.h" />
     <ClInclude Include="hl2\weapon_physcannon.h" />
     <ClInclude Include="hl2\weapon_rpg.h" />
@@ -1296,6 +1300,7 @@ exit 1
     <ClCompile Include="weapon_xm1014.cpp" />
     <ClCompile Include="hl2\ai_allymanager.cpp" />
     <ClCompile Include="hl2\ai_behavior_actbusy.cpp" />
+    <ClCompile Include="episodic\ai_behavior_alyx_injured.cpp" />
     <ClCompile Include="hl2\ai_behavior_functank.cpp" />
     <ClCompile Include="hl2\ai_behavior_holster.cpp" />
     <ClCompile Include="hl2\ai_behavior_operator.cpp" />
@@ -1332,6 +1337,7 @@ exit 1
     <ClCompile Include="hl2\Func_Monitor.cpp" />
     <ClCompile Include="hl2\func_recharge.cpp" />
     <ClCompile Include="hl2\func_tank.cpp" />
+    <ClCompile Include="hl2\grenade_ar2.cpp" />
     <ClCompile Include="hl2\grenade_bugbait.cpp" />
     <ClCompile Include="hl2\grenade_frag.cpp" />
     <ClCompile Include="hl2\grenade_spit.cpp" />
@@ -1355,6 +1361,7 @@ exit 1
     <ClCompile Include="hl2\item_suit.cpp" />
     <ClCompile Include="hl2\look_door.cpp" />
     <ClCompile Include="hl2\monster_dummy.cpp" />
+    <ClCompile Include="episodic\npc_advisor.cpp" />
     <ClCompile Include="hl2\npc_alyx_episodic.cpp" />
     <ClCompile Include="hl2\npc_antlion.cpp" />
     <ClCompile Include="hl2\npc_antliongrub.cpp" />
@@ -1366,6 +1373,7 @@ exit 1
     <ClCompile Include="hl2\npc_basescanner.cpp" />
     <ClCompile Include="hl2\npc_BaseZombie.cpp" />
     <ClCompile Include="hl2\npc_blob.cpp" />
+    <ClCompile Include="hl2\npc_breen.cpp" />
     <ClCompile Include="hl2\npc_bullseye.cpp" />
     <ClCompile Include="hl2\npc_citizen17.cpp" />
     <ClCompile Include="hl2\npc_combine.cpp" />
@@ -1381,10 +1389,13 @@ exit 1
     <ClCompile Include="hl2\npc_gman.cpp" />
     <ClCompile Include="hl2\npc_headcrab.cpp" />
     <ClCompile Include="episodic\npc_hunter.cpp" />
+    <ClCompile Include="hl2\npc_ichthyosaur.cpp" />
+    <ClCompile Include="hl2\npc_kleiner.cpp" />
     <ClCompile Include="hl2\npc_launcher.cpp" />
+    <ClCompile Include="episodic\npc_magnusson.cpp" />
     <ClCompile Include="hl2\npc_manhack.cpp" />
     <ClCompile Include="hl2\npc_metropolice.cpp" />
-    <ClCompile Include="hl2\npc_monk.cpp" />
+    <ClCompile Include="hl2\npc_mossman.cpp" />
     <ClCompile Include="hl2\npc_playercompanion.cpp" />
     <ClCompile Include="hl2\npc_PoisonZombie.cpp" />
     <ClCompile Include="episodic\npc_puppet.cpp" />
@@ -1412,9 +1423,13 @@ exit 1
     <ClCompile Include="hl2\vehicle_crane.cpp" />
     <ClCompile Include="hl2\vehicle_jeep.cpp" />
     <ClCompile Include="episodic\vehicle_jeep_episodic.cpp" />
+    <ClCompile Include="hl2\vehicle_prisoner_pod.cpp" />
     <ClCompile Include="hl2\vehicle_viewcontroller.cpp" />
     <ClCompile Include="hl2\weapon_357.cpp" />
+    <ClCompile Include="hl2\weapon_alyxgun.cpp" />
     <ClCompile Include="hl2\weapon_ar2.cpp" />
+    <ClCompile Include="hl2\weapon_bugbait.cpp" />
+    <ClCompile Include="hl2\weapon_citizenpackage.cpp" />
     <ClCompile Include="hl2\weapon_crossbow.cpp" />
     <ClCompile Include="hl2\weapon_crowbar.cpp" />
     <ClCompile Include="weapon_cubemap.cpp" />
