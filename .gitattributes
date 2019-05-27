@@ -50,6 +50,7 @@ smdlexp.mak text
 README text
 CONTRIBUTING text
 LICENSE text
+makefile_base_posix.mak text eol=crlf
 
 *.exe binary
 *.dll binary
