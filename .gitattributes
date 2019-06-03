@@ -37,14 +37,14 @@ vpc_osx binary
 *.vmt text
 *.inl text
 *.asm text
-*.gcc text
-*.dsw text
-*.dsp text
+*.gcc text eol=crlf
+*.dsw text eol=crlf
+*.dsp text eol=crlf
 *.mak text
 
 .gitignore text
-makefile text
-makefile_con text
+makefile text eol=crlf
+makefile_con text eol=crlf
 sourcesdk_def.mak text
 smdlexp.mak text
 README text
@@ -59,8 +59,6 @@ makefile_base_posix.mak text eol=crlf
 *.doc binary
 *.bmp binary
 *.a binary
-*.so binary
-*.dylib binary
 protoc binary
 ccache binary
 
