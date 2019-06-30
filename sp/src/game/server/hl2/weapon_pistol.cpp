@@ -33,12 +33,12 @@ ConVar	pistol_use_new_accuracy( "pistol_use_new_accuracy", "1" );
 // CWeaponPistol
 //-----------------------------------------------------------------------------
 
-class CWeaponPistol : public CBaseHLCombatWeapon
+class CWeaponPistol : public CHLSelectFireMachineGun
 {
 	DECLARE_DATADESC();
 
 public:
-	DECLARE_CLASS( CWeaponPistol, CBaseHLCombatWeapon );
+	DECLARE_CLASS( CWeaponPistol, CHLSelectFireMachineGun );
 
 	CWeaponPistol(void);
 
@@ -51,11 +51,9 @@ public:
 	void	PrimaryAttack( void );
 	void	SecondaryAttack( void );
 	float	GetFireRate( void );
-	float	GetBurstCycleRate( void );
 	void	AddViewKick( void );
 	void	DryFire( void );
 	void	Operator_HandleAnimEvent( animevent_t *pEvent, CBaseCombatCharacter *pOperator );
-	void	BurstThink( void );
 
 	void	UpdatePenaltyTime( void );
 
@@ -92,21 +90,6 @@ public:
 
 		return cone;
 	}
-	
-	virtual int	GetMinBurst() 
-	{ 
-		return 1; 
-	}
-
-	virtual int	GetMaxBurst() 
-	{ 
-		return 3; 
-	}
-
-//	virtual float GetFireRate( void ) 
-//	{
-//		return 0.15f; 
-//	}
 
 	DECLARE_ACTTABLE();
 
@@ -115,9 +98,8 @@ private:
 	float	m_flLastAttackTime;
 	float	m_flAccuracyPenalty;
 	int		m_nNumShotsFired;
-	int		m_iFireMode;
-	int		m_iBurstSize = 3;
-	int		m_nShotsFired;
+	int		m_nSingleShots = 0;
+	int		m_nModeSwitches = 0;
 };
 
 
@@ -133,8 +115,7 @@ BEGIN_DATADESC( CWeaponPistol )
 	DEFINE_FIELD( m_flLastAttackTime,		FIELD_TIME ),
 	DEFINE_FIELD( m_flAccuracyPenalty,		FIELD_FLOAT ), //NOTENOTE: This is NOT tracking game time
 	DEFINE_FIELD( m_nNumShotsFired,			FIELD_INTEGER ),
-	DEFINE_FIELD( m_iBurstSize,				FIELD_INTEGER ),
-	DEFINE_FIELD( m_nShotsFired,			FIELD_INTEGER )
+	DEFINE_FIELD( m_iFireMode,				FIELD_INTEGER ),
 
 END_DATADESC()
 
@@ -171,7 +152,7 @@ CWeaponPistol::CWeaponPistol( void )
 	m_fMaxRange1		= 1500;
 	m_fMinRange2		= 24;
 	m_fMaxRange2		= 200;
-	m_iFireMode			= FIREMODE_FULLAUTO;
+	m_iFireMode			= FIREMODE_SEMI;
 
 	m_bFiresUnderwater	= true;
 }
@@ -179,66 +160,84 @@ CWeaponPistol::CWeaponPistol( void )
 //-----------------------------------------------------------------------------
 // Purpose:
 //-----------------------------------------------------------------------------
-float CWeaponPistol::GetBurstCycleRate( void )
+
+float	CWeaponPistol::GetFireRate( void )
 {
-	// this is the time it takes to fire an entire 
-	// burst, plus whatever amount of delay we want
-	// to have between bursts.
-	return 0.5f;
+		return 0.05f;	// 1,200 rounds per minute = 0.05 seconds per bullet
 }
 
 void CWeaponPistol::PrimaryAttack( void )
 {
-	if ((gpGlobals->curtime - m_flLastAttackTime) > 0.5f)
+
+	CBasePlayer *pOwner = ToBasePlayer( GetOwner() );
+
+	if (m_bFireOnEmpty)
 	{
-		m_nNumShotsFired = 0;
+		return;
 	}
-	else
-	{
-		m_nNumShotsFired++;
-	}
-
-	m_flLastAttackTime = gpGlobals->curtime;
-	m_flSoonestPrimaryAttack = gpGlobals->curtime + PISTOL_FASTEST_REFIRE_TIME;
-	CSoundEnt::InsertSound(SOUND_COMBAT, GetAbsOrigin(), SOUNDENT_VOLUME_PISTOL, 0.2, GetOwner());
-
-	CBasePlayer *pOwner = ToBasePlayer(GetOwner());
-
-	if (pOwner)
-	{
-		// Each time the player fires the pistol, reset the view punch. This prevents
-		// the aim from 'drifting off' when the player fires very quickly. This may
-		// not be the ideal way to achieve this, but it's cheap and it works, which is
-		// great for a feature we're evaluating. (sjb)
-		pOwner->ViewPunchReset();
-	}
-
-	BaseClass::PrimaryAttack();
-
-	// Add an accuracy penalty which can move past our maximum penalty time if we're really spastic
-	m_flAccuracyPenalty += PISTOL_ACCURACY_SHOT_PENALTY_TIME;
-
-	m_iPrimaryAttacks++;
-	gamestats->Event_WeaponFired(pOwner, true, GetClassname());
-}
-
-float	CWeaponPistol::GetFireRate( void )
-{
-	switch (m_iFireMode)
+	switch( m_iFireMode )
 	{
 	case FIREMODE_FULLAUTO:
-		// the time between rounds fired on full auto
-		return 0.15f;	// ? rounds per minute = 0.15 seconds per bullet
+		BaseClass::PrimaryAttack();
+		SetWeaponIdleTime( gpGlobals->curtime + 3.0f );
 		break;
 
-	case FIREMODE_3RNDBURST:
-		// the time between rounds fired within a single burst
-		return 0.1f;	// 600 rounds per minute = 0.1 seconds per bullet
+	case FIREMODE_SEMI:
+		if (m_nSingleShots > 0 && (pOwner->m_afButtonPressed & IN_ATTACK))
+		{
+			m_nSingleShots = 0;
+		}
+		else if (m_nSingleShots == 0)
+		{
+			m_nSingleShots++;
+			CBaseCombatWeapon::PrimaryAttack();
+			SetWeaponIdleTime(gpGlobals->curtime + 3.0f);
+		}
 		break;
+	}
 
-	default:
-		return 0.1f;
-		break;
+	if ( pOwner )
+	{
+		m_iPrimaryAttacks++;
+		gamestats->Event_WeaponFired( pOwner, true, GetClassname() );
+	}
+}
+
+void CWeaponPistol::SecondaryAttack( void )
+{
+	CBasePlayer *pOwner = ToBasePlayer( GetOwner() );
+	if ((m_nModeSwitches > 0 && (pOwner->m_afButtonPressed & IN_ATTACK2 || pOwner->m_afButtonPressed & IN_ATTACK)))
+	{
+		m_nModeSwitches = 0;
+	}
+	else if (m_nModeSwitches == 0)
+	{
+		// change fire modes.
+		switch (m_iFireMode)
+		{
+		case FIREMODE_FULLAUTO:
+			Msg("Semi\n");
+			m_iFireMode = FIREMODE_SEMI;
+			WeaponSound(SPECIAL1);
+			break;
+
+		case FIREMODE_SEMI:
+			Msg("Auto\n");
+			m_iFireMode = FIREMODE_FULLAUTO;
+			WeaponSound(SPECIAL2);
+			break;
+		}
+		m_nModeSwitches++;
+
+		SendWeaponAnim(GetSecondaryAttackActivity());
+
+		m_flNextSecondaryAttack = gpGlobals->curtime + 0.3;
+
+		if (pOwner)
+		{
+			m_iSecondaryAttacks++;
+			gamestats->Event_WeaponFired(pOwner, false, GetClassname());
+		}
 	}
 }
 
@@ -293,97 +292,6 @@ void CWeaponPistol::DryFire( void )
 	
 	m_flSoonestPrimaryAttack	= gpGlobals->curtime + PISTOL_FASTEST_DRY_REFIRE_TIME;
 	m_flNextPrimaryAttack		= gpGlobals->curtime + SequenceDuration();
-}
-
-void CWeaponPistol::SecondaryAttack(void)
-{
-	// Check our secondary attack delay before anything
-	if (m_flNextSecondaryAttack > gpGlobals->curtime)
-		return;
-
-	// Only the player fires this way so we can cast
-	CBasePlayer *pPlayer = ToBasePlayer(GetOwner());
-	if (!pPlayer)
-		return;
-
-	// Abort here to handle burst and auto fire modes
-	if ((UsesClipsForAmmo1() && m_iClip1 == 0) || (!UsesClipsForAmmo1() && !pPlayer->GetAmmoCount(m_iPrimaryAmmoType)))
-		return;
-
-	m_nShotsFired++;
-
-	pPlayer->DoMuzzleFlash();
-
-	// To make the firing framerate independent, we may have to fire more than one bullet here on low-framerate systems, 
-	// especially if the weapon we're firing has a really fast rate of fire.
-	int iBulletsToFire = 3;
-	float fireRate = GetFireRate();
-
-	// MUST call sound before removing a round from the clip of a CHLMachineGun
-	while (m_flNextPrimaryAttack <= gpGlobals->curtime)
-	{
-		WeaponSound(BURST, m_flNextPrimaryAttack);
-		m_flNextPrimaryAttack = m_flNextPrimaryAttack + fireRate;
-		iBulletsToFire++;
-	}
-
-	// Make sure we don't fire more than the amount in the clip, if this weapon uses clips
-	if (UsesClipsForAmmo1())
-	{
-		if (iBulletsToFire > 3)
-			iBulletsToFire = 3;
-
-		if (iBulletsToFire > m_iClip1)
-			iBulletsToFire = m_iClip1;
-
-		m_iClip1 -= iBulletsToFire;
-	}
-	m_iPrimaryAttacks++;
-	gamestats->Event_WeaponFired(pPlayer, true, GetClassname());
-
-	// Fire the bullets
-	FireBulletsInfo_t info;
-	info.m_iShots = iBulletsToFire;
-	info.m_vecSrc = pPlayer->Weapon_ShootPosition();
-	info.m_vecDirShooting = pPlayer->GetAutoaimVector(AUTOAIM_SCALE_DEFAULT);
-	info.m_vecSpread = pPlayer->GetAttackSpread(this);
-	info.m_flDistance = MAX_TRACE_LENGTH;
-	info.m_iAmmoType = m_iPrimaryAmmoType;
-	info.m_iTracerFreq = 2;
-	FireBullets(info);
-
-	//Factor in the view kick
-	AddViewKick();
-
-	if (!m_iClip1 && pPlayer->GetAmmoCount(m_iPrimaryAmmoType) <= 0)
-	{
-		// HEV suit - indicate out of ammo condition
-		pPlayer->SetSuitUpdate("!HEV_AMO0", FALSE, 0);
-	}
-
-	SendWeaponAnim(GetSecondaryAttackActivity());
-	pPlayer->SetAnimation(PLAYER_ATTACK1);
-
-	m_flNextSecondaryAttack = gpGlobals->curtime + 0.5;
-}
-
-void CWeaponPistol::BurstThink(void)
-{
-	CWeaponPistol::PrimaryAttack();
-
-	m_iBurstSize--;
-
-	if (m_iBurstSize == 0)
-	{
-		// The burst is over!
-		SetThink(NULL);
-
-		// idle immediately to stop the firing animation
-		SetWeaponIdleTime(gpGlobals->curtime);
-		return;
-	}
-
-	SetNextThink(gpGlobals->curtime + GetFireRate());
 }
 
 //-----------------------------------------------------------------------------

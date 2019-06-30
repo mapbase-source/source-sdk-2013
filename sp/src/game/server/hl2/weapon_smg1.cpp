@@ -41,7 +41,7 @@ public:
 	virtual void Equip( CBaseCombatCharacter *pOwner );
 	bool	Reload( void );
 
-	float	GetFireRate( void ) { return 0.08f; }	// 13.3hz
+	float	GetFireRate( void ) { return 0.07692307692307692307692307692308f; }	//~800 rounds per minute = 0.07692307692307692307692307692308 seconds per bullet
 	int		CapabilitiesGet( void ) { return bits_CAP_WEAPON_RANGE_ATTACK1; }
 	Activity	GetPrimaryAttackActivity( void );
 
@@ -138,7 +138,7 @@ CWeaponSMG1::CWeaponSMG1( )
 	m_fMinRange1		= 0;// No minimum range. 
 	m_fMaxRange1		= 1400;
 
-	m_bAltFiresUnderwater = false;
+	m_bAltFiresUnderwater = true;
 }
 
 //-----------------------------------------------------------------------------

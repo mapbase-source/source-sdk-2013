@@ -43,7 +43,7 @@ public:
 	virtual void Equip(CBaseCombatCharacter *pOwner);
 	bool	Reload(void);
 
-	float	GetFireRate(void) { return 0.09f; }	// 13.3hz
+	float	GetFireRate(void) { return 0.07f; }	//~857 rounds per minute = 0.07 seconds per bullet
 	int		CapabilitiesGet(void) { return bits_CAP_WEAPON_RANGE_ATTACK1; }
 //	int		WeaponRangeAttack2Condition(float flDot, float flDist);
 	Activity	GetPrimaryAttackActivity(void);

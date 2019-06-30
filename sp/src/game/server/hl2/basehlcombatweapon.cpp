@@ -436,6 +436,10 @@ void CHLSelectFireMachineGun::WeaponSound( WeaponSound_t shoot_type, float sound
 			BaseClass::WeaponSound( SINGLE, soundtime );
 			break;
 
+		case FIREMODE_SEMI:
+			BaseClass::WeaponSound(SINGLE, soundtime);
+			break;
+
 		case FIREMODE_3RNDBURST:
 			if( m_iBurstSize == GetBurstSize() && m_iClip1 >= m_iBurstSize )
 			{
