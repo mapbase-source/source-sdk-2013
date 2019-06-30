@@ -35,13 +35,8 @@ vpc_osx binary
 *.vmt text
 *.inl text
 *.asm text
-*.gcc text eol=crlf
-*.dsw text eol=crlf
-*.dsp text eol=crlf
 
 .gitignore text
-makefile text eol=crlf
-makefile_con text eol=crlf
 sourcesdk_def.mak text
 smdlexp.mak text
 README text
