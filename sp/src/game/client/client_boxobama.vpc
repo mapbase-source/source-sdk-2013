@@ -14,7 +14,7 @@ $Configuration
 {
 	$Compiler
 	{
-		$AdditionalIncludeDirectories	".\smod;$SRCDIR\game\shared\smod;.\hl2;.\hl2\elements;$SRCDIR\game\shared\hl2;$SRCDIR\game\shared\episodic;..\..\public;$BASE"
+		$AdditionalIncludeDirectories	".\smod;$SRCDIR\game\shared\smod;.\cstrike;.\hl2;.\hl2\elements;$SRCDIR\game\shared\hl2;$SRCDIR\game\shared\episodic;..\..\public;$BASE"
 		$PreprocessorDefinitions		"$BASE;HL2_CLIENT_DLL;HL2_EPISODIC"
 		$TreatWarningsAsErrors			"No (/WX-)"
 	}
@@ -27,6 +27,11 @@ $Project "Client"
 		$File	"hud_chat.cpp"
 		$File	"c_team_objectiveresource.cpp"
 		$File	"c_team_objectiveresource.h"
+
+		$Folder	"CounterStrike DLL"
+		{
+			$File	"cstrike\fx_cs_weaponfx.cpp"
+		}
 
 		$Folder	"HL2 DLL"
 		{

@@ -14,7 +14,7 @@ $Configuration
 {
 	$Compiler
 	{
-		$AdditionalIncludeDirectories	"$BASE;$SRCDIR\game\shared\hl2;$SRCDIR\game\shared\episodic;.\hl2;.\episodic;$SRCDIR\game\shared\smod;.\smod"
+		$AdditionalIncludeDirectories	"$BASE;$SRCDIR\game\shared\hl2;$SRCDIR\game\shared\episodic;$SRCDIR\game\shared\cstrike;.\hl2;.\cstrike;.\episodic;$SRCDIR\game\shared\smod;.\smod"
 		$PreprocessorDefinitions		"$BASE;HL2_DLL;HL2_EPISODIC;USES_SAVERESTORE"
 		$TreatWarningsAsErrors			"No (/WX-)"
 	}
@@ -67,6 +67,17 @@ $Project "Server"
 			$File	"weapon_m4a1.cpp"
 			$File	"weapon_xm1014.cpp"
 		}
+
+	//	$Folder	"CounterStrike DLL"
+	//	{
+	//		$File	"$SRCDIR\game\shared\cstrike\cs_playeranimstate.h"
+	//		$File	"$SRCDIR\game\shared\cstrike\cs_shareddefs.h"
+	//		$File	"$SRCDIR\game\shared\cstrike\cs_weapon_parse.h"
+	//		$File	"$SRCDIR\game\shared\cstrike\weapon_csbase.h"
+	//		$File	"$SRCDIR\game\shared\cstrike\weapon_csbase.cpp"
+	//		$File 	"cstrike\cs_autobuy.h"
+	//		$File 	"cstrike\cs_player.h"
+	//	}
 
 		$Folder	"HL2 DLL"
 		{

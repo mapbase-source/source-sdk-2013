@@ -96,13 +96,9 @@ C_LocalTempEntity::C_LocalTempEntity()
 }
 
 
-#if defined( CSTRIKE_DLL ) || defined (SDK_DLL )
-
 #define TE_RIFLE_SHELL 1024
 #define TE_PISTOL_SHELL 2048
 #define TE_SHOTGUN_SHELL 4096
-
-#endif
 
 //-----------------------------------------------------------------------------
 // Purpose: Prepare a temp entity for creation
@@ -2191,26 +2187,23 @@ void CTempEnts::PlaySound ( C_LocalTempEntity *pTemp, float damp )
 		}
 		break;
 
-#ifdef CSTRIKE_DLL
-
-		case TE_PISTOL_SHELL:
+	case TE_PISTOL_SHELL:
 		{
 			soundname = "Bounce.PistolShell";
 		}
 		break;
 
-		case TE_RIFLE_SHELL:
+	case TE_RIFLE_SHELL:
 		{
 			soundname = "Bounce.RifleShell";
 		}
 		break;
 
-		case TE_SHOTGUN_SHELL:
+	case TE_SHOTGUN_SHELL:
 		{
 			soundname = "Bounce.ShotgunShell";
 		}
 		break;
-#endif
 	}
 
 	zvel = abs( pTemp->GetVelocity()[2] );
@@ -2412,14 +2405,12 @@ void CTempEnts::LevelInit()
 	m_pHL1ShotgunShell	= (model_t *)engine->LoadModel( "models/shotgunshell.mdl" );
 #endif
 
-#if defined( CSTRIKE_DLL ) || defined ( SDK_DLL )
 	m_pCS_9MMShell		= (model_t *)engine->LoadModel( "models/Shells/shell_9mm.mdl" );
 	m_pCS_57Shell		= (model_t *)engine->LoadModel( "models/Shells/shell_57.mdl" );
 	m_pCS_12GaugeShell	= (model_t *)engine->LoadModel( "models/Shells/shell_12gauge.mdl" );
 	m_pCS_556Shell		= (model_t *)engine->LoadModel( "models/Shells/shell_556.mdl" );
 	m_pCS_762NATOShell	= (model_t *)engine->LoadModel( "models/Shells/shell_762nato.mdl" );
 	m_pCS_338MAGShell	= (model_t *)engine->LoadModel( "models/Shells/shell_338mag.mdl" );
-#endif
 }
 
 
@@ -2449,14 +2440,12 @@ void CTempEnts::Init (void)
 	m_pHL1ShotgunShell	= NULL;
 #endif
 
-#if defined( CSTRIKE_DLL ) || defined ( SDK_DLL )
 	m_pCS_9MMShell		= NULL;
 	m_pCS_57Shell		= NULL;
 	m_pCS_12GaugeShell	= NULL;
 	m_pCS_556Shell		= NULL;
 	m_pCS_762NATOShell	= NULL;
 	m_pCS_338MAGShell	= NULL;
-#endif
 
 	// Clear out lists to start
 	Clear();
@@ -3332,8 +3321,6 @@ void CTempEnts::CSEjectBrass( const Vector &vecPosition, const QAngle &angVeloci
 	const model_t *pModel = NULL;
 	int hitsound = TE_BOUNCE_SHELL;
 
-#if defined ( CSTRIKE_DLL ) || defined ( SDK_DLL )
-
 	switch( shellType )
 	{
 	default:
@@ -3362,7 +3349,6 @@ void CTempEnts::CSEjectBrass( const Vector &vecPosition, const QAngle &angVeloci
 		pModel = m_pCS_338MAGShell;
 		break;
 	}
-#endif
 
 	if ( pModel == NULL )
 		return;
