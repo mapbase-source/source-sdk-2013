@@ -63,3 +63,5 @@ sp/src/utils/sapi51
 sp/src/game/server/server_boxobama.vcxproj
 sp/src/game/client/client_boxobama.vcxproj
 sp/src/games.sln
+sp/src/game/server/Debug_boxobama/server_boxobama.vcxproj.FileListAbsolute.txt
+sp/src/game/client/Debug_boxobama/client_boxobama.vcxproj.FileListAbsolute.txt
