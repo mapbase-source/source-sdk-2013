@@ -1,5 +1,3 @@
-* text eol=crlf
-
 creategameprojects text
 createallprojects text
 xcode_ccache_wrapper text
@@ -40,7 +38,6 @@ vpc_osx binary
 *.gcc text eol=crlf
 *.dsw text eol=crlf
 *.dsp text eol=crlf
-*.mak text
 
 .gitignore text
 makefile text eol=crlf
@@ -50,7 +47,6 @@ smdlexp.mak text
 README text
 CONTRIBUTING text
 LICENSE text
-makefile_base_posix.mak text eol=crlf
 
 *.exe binary
 *.dll binary
