@@ -61,3 +61,6 @@ config.cfg
 *.db-shm
 sp/src/utils/sapi51
 *.db-wal
+sp/src/game/client/client_boxobama.vcxproj
+sp/src/game/server/server_boxobama.vcxproj
+sp/src/games.sln
