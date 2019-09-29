@@ -6139,17 +6139,17 @@ void CBasePlayer::CheatImpulseCommands( int iImpulse )
 
 		// Give the player everything!
 		GiveAmmo( 255,	"AR2");
-		GiveAmmo( 5,	"AR2AltFire");
+//		GiveAmmo( 5,	"AR2AltFire");
 		GiveAmmo( 300,	"9MM");
 		GiveAmmo( 255,	"Buckshot");
-		GiveAmmo( 3,	"smg1_grenade");
+//		GiveAmmo( 3,	"smg1_grenade");
 		GiveAmmo( 3,	"rpg_round");
 		GiveAmmo( 5,	"grenade");
 		GiveAmmo( 50,	"50AE" );
 		GiveAmmo( 16,	"XBowBolt" );
-#ifdef HL2_EPISODIC
-		GiveAmmo( 5,	"Hopwire" );
-#endif		
+//#ifdef HL2_EPISODIC
+		//GiveAmmo( 5,	"Hopwire" );
+//#endif		
 		GiveNamedItem( "weapon_smg1" );
 		GiveNamedItem( "weapon_m4a1" );
 		GiveNamedItem( "weapon_frag" );
@@ -6158,13 +6158,13 @@ void CBasePlayer::CheatImpulseCommands( int iImpulse )
 		GiveNamedItem( "weapon_ar2" );
 		GiveNamedItem( "weapon_shotgun" );
 		GiveNamedItem( "weapon_physcannon" );
-		GiveNamedItem( "weapon_bugbait" );
+		GiveNamedItem( "weapon_xm1014" );
 		GiveNamedItem( "weapon_rpg" );
 		GiveNamedItem( "weapon_357" );
-		GiveNamedItem( "weapon_crossbow" );
-#ifdef HL2_EPISODIC
+		GiveNamedItem( "weapon_longstrike" );
+//#ifdef HL2_EPISODIC
 		// GiveNamedItem( "weapon_magnade" );
-#endif
+//#endif
 		if ( GetHealth() < 100 )
 		{
 			TakeHealth( 25, DMG_GENERIC );

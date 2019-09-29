@@ -40,7 +40,7 @@
 #include "entitylist.h"
 #include "env_zoom.h"
 #include "hl2_gamerules.h"
-#include "prop_combine_ball.h"
+//#include "prop_combine_ball.h"
 #include "datacache/imdlcache.h"
 #include "eventqueue.h"
 #include "gamestats.h"
@@ -196,7 +196,7 @@ public:
 	COutputEvent m_PlayerHasAmmo;
 	COutputEvent m_PlayerHasNoAmmo;
 	COutputEvent m_PlayerDied;
-	COutputEvent m_PlayerMissedAR2AltFire; // Player fired a combine ball which did not dissolve any enemies. 
+//	COutputEvent m_PlayerMissedAR2AltFire; // Player fired a combine ball which did not dissolve any enemies. 
 
 	COutputInt m_RequestedPlayerHealth;
 
@@ -2425,7 +2425,7 @@ bool CHL2_Player::ShouldShootMissTarget( CBaseCombatCharacter *pAttacker )
 // Purpose: Notifies Alyx that player has put a combine ball into a socket so she can comment on it.
 // Input  : pCombineBall - ball the was socketed
 //-----------------------------------------------------------------------------
-void CHL2_Player::CombineBallSocketed( CPropCombineBall *pCombineBall )
+/*void CHL2_Player::CombineBallSocketed( CPropCombineBall *pCombineBall )
 {
 #ifdef HL2_EPISODIC
 	CNPC_Alyx *pAlyx = CNPC_Alyx::GetAlyx();
@@ -2434,7 +2434,7 @@ void CHL2_Player::CombineBallSocketed( CPropCombineBall *pCombineBall )
 		pAlyx->CombineBallSocketed( pCombineBall->NumBounces() );
 	}
 #endif
-}
+}*/
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -3641,13 +3641,13 @@ void CHL2_Player::StopWaterDeathSounds( void )
 //-----------------------------------------------------------------------------
 // 
 //-----------------------------------------------------------------------------
-void CHL2_Player::MissedAR2AltFire()
+/*void CHL2_Player::MissedAR2AltFire()
 {
 	if( GetPlayerProxy() != NULL )
 	{
 		GetPlayerProxy()->m_PlayerMissedAR2AltFire.FireOutput( this, this );
 	}
-}
+}*/
 
 //-----------------------------------------------------------------------------
 //
@@ -3773,7 +3773,7 @@ BEGIN_DATADESC( CLogicPlayerProxy )
 	DEFINE_OUTPUT( m_PlayerHasAmmo, "PlayerHasAmmo" ),
 	DEFINE_OUTPUT( m_PlayerHasNoAmmo, "PlayerHasNoAmmo" ),
 	DEFINE_OUTPUT( m_PlayerDied,	"PlayerDied" ),
-	DEFINE_OUTPUT( m_PlayerMissedAR2AltFire, "PlayerMissedAR2AltFire" ),
+//	DEFINE_OUTPUT( m_PlayerMissedAR2AltFire, "PlayerMissedAR2AltFire" ),
 	DEFINE_INPUTFUNC( FIELD_VOID,	"RequestPlayerHealth",	InputRequestPlayerHealth ),
 	DEFINE_INPUTFUNC( FIELD_VOID,	"SetFlashlightSlowDrain",	InputSetFlashlightSlowDrain ),
 	DEFINE_INPUTFUNC( FIELD_VOID,	"SetFlashlightNormalDrain",	InputSetFlashlightNormalDrain ),

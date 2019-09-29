@@ -17,7 +17,7 @@
 #include "physics_npc_solver.h"
 #include "Sprite.h"
 #include "weapon_striderbuster.h"
-#include "npc_strider.h"
+//#include "npc_strider.h"
 #include "vguiscreen.h"
 #include "hl2_vehicle_radar.h"
 #include "props.h"
@@ -126,7 +126,7 @@ int CRadarTarget::ObjectCaps()
 // Trigger which detects entities placed in the cargo hold of the jalopy
 //
 
-class CVehicleCargoTrigger : public CBaseEntity
+/*class CVehicleCargoTrigger : public CBaseEntity
 {
 	DECLARE_CLASS( CVehicleCargoTrigger, CBaseEntity );
 
@@ -274,9 +274,9 @@ LINK_ENTITY_TO_CLASS( trigger_vehicle_cargo, CVehicleCargoTrigger );
 BEGIN_DATADESC( CVehicleCargoTrigger )
 	DEFINE_FIELD( m_flIgnoreDuration, FIELD_TIME ),
 	DEFINE_FIELD( m_hIgnoreEntity, FIELD_EHANDLE ),
-	DEFINE_ENTITYFUNC( CargoTouch ),
+//	DEFINE_ENTITYFUNC( CargoTouch ),
 END_DATADESC();
-
+*/
 //
 // Transition reference point for the vehicle
 //
@@ -354,8 +354,8 @@ BEGIN_DATADESC( CPropJeepEpisodic )
 	DEFINE_INPUTFUNC( FIELD_VOID, "UnlockExit",					InputUnlockExit ),
 	DEFINE_INPUTFUNC( FIELD_VOID, "EnableRadar",				InputEnableRadar ),
 	DEFINE_INPUTFUNC( FIELD_VOID, "DisableRadar",				InputDisableRadar ),
-	DEFINE_INPUTFUNC( FIELD_VOID, "EnableRadarDetectEnemies",	InputEnableRadarDetectEnemies ),
-	DEFINE_INPUTFUNC( FIELD_VOID, "AddBusterToCargo",			InputAddBusterToCargo ),
+//	DEFINE_INPUTFUNC( FIELD_VOID, "EnableRadarDetectEnemies",	InputEnableRadarDetectEnemies ),
+//	DEFINE_INPUTFUNC( FIELD_VOID, "AddBusterToCargo",			InputAddBusterToCargo ),
 	DEFINE_INPUTFUNC( FIELD_VOID, "OutsideTransition",			InputOutsideTransition ),
 	DEFINE_INPUTFUNC( FIELD_VOID, "DisablePhysGun",				InputDisablePhysGun ),
 	DEFINE_INPUTFUNC( FIELD_VOID, "EnablePhysGun",				InputEnablePhysGun ),
@@ -463,7 +463,7 @@ void CPropJeepEpisodic::Spawn( void )
 
 
 	SetBodygroup( JEEP_HOPPER_BODYGROUP, m_bBusterHopperVisible ? 1 : 0);
-	CreateCargoTrigger();
+//	CreateCargoTrigger();
 
 	// carbar bodygroup is always on
 	SetBodygroup( JEEP_CARBAR_BODYGROUP, 1 );
@@ -604,15 +604,15 @@ void CPropJeepEpisodic::InputDisableRadar( inputdata_t &data )
 //-----------------------------------------------------------------------------
 // Purpose: Allow the Jalopy radar to detect Hunters and Striders
 //-----------------------------------------------------------------------------
-void CPropJeepEpisodic::InputEnableRadarDetectEnemies( inputdata_t &data )
+/*void CPropJeepEpisodic::InputEnableRadarDetectEnemies( inputdata_t &data )
 {
 	m_bRadarDetectsEnemies = true;
-}
+}*/
 
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void CPropJeepEpisodic::InputAddBusterToCargo( inputdata_t &data )
+/*void CPropJeepEpisodic::InputAddBusterToCargo( inputdata_t &data )
 {
 	if ( m_hCargoProp != NULL)
 	{
@@ -627,7 +627,7 @@ void CPropJeepEpisodic::InputAddBusterToCargo( inputdata_t &data )
 		pNewBomb->Teleport( &m_hCargoTrigger->GetAbsOrigin(), NULL, NULL );
 		m_hCargoTrigger->AddCargo( pNewBomb );
 	}
-}
+}*/
 
 //-----------------------------------------------------------------------------
 // Purpose: 
@@ -690,7 +690,7 @@ float CPropJeepEpisodic::GetUprightStrength( void )
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void CPropJeepEpisodic::CreateCargoTrigger( void )
+/*void CPropJeepEpisodic::CreateCargoTrigger( void )
 {
 	if ( m_hCargoTrigger != NULL )
 		return;
@@ -711,7 +711,7 @@ void CPropJeepEpisodic::CreateCargoTrigger( void )
 		// Create a trigger that lives for a small amount of time
 		m_hCargoTrigger = CVehicleCargoTrigger::Create( vecAttachOrigin, vecMins, vecMaxs, this );
 	}
-}
+}*/
 
 //-----------------------------------------------------------------------------
 // Purpose: If the player uses the jeep while at the back, he gets ammo from the crate instead
@@ -861,8 +861,8 @@ void CPropJeepEpisodic::UpdateRadar( bool forceUpdate )
 
 	CBaseEntity *pEnt = gEntList.FirstEnt();
 	string_t iszRadarTarget = FindPooledString( "info_radar_target" );
-	string_t iszStriderName = FindPooledString( "npc_strider" );
-	string_t iszHunterName = FindPooledString( "npc_hunter" );
+//	string_t iszStriderName = FindPooledString( "npc_strider" );
+//	string_t iszHunterName = FindPooledString( "npc_hunter" );
 
 	string_t iszTestName = FindPooledString( jalopy_radar_test_ent.GetString() );
 
@@ -895,7 +895,7 @@ void CPropJeepEpisodic::UpdateRadar( bool forceUpdate )
 				}
 			}
 		}
-		else if ( m_bRadarDetectsEnemies )
+/*		else if ( m_bRadarDetectsEnemies )
 		{
 			if ( pEnt->m_iClassname == iszStriderName )
 			{
@@ -912,7 +912,7 @@ void CPropJeepEpisodic::UpdateRadar( bool forceUpdate )
 			{
 				type = RADAR_CONTACT_ENEMY;
 			}
-		}
+		}*/
 
 		if( type != RADAR_CONTACT_NONE )
 		{
@@ -1075,10 +1075,10 @@ void CPropJeepEpisodic::Think( void )
 	// Update the radar, of course.
 	UpdateRadar();
 
-	if ( m_hCargoTrigger && !m_hCargoProp && !m_hCargoTrigger->m_pfnTouch )
+/*	if ( m_hCargoTrigger && !m_hCargoProp && !m_hCargoTrigger->m_pfnTouch )
 	{
 		m_hCargoTrigger->Enable();
-	}
+	}*/
 
 	CreateAvoidanceZone();
 }
@@ -1111,18 +1111,18 @@ void CPropJeepEpisodic::ReleasePropFromCargoHold( void )
 	m_hCargoProp->SetParent( NULL );
 	m_hCargoProp->CreateVPhysics();
 
-	if ( m_hCargoTrigger )
+	/*if ( m_hCargoTrigger )
 	{
 		m_hCargoTrigger->Enable();
 		m_hCargoTrigger->IgnoreTouches( m_hCargoProp );
-	}
+	}*/
 }
 
 //-----------------------------------------------------------------------------
 // Purpose: If the player is trying to pull the cargo out of the hold using the physcannon, let him
 // Output : Returns the cargo to pick up, if all the conditions are met
 //-----------------------------------------------------------------------------
-CBaseEntity *CPropJeepEpisodic::OnFailedPhysGunPickup( Vector vPhysgunPos )
+/*CBaseEntity *CPropJeepEpisodic::OnFailedPhysGunPickup( Vector vPhysgunPos )
 {
 	// Make sure we're available to open
 	if ( m_hCargoProp != NULL )
@@ -1164,7 +1164,7 @@ CBaseEntity *CPropJeepEpisodic::OnFailedPhysGunPickup( Vector vPhysgunPos )
 	}
 
 	return BaseClass::OnFailedPhysGunPickup( vPhysgunPos );
-}
+}*/
 
 // adds a collision solver for any small props that are stuck under the vehicle
 static void SolveBlockingProps( CPropJeepEpisodic *pVehicleEntity, IPhysicsObject *pVehiclePhysics )
@@ -1322,18 +1322,18 @@ void CPropJeepEpisodic::DriveVehicle( float flFrameTime, CUserCmd *ucmd, int iBu
 	   and we haven't built any gameplay around it.
 
 	   Furthermore, I don't think I've ever seen a playtester turn it on.
-	
-	if ( ucmd->impulse == 100 )
+	*/
+	/*if ( ucmd->impulse == 100 )
 	{
 		if (HeadlightIsOn())
 		{
 			HeadlightTurnOff();
 		}
 		else 
-		{
+		{*/
 			HeadlightTurnOn();
-		}
-	}*/
+	//	}
+//	}
 	
 	if ( ucmd->forwardmove != 0.0f )
 	{

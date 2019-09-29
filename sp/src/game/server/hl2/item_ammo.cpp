@@ -46,12 +46,12 @@ public:
 	void Spawn( void )
 	{ 
 		Precache( );
-		SetModel( "models/items/boxsrounds.mdl" );
+		SetModel( "models/items/combine_rifle_cartridge01.mdl" );
 		BaseClass::Spawn( );
 	}
 	void Precache( void )
 	{
-		PrecacheModel ("models/items/boxsrounds.mdl");
+		PrecacheModel ("models/items/combine_rifle_cartridge01.mdl");
 	}
 	bool MyTouch( CBasePlayer *pPlayer )
 	{
@@ -81,12 +81,12 @@ public:
 	void Spawn( void )
 	{ 
 		Precache( );
-		SetModel( "models/items/boxsrounds.mdl" );
+		SetModel( "models/items/combine_rifle_cartridge01.mdl" );
 		BaseClass::Spawn( );
 	}
 	void Precache( void )
 	{
-		PrecacheModel ("models/items/boxsrounds.mdl");
+		PrecacheModel ("models/items/combine_rifle_cartridge01.mdl");
 	}
 	bool MyTouch( CBasePlayer *pPlayer )
 	{
@@ -115,12 +115,12 @@ public:
 	void Spawn( void )
 	{ 
 		Precache( );
-		SetModel( "models/items/boxmrounds.mdl");
+		SetModel( "models/items/boxsrounds.mdl");
 		BaseClass::Spawn( );
 	}
 	void Precache( void )
 	{
-		PrecacheModel ("models/items/boxmrounds.mdl");
+		PrecacheModel ("models/items/boxsrounds.mdl");
 	}
 	bool MyTouch( CBasePlayer *pPlayer )
 	{
@@ -149,12 +149,12 @@ public:
 	void Spawn( void )
 	{ 
 		Precache( );
-		SetModel( "models/items/boxmrounds.mdl");
+		SetModel( "models/items/boxsrounds.mdl");
 		BaseClass::Spawn( );
 	}
 	void Precache( void )
 	{
-		PrecacheModel ("models/items/boxmrounds.mdl");
+		PrecacheModel ("models/items/boxsrounds.mdl");
 	}
 	bool MyTouch( CBasePlayer *pPlayer )
 	{
@@ -183,12 +183,12 @@ public:
 	void Spawn( void )
 	{ 
 		Precache( );
-		SetModel( "models/items/combine_rifle_cartridge01.mdl");
+		SetModel( "models/items/boxsniperrounds.mdl");
 		BaseClass::Spawn( );
 	}
 	void Precache( void )
 	{
-		PrecacheModel ("models/items/combine_rifle_cartridge01.mdl");
+		PrecacheModel ("models/items/boxsniperrounds.mdl");
 	}
 	bool MyTouch( CBasePlayer *pPlayer )
 	{
@@ -217,12 +217,12 @@ public:
 	void Spawn( void )
 	{ 
 		Precache( );
-		SetModel( "models/items/combine_rifle_cartridge01.mdl");
+		SetModel( "models/items/boxsniperrounds.mdl");
 		BaseClass::Spawn( );
 	}
 	void Precache( void )
 	{
-		PrecacheModel ("models/items/combine_rifle_cartridge01.mdl");
+		PrecacheModel ("models/items/boxsniperrounds.mdl");
 	}
 	bool MyTouch( CBasePlayer *pPlayer )
 	{
@@ -242,7 +242,7 @@ LINK_ENTITY_TO_CLASS(item_ammo_ar2_large, CItem_LargeBoxLRounds);
 
 
 // ========================================================================
-//	>> CItem_Box357Rounds
+//	>> CItem_Box50AERounds
 // ========================================================================
 class CItem_Box50AERounds : public CItem
 {
@@ -277,7 +277,7 @@ LINK_ENTITY_TO_CLASS(item_ammo_50ae, CItem_Box50AERounds);
 
 
 // ========================================================================
-//	>> CItem_LargeBox357Rounds
+//	>> CItem_LargeBox50AERounds
 // ========================================================================
 class CItem_LargeBox50AERounds : public CItem
 {
@@ -308,7 +308,7 @@ public:
 		return false;
 	}
 };
-LINK_ENTITY_TO_CLASS(item_ammo_50ae_large, CItem_LargeBox50AERounds);
+LINK_ENTITY_TO_CLASS(item_ammo_50AE_large, CItem_LargeBox50AERounds);
 
 
 // ========================================================================
@@ -452,7 +452,7 @@ LINK_ENTITY_TO_CLASS( item_rpg_round, CItem_RPG_Round );
 // ========================================================================
 //	>> AR2_Grenade
 // ========================================================================
-class CItem_AR2_Grenade : public CItem
+/*class CItem_AR2_Grenade : public CItem
 {
 public:
 	DECLARE_CLASS( CItem_AR2_Grenade, CItem );
@@ -481,7 +481,7 @@ public:
 	}
 };
 LINK_ENTITY_TO_CLASS(item_ar2_grenade, CItem_AR2_Grenade);
-LINK_ENTITY_TO_CLASS(item_ammo_smg1_grenade, CItem_AR2_Grenade);
+LINK_ENTITY_TO_CLASS(item_ammo_smg1_grenade, CItem_AR2_Grenade);*/
 
 // ========================================================================
 //	>> BoxSniperRounds
@@ -555,7 +555,7 @@ LINK_ENTITY_TO_CLASS(item_box_buckshot, CItem_BoxBuckshot);
 // ========================================================================
 //	>> CItem_AR2AltFireRound
 // ========================================================================
-class CItem_AR2AltFireRound : public CItem
+/*class CItem_AR2AltFireRound : public CItem
 {
 public:
 	DECLARE_CLASS( CItem_AR2AltFireRound, CItem );
@@ -587,7 +587,7 @@ public:
 	}
 };
 
-LINK_ENTITY_TO_CLASS( item_ammo_ar2_altfire, CItem_AR2AltFireRound );
+LINK_ENTITY_TO_CLASS( item_ammo_ar2_altfire, CItem_AR2AltFireRound );*/
 
 // ==================================================================
 // Ammo crate which will supply infinite ammo of the specified type
@@ -602,7 +602,7 @@ enum
 	AMMOCRATE_RPG_ROUNDS,
 	AMMOCRATE_BUCKSHOT,
 	AMMOCRATE_GRENADES,
-	AMMOCRATE_357,
+	AMMOCRATE_50AE,
 	AMMOCRATE_CROSSBOW,
 	AMMOCRATE_AR2_ALTFIRE,
 	AMMOCRATE_SMG_ALTFIRE,
@@ -687,12 +687,12 @@ const char *CItem_AmmoCrate::m_lpzModelNames[NUM_AMMO_CRATE_TYPES] =
 	"models/items/ammocrate_rockets.mdl",	// RPG rounds
 	"models/items/ammocrate_buckshot.mdl",	// Buckshot
 	"models/items/ammocrate_grenade.mdl",	// Grenades
-	"models/items/ammocrate_smg1.mdl",		// 357
-	"models/items/ammocrate_smg1.mdl",	// Crossbow
+//	"models/items/ammocrate_smg1.mdl",		// 357
+//	"models/items/ammocrate_smg1.mdl",	// Crossbow
 	
 	//FIXME: This model is incorrect!
-	"models/items/ammocrate_ar2.mdl",		// Combine Ball 
-	"models/items/ammocrate_smg2.mdl",	    // smg grenade
+//	"models/items/ammocrate_ar2.mdl",		// Combine Ball 
+//	"models/items/ammocrate_smg2.mdl",	    // smg grenade
 };
 
 // Ammo type names
@@ -704,10 +704,10 @@ const char *CItem_AmmoCrate::m_lpzAmmoNames[NUM_AMMO_CRATE_TYPES] =
 	"RPG_Round",	
 	"Buckshot",		
 	"Grenade",
-	"357",
-	"XBowBolt",
-	"AR2AltFire",
-	"SMG1_Grenade",
+//	"357",
+//	"XBowBolt",
+//	"AR2AltFire",
+//	"SMG1_Grenade",
 };
 
 // Ammo amount given per +use
@@ -719,10 +719,10 @@ int CItem_AmmoCrate::m_nAmmoAmounts[NUM_AMMO_CRATE_TYPES] =
 	3,		// RPG rounds
 	120,	// Buckshot
 	5,		// Grenades
-	50,		// 357
-	50,		// Crossbow
-	3,		// AR2 alt-fire
-	5,
+//	50,		// 357
+//	50,		// Crossbow
+//	3,		// AR2 alt-fire
+//	5,
 };
 
 const char *CItem_AmmoCrate::m_pGiveWeapon[NUM_AMMO_CRATE_TYPES] =
@@ -733,10 +733,10 @@ const char *CItem_AmmoCrate::m_pGiveWeapon[NUM_AMMO_CRATE_TYPES] =
 	NULL,		// RPG rounds
 	NULL,	// Buckshot
 	"weapon_frag",		// Grenades
-	NULL,		// 357
-	NULL,		// Crossbow
-	NULL,		// AR2 alt-fire
-	NULL,		// SMG alt-fire
+//	NULL,		// 357
+//	NULL,		// Crossbow
+//	NULL,		// AR2 alt-fire
+//	NULL,		// SMG alt-fire
 };
 
 #define	AMMO_CRATE_CLOSE_DELAY	1.5f

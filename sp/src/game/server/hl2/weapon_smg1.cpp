@@ -12,7 +12,7 @@
 #include "player.h"
 #include "game.h"
 #include "in_buttons.h"
-#include "grenade_ar2.h"
+//#include "grenade_ar2.h"
 #include "ai_memory.h"
 #include "soundent.h"
 #include "rumble_shared.h"
@@ -21,7 +21,7 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
-extern ConVar    sk_plr_dmg_smg1_grenade;	
+//extern ConVar    sk_plr_dmg_smg1_grenade;	
 
 class CWeaponSMG1 : public CHLSelectFireMachineGun
 {
@@ -59,10 +59,10 @@ public:
 
 	DECLARE_ACTTABLE();
 
-protected:
+/*protected:
 
 	Vector	m_vecTossVelocity;
-	float	m_flNextGrenadeCheck;
+	float	m_flNextGrenadeCheck;*/
 };
 
 IMPLEMENT_SERVERCLASS_ST(CWeaponSMG1, DT_WeaponSMG1)
@@ -73,8 +73,8 @@ PRECACHE_WEAPON_REGISTER(weapon_smg1);
 
 BEGIN_DATADESC( CWeaponSMG1 )
 
-	DEFINE_FIELD( m_vecTossVelocity, FIELD_VECTOR ),
-	DEFINE_FIELD( m_flNextGrenadeCheck, FIELD_TIME ),
+//	DEFINE_FIELD( m_vecTossVelocity, FIELD_VECTOR ),
+//	DEFINE_FIELD( m_flNextGrenadeCheck, FIELD_TIME ),
 
 END_DATADESC()
 
@@ -262,7 +262,7 @@ Activity CWeaponSMG1::GetPrimaryAttackActivity( void )
 bool CWeaponSMG1::Reload( void )
 {
 	bool fRet;
-	float fCacheTime = m_flNextSecondaryAttack;
+//	float fCacheTime = m_flNextSecondaryAttack;
 
 	fRet = DefaultReload( GetMaxClip1(), GetMaxClip2(), ACT_VM_RELOAD );
 	if ( fRet )
@@ -270,7 +270,7 @@ bool CWeaponSMG1::Reload( void )
 		// Undo whatever the reload process has done to our secondary
 		// attack timer. We allow you to interrupt reloading to fire
 		// a grenade.
-		m_flNextSecondaryAttack = GetOwner()->m_flNextAttack = fCacheTime;
+//		m_flNextSecondaryAttack = GetOwner()->m_flNextAttack = fCacheTime;
 
 		WeaponSound( RELOAD );
 	}
@@ -296,7 +296,7 @@ void CWeaponSMG1::AddViewKick( void )
 	DoMachineGunKick( pPlayer, EASY_DAMPEN, MAX_VERTICAL_KICK, m_fFireDuration, SLIDE_LIMIT );
 }
 
-#define	COMBINE_MIN_GRENADE_CLEAR_DIST 256
+//#define	COMBINE_MIN_GRENADE_CLEAR_DIST 256
 
 //-----------------------------------------------------------------------------
 const WeaponProficiencyInfo_t *CWeaponSMG1::GetProficiencyValues()

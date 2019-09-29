@@ -65,7 +65,7 @@ public:
 
 	void			AddPropToCargoHold( CPhysicsProp *pProp );
 
-	virtual CBaseEntity *OnFailedPhysGunPickup( Vector vPhysgunPos );
+//	virtual CBaseEntity *OnFailedPhysGunPickup( Vector vPhysgunPos );
 	virtual void	DriveVehicle( float flFrameTime, CUserCmd *ucmd, int iButtonsDown, int iButtonsReleased );
 	virtual int DrawDebugTextOverlays( void );
 
@@ -78,7 +78,7 @@ protected:
 
 			void			UpdateCargoEntry( void );
 			void			ReleasePropFromCargoHold( void );
-			void			CreateCargoTrigger( void );
+//			void			CreateCargoTrigger( void );
 	virtual float			GetUprightTime( void ) { return 1.0f; }
 	virtual float			GetUprightStrength( void );
 	virtual bool			ShouldPuntUseLaunchForces( PhysGunForce_t reason ) { return ( reason == PHYSGUN_FORCE_PUNTED ); }
@@ -101,8 +101,8 @@ private:
 	void	InputUnlockExit( inputdata_t &data );
 	void	InputEnableRadar( inputdata_t &data );
 	void	InputDisableRadar( inputdata_t &data );
-	void	InputEnableRadarDetectEnemies( inputdata_t &data );
-	void	InputAddBusterToCargo( inputdata_t &data );
+//	void	InputEnableRadarDetectEnemies( inputdata_t &data );
+//	void	InputAddBusterToCargo( inputdata_t &data );
 	void	InputSetCargoVisibility( inputdata_t &data );
 	void	InputOutsideTransition( inputdata_t &data );
 	void	InputDisablePhysGun( inputdata_t &data );

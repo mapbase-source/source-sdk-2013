@@ -28,7 +28,7 @@
 #include "antlion_dust.h"
 #include "npc_antlion.h"
 #include "decals.h"
-#include "prop_combine_ball.h"
+//#include "prop_combine_ball.h"
 #include "eventqueue.h"
 #include "te_effect_dispatch.h"
 #include "Sprite.h"
@@ -2165,10 +2165,10 @@ int CNPC_AntlionGuard::OnTakeDamage_Alive( const CTakeDamageInfo &info )
 	if ( IsHeavyDamage( dInfo ) )
 	{
 		// Always take a set amount of damage from a combine ball
-		if ( info.GetInflictor() && UTIL_IsCombineBall( info.GetInflictor() ) )
+		/*if ( info.GetInflictor() && UTIL_IsCombineBall( info.GetInflictor() ) )
 		{
 			dInfo.SetDamage( 50 );
-		}
+		}*/
 
 		UTIL_ScreenShake( GetAbsOrigin(), 32.0f, 8.0f, 0.5f, 512, SHAKE_START );
 
@@ -4466,8 +4466,8 @@ bool CNPC_AntlionGuard::IsHeavyDamage( const CTakeDamageInfo &info )
 		if ( ( pPhysObject != NULL ) && ( pPhysObject->GetGameFlags() & FVPHYSICS_WAS_THROWN ) )
 		{
 			// Always take hits from a combine ball
-			if ( UTIL_IsAR2CombineBall( info.GetInflictor() ) )
-				return true;
+		//	if ( UTIL_IsAR2CombineBall( info.GetInflictor() ) )
+			//	return true;
 
 			// If we're under half health, stop being interrupted by heavy damage
 			if ( GetHealth() < (GetMaxHealth() * 0.25) )

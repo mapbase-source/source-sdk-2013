@@ -276,6 +276,8 @@ public:
 	// Firing animations
 	virtual Activity		GetPrimaryAttackActivity( void );
 	virtual Activity		GetSecondaryAttackActivity( void );
+	virtual Activity		GetSwitchToAutoActivity( void );
+	virtual Activity		GetSwitchToSemiActivity( void );
 	virtual Activity		GetDrawActivity( void );
 	virtual float			GetDefaultAnimSpeed( void ) { return 1.0; }
 

@@ -32,9 +32,9 @@
 	#include "portal_util_shared.h"
 #endif
 
-#ifdef HL2_DLL
+/*#ifdef HL2_DLL
 	extern int g_interactionPlayerLaunchedRPG;
-#endif
+#endif*/
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -1651,7 +1651,7 @@ void CWeaponRPG::PrimaryAttack( void )
 		}
 	}
 
-	if( hl2_episodic.GetBool() )
+/*	if( hl2_episodic.GetBool() )
 	{
 		CAI_BaseNPC **ppAIs = g_AI_Manager.AccessAIs();
 		int nAIs = g_AI_Manager.NumAIs();
@@ -1665,7 +1665,7 @@ void CWeaponRPG::PrimaryAttack( void )
 				ppAIs[ i ]->DispatchInteraction( g_interactionPlayerLaunchedRPG, NULL, m_hMissile );
 			}
 		}
-	}
+	}*/
 }
 
 //-----------------------------------------------------------------------------

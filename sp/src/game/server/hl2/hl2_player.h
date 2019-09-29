@@ -273,7 +273,7 @@ public:
 									   m_iArmorReductionFrom = ArmorValue(); 
 									 }
 
-	void MissedAR2AltFire();
+//	void MissedAR2AltFire();
 
 	inline void EnableCappedPhysicsDamage();
 	inline void DisableCappedPhysicsDamage();

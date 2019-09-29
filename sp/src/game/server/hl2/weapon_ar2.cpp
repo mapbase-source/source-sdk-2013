@@ -22,7 +22,7 @@
 #include "EntityFlame.h"
 #include "weapon_flaregun.h"
 #include "te_effect_dispatch.h"
-#include "prop_combine_ball.h"
+//#include "prop_combine_ball.h"
 #include "beam_shared.h"
 #include "npc_combine.h"
 #include "rumble_shared.h"
@@ -36,9 +36,9 @@
 
 BEGIN_DATADESC( CWeaponAR2 )
 
-	DEFINE_FIELD( m_flDelayedFire,	FIELD_TIME ),
+	/*DEFINE_FIELD( m_flDelayedFire,	FIELD_TIME ),
 	DEFINE_FIELD( m_bShotDelayed,	FIELD_BOOLEAN ),
-	//DEFINE_FIELD( m_nVentPose, FIELD_INTEGER ),
+	DEFINE_FIELD( m_nVentPose, FIELD_INTEGER ),*/
 
 END_DATADESC()
 

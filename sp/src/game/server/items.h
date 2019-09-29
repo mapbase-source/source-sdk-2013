@@ -23,14 +23,14 @@
 // Ammo counts given by ammo items
 #define SIZE_AMMO_556				30
 #define SIZE_AMMO_556_LARGE			100
-#define SIZE_AMMO_9MM				30
+#define SIZE_AMMO_9MM				20
 #define SIZE_AMMO_9MM_LARGE			300
-#define SIZE_AMMO_AR2				20
+#define SIZE_AMMO_AR2				18
 #define SIZE_AMMO_AR2_LARGE			100
 #define SIZE_AMMO_RPG_ROUND			1
-#define SIZE_AMMO_SMG1_GRENADE		1
+//#define SIZE_AMMO_SMG1_GRENADE		1
 #define SIZE_AMMO_BUCKSHOT			20
-#define SIZE_AMMO_50AE				8
+#define SIZE_AMMO_50AE				6
 #define SIZE_AMMO_50AE_LARGE		32
 #define SIZE_AMMO_CROSSBOW			6
 #define	SIZE_AMMO_AR2_ALTFIRE		1

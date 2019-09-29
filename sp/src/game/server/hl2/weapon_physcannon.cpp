@@ -31,7 +31,7 @@
 #include "te_effect_dispatch.h"
 #include "vphysics/friction.h"
 #include "saverestore_utlvector.h"
-#include "prop_combine_ball.h"
+//#include "prop_combine_ball.h"
 #include "physobj.h"
 #include "hl2_gamerules.h"
 #include "citadel_effects_shared.h"
@@ -946,8 +946,8 @@ float CGrabController::GetSavedMass( IPhysicsObject *pObject )
 bool CGrabController::IsObjectAllowedOverhead( CBaseEntity *pEntity )
 {
 	// Allow combine balls overhead 
-	if( UTIL_IsCombineBallDefinite(pEntity) )
-		return true;
+//	if( UTIL_IsCombineBallDefinite(pEntity) )
+	//	return true;
 
 	// Allow props that are specifically flagged as such
 	CPhysicsProp *pPhysProp = dynamic_cast<CPhysicsProp *>(pEntity);

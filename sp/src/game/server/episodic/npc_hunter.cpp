@@ -57,7 +57,7 @@
 #include "hl2_shareddefs.h"
 #include "te_effect_dispatch.h"
 #include "beam_flags.h"
-#include "prop_combine_ball.h"
+//#include "prop_combine_ball.h"
 #include "explode.h"
 #include "weapon_physcannon.h"
 #include "weapon_striderbuster.h"

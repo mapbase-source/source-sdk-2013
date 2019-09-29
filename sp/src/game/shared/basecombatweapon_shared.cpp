@@ -2066,6 +2066,16 @@ Activity CBaseCombatWeapon::GetSecondaryAttackActivity( void )
 	return ACT_VM_SECONDARYATTACK;
 }
 
+Activity CBaseCombatWeapon::GetSwitchToAutoActivity( void )
+{
+	return ACT_VM_SWITCHAUTO;
+}
+
+Activity CBaseCombatWeapon::GetSwitchToSemiActivity( void )
+{
+	return ACT_VM_SWITCHSEMI;
+}
+
 //-----------------------------------------------------------------------------
 // Purpose: Adds in view kick and weapon accuracy degradation effect
 //-----------------------------------------------------------------------------

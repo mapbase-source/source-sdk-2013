@@ -21,8 +21,6 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
-// extern ConVar    sk_plr_dmg_smg1_grenade;
-
 class CWeaponLongStrike : public CHLSelectFireMachineGun
 {
 	DECLARE_DATADESC();
@@ -61,11 +59,6 @@ public:
 	void Operator_HandleAnimEvent(animevent_t *pEvent, CBaseCombatCharacter *pOperator);
 
 	DECLARE_ACTTABLE();
-
-protected:
-
-	Vector	m_vecTossVelocity;
-	float	m_flNextGrenadeCheck;
 };
 
 IMPLEMENT_SERVERCLASS_ST(CWeaponLongStrike, DT_WeaponLongStrike)
@@ -75,9 +68,6 @@ LINK_ENTITY_TO_CLASS(weapon_longstrike, CWeaponLongStrike);
 PRECACHE_WEAPON_REGISTER(weapon_longstrike);
 
 BEGIN_DATADESC(CWeaponLongStrike)
-
-DEFINE_FIELD(m_vecTossVelocity, FIELD_VECTOR),
-DEFINE_FIELD(m_flNextGrenadeCheck, FIELD_TIME),
 
 END_DATADESC()
 

@@ -218,18 +218,18 @@ void CWeaponPistol::SecondaryAttack( void )
 		case FIREMODE_FULLAUTO:
 			Msg("Semi\n");
 			m_iFireMode = FIREMODE_SEMI;
+			SendWeaponAnim(GetSwitchToSemiActivity());
 			WeaponSound(SPECIAL1);
 			break;
 
 		case FIREMODE_SEMI:
 			Msg("Auto\n");
 			m_iFireMode = FIREMODE_FULLAUTO;
+			SendWeaponAnim(GetSwitchToAutoActivity());
 			WeaponSound(SPECIAL2);
 			break;
 		}
 		m_nModeSwitches++;
-
-		SendWeaponAnim(GetSecondaryAttackActivity());
 
 		m_flNextSecondaryAttack = gpGlobals->curtime + 0.3;
 
