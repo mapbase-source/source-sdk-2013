@@ -12,7 +12,6 @@
 #include "player.h"
 #include "game.h"
 #include "in_buttons.h"
-#include "grenade_ar2.h"
 #include "ai_memory.h"
 #include "soundent.h"
 #include "rumble_shared.h"
