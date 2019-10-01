@@ -2563,8 +2563,8 @@ void CHudCloseCaption::Flush()
 void CHudCloseCaption::InitCaptionDictionary( const char *dbfile )
 {
 #ifndef MAPBASE //-Nbc66
-	//if ( m_CurrentLanguage.IsValid() && !Q_stricmp( m_CurrentLanguage.String(), dbfile ) )
-		//return;
+	if ( m_CurrentLanguage.IsValid() && !Q_stricmp( m_CurrentLanguage.String(), dbfile ) )
+		return;
 #endif
 	m_CurrentLanguage = dbfile;
 
@@ -2603,19 +2603,19 @@ void CHudCloseCaption::InitCaptionDictionary( const char *dbfile )
 
 			AsyncCaption_t& entry = m_AsyncCaptions[ m_AsyncCaptions.AddToTail() ];
 
-#ifdef MAPBASE //-Nbc66
+#ifndef MAPBASE //-Nbc66
 			// Read the header
 			filesystem->Read( &entry.m_Header, sizeof( entry.m_Header ), fh );
-			/*
+			
 			if ( entry.m_Header.magic != COMPILED_CAPTION_FILEID )
 				Error( "Invalid file id for %s\n", fullpath );
 			if ( entry.m_Header.version != COMPILED_CAPTION_VERSION )
 				Error( "Invalid file version for %s\n", fullpath );
 			if ( entry.m_Header.directorysize < 0 || entry.m_Header.directorysize > 64 * 1024 )
 				Error( "Invalid directory size %d for %s\n", entry.m_Header.directorysize, fullpath );
-			//if ( entry.m_Header.blocksize != MAX_BLOCK_SIZE )
-			//	Error( "Invalid block size %d, expecting %d for %s\n", entry.m_Header.blocksize, MAX_BLOCK_SIZE, fullpath );
-			*/
+			if ( entry.m_Header.blocksize != MAX_BLOCK_SIZE )
+				Error( "Invalid block size %d, expecting %d for %s\n", entry.m_Header.blocksize, MAX_BLOCK_SIZE, fullpath );
+			
 #endif
 			int directoryBytes = entry.m_Header.directorysize * sizeof( CaptionLookup_t );
 			entry.m_CaptionDirectory.EnsureCapacity( entry.m_Header.directorysize );
