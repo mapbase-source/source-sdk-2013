@@ -2775,11 +2775,11 @@ void OnCaptionLanguageChanged( IConVar *pConVar, const char *pOldString, float f
 
 #ifdef MAPBASE//-Nbc66
 	// If it's not the default, load the language on top of the user's default language
-	if (Q_strlen(var.GetString()) > 0 && Q_stricmp(var.GetString(), uilanguage))
+	if ( Q_strlen( var.GetString() ) > 0 && Q_stricmp( var.GetString(), uilanguage ) )
 	{
 		if (!IsX360())
 		{
-			if (g_pFullFileSystem->FileExists(fn))
+			if ( g_pFullFileSystem->FileExists( fn ) )
 			{
 				char dbfile[512];
 				Q_snprintf(dbfile, sizeof(dbfile), "resource/closecaption_%s.txt", var.GetString());
@@ -2791,8 +2791,8 @@ void OnCaptionLanguageChanged( IConVar *pConVar, const char *pOldString, float f
 				char fallback[512];
 				Q_snprintf(fallback, sizeof(fallback), "resource/closecaption_%s.txt", uilanguage);
 
-				Msg("%s not found\n", fn);
-				Msg("%s will be used\n", fallback);
+				Msg( "%s not found\n", fn );
+				Msg( "%s will be used\n", fallback );
 			}
 
 		}
