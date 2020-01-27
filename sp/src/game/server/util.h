@@ -187,7 +187,13 @@ extern CGlobalVars *gpGlobals;
 // Misc useful
 inline bool FStrEq(const char *sz1, const char *sz2)
 {
+#ifdef MAPBASE
+	// V_stricmp() already checks if the pointers are equal, so having a pointer comparison here is pointless.
+	// I'm not sure if this was already automatically phased out by the compiler, but if it wasn't, then this is a very good change.
+	return ( V_stricmp(sz1, sz2) == 0 );
+#else
 	return ( sz1 == sz2 || V_stricmp(sz1, sz2) == 0 );
+#endif
 }
 
 #if 0
@@ -200,7 +206,7 @@ inline bool FStrEq( string_t str1, string_t str2 )
 }
 #endif
 
-const char *nexttoken(char *token, const char *str, char sep);
+const char *nexttoken(char *token, const char *str, char sep, size_t tokenLen);
 
 // Misc. Prototypes
 void		UTIL_SetSize			(CBaseEntity *pEnt, const Vector &vecMin, const Vector &vecMax);
@@ -280,6 +286,9 @@ private:
 int			UTIL_EntitiesInBox( const Vector &mins, const Vector &maxs, CFlaggedEntitiesEnum *pEnum  );
 int			UTIL_EntitiesAlongRay( const Ray_t &ray, CFlaggedEntitiesEnum *pEnum  );
 int			UTIL_EntitiesInSphere( const Vector &center, float radius, CFlaggedEntitiesEnum *pEnum  );
+#ifdef MAPBASE
+int			UTIL_EntitiesAtPoint( const Vector &point, CFlaggedEntitiesEnum *pEnum );
+#endif
 
 inline int UTIL_EntitiesInBox( CBaseEntity **pList, int listMax, const Vector &mins, const Vector &maxs, int flagMask )
 {
@@ -298,6 +307,14 @@ inline int UTIL_EntitiesInSphere( CBaseEntity **pList, int listMax, const Vector
 	CFlaggedEntitiesEnum sphereEnum( pList, listMax, flagMask );
 	return UTIL_EntitiesInSphere( center, radius, &sphereEnum );
 }
+
+#ifdef MAPBASE
+inline int UTIL_EntitiesAtPoint( CBaseEntity **pList, int listMax, const Vector &point, int flagMask )
+{
+	CFlaggedEntitiesEnum pointEnum( pList, listMax, flagMask );
+	return UTIL_EntitiesAtPoint( point, &pointEnum );
+}
+#endif
 
 // marks the entity for deletion so it will get removed next frame
 void UTIL_Remove( IServerNetworkable *oldObj );
@@ -361,6 +378,10 @@ void		UTIL_AxisStringToPointPoint( Vector &start, Vector &end, const char *pStri
 void		UTIL_AxisStringToUnitDir( Vector &dir, const char *pString );
 void		UTIL_ClipPunchAngleOffset( QAngle &in, const QAngle &punch, const QAngle &clip );
 void		UTIL_PredictedPosition( CBaseEntity *pTarget, float flTimeDelta, Vector *vecPredictedPosition );
+#ifdef MAPBASE
+void		UTIL_PredictedPosition( CBaseEntity *pTarget, const Vector &vecActualPosition, float flTimeDelta, Vector *vecPredictedPosition );
+void		UTIL_PredictedAngles( CBaseEntity *pTarget, const QAngle &angActualAngles, float flTimeDelta, QAngle *angPredictedAngles );
+#endif
 void		UTIL_Beam( Vector &Start, Vector &End, int nModelIndex, int nHaloIndex, unsigned char FrameStart, unsigned char FrameRate,
 				float Life, unsigned char Width, unsigned char EndWidth, unsigned char FadeLength, unsigned char Noise, unsigned char Red, unsigned char Green,
 				unsigned char Blue, unsigned char Brightness, unsigned char Speed);
@@ -391,6 +412,11 @@ void UTIL_BubbleTrail( const Vector& from, const Vector& to, int count );
 
 // allows precacheing of other entities
 void UTIL_PrecacheOther( const char *szClassname, const char *modelName = NULL );
+
+#ifdef MAPBASE
+// Tests whether this entity exists in the dictionary and if it does, precaches it. (as opposed to complaining when it's missing)
+bool UTIL_TestPrecacheOther( const char *szClassname, const char *modelName = NULL );
+#endif
 
 // prints a message to each client
 void			UTIL_ClientPrintAll( int msg_dest, const char *msg_name, const char *param1 = NULL, const char *param2 = NULL, const char *param3 = NULL, const char *param4 = NULL );

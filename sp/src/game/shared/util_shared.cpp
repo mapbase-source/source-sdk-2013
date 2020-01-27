@@ -219,6 +219,15 @@ bool PassServerEntityFilter( const IHandleEntity *pTouch, const IHandleEntity *p
 	if ( !pEntTouch || !pEntPass )
 		return true;
 
+#ifdef MAPBASE
+	// don't clip against own missiles
+	if ( pEntTouch->GetOwnerEntity() == pEntPass && !pEntTouch->IsSolidFlagSet(FSOLID_COLLIDE_WITH_OWNER) )
+		return false;
+	
+	// don't clip against owner
+	if ( pEntPass->GetOwnerEntity() == pEntTouch && !pEntPass->IsSolidFlagSet(FSOLID_COLLIDE_WITH_OWNER) )
+		return false;
+#else
 	// don't clip against own missiles
 	if ( pEntTouch->GetOwnerEntity() == pEntPass )
 		return false;
@@ -226,6 +235,7 @@ bool PassServerEntityFilter( const IHandleEntity *pTouch, const IHandleEntity *p
 	// don't clip against owner
 	if ( pEntPass->GetOwnerEntity() == pEntTouch )
 		return false;	
+#endif
 
 
 	return true;
@@ -985,6 +995,57 @@ void UTIL_StringToColor32( color32 *color, const char *pString )
 	color->b = tmp[2];
 	color->a = tmp[3];
 }
+
+#ifdef MAPBASE
+void UTIL_StringToFloatArray_PreserveArray( float *pVector, int count, const char *pString )
+{
+	char *pstr, *pfront, tempString[128];
+	int	j;
+
+	Q_strncpy( tempString, pString, sizeof(tempString) );
+	pstr = pfront = tempString;
+
+	for ( j = 0; j < count; j++ )			// lifted from pr_edict.c
+	{
+		pVector[j] = atof( pfront );
+
+		// skip any leading whitespace
+		while ( *pstr && *pstr <= ' ' )
+			pstr++;
+
+		// skip to next whitespace
+		while ( *pstr && *pstr > ' ' )
+			pstr++;
+
+		if (!*pstr)
+			break;
+
+		pstr++;
+		pfront = pstr;
+	}
+}
+
+void UTIL_StringToIntArray_PreserveArray( int *pVector, int count, const char *pString )
+{
+	char *pstr, *pfront, tempString[128];
+	int	j;
+
+	Q_strncpy( tempString, pString, sizeof(tempString) );
+	pstr = pfront = tempString;
+
+	for ( j = 0; j < count; j++ )			// lifted from pr_edict.c
+	{
+		pVector[j] = atoi( pfront );
+
+		while ( *pstr && *pstr != ' ' )
+			pstr++;
+		if (!*pstr)
+			break;
+		pstr++;
+		pfront = pstr;
+	}
+}
+#endif
 
 #ifndef _XBOX
 void UTIL_DecodeICE( unsigned char * buffer, int size, const unsigned char *key)

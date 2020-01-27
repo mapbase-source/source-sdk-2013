@@ -12,6 +12,9 @@
 #include "entitylist.h"
 #include "ai_hull.h"
 #include "entityoutput.h"
+#ifdef MAPBASE
+#include "eventqueue.h"
+#endif
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -224,6 +227,9 @@ public:
 	DECLARE_DATADESC();
 
 	void	InputGameEnd( inputdata_t &inputdata );
+#ifdef MAPBASE
+	void	InputGameEndSP( inputdata_t &inputdata );
+#endif
 	void	Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
 private:
 };
@@ -232,6 +238,9 @@ BEGIN_DATADESC( CGameEnd )
 
 	// inputs
 	DEFINE_INPUTFUNC( FIELD_VOID, "EndGame", InputGameEnd ),
+#ifdef MAPBASE
+	DEFINE_INPUTFUNC( FIELD_STRING, "EndGameSP", InputGameEndSP ),
+#endif
 
 END_DATADESC()
 
@@ -242,6 +251,17 @@ void CGameEnd::InputGameEnd( inputdata_t &inputdata )
 {
 	g_pGameRules->EndMultiplayerGame();
 }
+
+#ifdef MAPBASE
+void CGameEnd::InputGameEndSP( inputdata_t &inputdata )
+{
+	// This basically just acts as a shortcut for the "startupmenu force"/disconnection command.
+	// Things like mapping competitions could change this code based on given strings for specific endings (e.g. background maps).
+	CBasePlayer *pPlayer = AI_GetSinglePlayer();
+	if (pPlayer)
+		engine->ClientCommand(pPlayer->edict(), "startupmenu force");
+}
+#endif
 
 void CGameEnd::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
@@ -274,6 +294,10 @@ public:
 
 	void InputDisplay( inputdata_t &inputdata );
 	void Display( CBaseEntity *pActivator );
+#ifdef MAPBASE
+	void InputSetText ( inputdata_t &inputdata );
+	void SetText( const char* pszStr );
+#endif
 
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 	{
@@ -307,6 +331,9 @@ BEGIN_DATADESC( CGameText )
 
 	// Inputs
 	DEFINE_INPUTFUNC( FIELD_VOID, "Display", InputDisplay ),
+#ifdef MAPBASE
+	DEFINE_INPUTFUNC( FIELD_STRING, "SetText", InputSetText ),
+#endif
 
 END_DATADESC()
 
@@ -332,6 +359,13 @@ bool CGameText::KeyValue( const char *szKeyName, const char *szValue )
 		m_textParms.b2 = color[2];
 		m_textParms.a2 = color[3];
 	}
+#ifdef MAPBASE
+	else if (FStrEq( szKeyName, "message" ))
+	{
+		// Needed for newline support
+		SetText( szValue );
+	}
+#endif
 	else
 		return BaseClass::KeyValue( szKeyName, szValue );
 
@@ -368,6 +402,36 @@ void CGameText::Display( CBaseEntity *pActivator )
 		}
 	}
 }
+
+#ifdef MAPBASE
+void CGameText::InputSetText( inputdata_t &inputdata )
+{
+	SetText( inputdata.value.String() );
+}
+
+void CGameText::SetText( const char* pszStr )
+{
+	// Replace /n with \n
+	if (Q_strstr( pszStr, "/n" ))
+	{
+		CUtlStringList vecLines;
+		Q_SplitString( pszStr, "/n", vecLines );
+
+		char szMsg[256];
+		Q_strncpy( szMsg, vecLines[0], sizeof( szMsg ) );
+
+		for (int i = 1; i < vecLines.Count(); i++)
+		{
+			Q_snprintf( szMsg, sizeof( szMsg ), "%s\n%s", szMsg, vecLines[i] );
+		}
+		m_iszMessage = AllocPooledString( szMsg );
+	}
+	else
+	{
+		m_iszMessage = AllocPooledString( pszStr );
+	}
+}
+#endif
 
 
 /* TODO: Replace with an entity I/O version

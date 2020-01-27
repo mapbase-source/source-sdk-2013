@@ -514,7 +514,12 @@ int CCollisionEvent::ShouldCollide_2( IPhysicsObject *pObj0, IPhysicsObject *pOb
 	if ( pEntity0->edict() && pEntity1->edict() )
 	{
 		// don't collide with your owner
+#ifdef MAPBASE
+		if ( (pEntity0->GetOwnerEntity() == pEntity1 && !pEntity0->IsSolidFlagSet(FSOLID_COLLIDE_WITH_OWNER))
+		|| (pEntity1->GetOwnerEntity() == pEntity0 && !pEntity1->IsSolidFlagSet(FSOLID_COLLIDE_WITH_OWNER)) )
+#else
 		if ( pEntity0->GetOwnerEntity() == pEntity1 || pEntity1->GetOwnerEntity() == pEntity0 )
+#endif
 			return 0;
 	}
 
@@ -1148,13 +1153,13 @@ void PhysSolidOverride( solid_t &solid, string_t overrideScript )
 
 		// suck out the comma delimited tokens and turn them into quoted key/values
 		char szToken[256];
-		const char *pStr = nexttoken(szToken, STRING(overrideScript), ',');
+		const char *pStr = nexttoken(szToken, STRING(overrideScript), ',', sizeof(szToken));
 		while ( szToken[0] != 0 )
 		{
 			Q_strncat( pTmpString, "\"", sizeof(pTmpString), COPY_ALL_CHARACTERS );
 			Q_strncat( pTmpString, szToken, sizeof(pTmpString), COPY_ALL_CHARACTERS );
 			Q_strncat( pTmpString, "\" ", sizeof(pTmpString), COPY_ALL_CHARACTERS );
-			pStr = nexttoken(szToken, pStr, ',');
+			pStr = nexttoken(szToken, pStr, ',', sizeof(szToken));
 		}
 		// terminate the script
 		Q_strncat( pTmpString, "}", sizeof(pTmpString), COPY_ALL_CHARACTERS );

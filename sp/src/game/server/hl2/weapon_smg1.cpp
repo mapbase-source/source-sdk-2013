@@ -21,7 +21,7 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
-//extern ConVar    sk_plr_dmg_smg1_grenade;	
+
 
 class CWeaponSMG1 : public CHLSelectFireMachineGun
 {
@@ -132,6 +132,19 @@ acttable_t	CWeaponSMG1::m_acttable[] =
 
 IMPLEMENT_ACTTABLE(CWeaponSMG1);
 
+#ifdef MAPBASE
+// Allows Weapon_BackupActivity() to access the SMG1's activity table.
+acttable_t *GetSMG1Acttable()
+{
+	return CWeaponSMG1::m_acttable;
+}
+
+int GetSMG1ActtableCount()
+{
+	return ARRAYSIZE(CWeaponSMG1::m_acttable);
+}
+#endif
+
 //=========================================================
 CWeaponSMG1::CWeaponSMG1( )
 {
@@ -189,6 +202,10 @@ void CWeaponSMG1::Operator_ForceNPCFire( CBaseCombatCharacter *pOperator, bool b
 	FireNPCPrimaryAttack( pOperator, vecShootOrigin, vecShootDir );
 }
 
+#ifdef MAPBASE
+float GetCurrentGravity( void );
+#endif
+
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
@@ -215,6 +232,56 @@ void CWeaponSMG1::Operator_HandleAnimEvent( animevent_t *pEvent, CBaseCombatChar
 		}
 		break;
 
+#ifdef MAPBASE
+	case EVENT_WEAPON_AR2_ALTFIRE:
+		{
+			WeaponSound( WPN_DOUBLE );
+
+			CAI_BaseNPC *npc = pOperator->MyNPCPointer();
+			if (!npc)
+				return;
+
+			Vector vecShootOrigin, vecShootDir;
+			vecShootOrigin = pOperator->Weapon_ShootPosition();
+			vecShootDir = npc->GetShootEnemyDir( vecShootOrigin );
+
+			Vector vecTarget = npc->GetAltFireTarget();
+			Vector vecThrow;
+			if (vecTarget == vec3_origin)
+				AngleVectors( npc->EyeAngles(), &vecThrow ); // Not much else to do, unfortunately
+			else
+			{
+				// Because this is happening right now, we can't "VecCheckThrow" and can only "VecDoThrow", you know what I mean?
+				// ...Anyway, this borrows from that so we'll never return vec3_origin.
+				//vecThrow = VecCheckThrow( this, vecShootOrigin, vecTarget, 600.0, 0.5 );
+
+				vecThrow = (vecTarget - vecShootOrigin);
+
+				// throw at a constant time
+				float time = vecThrow.Length() / 600.0;
+				vecThrow = vecThrow * (1.0 / time);
+
+				// adjust upward toss to compensate for gravity loss
+				vecThrow.z += (GetCurrentGravity() * 0.5) * time * 0.5;
+			}
+
+			CGrenadeAR2 *pGrenade = (CGrenadeAR2*)Create( "grenade_ar2", vecShootOrigin, vec3_angle, npc );
+			pGrenade->SetAbsVelocity( vecThrow );
+			pGrenade->SetLocalAngularVelocity( QAngle( 0, 400, 0 ) );
+			pGrenade->SetMoveType( MOVETYPE_FLYGRAVITY, MOVECOLLIDE_FLY_BOUNCE ); 
+
+			pGrenade->SetThrower( npc );
+
+			pGrenade->SetGravity(0.5); // lower gravity since grenade is aerodynamic and engine doesn't know it.
+
+			pGrenade->SetDamage(sk_npc_dmg_smg1_grenade.GetFloat());
+
+			variant_t var;
+			var.SetEntity(pGrenade);
+			npc->FireNamedOutput("OnThrowGrenade", var, pGrenade, npc);
+		}
+		break;
+#else
 		/*//FIXME: Re-enable
 		case EVENT_WEAPON_AR2_GRENADE:
 		{
@@ -241,6 +308,7 @@ void CWeaponSMG1::Operator_HandleAnimEvent( animevent_t *pEvent, CBaseCombatChar
 		}
 		break;
 		*/
+#endif
 
 	default:
 		BaseClass::Operator_HandleAnimEvent( pEvent, pOperator );

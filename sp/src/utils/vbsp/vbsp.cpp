@@ -43,7 +43,11 @@ qboolean	noshare;
 qboolean	nosubdiv;
 qboolean	notjunc;
 qboolean	noopt;
+#ifdef MAPBASE
+qboolean	noleaktest;
+#else
 qboolean	leaktest;
+#endif
 qboolean	verboseentities;
 qboolean	dumpcollide = false;
 qboolean	g_bLowPriority = false;
@@ -56,6 +60,9 @@ bool		g_NodrawTriggers = false;
 bool		g_DisableWaterLighting = false;
 bool		g_bAllowDetailCracks = false;
 bool		g_bNoVirtualMesh = false;
+#ifdef MAPBASE
+bool		g_bNoDefaultCubemaps = false;
+#endif
 
 float		g_defaultLuxelSize = DEFAULT_LUXEL_SIZE;
 float		g_luxelScale = 1.0f;
@@ -294,7 +301,11 @@ void ProcessWorldModel (void)
 			Warning( ("**** leaked ****\n") );
 			leaked = true;
 			LeakFile (tree);
+#ifdef MAPBASE
+			if (!noleaktest)
+#else
 			if (leaktest)
+#endif
 			{
 				Warning( ("--- MAP LEAKED ---\n") );
 				exit (0);
@@ -668,6 +679,7 @@ void SetOccluderArea( int nOccluder, int nArea, int nEntityNum )
 	{
 		g_OccluderData[nOccluder].area = nArea;
 	}
+#ifndef MAPBASE
 	else if ( (nArea != 0) && (g_OccluderData[nOccluder].area != nArea) )
 	{
 		const char *pTargetName = ValueForKey( &entities[nEntityNum], "targetname" );
@@ -677,6 +689,7 @@ void SetOccluderArea( int nOccluder, int nArea, int nEntityNum )
 		}
 		Warning("Occluder \"%s\" straddles multiple areas. This is invalid!\n", pTargetName );
 	}
+#endif
 }
 
 
@@ -857,7 +870,12 @@ void ProcessModels (void)
 	}
 
 	// Turn the skybox into a cubemap in case we don't build env_cubemap textures.
+#ifdef MAPBASE
+	if (!g_bNoDefaultCubemaps)
+		Cubemap_CreateDefaultCubemaps();
+#else
 	Cubemap_CreateDefaultCubemaps();
+#endif
 	EndBSPFile ();
 }
 
@@ -992,11 +1010,19 @@ int RunVBSP( int argc, char **argv )
 			Msg ("microvolume = %f\n", microvolume);
 			i++;
 		}
+#ifdef MAPBASE
+		else if (!Q_stricmp(argv[i], "-noleaktest"))
+		{
+			Msg ("noleaktest = true\n");
+			noleaktest = true;
+		}
+#else
 		else if (!Q_stricmp(argv[i], "-leaktest"))
 		{
 			Msg ("leaktest = true\n");
 			leaktest = true;
 		}
+#endif
 		else if (!Q_stricmp(argv[i], "-verboseentities"))
 		{
 			Msg ("verboseentities = true\n");
@@ -1129,6 +1155,12 @@ int RunVBSP( int argc, char **argv )
 		{
 			EnableFullMinidumps( true );
 		}
+#ifdef MAPBASE
+		else if ( !Q_stricmp( argv[i], "-nodefaultcubemap" ) )
+		{
+			g_bNoDefaultCubemaps = true;
+		}
+#endif
 		else if (argv[i][0] == '-')
 		{
 			Warning("VBSP: Unknown option \"%s\"\n\n", argv[i]);

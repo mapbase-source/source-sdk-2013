@@ -46,6 +46,13 @@ BEGIN_DATADESC(CScriptIntro)
 
 	DEFINE_KEYFIELD( m_bAlternateFOV, FIELD_BOOLEAN, "alternatefovchange" ),
 
+#ifdef MAPBASE
+	DEFINE_KEYFIELD( m_bDrawSky, FIELD_BOOLEAN, "DrawSky" ),
+	DEFINE_KEYFIELD( m_bDrawSky2, FIELD_BOOLEAN, "DrawSky2" ),
+
+	DEFINE_KEYFIELD( m_bUseEyePosition, FIELD_BOOLEAN, "UseEyePosition" ),
+#endif
+
 	// Inputs
 	DEFINE_INPUTFUNC(FIELD_STRING, "SetCameraViewEntity", InputSetCameraViewEntity ),
 	DEFINE_INPUTFUNC(FIELD_INTEGER, "SetBlendMode", InputSetBlendMode ),
@@ -58,6 +65,10 @@ BEGIN_DATADESC(CScriptIntro)
 	DEFINE_INPUTFUNC(FIELD_VOID, "Deactivate", InputDeactivate ),
 	DEFINE_INPUTFUNC(FIELD_STRING, "FadeTo", InputFadeTo ),
 	DEFINE_INPUTFUNC(FIELD_STRING, "SetFadeColor", InputSetFadeColor ),
+#ifdef MAPBASE
+	DEFINE_INPUTFUNC(FIELD_BOOLEAN, "SetDrawSky", InputSetDrawSky ),
+	DEFINE_INPUTFUNC(FIELD_BOOLEAN, "SetDrawSky2", InputSetDrawSky2 ),
+#endif
 
 	DEFINE_THINKFUNC( BlendComplete ),
 
@@ -71,7 +82,11 @@ IMPLEMENT_SERVERCLASS_ST( CScriptIntro, DT_ScriptIntro )
 	SendPropFloat( SENDINFO( m_flNextBlendTime ), 10 ),
 	SendPropFloat( SENDINFO( m_flBlendStartTime ), 10 ),
 	SendPropBool( SENDINFO( m_bActive ) ),
-
+#ifdef MAPBASE
+	SendPropBool( SENDINFO( m_bDrawSky ) ),
+	SendPropBool( SENDINFO( m_bDrawSky2 ) ),
+	SendPropBool( SENDINFO( m_bUseEyePosition ) ),
+#endif
 
 	// Fov & fov blends
 	SendPropInt( SENDINFO( m_iFOV ), 9 ),

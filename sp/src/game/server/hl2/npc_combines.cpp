@@ -121,11 +121,17 @@ void CNPC_CombineS::Precache()
 
 void CNPC_CombineS::DeathSound( const CTakeDamageInfo &info )
 {
+#ifdef COMBINE_SOLDIER_USES_RESPONSE_SYSTEM
+	AI_CriteriaSet set;
+	ModifyOrAppendDamageCriteria(set, info);
+	SpeakIfAllowed( TLK_CMB_DIE, set, SENTENCE_PRIORITY_INVALID, SENTENCE_CRITERIA_ALWAYS );
+#else
 	// NOTE: The response system deals with this at the moment
 	if ( GetFlags() & FL_DISSOLVING )
 		return;
 
 	GetSentences()->Speak( "COMBINE_DIE", SENTENCE_PRIORITY_INVALID, SENTENCE_CRITERIA_ALWAYS ); 
+#endif
 }
 
 

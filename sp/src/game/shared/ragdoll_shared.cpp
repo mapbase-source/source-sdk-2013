@@ -90,9 +90,9 @@ public:
 			if ( m_bSelfCollisions )
 			{
 				char szToken[256];
-				const char *pStr = nexttoken(szToken, pValue, ',');
+				const char *pStr = nexttoken(szToken, pValue, ',', sizeof(szToken));
 				int index0 = atoi(szToken);
-				nexttoken( szToken, pStr, ',' );
+				nexttoken( szToken, pStr, ',' , sizeof(szToken) );
 				int index1 = atoi(szToken);
 
 				m_pSet->EnableCollisions( index0, index1 );
@@ -877,6 +877,27 @@ void CRagdollLRURetirement::Update( float frametime ) // EPISODIC VERSION
 	
 		for ( i = m_LRU.Head(); i < m_LRU.InvalidIndex(); i = next )
 		{
+#ifdef MAPBASE
+			next = m_LRU.Next(i);
+
+			CBaseAnimating *pRagdoll = m_LRU[i].Get();
+
+			if ( pRagdoll )
+			{
+				IPhysicsObject *pObject = pRagdoll->VPhysicsGetObject();
+				if ( pRagdoll->GetEffectEntity() || ( pObject && !pObject->IsAsleep()) )
+					continue;
+
+				// float distToPlayer = (pPlayer->GetAbsOrigin() - pRagdoll->GetAbsOrigin()).LengthSqr();
+				float distToPlayer = (PlayerOrigin - pRagdoll->GetAbsOrigin()).LengthSqr();
+
+				if (distToPlayer > furthestDistSq)
+				{
+					furthestOne = i;
+					furthestDistSq = distToPlayer;
+				}
+			}
+#else
 			CBaseAnimating *pRagdoll = m_LRU[i].Get();
 
 			next = m_LRU.Next(i);
@@ -895,6 +916,7 @@ void CRagdollLRURetirement::Update( float frametime ) // EPISODIC VERSION
 					furthestDistSq = distToPlayer;
 				}
 			}
+#endif
 			else // delete bad rags first.
 			{
 				furthestOne = i;
@@ -1007,9 +1029,19 @@ void CRagdollLRURetirement::Update( float frametime ) // Non-episodic version
 
 		CBaseAnimating *pRagdoll = m_LRU[i].Get();
 
+#ifdef MAPBASE
+		if ( pRagdoll )
+		{
+			//Just ignore it until we're done burning/dissolving.
+			IPhysicsObject *pObject = pRagdoll->VPhysicsGetObject();
+			if ( pRagdoll->GetEffectEntity() || ( pObject && !pObject->IsAsleep()) )
+				continue;
+		}
+#else
 		//Just ignore it until we're done burning/dissolving.
 		if ( pRagdoll && pRagdoll->GetEffectEntity() )
 			continue;
+#endif
 
 #ifdef CLIENT_DLL
 		m_LRU[ i ]->SUB_Remove();

@@ -78,6 +78,12 @@ public:
 	/// Delete every single action in the action list. 
 	void DeleteAllElements( void ) ;
 
+#ifdef MAPBASE
+	// Needed for ReplaceOutput, hopefully not bad
+	CEventAction *GetActionList() { return m_ActionList; }
+	void SetActionList(CEventAction *newlist) { m_ActionList = newlist; }
+#endif
+
 protected:
 	variant_t m_Value;
 	CEventAction *m_ActionList;
@@ -146,6 +152,29 @@ public:
 	{
 		m_Value.Vector3D(vec);
 	}
+
+#ifdef MAPBASE
+	// Shortcut to using QAngles in Vector outputs, makes it look cleaner and allows easy modification
+	void Init( const QAngle &value )
+	{
+		// reinterpret_cast<const Vector&>(value)
+		m_Value.SetAngle3D( value );
+	}
+
+	// Shortcut to using QAngles in Vector outputs, makes it look cleaner and allows easy modification
+	void Set( const QAngle &value, CBaseEntity *pActivator, CBaseEntity *pCaller )
+	{
+		// reinterpret_cast<const Vector&>(value)
+		m_Value.SetAngle3D( value );
+		FireOutput( m_Value, pActivator, pCaller );
+	}
+
+	// Shortcut to using QAngles in Vector outputs, makes it look cleaner and allows easy modification
+	void Get( QAngle &ang )
+	{
+		m_Value.Angle3D(ang);
+	}
+#endif
 };
 
 

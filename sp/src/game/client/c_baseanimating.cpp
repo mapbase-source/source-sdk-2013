@@ -54,6 +54,9 @@
 #include "replay/replay_ragdoll.h"
 #include "studio_stats.h"
 #include "tier1/callqueue.h"
+#ifdef MAPBASE
+#include "viewrender.h"
+#endif
 
 #ifdef TF_CLIENT_DLL
 #include "c_tf_player.h"
@@ -3061,6 +3064,17 @@ int C_BaseAnimating::DrawModel( int flags )
 
 	int drawn = 0;
 
+#ifdef MAPBASE
+	if (m_iViewHideFlags > 0)
+	{
+		// Hide this entity if it's not supposed to be drawn in this view.
+		if (m_iViewHideFlags & (1 << CurrentViewID()))
+		{
+			return 0;
+		}
+	}
+#endif
+
 #ifdef TF_CLIENT_DLL
 	ValidateModelIndex();
 #endif
@@ -3532,7 +3546,7 @@ bool C_BaseAnimating::DispatchMuzzleEffect( const char *options, bool isFirstPer
 	int			weaponType = 0;
 
 	// Get the first parameter
-	p = nexttoken( token, p, ' ' );
+	p = nexttoken( token, p, ' ' , sizeof(token) );
 
 	// Find the weapon type
 	if ( token ) 
@@ -3576,7 +3590,7 @@ bool C_BaseAnimating::DispatchMuzzleEffect( const char *options, bool isFirstPer
 	}
 
 	// Get the second parameter
-	p = nexttoken( token, p, ' ' );
+	p = nexttoken( token, p, ' ' , sizeof(token) );
 
 	int	attachmentIndex = -1;
 
@@ -3687,7 +3701,7 @@ void C_BaseAnimating::FireEvent( const Vector& origin, const QAngle& angles, int
 
 			// Get the particle effect name
 			const char *p = options;
-			p = nexttoken(token, p, ' ');
+			p = nexttoken(token, p, ' ', sizeof(token));
 			if ( token ) 
 			{
 				const char* mtoken = ModifyEventParticles( token );
@@ -3697,7 +3711,7 @@ void C_BaseAnimating::FireEvent( const Vector& origin, const QAngle& angles, int
 			}
 
 			// Get the attachment type
-			p = nexttoken(token, p, ' ');
+			p = nexttoken(token, p, ' ', sizeof(token));
 			if ( token ) 
 			{
 				iAttachType = GetAttachTypeFromString( token );
@@ -3709,7 +3723,7 @@ void C_BaseAnimating::FireEvent( const Vector& origin, const QAngle& angles, int
 			}
 
 			// Get the attachment point index
-			p = nexttoken(token, p, ' ');
+			p = nexttoken(token, p, ' ', sizeof(token));
 			if ( token )
 			{
 				iAttachment = atoi(token);
@@ -3914,14 +3928,14 @@ void C_BaseAnimating::FireEvent( const Vector& origin, const QAngle& angles, int
 			const char *p = options;
 
 			// Bodygroup Name
-			p = nexttoken(token, p, ' ');
+			p = nexttoken(token, p, ' ', sizeof(token));
 			if ( token ) 
 			{
 				Q_strncpy( szBodygroupName, token, sizeof(szBodygroupName) );
 			}
 
 			// Get the desired value
-			p = nexttoken(token, p, ' ');
+			p = nexttoken(token, p, ' ', sizeof(token));
 			if ( token ) 
 			{
 				value = atoi( token );
@@ -3961,21 +3975,21 @@ void C_BaseAnimating::FireObsoleteEvent( const Vector& origin, const QAngle& ang
 
 			const char *p = options;
 
-			p = nexttoken(token, p, ' ');
+			p = nexttoken(token, p, ' ', sizeof(token));
 
 			if( token ) 
 			{
 				Q_strncpy( effectFunc, token, sizeof(effectFunc) );
 			}
 
-			p = nexttoken(token, p, ' ');
+			p = nexttoken(token, p, ' ', sizeof(token));
 
 			if( token )
 			{
 				iAttachment = atoi(token);
 			}
 
-			p = nexttoken(token, p, ' ');
+			p = nexttoken(token, p, ' ', sizeof(token));
 
 			if( token )
 			{
@@ -4618,6 +4632,14 @@ C_BaseAnimating *C_BaseAnimating::CreateRagdollCopy()
 	pRagdoll->m_vecForce = m_vecForce;
 	pRagdoll->m_nForceBone = m_nForceBone;
 	pRagdoll->SetNextClientThink( CLIENT_THINK_ALWAYS );
+
+#ifdef MAPBASE
+	pRagdoll->m_iViewHideFlags = m_iViewHideFlags;
+
+	pRagdoll->m_fadeMinDist = m_fadeMinDist;
+	pRagdoll->m_fadeMaxDist = m_fadeMaxDist;
+	pRagdoll->m_flFadeScale = m_flFadeScale;
+#endif
 
 	pRagdoll->SetModelName( AllocPooledString(pModelName) );
 	pRagdoll->SetModelScale( GetModelScale() );

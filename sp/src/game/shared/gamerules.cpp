@@ -607,6 +607,30 @@ void CGameRules::EndGameFrame( void )
 	}
 }
 
+#ifdef MAPBASE
+void CGameRules::OnSkillLevelChanged( int iNewLevel )
+{
+	variant_t varNewLevel;
+	varNewLevel.SetInt(iNewLevel);
+
+	// Iterate through all logic_skill entities and fire them
+	CBaseEntity *pEntity = gEntList.FindEntityByClassname(NULL, "logic_skill");
+	while (pEntity)
+	{
+		pEntity->AcceptInput("SkillLevelChanged", UTIL_GetLocalPlayer(), NULL, varNewLevel, 0);
+		pEntity = gEntList.FindEntityByClassname(pEntity, "logic_skill");
+	}
+
+	// Fire game event for difficulty level changed
+	IGameEvent *event = gameeventmanager->CreateEvent("skill_changed");
+	if (event)
+	{
+		event->SetInt("skill_level", iNewLevel);
+		gameeventmanager->FireEvent(event);
+	}
+}
+#endif
+
 //-----------------------------------------------------------------------------
 // trace line rules
 //-----------------------------------------------------------------------------

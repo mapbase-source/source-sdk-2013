@@ -962,6 +962,18 @@ void CFuncRotating::UpdateSpeed( float flNewSpeed )
 		RampPitchVol();
 	}
 
+#ifdef MAPBASE
+	QAngle angNormalizedAngles = GetLocalAngles();
+	if (m_vecMoveAng.x)
+		angNormalizedAngles.x = AngleNormalize( angNormalizedAngles.x );
+	if (m_vecMoveAng.y)
+		angNormalizedAngles.y = AngleNormalize( angNormalizedAngles.y );
+	if (m_vecMoveAng.z)
+		angNormalizedAngles.z = AngleNormalize( angNormalizedAngles.z );
+
+	SetLocalAngles(angNormalizedAngles);
+#endif
+
 	SetLocalAngularVelocity( m_vecMoveAng * m_flSpeed );
 }
 
@@ -1380,6 +1392,9 @@ public:
 
 	void InputEnable( inputdata_t &inputdata );
 	void InputDisable( inputdata_t &inputdata );
+#ifdef MAPBASE
+	void InputSetFilter( inputdata_t &inputdata );
+#endif
 
 private:
 
@@ -1394,10 +1409,17 @@ BEGIN_DATADESC( CFuncVPhysicsClip )
 	// Keyfields
 	DEFINE_KEYFIELD( m_iFilterName,	FIELD_STRING,	"filtername" ),
 	DEFINE_FIELD( m_hFilter,	FIELD_EHANDLE ),
+#ifdef MAPBASE
+	DEFINE_KEYFIELD( m_bDisabled, FIELD_BOOLEAN, "StartDisabled" ),
+#else
 	DEFINE_FIELD( m_bDisabled,	FIELD_BOOLEAN ),
+#endif
 
 	DEFINE_INPUTFUNC( FIELD_VOID, "Enable", InputEnable ),
 	DEFINE_INPUTFUNC( FIELD_VOID, "Disable", InputDisable ),
+#ifdef MAPBASE
+	DEFINE_INPUTFUNC( FIELD_EHANDLE, "SetFilter", InputSetFilter ),
+#endif
 
 END_DATADESC()
 
@@ -1440,6 +1462,12 @@ bool CFuncVPhysicsClip::EntityPassesFilter( CBaseEntity *pOther )
 	if ( pFilter )
 		return pFilter->PassesFilter( this, pOther );
 
+#ifdef MAPBASE
+	// I couldn't figure out what else made this crash. The entity shouldn't be NULL.
+	if ( !pOther->VPhysicsGetObject() )
+		return false;
+#endif
+
 	if ( pOther->GetMoveType() == MOVETYPE_VPHYSICS && pOther->VPhysicsGetObject()->IsMoveable() )
 		return true;
 	
@@ -1463,3 +1491,19 @@ void CFuncVPhysicsClip::InputDisable( inputdata_t &inputdata )
 	VPhysicsGetObject()->EnableCollisions(false);
 	m_bDisabled = true;
 }
+
+#ifdef MAPBASE
+void CFuncVPhysicsClip::InputSetFilter( inputdata_t &inputdata )
+{
+	if (inputdata.value.Entity())
+	{
+		m_iFilterName = inputdata.value.Entity()->GetEntityName();
+		m_hFilter = dynamic_cast<CBaseFilter *>(inputdata.value.Entity().Get());
+	}
+	else
+	{
+		m_iFilterName = NULL_STRING;
+		m_hFilter = NULL;
+	}
+}
+#endif

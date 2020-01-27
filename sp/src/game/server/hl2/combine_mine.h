@@ -24,13 +24,20 @@ class CSoundPatch;
 #define BOUNCEBOMB_EXPLODE_RADIUS	125.0
 #define BOUNCEBOMB_EXPLODE_DAMAGE	150.0
 #include "player_pickup.h"
+#ifdef MAPBASE
+#include "filters.h"
+#endif
 
 class CBounceBomb : public CBaseAnimating, public CDefaultPlayerPickupVPhysics
 {
 	DECLARE_CLASS( CBounceBomb, CBaseAnimating );
 
 public:
+#ifdef MAPBASE
+	CBounceBomb() { m_pWarnSound = NULL; m_bPlacedByPlayer = false; m_flExplosionDelay = 0.5f; }
+#else
 	CBounceBomb() { m_pWarnSound = NULL; m_bPlacedByPlayer = false; }
+#endif
 	void Precache();
 	void Spawn();
 	void OnRestore();
@@ -76,6 +83,11 @@ public:
 	void OpenHooks( bool bSilent = false );
 	void CloseHooks();
 
+#ifdef MAPBASE
+	// Uses the new CBaseEntity interaction implementation and replaces the dynamic_casting from npc_barnacle
+	bool	HandleInteraction( int interactionType, void *data, CBaseCombatCharacter* sourceEnt );
+#endif
+
 	DECLARE_DATADESC();
 
 	static string_t gm_iszFloorTurretClassname;
@@ -104,6 +116,9 @@ private:
 	float	m_flIgnoreWorldTime;
 
 	bool	m_bDisarmed;
+#ifdef MAPBASE
+	int		m_iInitialState;
+#endif
 
 	bool	m_bPlacedByPlayer;
 
@@ -119,8 +134,27 @@ private:
 	IPhysicsConstraint		*m_pConstraint;
 	int						m_iMineState;
 
+#ifdef MAPBASE
+	// Makes the filters the exclusive factor in determining friend/foe
+	bool		m_bFilterExclusive;
+
+	string_t	m_iszEnemyFilter;
+	CHandle<CBaseFilter>	m_hEnemyFilter;
+	void InputSetEnemyFilter( inputdata_t &inputdata );
+
+	string_t	m_iszFriendFilter;
+	CHandle<CBaseFilter>	m_hFriendFilter;
+	void InputSetFriendFilter( inputdata_t &inputdata );
+#endif
+
 	COutputEvent	m_OnPulledUp;
 	void InputDisarm( inputdata_t &inputdata );
+#ifdef MAPBASE
+	void InputBounce( inputdata_t &inputdata );
+	void InputBounceAtTarget( inputdata_t &inputdata );
+	COutputEvent	m_OnTriggered;
+	COutputEvent	m_OnExplode;
+#endif
 };
 
 
