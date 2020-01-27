@@ -110,9 +110,9 @@ CWeaponAR2::CWeaponAR2( )
 	m_fMaxRange2	= 1024;
 
 	m_nShotsFired	= 0;
-	m_nVentPose		= -1;
+//	m_nVentPose		= -1;
 
-	m_bAltFiresUnderwater = false;
+//	m_bAltFiresUnderwater = false;
 }
 
 void CWeaponAR2::Precache( void )
@@ -123,7 +123,7 @@ void CWeaponAR2::Precache( void )
 //-----------------------------------------------------------------------------
 // Purpose: Handle grenade detonate in-air (even when no ammo is left)
 //-----------------------------------------------------------------------------
-void CWeaponAR2::ItemPostFrame( void )
+/*void CWeaponAR2::ItemPostFrame( void )
 {
 	// Update our pose parameter for the vents
 	CBasePlayer *pOwner = ToBasePlayer( GetOwner() );
@@ -145,7 +145,7 @@ void CWeaponAR2::ItemPostFrame( void )
 	}
 
 	BaseClass::ItemPostFrame();
-}
+}*/
 
 //-----------------------------------------------------------------------------
 // Purpose: 

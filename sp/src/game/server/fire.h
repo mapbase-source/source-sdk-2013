@@ -13,7 +13,7 @@
 
 #include "entityoutput.h"
 #include "fire_smoke.h"
-#include "plasma.h"
+//#include "plasma.h"
 
 //Spawnflags
 #define	SF_FIRE_INFINITE			0x00000001

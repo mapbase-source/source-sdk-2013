@@ -68,22 +68,8 @@ $Configuration
 
 $Project
 {
-	$Folder "Replay"
-	{
-		$File	"gamedll_replay.cpp"
-		$File	"$SRCDIR\common\replay\ireplaysessionrecorder.h"
-		
-		$File	"$SRCDIR\game\shared\replay_gamestats_shared.cpp"	[$BUILD_REPLAY]
-		$File	"$SRCDIR\game\shared\replay_gamestats_shared.h"	[$BUILD_REPLAY]
-	}
-	
 	$Folder	"Source Files"
 	{
-		$File	"$SRCDIR\game\shared\achievement_saverestore.cpp"
-		$File	"$SRCDIR\game\shared\achievement_saverestore.h"
-		$File	"$SRCDIR\game\shared\achievementmgr.cpp"
-		$File	"$SRCDIR\game\shared\achievementmgr.h"
-		$File	"$SRCDIR\game\shared\achievements_hlx.cpp"
 		$File	"$SRCDIR\game\shared\activitylist.cpp"
 		$File	"$SRCDIR\game\shared\activitylist.h"
 		$File	"ai_activity.cpp"
@@ -218,8 +204,6 @@ $Project
 		$File	"$SRCDIR\game\shared\apparent_velocity_helper.h"
 		$File	"$SRCDIR\game\shared\base_playeranimstate.cpp"
 		$File	"base_transmit_proxy.cpp"
-		$File	"$SRCDIR\game\shared\baseachievement.cpp"
-		$File	"$SRCDIR\game\shared\baseachievement.h"
 		$File	"baseanimating.cpp"
 		$File	"baseanimating.h"
 		$File	"BaseAnimatingOverlay.cpp"
@@ -618,7 +602,6 @@ $Project
 		$File	"TemplateEntities.cpp"
 		$File	"TemplateEntities.h"
 		$File	"tempmonster.cpp"
-		$File	"tesla.cpp"
 		$File	"$SRCDIR\game\shared\test_ehandle.cpp"
 		$File	"test_proxytoggle.cpp"
 		$File	"test_stressentities.cpp"
@@ -725,8 +708,6 @@ $Project
 			$File	"movie_explosion.cpp"
 			$File	"particle_fire.cpp"
 			$File	"particle_smokegrenade.cpp"
-			$File	"plasma.cpp"
-			$File	"plasma.h"
 			$File	"smoke_trail.h"
 			$File	"smokestack.cpp"
 			$File	"smokestack.h"
@@ -950,7 +931,6 @@ $Project
 		$File	"$SRCDIR\game\shared\sun_shared.h"
 		$File	"$SRCDIR\game\shared\takedamageinfo.h"
 		$File	"te_effect_dispatch.h"
-		$File	"tesla.h"
 		$File	"test_stressentities.h"
 		$File	"textstatsmgr.h"
 		$File	"$SRCDIR\public\texture_group_names.h"

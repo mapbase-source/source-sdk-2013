@@ -791,7 +791,7 @@ void CFire::SpawnEffect( fireType_e type, float scale )
 		}
 		break;
 
-	case FIRE_PLASMA:
+/*	case FIRE_PLASMA:
 		{
 			CPlasma	*plasma = (CPlasma *) CreateEntityByName( "_plasma" );
 			plasma->EnableSmoke( true );
@@ -803,7 +803,7 @@ void CFire::SpawnEffect( fireType_e type, float scale )
 			// Start burn sound
 			EmitSound( "Fire.Plasma" );
 		}
-		break;
+		break; */
 	}
 
 	UTIL_SetOrigin( pEffect, GetAbsOrigin() );

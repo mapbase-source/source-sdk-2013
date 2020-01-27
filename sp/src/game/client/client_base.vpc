@@ -75,102 +75,6 @@ $Configuration
 
 $Project
 {
-	$Folder "Replay"
-	{
-		$File	"replay/replaycamera.cpp"
-		$File	"replay/replaycamera.h"
-		$File	"replay/cdll_replay.cpp"
-		$File	"replay/cdll_replay.h"
-		
-		$File	"replay/gamedefs.h"	[$BUILD_REPLAY]
-		$File	"replay/gamedefs.cpp"	[$BUILD_REPLAY]
-		$File	"replay/replay_ragdoll.cpp"	[$BUILD_REPLAY]
-		$File	"replay/replay_ragdoll.h"	[$BUILD_REPLAY]
-		$File	"replay/replay_screenshot.cpp"	[$BUILD_REPLAY]
-		$File	"replay/replay_screenshot.h"	[$BUILD_REPLAY]
-		$File	"replay/replayperformanceplaybackhandler.h"	[$BUILD_REPLAY]
-		$File	"replay/replayperformanceplaybackhandler.cpp"	[$BUILD_REPLAY]
-		$File	"replay/replayrenderer.cpp"	[$BUILD_REPLAY]
-		$File	"replay/replayrenderer.h"	[$BUILD_REPLAY]
-		$File	"replay/replayvideo.cpp"	[$BUILD_REPLAY]
-		$File	"replay/replayvideo.h"	[$BUILD_REPLAY]
-		
-		$File	"replay/genericclassbased_replay.cpp"	[$BUILD_REPLAY]
-		$File	"replay/genericclassbased_replay.h"	[$BUILD_REPLAY]
-		
-		$File	"$SRCDIR\game\shared\replay_gamestats_shared.cpp"	[$BUILD_REPLAY]
-		$File	"$SRCDIR\game\shared\replay_gamestats_shared.h"	[$BUILD_REPLAY]
-		
-		$File	"$SRCDIR\game\client\youtubeapi.h"	[$BUILD_REPLAY]
-		$File	"$SRCDIR\game\client\youtubeapi.cpp"	[$BUILD_REPLAY]
-		{
-			$Configuration
-			{
-				$Compiler
-				{
-					$Create/UsePrecompiledHeader	"Not Using Precompiled Headers"
-				}
-			}
-		}
-		
-		$Folder "UI"	[$BUILD_REPLAY]
-		{
-			$File	"replay\vgui\replaybrowserbasepage.cpp"
-			$File	"replay\vgui\replaybrowserbasepage.h"
-			$File	"replay\vgui\replaybrowserbasepanel.cpp"
-			$File	"replay\vgui\replaybrowserbasepanel.h"
-			$File	"replay\vgui\replayconfirmquitdlg.cpp"
-			$File	"replay\vgui\replayconfirmquitdlg.h"
-			$File	"replay\vgui\replaybrowserdetailspanel.cpp"
-			$File	"replay\vgui\replaybrowserdetailspanel.h"
-			$File	"replay\vgui\replaybrowseritemmanager.cpp"
-			$File	"replay\vgui\replaybrowseritemmanager.h"
-			$File	"replay\vgui\replaybrowserlistitempanel.cpp"
-			$File	"replay\vgui\replaybrowserlistitempanel.h"
-			$File	"replay\vgui\replaybrowserlistpanel.cpp"
-			$File	"replay\vgui\replaybrowserlistpanel.h"
-			$File	"replay\vgui\replaybrowsermainpanel.cpp"
-			$File	"replay\vgui\replaybrowsermainpanel.h"
-			$File	"replay\vgui\replaybrowsermovieplayerpanel.cpp"
-			$File	"replay\vgui\replaybrowsermovieplayerpanel.h"
-			$File	"replay\vgui\replaybrowserpreviewpanel.cpp"
-			$File	"replay\vgui\replaybrowserpreviewpanel.h"
-			$File	"replay\vgui\replaybrowserrenderdialog.cpp"
-			$File	"replay\vgui\replaybrowserrenderdialog.h"
-			$File	"replay\vgui\replayinputpanel.cpp"
-			$File	"replay\vgui\replayinputpanel.h"
-			$File	"replay\vgui\replaymessagepanel.cpp"
-			$File	"replay\vgui\replaymessagepanel.h"
-			$File	"replay\vgui\replayperformanceeditor.cpp"
-			$File	"replay\vgui\replayperformanceeditor.h"
-			$File	"replay\vgui\replayperformancesavedlg.cpp"
-			$File	"replay\vgui\replayperformancesavedlg.h"
-			$File	"replay\vgui\replayrenderoverlay.cpp"
-			$File	"replay\vgui\replayrenderoverlay.h"
-			$File	"replay\vgui\replayreminderpanel.cpp"
-			$File	"replay\vgui\replayreminderpanel.h"
-			$File	"replay\replayyoutubeapi.cpp"
-			$File	"replay\replayyoutubeapi.h"
-			$File	"replay\replayyoutubeapi_key.cpp" [!$SOURCESDK]
-			$File	"replay\replayyoutubeapi_key_sdk.cpp" [$SOURCESDK]
-			
-			$File	"game_controls\slideshowpanel.cpp"
-			$File	"game_controls\slideshowpanel.h"
-			
-			$File	"$SRCDIR\common\movieobjects\timeutils.cpp"
-			{
-				$Configuration
-				{
-					$Compiler
-					{
-						$Create/UsePrecompiledHeader	"Not Using Precompiled Headers"
-					}
-				}
-			}
-			$File	"$SRCDIR\public\movieobjects\timeutils.h"
-		}
-	}
-		
 	$Folder	"Source Files"
 	{
 		$File	"hl2\C_Func_Monitor.cpp"
@@ -179,14 +83,8 @@ $Project
 		$File	"hud_weapon.cpp"
 		$File	"train.cpp"
 		$File	"$SRCDIR\game\shared\weapon_parse_default.cpp"
-		$File	"$SRCDIR\game\shared\achievement_saverestore.cpp"
-		$File	"$SRCDIR\game\shared\achievement_saverestore.h"
 		$File	"$SRCDIR\game\shared\achievementmgr.cpp"
 		$File	"$SRCDIR\game\shared\achievementmgr.h"
-		$File   "$SRCDIR\game\shared\achievements_and_stats_interface.h"
-		$File	"$SRCDIR\game\shared\achievements_hlx.cpp"
-		$File	"achievement_notification_panel.cpp"
-		$File	"achievement_notification_panel.h"
 		$File	"$SRCDIR\game\shared\activitylist.cpp"
 		$File	"alphamaterialproxy.cpp"
 		$File	"$SRCDIR\game\shared\ammodef.cpp"
@@ -248,7 +146,6 @@ $Project
 		$File	"c_func_smokevolume.cpp"
 		$File	"c_func_tracktrain.cpp"
 		$File	"c_gib.cpp"
-		$File	"c_hairball.cpp"
 		$File	"c_info_overlay_accessor.cpp"
 		$File	"c_lightglow.cpp"
 		$File	"C_MaterialModifyControl.cpp"
@@ -257,7 +154,6 @@ $Project
 		$File	"c_physicsprop.cpp"
 		$File	"c_physmagnet.cpp"
 		$File	"c_pixel_visibility.cpp"
-		$File	"c_plasma.cpp"
 		$File	"c_playerresource.cpp"
 		$File	"c_point_camera.cpp"
 		$File	"c_point_commentary_node.cpp"
@@ -276,7 +172,6 @@ $Project
 		$File	"c_sprite_perfmonitor.cpp"
 		$File	"c_sun.cpp"
 		$File	"c_team.cpp"
-		$File	"c_tesla.cpp"
 		$File	"c_test_proxytoggle.cpp"
 		$File	"c_user_message_register.cpp"
 		$File	"c_vehicle_choreo_generic.cpp"
@@ -504,16 +399,6 @@ $Project
 		//Haptics
 		$File	"$SRCDIR\public\haptics\haptic_msgs.cpp"	[!$X360]
 		$File	"$SRCDIR\public\haptics\haptic_utils.cpp"	[$WIN32&&!$X360]
-
-		$Folder	"Sixense"
-		{
-			$File	"sixense\in_sixense.cpp"
-			$File	"sixense\in_sixense.h"
-			$File	"sixense\in_sixense_gesture_bindings.cpp"
-			$File	"sixense\in_sixense_gesture_bindings.h"
-			$File	"$SRCDIR\game\shared\sixense\sixense_convars.cpp"
-			$File	"$SRCDIR\game\shared\sixense\sixense_convars_extern.h"
-		}
 		
 		// Files not using precompiled header cbase.h
 

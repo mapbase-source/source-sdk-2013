@@ -26,7 +26,7 @@ public:
 
 	DECLARE_SERVERCLASS();
 
-	void	ItemPostFrame( void );
+//	void	ItemPostFrame( void );
 	void	Precache( void );
 
 	void	AddViewKick( void );
