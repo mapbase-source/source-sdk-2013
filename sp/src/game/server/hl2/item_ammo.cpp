@@ -611,43 +611,6 @@ public:
 };
 LINK_ENTITY_TO_CLASS(item_box_buckshot, CItem_BoxBuckshot);
 
-// ========================================================================
-//	>> CItem_AR2AltFireRound
-// ========================================================================
-/*class CItem_AR2AltFireRound : public CItem
-{
-public:
-	DECLARE_CLASS( CItem_AR2AltFireRound, CItem );
-
-	void Precache( void )
-	{
-		PrecacheParticleSystem( "combineball" );
-		PrecacheModel ("models/items/combine_rifle_ammo01.mdl");
-	}
-
-	void Spawn( void )
-	{ 
-		Precache( );
-		SetModel( "models/items/combine_rifle_ammo01.mdl");
-		BaseClass::Spawn( );
-	}
-
-	bool MyTouch( CBasePlayer *pPlayer )
-	{
-		if (ITEM_GiveAmmo( pPlayer, SIZE_AMMO_AR2_ALTFIRE, "AR2AltFire" ) )
-		{
-			if ( g_pGameRules->ItemShouldRespawn( this ) == GR_ITEM_RESPAWN_NO )
-			{
-				UTIL_Remove(this);	
-			}
-			return true;
-		}
-		return false;
-	}
-};
-
-LINK_ENTITY_TO_CLASS( item_ammo_ar2_altfire, CItem_AR2AltFireRound );*/
-
 // ==================================================================
 // Ammo crate which will supply infinite ammo of the specified type
 // ==================================================================
@@ -663,8 +626,6 @@ enum
 	AMMOCRATE_GRENADES,
 	AMMOCRATE_50AE,
 	AMMOCRATE_CROSSBOW,
-//	AMMOCRATE_AR2_ALTFIRE,
-//	AMMOCRATE_SMG_ALTFIRE,
 	NUM_AMMO_CRATE_TYPES,
 };
 
@@ -766,6 +727,7 @@ const char *CItem_AmmoCrate::m_lpzModelNames[NUM_AMMO_CRATE_TYPES] =
 #else
 	"models/items/ammocrate_smg1.mdl",		// 357
 	"models/items/ammocrate_smg1.mdl",	// Crossbow
+#endif
 };
 
 // Ammo type names
@@ -987,13 +949,7 @@ void CItem_AmmoCrate::HandleAnimEvent( animevent_t *pEvent )
 					}
 				}
 			}
-
-#ifdef MAPBASE
-			// Empty ammo crates should still fire OnAmmoTaken
-			if ( m_hActivator->GiveAmmo( m_nAmmoAmounts[m_nAmmoType], m_nAmmoIndex ) != 0 || m_nAmmoType == AMMOCRATE_EMPTY )
-#else
 			if ( m_hActivator->GiveAmmo( m_nAmmoAmounts[m_nAmmoType], m_nAmmoIndex ) != 0 )
-#endif
 			{
 #ifdef MAPBASE
 				m_OnAmmoTaken.FireOutput(m_hActivator, this);
@@ -1064,4 +1020,3 @@ void CItem_AmmoCrate::InputKill( inputdata_t &data )
 
 	UTIL_Remove( this );
 }
-

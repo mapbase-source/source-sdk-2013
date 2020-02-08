@@ -815,15 +815,6 @@ int CNPC_PlayerCompanion::SelectSchedule()
 					}
 				}
 			}
-			else
-			{
-				if ( FVisible( m_hForcedGrenadeTarget ) )
-				{
-					m_vecAltFireTarget = vecTarget;
-					m_hForcedGrenadeTarget = NULL;
-					return SCHED_PC_AR2_ALTFIRE;
-				}
-			}
 		}
 	}
 #endif
@@ -1169,14 +1160,6 @@ int CNPC_PlayerCompanion::TranslateSchedule( int scheduleType )
 		return SCHED_PC_FLEE_FROM_BEST_SOUND;
 
 	case SCHED_ESTABLISH_LINE_OF_FIRE:
-#ifdef MAPBASE
-		if ( CanAltFireEnemy(false) && OccupyStrategySlot(SQUAD_SLOT_SPECIAL_ATTACK) )
-		{
-			// If this companion has the balls to alt-fire the enemy's last known position,
-			// do so!
-			return SCHED_PC_AR2_ALTFIRE;
-		}
-#endif
 	case SCHED_MOVE_TO_WEAPON_RANGE:
 		if ( IsMortar( GetEnemy() ) )
 			return SCHED_TAKE_COVER_FROM_ENEMY;
@@ -1211,14 +1194,6 @@ int CNPC_PlayerCompanion::TranslateSchedule( int scheduleType )
 			return SCHED_STANDOFF;
 
 #ifdef MAPBASE
-		if (CanAltFireEnemy( true ) && OccupyStrategySlot( SQUAD_SLOT_SPECIAL_ATTACK ))
-		{
-			// Since I'm holding this squadslot, no one else can try right now. If I die before the shot 
-			// goes off, I won't have affected anyone else's ability to use this attack at their nearest
-			// convenience.
-			return SCHED_PC_AR2_ALTFIRE;
-		}
-
 		if ( !OccupyStrategySlotRange( SQUAD_SLOT_ATTACK1, SQUAD_SLOT_ATTACK2 ) )
 		{
 			// Throw a grenade if not allowed to engage with weapon.
@@ -4519,22 +4494,6 @@ AI_BEGIN_CUSTOM_NPC( player_companion_base, CNPC_PlayerCompanion )
 #endif
 
 #ifdef MAPBASE
-	//=========================================================
-	// AR2 Alt Fire Attack
-	//=========================================================
-	DEFINE_SCHEDULE
-	(
-	SCHED_PC_AR2_ALTFIRE,
-
-	"	Tasks"
-	"		TASK_STOP_MOVING									0"
-	"		TASK_ANNOUNCE_ATTACK								1"
-	"		TASK_PC_PLAY_SEQUENCE_FACE_ALTFIRE_TARGET		ACTIVITY:ACT_COMBINE_AR2_ALTFIRE"
-	""
-	"	Interrupts"
-	"		COND_TOO_CLOSE_TO_ATTACK"
-	)
-
 	//=========================================================
 	// Move to LOS of the mapmaker's forced grenade throw target
 	//=========================================================

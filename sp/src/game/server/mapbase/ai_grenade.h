@@ -152,28 +152,6 @@ protected: // We can't have any private saved variables because only derived cla
 template <class BASE_NPC>
 void CAI_GrenadeUser<BASE_NPC>::HandleAnimEvent( animevent_t *pEvent )
 {
-	if ( pEvent->event == COMBINE_AE_BEGIN_ALTFIRE )
-	{
-		EmitSound( "Weapon_CombineGuard.Special1" );
-		//SpeakIfAllowed( TLK_CMB_THROWGRENADE, "altfire:1" );
-		return;
-	}
-	if ( pEvent->event == COMBINE_AE_ALTFIRE )
-	{
-		animevent_t fakeEvent;
-
-		fakeEvent.pSource = this;
-		fakeEvent.event = EVENT_WEAPON_AR2_ALTFIRE;
-		GetActiveWeapon()->Operator_HandleAnimEvent( &fakeEvent, this );
-
-		// Stop other squad members from combine balling for a while.
-		DelaySquadAltFireAttack( 10.0f );
-
-		AddGrenades(-1);
-
-		return;
-	}
-
 	if ( pEvent->event == COMBINE_AE_GREN_TOSS )
 	{
 		Vector vecSpin;

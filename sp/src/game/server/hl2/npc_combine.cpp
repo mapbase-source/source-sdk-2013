@@ -119,9 +119,6 @@ Activity ACT_COMBINE_THROW_GRENADE;
 #endif
 Activity ACT_COMBINE_LAUNCH_GRENADE;
 Activity ACT_COMBINE_BUGBAIT;
-#ifndef SHARED_COMBINE_ACTIVITIES
-Activity ACT_COMBINE_AR2_ALTFIRE;
-#endif
 Activity ACT_WALK_EASY;
 Activity ACT_WALK_MARCH;
 #ifdef MAPBASE
@@ -1957,20 +1954,6 @@ int CNPC_Combine::SelectSchedule( void )
 		if ( m_flNextGrenadeCheck < gpGlobals->curtime )
 		{
 			Vector vecTarget = m_hForcedGrenadeTarget->WorldSpaceCenter();
-
-#ifdef MAPBASE
-			// I switched this to IsAltFireCapable() before, but m_bAlternateCapable makes it necessary to use IsElite() again.
-#endif
-			if ( IsElite() )
-			{
-				if ( FVisible( m_hForcedGrenadeTarget ) )
-				{
-					m_vecAltFireTarget = vecTarget;
-					m_hForcedGrenadeTarget = NULL;
-					return SCHED_COMBINE_AR2_ALTFIRE;
-				}
-			}
-			else
 			{
 				// If we can, throw a grenade at the target. 
 				// Ignore grenade count / distance / etc
@@ -2441,16 +2424,6 @@ int CNPC_Combine::TranslateSchedule( int scheduleType )
 		}
 	case SCHED_ESTABLISH_LINE_OF_FIRE:
 		{
-			// always assume standing
-			// Stand();
-
-			if( CanAltFireEnemy(true) && OccupyStrategySlot(SQUAD_SLOT_SPECIAL_ATTACK) )
-			{
-				// If an elite in the squad could fire a combine ball at the player's last known position,
-				// do so!
-				return SCHED_COMBINE_AR2_ALTFIRE;
-			}
-
 			if( IsUsingTacticalVariant( TACTICAL_VARIANT_PRESSURE_ENEMY ) && !IsRunningBehavior() )
 			{
 				if( OccupyStrategySlotRange( SQUAD_SLOT_ATTACK1, SQUAD_SLOT_ATTACK2 ) )
@@ -2487,14 +2460,6 @@ int CNPC_Combine::TranslateSchedule( int scheduleType )
 				// Ditch the strategy slot for attacking (which we just reserved!)
 				VacateStrategySlot();
 				return TranslateSchedule( SCHED_HIDE_AND_RELOAD );
-			}
-
-			if( CanAltFireEnemy(true) && OccupyStrategySlot(SQUAD_SLOT_SPECIAL_ATTACK) )
-			{
-				// Since I'm holding this squadslot, no one else can try right now. If I die before the shot 
-				// goes off, I won't have affected anyone else's ability to use this attack at their nearest
-				// convenience.
-				return SCHED_COMBINE_AR2_ALTFIRE;
 			}
 
 			if ( IsCrouching() || ( CrouchIsDesired() && !HasCondition( COND_HEAVY_DAMAGE ) ) )
@@ -3775,9 +3740,6 @@ DECLARE_ACTIVITY( ACT_COMBINE_THROW_GRENADE )
 #endif
 DECLARE_ACTIVITY( ACT_COMBINE_LAUNCH_GRENADE )
 DECLARE_ACTIVITY( ACT_COMBINE_BUGBAIT )
-#ifndef SHARED_COMBINE_ACTIVITIES
-DECLARE_ACTIVITY( ACT_COMBINE_AR2_ALTFIRE )
-#endif
 DECLARE_ACTIVITY( ACT_WALK_EASY )
 DECLARE_ACTIVITY( ACT_WALK_MARCH )
 #ifdef MAPBASE
@@ -4234,21 +4196,6 @@ DEFINE_SCHEDULE
  //								comibine will fire where player was after
  //								he has moved for a little while.  Good effect!!
  // WEAPON_SIGHT_OCCLUDED		Don't block on this! Looks better for railings, etc.
- )
-
- //=========================================================
- // AR2 Alt Fire Attack
- //=========================================================
- DEFINE_SCHEDULE
- (
- SCHED_COMBINE_AR2_ALTFIRE,
-
- "	Tasks"
- "		TASK_STOP_MOVING									0"
- "		TASK_ANNOUNCE_ATTACK								1"
- "		TASK_COMBINE_PLAY_SEQUENCE_FACE_ALTFIRE_TARGET		ACTIVITY:ACT_COMBINE_AR2_ALTFIRE"
- ""
- "	Interrupts"
  )
 
  //=========================================================

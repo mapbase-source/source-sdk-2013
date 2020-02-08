@@ -11209,8 +11209,7 @@ void CAI_BaseNPC::PickupItem( CBaseEntity *pItem )
 			UTIL_Remove( pItem );
 		}
 	}
-	else if ( FClassnameIs(pItem, "item_ammo_ar2_altfire") || FClassnameIs(pItem, "item_ammo_smg1_grenade") ||
-		FClassnameIs(pItem, "weapon_frag") )
+	else if ( FClassnameIs(pItem, "weapon_frag") )
 	{
 		AddGrenades( 1 );
 		UTIL_Remove( pItem );

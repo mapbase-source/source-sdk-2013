@@ -1875,29 +1875,6 @@ int CNPC_Alyx::TranslateSchedule( int scheduleType )
 					//Warning("CROUCH: Standing, no enemy.\n" );
 					Stand();
 				}
-
-#ifdef MAPBASE
-				// This stuff was ported from npc_playercompanion to help Alyx use grenades.
-				if (HasGrenades() && !IsCrouching())
-				{
-					if (CanAltFireEnemy( true ) && OccupyStrategySlot( SQUAD_SLOT_SPECIAL_ATTACK ))
-					{
-						return SCHED_PC_AR2_ALTFIRE;
-					}
-
-					if ( !OccupyStrategySlotRange( SQUAD_SLOT_ATTACK1, SQUAD_SLOT_ATTACK2 ) )
-					{
-						// Try throwing a grenade if Alyx is in a squad that already has attacking well in hand.
-						if ( CanGrenadeEnemy() )
-						{
-							if ( OccupyStrategySlot( SQUAD_SLOT_SPECIAL_ATTACK ) )
-							{
-								return SCHED_RANGE_ATTACK2;
-							}
-						}
-					}
-				}
-#endif
 			}
 
 			return SCHED_ALYX_RANGE_ATTACK1;
