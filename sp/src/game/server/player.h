@@ -244,6 +244,8 @@ protected:
 public:
 	DECLARE_DATADESC();
 	DECLARE_SERVERCLASS();
+	// script description
+	DECLARE_ENT_SCRIPTDESC();
 	
 	CBasePlayer();
 	~CBasePlayer();
@@ -385,6 +387,12 @@ public:
 	void					ViewPunchReset( float tolerance = 0 );
 	void					ShowViewModel( bool bShow );
 	void					ShowCrosshair( bool bShow );
+
+	bool					ScriptIsPlayerNoclipping(void);
+
+#ifdef MAPBASE_VSCRIPT
+	HSCRIPT					VScriptGetExpresser();
+#endif
 
 	// View model prediction setup
 	void					CalcView( Vector &eyeOrigin, QAngle &eyeAngles, float &zNear, float &zFar, float &fov );
@@ -625,6 +633,10 @@ public:
 	virtual void			EquipWearable( CEconWearable *pItem );
 	virtual void			RemoveWearable( CEconWearable *pItem );
 	void					PlayWearableAnimsForPlaybackEvent( wearableanimplayback_t iPlayback );
+#endif
+
+#ifdef MAPBASE
+	bool					ShouldUseVisibilityCache( CBaseEntity *pEntity );
 #endif
 
 public:

@@ -195,6 +195,10 @@ ConVar  sv_player_display_usercommand_errors( "sv_player_display_usercommand_err
 
 ConVar  player_debug_print_damage( "player_debug_print_damage", "0", FCVAR_CHEAT, "When true, print amount and type of all damage received by player to console." );
 
+#ifdef MAPBASE
+ConVar	player_use_visibility_cache( "player_use_visibility_cache", "0", FCVAR_NONE, "Allows the player to use the visibility cache." );
+#endif
+
 
 void CC_GiveCurrentAmmo( void )
 {
@@ -474,6 +478,33 @@ BEGIN_DATADESC( CBasePlayer )
 	// DEFINE_UTLVECTOR( m_vecPlayerSimInfo ),
 END_DATADESC()
 
+#ifdef MAPBASE_VSCRIPT
+BEGIN_ENT_SCRIPTDESC( CBasePlayer, CBaseCombatCharacter, "The player entity." )
+
+	DEFINE_SCRIPTFUNC_NAMED( ScriptIsPlayerNoclipping, "IsNoclipping", "Returns true if the player is in noclip mode." ) 
+
+	DEFINE_SCRIPTFUNC_NAMED( VScriptGetExpresser, "GetExpresser", "Gets a handle for this player's expresser." )
+
+	DEFINE_SCRIPTFUNC( FragCount, "Gets the number of frags (kills) this player has in a multiplayer game." )
+	DEFINE_SCRIPTFUNC( DeathCount, "Gets the number of deaths this player has had in a multiplayer game." )
+	DEFINE_SCRIPTFUNC( IsConnected, "Returns true if this player is connected." )
+	DEFINE_SCRIPTFUNC( IsDisconnecting, "Returns true if this player is disconnecting." )
+	DEFINE_SCRIPTFUNC( IsSuitEquipped, "Returns true if this player had the HEV suit equipped." )
+
+	DEFINE_SCRIPTFUNC_NAMED( ArmorValue, "GetArmor", "Gets the player's armor." )
+	DEFINE_SCRIPTFUNC_NAMED( SetArmorValue, "SetArmor", "Sets the player's armor." )
+
+	DEFINE_SCRIPTFUNC( FlashlightIsOn, "Returns true if the flashlight is on." )
+	DEFINE_SCRIPTFUNC( FlashlightTurnOn, "Turns on the flashlight." )
+	DEFINE_SCRIPTFUNC( FlashlightTurnOff, "Turns off the flashlight." )
+
+END_SCRIPTDESC();
+#else
+BEGIN_ENT_SCRIPTDESC( CBasePlayer, CBaseAnimating, "The player entity." )
+	DEFINE_SCRIPTFUNC_NAMED( ScriptIsPlayerNoclipping, "IsNoclipping", "Returns true if the player is in noclip mode." ) 
+END_SCRIPTDESC();
+#endif
+
 int giPrecacheGrunt = 0;
 
 edict_t *CBasePlayer::s_PlayerEdict = NULL;
@@ -686,6 +717,11 @@ CBasePlayer::~CBasePlayer( )
 //-----------------------------------------------------------------------------
 void CBasePlayer::UpdateOnRemove( void )
 {
+	if ( !g_pGameRules->IsMultiplayer() && g_pScriptVM )
+	{
+		g_pScriptVM->SetValue( "player", SCRIPT_VARIANT_NULL );
+	}
+
 	VPhysicsDestroyObject();
 
 	// Remove him from his current team
@@ -944,7 +980,7 @@ void CBasePlayer::TraceAttack( const CTakeDamageInfo &inputInfo, const Vector &v
 			// --------------------------------------------------
 			CAI_BaseNPC *pNPC = info.GetAttacker()->MyNPCPointer();
 #ifdef MAPBASE
-			if ( pNPC && (pNPC->CapabilitiesGet() & bits_CAP_NO_HIT_PLAYER) && pNPC->IRelationType( this ) <= D_FR )
+			if ( pNPC && (pNPC->CapabilitiesGet() & bits_CAP_NO_HIT_PLAYER) && pNPC->IRelationType( this ) > D_FR )
 #else
 			if ( pNPC && (pNPC->CapabilitiesGet() & bits_CAP_NO_HIT_PLAYER) && pNPC->IRelationType( this ) != D_HT )
 #endif
@@ -5106,6 +5142,11 @@ void CBasePlayer::Spawn( void )
 	UpdateLastKnownArea();
 
 	m_weaponFiredTimer.Invalidate();
+
+	if ( !g_pGameRules->IsMultiplayer() && g_pScriptVM )
+	{
+		g_pScriptVM->SetValue( "player", GetScriptInstance() );
+	}
 }
 
 void CBasePlayer::Activate( void )
@@ -5296,6 +5337,14 @@ void CBasePlayer::OnRestore( void )
 	m_nVehicleViewSavedFrame = 0;
 
 	m_nBodyPitchPoseParam = LookupPoseParameter( "body_pitch" );
+
+	// HACK: (03/25/09) Then the player goes across a transition it doesn't spawn and register
+	// it's instance. We're hacking around this for now, but this will go away when we get around to 
+	// having entities cross transitions and keep their script state.
+	if ( !g_pGameRules->IsMultiplayer() && g_pScriptVM && (gpGlobals->eLoadType == MapLoad_Transition) )
+	{
+		g_pScriptVM->SetValue( "player", GetScriptInstance() );
+	}
 }
 
 /* void CBasePlayer::SetTeamName( const char *pTeamName )
@@ -5748,6 +5797,25 @@ CBaseEntity	*CBasePlayer::GiveNamedItem( const char *pszName, int iSubType )
 	}
 
 	DispatchSpawn( pent );
+
+#ifdef MAPBASE
+	if ( pWeapon )
+	{
+		for (int i=0;i<MAX_WEAPONS;i++) 
+		{
+			if ( m_hMyWeapons[i].Get() && m_hMyWeapons[i]->GetSlot() == pWeapon->GetSlot() && m_hMyWeapons[i]->GetPosition() == pWeapon->GetPosition() )
+			{
+				// Make sure it matches the subtype
+				if ( m_hMyWeapons[i]->GetSubType() == iSubType )
+				{
+					// Don't use this weapon if the slot is already occupied
+					UTIL_Remove( pWeapon );
+					return NULL;
+				}
+			}
+		}
+	}
+#endif
 
 	if ( pent != NULL && !(pent->IsMarkedForDeletion()) ) 
 	{
@@ -6842,6 +6910,30 @@ void CBasePlayer::ShowCrosshair( bool bShow )
 }
 
 //-----------------------------------------------------------------------------
+// Used by vscript to determine if the player is noclipping
+//-----------------------------------------------------------------------------
+bool CBasePlayer::ScriptIsPlayerNoclipping(void)
+{
+	return (GetMoveType() == MOVETYPE_NOCLIP);
+}
+
+#ifdef MAPBASE_VSCRIPT
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+HSCRIPT CBasePlayer::VScriptGetExpresser()
+{
+	HSCRIPT hScript = NULL;
+	CAI_Expresser *pExpresser = GetExpresser();
+	if (pExpresser)
+	{
+		hScript = g_pScriptVM->RegisterInstance( pExpresser );
+	}
+
+	return hScript;
+}
+#endif
+
+//-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
 QAngle CBasePlayer::BodyAngles()
@@ -7650,6 +7742,23 @@ void CBasePlayer::PlayWearableAnimsForPlaybackEvent( wearableanimplayback_t iPla
 	}
 }
 #endif // USES_ECON_ITEMS
+
+#ifdef MAPBASE
+bool CBasePlayer::ShouldUseVisibilityCache( CBaseEntity *pEntity )
+{
+	// In CBaseEntity::FVisible(), players are allowed to see through CONTENTS_BLOCKLOS, which is used for
+	// nodraw, block LOS brushes, etc. This is so some code doesn't erronesouly assume the player can't see
+	// an entity (when the player can, in fact, see it) and therefore do something the player is not supposed to see.
+	// 
+	// However, to reduce the number of traces FVisible() runs, CBaseCombatCharacter uses a "visibility cache" shared
+	// by all entities derived from it. The player is normally a part of this visibility cache, so when it runs a trace
+	// through a CONTENTS_BLOCKLOS surface, the visibility cache assumes entities can now see through it and therefore
+	// NPCs to see through the brush which should normally block their LOS.
+	// 
+	// This solution stops the player from using the visibility cache altogether, toggled by a convar.
+	return player_use_visibility_cache.GetBool();
+}
+#endif
 
 //================================================================================
 // TEAM HANDLING

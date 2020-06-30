@@ -1036,7 +1036,11 @@ class CTriggerLook : public CTriggerOnce
 	DECLARE_CLASS( CTriggerLook, CTriggerOnce );
 public:
 
+#ifdef MAPBASE
+	CUtlVector<EHANDLE> m_hLookTargets;
+#else
 	EHANDLE m_hLookTarget;
+#endif
 	float m_flFieldOfView;
 	float m_flLookTime;			// How long must I look for
 	float m_flLookTimeTotal;	// How long have I looked
@@ -1046,6 +1050,7 @@ public:
 	EHANDLE m_hActivator;		// The entity that triggered us.
 #ifdef MAPBASE
 	bool m_bUseLOS;				// Makes lookers use LOS calculations in addition to viewcone calculations
+	bool m_bUseLookEntityAsCaller;	// Fires OnTrigger with the seen entity
 #endif
 
 	void Spawn( void );
@@ -1058,7 +1063,11 @@ public:
 
 private:
 
+#ifdef MAPBASE
+	void Trigger(CBaseEntity *pActivator, bool bTimeout, CBaseEntity *pCaller = NULL);
+#else
 	void Trigger(CBaseEntity *pActivator, bool bTimeout);
+#endif
 	void TimeoutThink();
 
 	COutputEvent m_OnTimeout;
@@ -1067,7 +1076,11 @@ private:
 LINK_ENTITY_TO_CLASS( trigger_look, CTriggerLook );
 BEGIN_DATADESC( CTriggerLook )
 
+#ifdef MAPBASE
+	DEFINE_UTLVECTOR( m_hLookTargets, FIELD_EHANDLE ),
+#else
 	DEFINE_FIELD( m_hLookTarget, FIELD_EHANDLE ),
+#endif
 	DEFINE_FIELD( m_flLookTimeTotal, FIELD_FLOAT ),
 	DEFINE_FIELD( m_flLookTimeLast, FIELD_TIME ),
 	DEFINE_KEYFIELD( m_flTimeoutDuration, FIELD_FLOAT, "timeout" ),
@@ -1075,6 +1088,7 @@ BEGIN_DATADESC( CTriggerLook )
 	DEFINE_FIELD( m_hActivator, FIELD_EHANDLE ),
 #ifdef MAPBASE
 	DEFINE_KEYFIELD( m_bUseLOS, FIELD_BOOLEAN, "UseLOS" ),
+	DEFINE_KEYFIELD( m_bUseLookEntityAsCaller, FIELD_BOOLEAN, "LookEntityCaller" ),
 #endif
 
 	DEFINE_OUTPUT( m_OnTimeout, "OnTimeout" ),
@@ -1093,7 +1107,9 @@ END_DATADESC()
 //------------------------------------------------------------------------------
 void CTriggerLook::Spawn( void )
 {
+#ifndef MAPBASE
 	m_hLookTarget = NULL;
+#endif
 	m_flLookTimeTotal = -1;
 	m_bTimeoutFired = false;
 
@@ -1158,6 +1174,17 @@ void CTriggerLook::Touch(CBaseEntity *pOther)
 	// --------------------------------
 	// Make sure we have a look target
 	// --------------------------------
+#ifdef MAPBASE
+	if (m_hLookTargets.Count() <= 0)
+	{
+		CBaseEntity *pEntity = gEntList.FindEntityByName( NULL, m_target, this, m_hActivator, this );
+		while (pEntity)
+		{
+			m_hLookTargets.AddToTail(pEntity);
+			pEntity = gEntList.FindEntityByName( pEntity, m_target, this, m_hActivator, this );
+		}
+	}
+#else
 	if (m_hLookTarget == NULL)
 	{
 		m_hLookTarget = GetNextTarget();
@@ -1166,6 +1193,7 @@ void CTriggerLook::Touch(CBaseEntity *pOther)
 			return;
 		}
 	}
+#endif
 
 	// This is designed for single player only
 	// so we'll always have the same player
@@ -1194,15 +1222,52 @@ void CTriggerLook::Touch(CBaseEntity *pOther)
 			vLookDir = ((CBaseCombatCharacter*)pOther)->EyeDirection3D( );
 		}
 
+#ifdef MAPBASE
+		// Check if the player is looking at any of the entities, even if they turn to look at another entity candidate.
+		// This is how we're doing support for multiple entities without redesigning trigger_look.
+		EHANDLE hLookingAtEntity = NULL;
+		for (int i = 0; i < m_hLookTargets.Count(); i++)
+		{
+			Vector vTargetDir = m_hLookTargets[i]->GetAbsOrigin() - pOther->EyePosition();
+			VectorNormalize(vTargetDir);
+
+			float fDotPr = DotProduct(vLookDir,vTargetDir);
+			if (fDotPr > m_flFieldOfView && (!m_bUseLOS || pOther->FVisible(pOther)))
+			{
+				hLookingAtEntity = m_hLookTargets[i];
+				break;
+			}
+		}
+
+		if (hLookingAtEntity != NULL)
+		{
+			// Is it the first time I'm looking?
+			if (m_flLookTimeTotal == -1)
+			{
+				m_flLookTimeLast	= gpGlobals->curtime;
+				m_flLookTimeTotal	= 0;
+			}
+			else
+			{
+				m_flLookTimeTotal	+= gpGlobals->curtime - m_flLookTimeLast;
+				m_flLookTimeLast	=  gpGlobals->curtime;
+			}
+
+			if (m_flLookTimeTotal >= m_flLookTime)
+			{
+				Trigger(pOther, false, hLookingAtEntity);
+			}
+		}
+		else
+		{
+			m_flLookTimeTotal	= -1;
+		}
+#else
 		Vector vTargetDir = m_hLookTarget->GetAbsOrigin() - pOther->EyePosition();
 		VectorNormalize(vTargetDir);
 
 		float fDotPr = DotProduct(vLookDir,vTargetDir);
-#ifdef MAPBASE
-		if (fDotPr > m_flFieldOfView && (!m_bUseLOS || pOther->FVisible(pOther)))
-#else
 		if (fDotPr > m_flFieldOfView)
-#endif
 		{
 			// Is it the first time I'm looking?
 			if (m_flLookTimeTotal == -1)
@@ -1225,6 +1290,7 @@ void CTriggerLook::Touch(CBaseEntity *pOther)
 		{
 			m_flLookTimeTotal	= -1;
 		}
+#endif
 	}
 }
 
@@ -1232,7 +1298,11 @@ void CTriggerLook::Touch(CBaseEntity *pOther)
 //-----------------------------------------------------------------------------
 // Purpose: Called when the trigger is fired by look logic or timeout.
 //-----------------------------------------------------------------------------
+#ifdef MAPBASE
+void CTriggerLook::Trigger(CBaseEntity *pActivator, bool bTimeout, CBaseEntity *pCaller)
+#else
 void CTriggerLook::Trigger(CBaseEntity *pActivator, bool bTimeout)
+#endif
 {
 	if (bTimeout)
 	{
@@ -1245,7 +1315,11 @@ void CTriggerLook::Trigger(CBaseEntity *pActivator, bool bTimeout)
 	else
 	{
 		// Fire because the player looked at the target.
+#ifdef MAPBASE
+		m_OnTrigger.FireOutput(pActivator, m_bUseLookEntityAsCaller ? pCaller : this);
+#else
 		m_OnTrigger.FireOutput(pActivator, this);
+#endif
 		m_flLookTimeTotal = -1;
 
 		// Cancel the timeout think.
@@ -2904,94 +2978,6 @@ void CAI_ChangeHintGroup::InputActivate( inputdata_t &inputdata )
 #endif
 
 
-//-----------------------------------------------------------------------------
-// Purpose: 
-//-----------------------------------------------------------------------------
-class CTriggerCamera : public CBaseEntity
-{
-public:
-	DECLARE_CLASS( CTriggerCamera, CBaseEntity );
-
-#ifdef MAPBASE
-	CTriggerCamera();
-
-	void UpdateOnRemove();
-#endif
-
-	void Spawn( void );
-	bool KeyValue( const char *szKeyName, const char *szValue );
-	void Enable( void );
-	void Disable( void );
-	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
-	void FollowTarget( void );
-#ifdef MAPBASE
-	void MoveThink( void );
-#endif
-	void Move(void);
-
-	// Always transmit to clients so they know where to move the view to
-	virtual int UpdateTransmitState();
-	
-	DECLARE_DATADESC();
-
-	// Input handlers
-	void InputEnable( inputdata_t &inputdata );
-	void InputDisable( inputdata_t &inputdata );
-
-#ifdef MAPBASE
-	void InputSetFOV( inputdata_t &inputdata );
-	void InputSetFOVRate( inputdata_t &inputdata );
-#endif
-
-private:
-	EHANDLE m_hPlayer;
-	EHANDLE m_hTarget;
-
-	// used for moving the camera along a path (rail rides)
-	CBaseEntity *m_pPath;
-	string_t m_sPath;
-	float m_flWait;
-	float m_flReturnTime;
-	float m_flStopTime;
-	float m_moveDistance;
-	float m_targetSpeed;
-	float m_initialSpeed;
-	float m_acceleration;
-	float m_deceleration;
-	int	  m_state;
-	Vector m_vecMoveDir;
-
-#ifdef MAPBASE
-	float m_fov;
-	float m_fovSpeed;
-
-	bool m_bDontSetPlayerView;
-#endif
-
-	string_t m_iszTargetAttachment;
-	int	  m_iAttachmentIndex;
-	bool  m_bSnapToGoal;
-
-#if HL2_EPISODIC
-	bool  m_bInterpolatePosition;
-
-	// these are interpolation vars used for interpolating the camera over time
-	Vector m_vStartPos, m_vEndPos;
-	float m_flInterpStartTime;
-
-	const static float kflPosInterpTime; // seconds
-#endif
-
-	int   m_nPlayerButtons;
-	int m_nOldTakeDamage;
-
-private:
-	COutputEvent m_OnEndFollow;
-#ifdef MAPBASE
-	COutputEvent m_OnStartFollow;
-#endif
-};
-
 #if HL2_EPISODIC
 const float CTriggerCamera::kflPosInterpTime = 2.0f;
 #endif
@@ -3052,6 +3038,12 @@ BEGIN_DATADESC( CTriggerCamera )
 #endif
 
 END_DATADESC()
+
+// VScript: publish class and select members to script language
+BEGIN_ENT_SCRIPTDESC( CTriggerCamera, CBaseEntity, "Server-side camera entity" )
+	DEFINE_SCRIPTFUNC_NAMED( ScriptGetFov, "GetFov", "get camera's current fov setting as integer"  )
+	DEFINE_SCRIPTFUNC_NAMED( ScriptSetFov, "SetFov", "set camera's current fov in integer degrees and fov change rate as float"  )
+END_SCRIPTDESC();
 
 #ifdef MAPBASE
 //-----------------------------------------------------------------------------
@@ -3565,6 +3557,59 @@ void CTriggerCamera::FollowTarget( )
 	SetNextThink( gpGlobals->curtime );
 
 	Move();
+}
+
+void CTriggerCamera::StartCameraShot( const char *pszShotType, CBaseEntity *pSceneEntity, CBaseEntity *pActor1, CBaseEntity *pActor2, float duration )
+{
+	// called from SceneEntity in response to a CChoreoEvent::CAMERA sent from a VCD.
+	// talk to vscript, start a camera move
+
+	HSCRIPT hStartCameraShot = NULL;
+	
+	// switch to this camera
+	// Enable();
+
+	// get script module associated with this ent, lookup function in module
+	if( m_iszVScripts != NULL_STRING )
+	{
+		hStartCameraShot = m_ScriptScope.LookupFunction( "ScriptStartCameraShot" );
+	}
+
+	// call the script function to begin the camera move
+	if ( hStartCameraShot )
+	{
+		g_pScriptVM->Call( hStartCameraShot, m_ScriptScope, true, NULL, pszShotType, ToHScript(pSceneEntity), ToHScript(pActor1), ToHScript(pActor2), duration );
+		g_pScriptVM->ReleaseFunction( hStartCameraShot );
+	}
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: vscript callback to get the player's fov
+//-----------------------------------------------------------------------------
+int CTriggerCamera::ScriptGetFov(void)
+{
+	if (m_hPlayer)
+	{
+		CBasePlayer* pBasePlayer = (CBasePlayer*)m_hPlayer.Get();
+		int iFOV = pBasePlayer->GetFOV();
+		return iFOV;
+	}
+	return 0;
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: vscript callback to slam the player's fov
+//-----------------------------------------------------------------------------
+void CTriggerCamera::ScriptSetFov(int iFOV, float fovSpeed)
+{
+	if (m_hPlayer)
+	{
+		m_fov = iFOV;
+		m_fovSpeed = fovSpeed;
+
+		CBasePlayer* pBasePlayer = (CBasePlayer*)m_hPlayer.Get();
+		pBasePlayer->SetFOV(this, iFOV, fovSpeed);
+	}
 }
 
 #ifdef MAPBASE

@@ -13,9 +13,9 @@
 #include "SDK_WaterCheap_vs20.inc"
 #include "SDK_WaterCheap_ps20.inc"
 #include "SDK_WaterCheap_ps20b.inc"
-#include "sdk_water_vs20.inc"
+#include "SDK_Water_vs20.inc"
 #include "SDK_Water_ps20.inc"
-#include "sdk_water_ps20b.inc"
+#include "SDK_Water_ps20b.inc"
 
 #ifndef _X360
 static ConVar r_waterforceexpensive( "r_waterforceexpensive", "0", FCVAR_ARCHIVE );
@@ -151,6 +151,19 @@ BEGIN_VS_SHADER( SDK_Water_DX90,
 		if ( params[ENVMAP]->IsDefined() )
 		{
 			LoadCubeMap( ENVMAP, TEXTUREFLAGS_SRGB );
+
+#ifdef MAPBASE
+			if (mat_specular_disable_on_missing.GetBool())
+			{
+				// Revert to defaultcubemap when the envmap texture is missing
+				// (should be equivalent to toolsblack in Mapbase)
+				if (params[ENVMAP]->GetTextureValue()->IsError())
+				{
+					params[ENVMAP]->SetStringValue( "engine/defaultcubemap" );
+					LoadCubeMap( ENVMAP, TEXTUREFLAGS_SRGB );
+				}
+			}
+#endif
 		}
 		if ( params[NORMALMAP]->IsDefined() )
 		{

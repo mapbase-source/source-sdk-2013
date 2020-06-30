@@ -27,6 +27,126 @@
 
 extern CServerGameDLL g_ServerGameDLL;
 
+//-----------------------------------------------------------------------------
+// Purpose: An entity that acts as a container for game scripts.
+//-----------------------------------------------------------------------------
+
+#define MAX_SCRIPT_GROUP 16
+
+class CLogicScript : public CPointEntity
+{
+public:
+	DECLARE_CLASS( CLogicScript, CPointEntity );
+	DECLARE_DATADESC();
+
+	void RunVScripts()
+	{
+		/*
+			EntityGroup <- [];
+			function __AppendToScriptGroup( name ) 
+			{
+				if ( name.len() == 0 ) 
+				{ 
+					EntityGroup.append( null ); 
+				} 
+				else
+				{ 
+					local ent = Entities.FindByName( null, name );
+					EntityGroup.append( ent );
+					if ( ent != null )
+					{
+						ent.ValidateScriptScope();
+						ent.GetScriptScope().EntityGroup <- EntityGroup;
+					}
+				}
+			}
+		*/
+
+ 		static const char szAddCode[] =
+		{
+			0x45,0x6e,0x74,0x69,0x74,0x79,0x47,0x72,0x6f,0x75,0x70,0x20,0x3c,0x2d,0x20,0x5b,0x5d,0x3b,0x0d,0x0a,
+			0x66,0x75,0x6e,0x63,0x74,0x69,0x6f,0x6e,0x20,0x5f,0x5f,0x41,0x70,0x70,0x65,0x6e,0x64,0x54,0x6f,0x53,
+			0x63,0x72,0x69,0x70,0x74,0x47,0x72,0x6f,0x75,0x70,0x28,0x20,0x6e,0x61,0x6d,0x65,0x20,0x29,0x20,0x0d,
+			0x0a,0x7b,0x0d,0x0a,0x09,0x69,0x66,0x20,0x28,0x20,0x6e,0x61,0x6d,0x65,0x2e,0x6c,0x65,0x6e,0x28,0x29,
+			0x20,0x3d,0x3d,0x20,0x30,0x20,0x29,0x20,0x0d,0x0a,0x09,0x7b,0x20,0x0d,0x0a,0x09,0x09,0x45,0x6e,0x74,
+			0x69,0x74,0x79,0x47,0x72,0x6f,0x75,0x70,0x2e,0x61,0x70,0x70,0x65,0x6e,0x64,0x28,0x20,0x6e,0x75,0x6c,
+			0x6c,0x20,0x29,0x3b,0x20,0x0d,0x0a,0x09,0x7d,0x20,0x0d,0x0a,0x09,0x65,0x6c,0x73,0x65,0x0d,0x0a,0x09,
+			0x7b,0x20,0x0d,0x0a,0x09,0x09,0x6c,0x6f,0x63,0x61,0x6c,0x20,0x65,0x6e,0x74,0x20,0x3d,0x20,0x45,0x6e,
+			0x74,0x69,0x74,0x69,0x65,0x73,0x2e,0x46,0x69,0x6e,0x64,0x42,0x79,0x4e,0x61,0x6d,0x65,0x28,0x20,0x6e,
+			0x75,0x6c,0x6c,0x2c,0x20,0x6e,0x61,0x6d,0x65,0x20,0x29,0x3b,0x0d,0x0a,0x09,0x09,0x45,0x6e,0x74,0x69,
+			0x74,0x79,0x47,0x72,0x6f,0x75,0x70,0x2e,0x61,0x70,0x70,0x65,0x6e,0x64,0x28,0x20,0x65,0x6e,0x74,0x20,
+			0x29,0x3b,0x0d,0x0a,0x09,0x09,0x69,0x66,0x20,0x28,0x20,0x65,0x6e,0x74,0x20,0x21,0x3d,0x20,0x6e,0x75,
+			0x6c,0x6c,0x20,0x29,0x0d,0x0a,0x09,0x09,0x7b,0x0d,0x0a,0x09,0x09,0x09,0x65,0x6e,0x74,0x2e,0x56,0x61,
+			0x6c,0x69,0x64,0x61,0x74,0x65,0x53,0x63,0x72,0x69,0x70,0x74,0x53,0x63,0x6f,0x70,0x65,0x28,0x29,0x3b,
+			0x0d,0x0a,0x09,0x09,0x09,0x65,0x6e,0x74,0x2e,0x47,0x65,0x74,0x53,0x63,0x72,0x69,0x70,0x74,0x53,0x63,
+			0x6f,0x70,0x65,0x28,0x29,0x2e,0x45,0x6e,0x74,0x69,0x74,0x79,0x47,0x72,0x6f,0x75,0x70,0x20,0x3c,0x2d,
+			0x20,0x45,0x6e,0x74,0x69,0x74,0x79,0x47,0x72,0x6f,0x75,0x70,0x3b,0x0d,0x0a,0x09,0x09,0x7d,0x0d,0x0a,
+			0x09,0x7d,0x0d,0x0a,0x7d,0x0d,0x0a,0x00
+		};
+
+		int iLastMember;
+		for ( iLastMember = MAX_SCRIPT_GROUP - 1; iLastMember >= 0; iLastMember-- )
+		{
+			if ( m_iszGroupMembers[iLastMember] != NULL_STRING )
+			{
+				break;
+			}
+		}
+
+		if ( iLastMember >= 0 )
+		{
+			HSCRIPT hAddScript = g_pScriptVM->CompileScript( szAddCode );
+			if ( hAddScript )
+			{
+				ValidateScriptScope();
+				m_ScriptScope.Run( hAddScript );
+				HSCRIPT hAddFunc = m_ScriptScope.LookupFunction( "__AppendToScriptGroup" );
+				if ( hAddFunc )
+				{
+					for ( int i = 0; i <= iLastMember; i++ )
+					{
+						m_ScriptScope.Call( hAddFunc, NULL, STRING(m_iszGroupMembers[i]) );
+					}
+					g_pScriptVM->ReleaseFunction( hAddFunc );
+					m_ScriptScope.ClearValue( "__AppendToScriptGroup" );
+				}
+
+				g_pScriptVM->ReleaseScript( hAddScript );
+			}
+		}
+		BaseClass::RunVScripts();
+	}
+
+	string_t m_iszGroupMembers[MAX_SCRIPT_GROUP];
+
+};
+
+LINK_ENTITY_TO_CLASS( logic_script, CLogicScript );
+
+BEGIN_DATADESC( CLogicScript )
+	// Silence, Classcheck!
+	// DEFINE_ARRAY( m_iszGroupMembers, FIELD_STRING, MAX_NUM_TEMPLATES ),
+
+	DEFINE_KEYFIELD( m_iszGroupMembers[0], FIELD_STRING, "Group00"),
+	DEFINE_KEYFIELD( m_iszGroupMembers[1], FIELD_STRING, "Group01"),
+	DEFINE_KEYFIELD( m_iszGroupMembers[2], FIELD_STRING, "Group02"),
+	DEFINE_KEYFIELD( m_iszGroupMembers[3], FIELD_STRING, "Group03"),
+	DEFINE_KEYFIELD( m_iszGroupMembers[4], FIELD_STRING, "Group04"),
+	DEFINE_KEYFIELD( m_iszGroupMembers[5], FIELD_STRING, "Group05"),
+	DEFINE_KEYFIELD( m_iszGroupMembers[6], FIELD_STRING, "Group06"),
+	DEFINE_KEYFIELD( m_iszGroupMembers[7], FIELD_STRING, "Group07"),
+	DEFINE_KEYFIELD( m_iszGroupMembers[8], FIELD_STRING, "Group08"),
+	DEFINE_KEYFIELD( m_iszGroupMembers[9], FIELD_STRING, "Group09"),
+	DEFINE_KEYFIELD( m_iszGroupMembers[10], FIELD_STRING, "Group10"),
+	DEFINE_KEYFIELD( m_iszGroupMembers[11], FIELD_STRING, "Group11"),
+	DEFINE_KEYFIELD( m_iszGroupMembers[12], FIELD_STRING, "Group12"),
+	DEFINE_KEYFIELD( m_iszGroupMembers[13], FIELD_STRING, "Group13"),
+	DEFINE_KEYFIELD( m_iszGroupMembers[14], FIELD_STRING, "Group14"),
+	DEFINE_KEYFIELD( m_iszGroupMembers[15], FIELD_STRING, "Group15"),
+
+END_DATADESC()
+
+
 
 //-----------------------------------------------------------------------------
 // Purpose: Compares a set of integer inputs to the one main input
@@ -3632,14 +3752,14 @@ public:
 
 	// TODO: Replace "append" with variable arguments?
 	inline void LCMsg(const char *msg, const char *append = NULL) { ConColorMsg(m_MsgColor, msg, append); }
-	inline void LCDevMsg(int lvl, const char *msg, const char *append = NULL) { developer.GetInt() >= lvl ? ConColorMsg(m_MsgColor, msg, append) : 0; }
+	inline void LCDevMsg(int lvl, const char *msg, const char *append = NULL) { developer.GetInt() >= lvl ? ConColorMsg(m_MsgColor, msg, append) : (void)0; }
 	inline void LCWarning(const char *msg, const char *append = NULL) { ConColorMsg(m_WarningColor, msg, append); }
-	inline void LCDevWarning(int lvl, const char *msg, const char *append = NULL) { developer.GetInt() >= lvl ? ConColorMsg(m_WarningColor, msg, append) : 0; }
+	inline void LCDevWarning(int lvl, const char *msg, const char *append = NULL) { developer.GetInt() >= lvl ? ConColorMsg(m_WarningColor, msg, append) : (void)0; }
 
 	//inline void LCMsg(const char *msg, const char *append = NULL) { ColorSpewMessage(SPEW_MESSAGE, &m_MsgColor, msg, append); }
-	//inline void LCDevMsg(int lvl, const char *msg, const char *append = NULL) { developer.GetInt() >= lvl ? ColorSpewMessage(SPEW_MESSAGE, &m_MsgColor, msg, append) : 0; }
+	//inline void LCDevMsg(int lvl, const char *msg, const char *append = NULL) { developer.GetInt() >= lvl ? ColorSpewMessage(SPEW_MESSAGE, &m_MsgColor, msg, append) : (void)0; }
 	//inline void LCWarning(const char *msg, const char *append = NULL) { ColorSpewMessage(SPEW_MESSAGE, &m_WarningColor, msg, append); }
-	//inline void LCDevWarning(int lvl, const char *msg, const char *append = NULL) { developer.GetInt() >= lvl ? ColorSpewMessage(SPEW_MESSAGE, &m_WarningColor, msg, append) : 0; }
+	//inline void LCDevWarning(int lvl, const char *msg, const char *append = NULL) { developer.GetInt() >= lvl ? ColorSpewMessage(SPEW_MESSAGE, &m_WarningColor, msg, append) : (void)0; }
 
 	// Inputs
 	void InputSendMsg( inputdata_t &inputdata ) { !m_bNewLineNotAuto ? LCMsg("%s\n", inputdata.value.String()) : LCMsg("%s", inputdata.value.String()); }
@@ -3652,7 +3772,7 @@ public:
 
 	// MAPBASE MP TODO: "ClearConsoleOnTarget"
 	// (and make this input broadcast to all players)
-	void InputClearConsole( inputdata_t &inputdata ) { UTIL_GetLocalPlayer() ? engine->ClientCommand(UTIL_GetLocalPlayer()->edict(), "clear") : NULL; }
+	void InputClearConsole( inputdata_t &inputdata ) { UTIL_GetLocalPlayer() ? engine->ClientCommand(UTIL_GetLocalPlayer()->edict(), "clear") : (void)0; }
 
 	DECLARE_DATADESC();
 };
@@ -3679,7 +3799,8 @@ BEGIN_DATADESC( CLogicConsole )
 
 END_DATADESC()
 
-ConVar sv_allow_logic_convar("sv_allow_logic_convar", "1");
+ConVar sv_allow_logic_convar( "sv_allow_logic_convar", "1", FCVAR_NOT_CONNECTED );
+
 //-----------------------------------------------------------------------------
 // Purpose: Gets console variables for the evil mapper.
 //-----------------------------------------------------------------------------
@@ -4199,7 +4320,7 @@ inline float CMathClamp::ClampValue(float input, float min, float max, int *boun
 {
 	if ( max < min )
 	{
-		Warning("WARNING: Max value (%i) less than min value (%i) in %s!\n", max, min, GetDebugName());
+		Warning("WARNING: Max value (%f) less than min value (%f) in %s!\n", max, min, GetDebugName());
 		return max;
 	}
 	else if( input < min )
@@ -4629,7 +4750,7 @@ private:
 	bool KeyValue(const char *szKeyName, const char *szValue);
 	bool KeyValue( const char *szKeyName, const Vector &vecValue );
 
-	void UpdateOutValue(CBaseEntity *pActivator, Vector &vecNewValue);
+	void UpdateOutValue(CBaseEntity *pActivator, Vector vecNewValue);
 
 	int DrawDebugTextOverlays(void);
 
@@ -5186,7 +5307,7 @@ void CMathVector::SubtractCoordinate(float value, char coord, CBaseEntity *pActi
 // Purpose: Sets the value to the new value, firing the output value.
 // Input  : vecNewValue - Value to set.
 //-----------------------------------------------------------------------------
-void CMathVector::UpdateOutValue(CBaseEntity *pActivator, Vector &vecNewValue)
+void CMathVector::UpdateOutValue(CBaseEntity *pActivator, Vector vecNewValue)
 {
 	if (HasSpawnFlags( SF_MATH_VECTOR_DISABLE_X ))
 		vecNewValue.x = 0;
@@ -5687,7 +5808,7 @@ void CLogicModelInfo::InputLookupActivity( inputdata_t &inputdata )
 			iActivity = atoi(inputdata.value.String());
 			if (!ActivityList_NameForIndex(iActivity))
 			{
-				Msg("%s received invalid LookupActivity %s\n", inputdata.value.String());
+				Msg("%s received invalid LookupActivity %s\n", GetDebugName(), inputdata.value.String());
 				return;
 			}
 		}
@@ -5775,8 +5896,8 @@ private:
 
 	CBaseEntity *GetTarget(CBaseEntity *pActivator, CBaseEntity *pCaller);
 
-	const Vector &GetPosition(CBaseEntity *pEntity);
-	const QAngle &GetAngles(CBaseEntity *pEntity);
+	Vector GetPosition(CBaseEntity *pEntity);
+	QAngle GetAngles(CBaseEntity *pEntity);
 
 	// Inputs
 	void InputGetPosition( inputdata_t &inputdata );
@@ -5824,7 +5945,7 @@ inline CBaseEntity *CLogicEntityPosition::GetTarget(CBaseEntity *pActivator, CBa
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-const Vector &CLogicEntityPosition::GetPosition(CBaseEntity *pEntity)
+Vector CLogicEntityPosition::GetPosition(CBaseEntity *pEntity)
 {
 	switch (m_iPositionType)
 	{
@@ -5842,8 +5963,7 @@ const Vector &CLogicEntityPosition::GetPosition(CBaseEntity *pEntity)
 				break;
 			}
 
-			// Attachment position doesn't originate anywhere, so use a static variable
-			static Vector vecPosition;
+			Vector vecPosition;
 			pAnimating->GetAttachment(STRING(m_iszPositionParameter), vecPosition);
 			return vecPosition;
 		}
@@ -5854,16 +5974,15 @@ const Vector &CLogicEntityPosition::GetPosition(CBaseEntity *pEntity)
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-const QAngle &CLogicEntityPosition::GetAngles(CBaseEntity *pEntity)
+QAngle CLogicEntityPosition::GetAngles(CBaseEntity *pEntity)
 {
-	const QAngle *angAngles = &vec3_angle;
 	switch (m_iPositionType)
 	{
 	case POSITION_BBOX:
 		case POSITION_EARS:
-		case POSITION_ORIGIN:			angAngles = &pEntity->GetAbsAngles(); break;
-		case POSITION_LOCAL:			angAngles = &pEntity->GetLocalAngles(); break;
-		case POSITION_EYES:				angAngles = &pEntity->EyeAngles(); break;
+		case POSITION_ORIGIN:			return pEntity->GetAbsAngles(); break;
+		case POSITION_LOCAL:			return pEntity->GetLocalAngles(); break;
+		case POSITION_EYES:				return pEntity->EyeAngles(); break;
 		case POSITION_ATTACHMENT:
 		{
 			CBaseAnimating *pAnimating = pEntity->GetBaseAnimating();
@@ -5873,16 +5992,15 @@ const QAngle &CLogicEntityPosition::GetAngles(CBaseEntity *pEntity)
 				break;
 			}
 
-			// Attachment angles don't originate anywhere, so use a static variable
-			static QAngle AttachmentAngles;
+			QAngle AttachmentAngles;
 			matrix3x4_t attachmentToWorld;
 			pAnimating->GetAttachment( pAnimating->LookupAttachment( STRING( m_iszPositionParameter ) ), attachmentToWorld );
 			MatrixAngles( attachmentToWorld, AttachmentAngles );
-			angAngles = &AttachmentAngles;
+			return AttachmentAngles;
 		} break;
 	}
 
-	return *angAngles;
+	return vec3_angle;
 }
 
 //-----------------------------------------------------------------------------

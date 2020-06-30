@@ -442,6 +442,11 @@ CNPC_Strider::CNPC_Strider()
 //---------------------------------------------------------
 CNPC_Strider::~CNPC_Strider()
 {
+#ifdef MAPBASE
+	if (m_hFocus)
+		UTIL_Remove( m_hFocus );
+#endif
+
 	delete m_pMinigun;
 }
 
@@ -4442,7 +4447,7 @@ CBaseFilter *CNPC_Strider::GetStompFilter()
 		}
 		else
 		{
-			Warning("%s stomp filter not found!", GetDebugName(), STRING(m_strStompFilter));
+			Warning("%s stomp filter %s not found!", GetDebugName(), STRING(m_strStompFilter));
 		}
 	}
 

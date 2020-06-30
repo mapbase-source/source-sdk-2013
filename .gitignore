@@ -26,6 +26,7 @@ ipch
 *.xcodeproj/
 obj*/
 !devtools/*.mak
+sp/src/devtools/makefile_base_posix.mak.link
 !utils/smdlexp/smdlexp.mak
 
 # Specific Source build products
@@ -53,6 +54,7 @@ config.cfg
 
 # shader files
 *.tmp
+*.vcs
 
 *.db
 *.pdb
@@ -66,3 +68,33 @@ sp/src/utils/sapi51
 *.db-wal
 sp/src/game/server/Debug_boxobama/server_boxobama.vcxproj.FileListAbsolute.txt
 sp/src/game/client/Debug_boxobama/client_boxobama.vcxproj.FileListAbsolute.txt
+
+# Backup files
+*.bak
+
+# Build folders
+sp/src/.vs/
+sp/src/game/client/Debug_mod_episodic/
+sp/src/game/client/Debug_mod_hl2/
+sp/src/game/client/Release_mod_episodic/
+sp/src/game/client/Release_mod_hl2/
+sp/src/game/server/Debug_mod_episodic/
+sp/src/game/server/Debug_mod_hl2/
+sp/src/game/server/Release_mod_episodic/
+sp/src/game/server/Release_mod_hl2/
+sp/src/*/Debug/
+sp/src/*/Release/
+sp/game/*.dll
+sp/game/*.pdb
+sp/game/*.exe
+sp/src/utils/*.dll
+sp/src/utils/*.pdb
+sp/src/utils/*.exe
+sp/src/utils/*.res
+sp/src/materialsystem/*.dll
+sp/src/materialsystem/*.pdb
+sp/src/vgui2/*.dll
+sp/src/vgui2/*.pdb
+
+# Build support files
+sp/src/devtools/gcc9+support.o
