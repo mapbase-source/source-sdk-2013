@@ -205,6 +205,8 @@ public:
 	
 #else
 
+	virtual void Status( void (*print) (const char *fmt, ...) ) {}
+
 	virtual void GetTaggedConVarList( KeyValues *pCvarTagList ) {}
 
 	// NVNT see if the client of the player entered is using a haptic device.
@@ -415,6 +417,8 @@ public:
 	virtual void OnFileReceived( const char * fileName, unsigned int transferID ) { return; }
 
 	virtual bool IsHolidayActive( /*EHoliday*/ int eHoliday ) const { return false; }
+
+	virtual bool IsManualMapChangeOkay( const char **pszReason ){ return true; }
 
 #ifndef CLIENT_DLL
 private:

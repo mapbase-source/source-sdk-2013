@@ -65,7 +65,7 @@ CBasePlayerAnimState::CBasePlayerAnimState()
 	m_flEyePitch = 0.0f;
 	m_bCurrentFeetYawInitialized = false;
 	m_flCurrentTorsoYaw = 0.0f;
-	m_flCurrentTorsoYaw = TURN_NONE;
+	m_nTurningInPlace = TURN_NONE;
 	m_flMaxGroundSpeed = 0.0f;
 	m_flStoredCycle = 0.0f;
 
@@ -269,7 +269,7 @@ void CBasePlayerAnimState::ComputeMainSequence()
 	int animDesired = SelectWeightedSequence( TranslateActivity(idealActivity) );
 
 #if !defined( HL1_CLIENT_DLL ) && !defined ( HL1_DLL )
-	if ( pPlayer->GetSequenceActivity( pPlayer->GetSequence() ) == pPlayer->GetSequenceActivity( animDesired ) )
+	if ( !ShouldResetMainSequence( pPlayer->GetSequence(), animDesired ) )
 		return;
 #endif
 
@@ -289,8 +289,13 @@ void CBasePlayerAnimState::ComputeMainSequence()
 #endif
 }
 
+bool CBasePlayerAnimState::ShouldResetMainSequence( int iCurrentSequence, int iNewSequence )
+{
+	if ( !GetOuter() )
+		return false;
 
-
+	return GetOuter()->GetSequenceActivity( iCurrentSequence ) != GetOuter()->GetSequenceActivity( iNewSequence );
+}
 
 
 void CBasePlayerAnimState::UpdateAimSequenceLayers(

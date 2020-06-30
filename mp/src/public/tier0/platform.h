@@ -9,6 +9,18 @@
 #ifndef PLATFORM_H
 #define PLATFORM_H
 
+#if defined(__x86_64__) || defined(_WIN64)
+#define PLATFORM_64BITS 1
+#endif
+
+#if defined(__GCC__) || defined(__GNUC__)
+#define COMPILER_GCC 1
+#endif
+
+#ifdef __clang__
+#define COMPILER_CLANG 1
+#endif
+
 #if defined( _X360 )
 	#define NO_STEAM
 	#define NO_VOICE
@@ -51,13 +63,12 @@
 // need this for _alloca
 #include <alloca.h>
 #include <unistd.h>
-	#include <signal.h>
+#include <signal.h>
 #include <time.h>
 #endif
 
 #include <malloc.h>
 #include <new>
-
 
 // need this for memset
 #include <string.h>
@@ -148,10 +159,6 @@
 typedef unsigned char uint8;
 typedef signed char int8;
 
-#if defined(__x86_64__) || defined(_WIN64)
-	#define X64BITS
-#endif // __x86_64__
-
 #if defined( _WIN32 )
 
 	typedef __int16					int16;
@@ -191,7 +198,7 @@ typedef signed char int8;
 	typedef unsigned int			uint32;
 	typedef long long				int64;
 	typedef unsigned long long		uint64;
-	#ifdef X64BITS
+	#ifdef PLATFORM_64BITS
 		typedef long long			intp;
 		typedef unsigned long long	uintp;
 	#else
@@ -202,16 +209,38 @@ typedef signed char int8;
 
 	// Avoid redefinition warnings if a previous header defines this.
 	#undef OVERRIDE
-	#if defined(__clang__)
+	#if __cplusplus >= 201103L
 		#define OVERRIDE override
-		// warning: 'override' keyword is a C++11 extension [-Wc++11-extensions]
-		// Disabling this warning is less intrusive than enabling C++11 extensions
-		#pragma GCC diagnostic ignored "-Wc++11-extensions"
+		#if defined(__clang__)
+			// warning: 'override' keyword is a C++11 extension [-Wc++11-extensions]
+			// Disabling this warning is less intrusive than enabling C++11 extensions
+			#pragma GCC diagnostic ignored "-Wc++11-extensions"
+		#endif
 	#else
 		#define OVERRIDE
 	#endif
 
 #endif // else _WIN32
+
+//-----------------------------------------------------------------------------
+// Set up platform type defines.
+//-----------------------------------------------------------------------------
+#if defined( PLATFORM_X360 ) || defined( _PS3 )
+	#if !defined( _GAMECONSOLE )
+		#define _GAMECONSOLE
+	#endif
+	#define IsPC()			false
+	#define IsGameConsole()	true
+#else
+	#define IsPC()			true
+	#define IsGameConsole()	false
+#endif
+
+#ifdef PLATFORM_64BITS
+	#define IsPlatform64Bits()	true
+#else
+	#define IsPlatform64Bits()	false
+#endif
 
 // From steam/steamtypes.h
 // RTime32
@@ -230,7 +259,11 @@ typedef unsigned int		uint;
 // Ensure that everybody has the right compiler version installed. The version
 // number can be obtained by looking at the compiler output when you type 'cl'
 // and removing the last two digits and the periods: 16.00.40219.01 becomes 160040219
-#if _MSC_FULL_VER > 160000000
+#if _MSC_FULL_VER > 180000000
+	#if _MSC_FULL_VER < 180030723
+		#error You must install VS 2013 Update 3
+	#endif
+#elif _MSC_FULL_VER > 160000000
 	#if _MSC_FULL_VER < 160040219
 		#error You must install VS 2010 SP1
 	#endif
@@ -396,6 +429,19 @@ typedef void * HINSTANCE;
 #endif
 #endif
 #define	DebuggerBreakIfDebugging() if ( !Plat_IsInDebugSession() ) ; else DebuggerBreak()
+
+#ifdef STAGING_ONLY
+#define	DebuggerBreakIfDebugging_StagingOnly() if ( !Plat_IsInDebugSession() ) ; else DebuggerBreak()
+#else
+#define	DebuggerBreakIfDebugging_StagingOnly()
+#endif
+
+// Allows you to specify code that should only execute if we are in a staging build. Otherwise the code noops.
+#ifdef STAGING_ONLY
+#define STAGING_ONLY_EXEC( _exec ) do { _exec; } while (0)
+#else
+#define STAGING_ONLY_EXEC( _exec ) do { } while (0)
+#endif
 
 // C functions for external declarations that call the appropriate C++ methods
 #ifndef EXPORT
@@ -1086,7 +1132,6 @@ PLATFORM_INTERFACE bool				Plat_IsInBenchmarkMode();
 
 PLATFORM_INTERFACE double			Plat_FloatTime();		// Returns time in seconds since the module was loaded.
 PLATFORM_INTERFACE unsigned int		Plat_MSTime();			// Time in milliseconds.
-PLATFORM_INTERFACE char *			Plat_asctime( const struct tm *tm, char *buf );
 PLATFORM_INTERFACE char *			Plat_ctime( const time_t *timep, char *buf, size_t bufsize );
 PLATFORM_INTERFACE struct tm *		Plat_gmtime( const time_t *timep, struct tm *result );
 PLATFORM_INTERFACE time_t			Plat_timegm( struct tm *timeptr );
@@ -1140,7 +1185,7 @@ inline uint64 Plat_Rdtsc()
 			memcpy( this, &src, sizeof(_classname) );	\
 			return *this;								\
 		}
-	
+
 // Processor Information:
 struct CPUInformation
 {
@@ -1167,6 +1212,9 @@ struct CPUInformation
 	int64 m_Speed;						// In cycles per second.
 
 	tchar* m_szProcessorID;				// Processor vendor Identification.
+
+	uint32 m_nModel;
+	uint32 m_nFeatures[3];
 
 	CPUInformation(): m_Size(0){}
 };
@@ -1244,7 +1292,7 @@ PLATFORM_INTERFACE void* Plat_SimpleLog( const tchar* file, int line );
 // Returns true if debugger attached, false otherwise
 //-----------------------------------------------------------------------------
 #if defined(_WIN32) || defined(LINUX) || defined(OSX)
-PLATFORM_INTERFACE bool Plat_IsInDebugSession( bool bForceRecheck = false );
+PLATFORM_INTERFACE bool Plat_IsInDebugSession();
 PLATFORM_INTERFACE void Plat_DebugString( const char * );
 #else
 inline bool Plat_IsInDebugSession( bool bForceRecheck = false ) { return false; }
@@ -1558,6 +1606,20 @@ private:
 	FUNCPTR_TYPE m_pfn;
 };
 #endif
+
+
+// Watchdog timer support. Call Plat_BeginWatchdogTimer( nn ) to kick the timer off.  if you don't call
+// Plat_EndWatchdogTimer within nn seconds, the program will kick off an exception.  This is for making
+// sure that hung dedicated servers abort (and restart) instead of staying hung. Calling
+// Plat_EndWatchdogTimer more than once or when there is no active watchdog is fine. Only does anything
+// under linux right now. It should be possible to implement this functionality in windows via a
+// thread, if desired.
+PLATFORM_INTERFACE void Plat_BeginWatchdogTimer( int nSecs );
+PLATFORM_INTERFACE void Plat_EndWatchdogTimer( void );
+PLATFORM_INTERFACE int Plat_GetWatchdogTime( void );
+
+typedef void (*Plat_WatchDogHandlerFunction_t)(void);
+PLATFORM_INTERFACE void Plat_SetWatchdogHandlerFunction( Plat_WatchDogHandlerFunction_t function );
 
 
 //-----------------------------------------------------------------------------

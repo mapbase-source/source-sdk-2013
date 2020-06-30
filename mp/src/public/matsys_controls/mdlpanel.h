@@ -64,7 +64,7 @@ public:
 	void SetLOD( int nLOD );
 
 	// Sets the current sequence
-	void SetSequence( int nSequence );
+	void SetSequence( int nSequence, bool bResetSequence = false );
 
 	// Set the pose parameters
 	void SetPoseParameters( const float *pPoseParameters, int nCount );
@@ -113,6 +113,7 @@ protected:
 		CMDL		m_MDL;
 		matrix3x4_t	m_MDLToWorld;
 		bool		m_bDisabled;
+		float		m_flCycleStartTime;
 	};
 
 	MDLData_t				m_RootMDL;
@@ -130,6 +131,7 @@ private:
 	virtual void OnPaint3D();
 	virtual void PrePaint3D( IMatRenderContext *pRenderContext ) { };
 	virtual void PostPaint3D( IMatRenderContext *pRenderContext ) { };
+	virtual void RenderingRootModel( IMatRenderContext *pRenderContext, CStudioHdr *pStudioHdr, MDLHandle_t mdlHandle, matrix3x4_t *pWorldMatrix ) { };
 	virtual void RenderingMergedModel( IMatRenderContext *pRenderContext, CStudioHdr *pStudioHdr, MDLHandle_t mdlHandle, matrix3x4_t *pWorldMatrix ) { };
 
 	void OnMouseDoublePressed( vgui::MouseCode code );

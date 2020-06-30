@@ -37,7 +37,7 @@ static void PFMWrite( float *pFloatImage, const char *pFilename, int width, int 
 
 SpewRetval_t VTF2TGAOutputFunc( SpewType_t spewType, char const *pMsg )
 {
-	printf( pMsg );
+	printf( "%s", pMsg );
 	fflush( stdout );
 
 	if (spewType == SPEW_ERROR)
@@ -187,7 +187,7 @@ int main( int argc, char **argv )
 				for ( int z = 0; z < iDepth; ++z )
 				{
 					// Construct output filename
-					char *pTempNameBuf = (char *)stackalloc( iTGANameLen + 13 );
+					char *pTempNameBuf = new char[iTGANameLen + 13];//(char *)stackalloc( iTGANameLen + 13 );
 					Q_strncpy( pTempNameBuf, pOutFileNameBase, iTGANameLen + 1 );
 					char *pExt = Q_strrchr( pTempNameBuf, '.' );
 					if ( pExt )
@@ -306,6 +306,8 @@ int main( int argc, char **argv )
 					{
 						PFMWrite( ( float * )pDstImage, pTempNameBuf, iWidth, iHeight );
 					}
+
+					delete[] pTempNameBuf;
 				}
 			}
 		}

@@ -571,7 +571,8 @@ void SpewInterpolatedVar( CInterpolatedVar< Vector > *pVar )
 {
 	Msg( "--------------------------------------------------\n" );
 	int i = pVar->GetHead();
-	CApparentVelocity<Vector> apparent;
+	Vector v0(0, 0, 0);
+	CApparentVelocity<Vector> apparent(v0);
 	float prevtime = 0.0f;
 	while ( 1 )
 	{
@@ -594,7 +595,8 @@ void SpewInterpolatedVar( CInterpolatedVar< Vector > *pVar, float flNow, float f
 
 	Msg( "--------------------------------------------------\n" );
 	int i = pVar->GetHead();
-	CApparentVelocity<Vector> apparent;
+	Vector v0(0, 0, 0);
+	CApparentVelocity<Vector> apparent(v0);
 	float newtime = 999999.0f;
 	Vector newVec( 0, 0, 0 );
 	bool bSpew = true;
@@ -662,7 +664,7 @@ void SpewInterpolatedVar( CInterpolatedVar< float > *pVar )
 {
 	Msg( "--------------------------------------------------\n" );
 	int i = pVar->GetHead();
-	CApparentVelocity<float> apparent;
+	CApparentVelocity<float> apparent(0.0f);
 	while ( 1 )
 	{
 		float changetime;
@@ -684,7 +686,8 @@ void GetInterpolatedVarTimeRange( CInterpolatedVar<T> *pVar, float &flMin, float
 	flMax = -1e23;
 
 	int i = pVar->GetHead();
-	CApparentVelocity<Vector> apparent;
+	Vector v0(0, 0, 0);
+	CApparentVelocity<Vector> apparent(v0);
 	while ( 1 )
 	{
 		float changetime;
@@ -892,6 +895,8 @@ C_BaseEntity::C_BaseEntity() :
 	m_iv_angRotation( "C_BaseEntity::m_iv_angRotation" ),
 	m_iv_vecVelocity( "C_BaseEntity::m_iv_vecVelocity" )
 {
+	m_pAttributes = NULL;
+
 	AddVar( &m_vecOrigin, &m_iv_vecOrigin, LATCH_SIMULATION_VAR );
 	AddVar( &m_angRotation, &m_iv_angRotation, LATCH_SIMULATION_VAR );
 	// Removing this until we figure out why velocity introduces view hitching.
@@ -1145,6 +1150,13 @@ bool C_BaseEntity::InitializeAsClientEntityByIndex( int iIndex, RenderGroup_t re
 	return true;
 }
 
+void C_BaseEntity::TrackAngRotation( bool bTrack )
+{
+	if ( bTrack )
+		AddVar( &m_angRotation, &m_iv_angRotation, LATCH_SIMULATION_VAR );
+	else
+		RemoveVar( &m_angRotation, false );
+}
 
 void C_BaseEntity::Term()
 {
@@ -1297,19 +1309,6 @@ bool C_BaseEntity::VPhysicsIsFlesh( void )
 			return true;
 	}
 	return false;
-}
-
-//-----------------------------------------------------------------------------
-// Returns the health fraction
-//-----------------------------------------------------------------------------
-float C_BaseEntity::HealthFraction() const
-{
-	if (GetMaxHealth() == 0)
-		return 1.0f;
-
-	float flFraction = (float)GetHealth() / (float)GetMaxHealth();
-	flFraction = clamp( flFraction, 0.0f, 1.0f );
-	return flFraction;
 }
 
 
@@ -2467,37 +2466,36 @@ void C_BaseEntity::UnlinkFromHierarchy()
 void C_BaseEntity::ValidateModelIndex( void )
 {
 #ifdef TF_CLIENT_DLL
+	if ( IsLocalPlayerUsingVisionFilterFlags( TF_VISION_FILTER_HALLOWEEN ) )
+	{
+		if ( m_nModelIndexOverrides[VISION_MODE_HALLOWEEN] > 0 )
+		{
+			SetModelByIndex( m_nModelIndexOverrides[VISION_MODE_HALLOWEEN] );
+			return;
+		}
+	}
+		
+	if ( IsLocalPlayerUsingVisionFilterFlags( TF_VISION_FILTER_PYRO ) )
+	{
+		if ( m_nModelIndexOverrides[VISION_MODE_PYRO] > 0 )
+		{
+			SetModelByIndex( m_nModelIndexOverrides[VISION_MODE_PYRO] );
+			return;
+		}
+	}
+
+	if ( IsLocalPlayerUsingVisionFilterFlags( TF_VISION_FILTER_ROME ) )
+	{
+		if ( m_nModelIndexOverrides[VISION_MODE_ROME] > 0 )
+		{
+			SetModelByIndex( m_nModelIndexOverrides[VISION_MODE_ROME] );
+			return;
+		}
+	}
+
 	if ( m_nModelIndexOverrides[VISION_MODE_NONE] > 0 ) 
 	{
-		if ( IsLocalPlayerUsingVisionFilterFlags( TF_VISION_FILTER_HALLOWEEN ) )
-		{
-			if ( m_nModelIndexOverrides[VISION_MODE_HALLOWEEN] > 0 )
-			{
-				SetModelByIndex( m_nModelIndexOverrides[VISION_MODE_HALLOWEEN] );
-				return;
-			}
-		}
-		
-		if ( IsLocalPlayerUsingVisionFilterFlags( TF_VISION_FILTER_PYRO ) )
-		{
-			if ( m_nModelIndexOverrides[VISION_MODE_PYRO] > 0 )
-			{
-				SetModelByIndex( m_nModelIndexOverrides[VISION_MODE_PYRO] );
-				return;
-			}
-		}
-
-		if ( IsLocalPlayerUsingVisionFilterFlags( TF_VISION_FILTER_ROME ) )
-		{
-			if ( m_nModelIndexOverrides[VISION_MODE_ROME] > 0 )
-			{
-				SetModelByIndex( m_nModelIndexOverrides[VISION_MODE_ROME] );
-				return;
-			}
-		}
-
 		SetModelByIndex( m_nModelIndexOverrides[VISION_MODE_NONE] );		
-
 		return;
 	}
 #endif
@@ -2622,6 +2620,17 @@ void C_BaseEntity::PostDataUpdate( DataUpdateType_t updateType )
 	{
 		UpdateVisibility();
 	}
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: Latch simulation values when the entity has not changed
+//-----------------------------------------------------------------------------
+void C_BaseEntity::OnDataUnchangedInPVS()
+{
+	Assert( m_hNetworkMoveParent.Get() || !m_hNetworkMoveParent.IsValid() );
+	HierarchySetParent(m_hNetworkMoveParent);
+	
+	MarkMessageReceived();
 }
 
 //-----------------------------------------------------------------------------
@@ -3741,7 +3750,7 @@ void C_BaseEntity::AddColoredDecal( const Vector& rayStart, const Vector& rayEnd
 
 	case mod_brush:
 		{
-			color32 cColor32 = { cColor.r(), cColor.g(), cColor.b(), cColor.a() };
+			color32 cColor32 = { (byte)cColor.r(), (byte)cColor.g(), (byte)cColor.b(), (byte)cColor.a() };
 			effects->DecalColorShoot( decalIndex, index, model, GetAbsOrigin(), GetAbsAngles(), decalCenter, 0, 0, cColor32 );
 		}
 		break;
@@ -6297,6 +6306,9 @@ bool C_BaseEntity::ValidateEntityAttachedToPlayer( bool &bShouldRetry )
 		if ( FStrEq( pszModel, "models/flag/briefcase.mdl" ) )
 			return true;
 
+		if ( FStrEq( pszModel, "models/passtime/ball/passtime_ball.mdl" ) )
+			return true;
+
 		if ( FStrEq( pszModel, "models/props_doomsday/australium_container.mdl" ) )
 			return true;
 
@@ -6308,6 +6320,16 @@ bool C_BaseEntity::ValidateEntityAttachedToPlayer( bool &bShouldRetry )
 			return true;
 
 		if ( FStrEq( pszModel, "models/props_lakeside_event/bomb_temp_hat.mdl" ) )
+			return true;
+
+		if ( FStrEq( pszModel, "models/props_moonbase/powersupply_flag.mdl" ) )
+			return true;
+
+		// The Halloween 2014 doomsday flag replacement
+		if ( FStrEq( pszModel, "models/flag/ticket_case.mdl" ) )
+			return true;
+
+		if ( FStrEq( pszModel, "models/weapons/c_models/c_grapple_proj/c_grapple_proj.mdl" ) )
 			return true;
 	}
 

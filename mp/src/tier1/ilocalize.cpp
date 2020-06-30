@@ -17,7 +17,8 @@
 int ILocalize::ConvertANSIToUnicode(const char *ansi, wchar_t *unicode, int unicodeBufferSizeInBytes)
 {
 #ifdef POSIX
-	return Q_UTF8ToUnicode(ansi, unicode, unicodeBufferSizeInBytes);
+	// Q_UTF8ToUnicode returns the number of bytes. This function is expected to return the number of chars.
+	return Q_UTF8ToUnicode(ansi, unicode, unicodeBufferSizeInBytes) / sizeof( wchar_t );
 #else
 	int chars = MultiByteToWideChar(CP_UTF8, 0, ansi, -1, unicode, unicodeBufferSizeInBytes / sizeof(wchar_t));
 	unicode[(unicodeBufferSizeInBytes / sizeof(wchar_t)) - 1] = 0;
@@ -112,7 +113,7 @@ void ConstructStringVArgsInternal_Impl(T *unicodeOutput, int unicodeBufferSizeIn
 			}
 			else
 			{
-				AssertMsg( argindex < numFormatParameters, "ConstructStringVArgsInternal_Impl() - Found a %s# escape sequence whose index was more than the number of args." );
+				AssertMsg( argindex < numFormatParameters, "ConstructStringVArgsInternal_Impl() - Found a %%s# escape sequence whose index was more than the number of args." );
 
 				//copy it over, char by char
 				*outputPos = *searchPos;

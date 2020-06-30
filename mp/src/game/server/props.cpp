@@ -1517,7 +1517,7 @@ void CBreakableProp::OnPhysGunDrop( CBasePlayer *pPhysGunUser, PhysGunDrop_t Rea
 
 	SetPhysicsAttacker( pPhysGunUser, gpGlobals->curtime );
 
-	if( Reason == PUNTED_BY_CANNON )
+	if( (int)Reason == (int)PUNTED_BY_CANNON )
 	{
 		PlayPuntSound(); 
 	}
@@ -1810,6 +1810,8 @@ void CBreakableProp::Break( CBaseEntity *pBreaker, const CTakeDamageInfo &info )
 LINK_ENTITY_TO_CLASS( dynamic_prop, CDynamicProp );
 LINK_ENTITY_TO_CLASS( prop_dynamic, CDynamicProp );	
 LINK_ENTITY_TO_CLASS( prop_dynamic_override, CDynamicProp );	
+
+IMPLEMENT_AUTO_LIST( IPhysicsPropAutoList );
 
 BEGIN_DATADESC( CDynamicProp )
 

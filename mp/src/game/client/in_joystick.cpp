@@ -800,7 +800,7 @@ void CInput::JoyStickMove( float frametime, CUserCmd *cmd )
 
 		if ( m_flPreviousJoystickForward || m_flPreviousJoystickSide || m_flPreviousJoystickPitch || m_flPreviousJoystickYaw )
 		{
-			Vector vTempOffset = g_ThirdPersonManager.GetCameraOffsetAngles();
+			const Vector& vTempOffset = g_ThirdPersonManager.GetCameraOffsetAngles();
 
 			// update the ideal pitch and yaw
 			cam_idealpitch.SetValue( vTempOffset[ PITCH ] - viewangles[ PITCH ] );
@@ -846,6 +846,8 @@ void CInput::JoyStickMove( float frametime, CUserCmd *cmd )
 	{
 		angle = m_flPreviousJoystickYaw * joy_yawsensitivity.GetFloat() * aspeed * 180.0;
 	}
+
+	angle = JoyStickAdjustYaw( angle );
 	viewangles[YAW] += angle;
 	cmd->mousedx = angle;
 

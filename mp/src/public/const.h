@@ -46,12 +46,20 @@
 #define MAX_PLAYERS_PER_CLIENT		1	// One player per PC
 #endif
 
-#define MAX_MAP_NAME				32	
+// Max decorated map name, with things like workshop/cp_foo.ugc123456
+#define MAX_MAP_NAME				96
+
+// Max name used in save files. Needs to be left at 32 for SourceSDK compatibility.
+#define MAX_MAP_NAME_SAVE			32
+
+// Max non-decorated map name for e.g. server browser (just cp_foo)
+#define MAX_DISPLAY_MAP_NAME		32
+
 #define	MAX_NETWORKID_LENGTH		64  // num chars for a network (i.e steam) ID
 
 // BUGBUG: Reconcile with or derive this from the engine's internal definition!
 // FIXME: I added an extra bit because I needed to make it signed
-#define SP_MODEL_INDEX_BITS			12
+#define SP_MODEL_INDEX_BITS			13
 
 // How many bits to use to encode an edict.
 #define	MAX_EDICT_BITS				11			// # of bits needed to represent max edicts

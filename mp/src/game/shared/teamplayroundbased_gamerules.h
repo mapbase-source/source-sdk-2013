@@ -12,6 +12,7 @@
 
 #include "teamplay_gamerules.h"
 #include "teamplay_round_timer.h"
+#include "GameEventListener.h"
 
 #ifdef GAME_DLL
 #include "team_control_point.h"
@@ -88,6 +89,11 @@ enum {
 	WINREASON_TIMELIMIT,
 	WINREASON_WINLIMIT,
 	WINREASON_WINDIFFLIMIT,
+#if defined(TF_CLIENT_DLL) || defined(TF_DLL)
+	WINREASON_RD_REACTOR_CAPTURED,
+	WINREASON_RD_CORES_COLLECTED,
+	WINREASON_RD_REACTOR_RETURNED,
+#endif
 };
 
 enum stalemate_reasons_t
@@ -157,7 +163,7 @@ public:
 //-----------------------------------------------------------------------------
 // Purpose: Teamplay game rules that manage a round based structure for you
 //-----------------------------------------------------------------------------
-class CTeamplayRoundBasedRules : public CTeamplayRules
+class CTeamplayRoundBasedRules : public CTeamplayRules, public CGameEventListener
 {
 	DECLARE_CLASS( CTeamplayRoundBasedRules, CTeamplayRules );
 public:
@@ -183,6 +189,7 @@ public:
 
 	virtual float GetNextRespawnWave( int iTeam, CBasePlayer *pPlayer );
 	virtual bool HasPassedMinRespawnTime( CBasePlayer *pPlayer );
+	virtual void	LevelInitPostEntity( void );
 	virtual float	GetRespawnTimeScalar( int iTeam );
 	virtual float	GetRespawnWaveMaxLength( int iTeam, bool bScaleWithNumPlayers = true );
 	virtual bool	ShouldRespawnQuickly( CBasePlayer *pPlayer ) { return false; }
@@ -242,7 +249,7 @@ public:
 	void SetMultipleTrains( bool bMultipleTrains ){ m_bMultipleTrains = bMultipleTrains; }
 	bool HasMultipleTrains( void ){ return m_bMultipleTrains; }
 
-	virtual int		GetBonusRoundTime( void );
+	virtual int		GetBonusRoundTime( bool bFinal = false );
 
 #if defined(TF_CLIENT_DLL) || defined(TF_DLL)
 
@@ -252,9 +259,14 @@ public:
 
 	// Get list of players who are on the defending team now, or are likely
 	// to end up on the defending team (not yet connected or assigned a team)
-	void GetMvMPotentialDefendersLobbyPlayerInfo( CUtlVector<LobbyPlayerInfo_t> &vecMvmDefenders, bool bIncludeBots = false );
+	void GetPotentialPlayersLobbyPlayerInfo( CUtlVector<LobbyPlayerInfo_t> &vecLobbyPlayers, bool bIncludeBots = false );
 
 #endif
+
+	void SetAllowBetweenRounds( bool bValue ) { m_bAllowBetweenRounds = bValue; }
+
+public: // IGameEventListener Interface
+	virtual void FireGameEvent( IGameEvent * event );
 
 	//----------------------------------------------------------------------------------
 	// Server specific
@@ -303,7 +315,7 @@ public:
 
 	virtual bool ShouldScorePerRound( void ){ return true; }
 
-	bool CheckNextLevelCvar( void );
+	bool CheckNextLevelCvar( bool bAllowEnd = true );
 
 	virtual bool TimerMayExpire( void );
 
@@ -326,7 +338,7 @@ public:
 	bool IsPreviouslyPlayedRound ( string_t strName );
 	string_t GetLastPlayedRound( void );
 
-	virtual void SetWinningTeam( int team, int iWinReason, bool bForceMapReset = true, bool bSwitchTeams = false, bool bDontAddScore = false );
+	virtual void SetWinningTeam( int team, int iWinReason, bool bForceMapReset = true, bool bSwitchTeams = false, bool bDontAddScore = false, bool bFinal = false ) OVERRIDE;
 	virtual void SetStalemate( int iReason, bool bForceMapReset = true, bool bSwitchTeams = false );
 
 	virtual void SetRoundOverlayDetails( void ){ return; }
@@ -359,10 +371,11 @@ public:
 	{
 		m_bPlayerReady.Set( iIndex, bState );
 	}
+	void ResetPlayerAndTeamReadyState( void );
 
 	virtual void PlayTrainCaptureAlert( CTeamControlPoint *pPoint, bool bFinalPointInMap ){ return; }
 
-	virtual void PlaySpecialCapSounds( int iCappingTeam ){ return; }
+	virtual void PlaySpecialCapSounds( int iCappingTeam, CTeamControlPoint *pPoint ){ return; }
 
 	bool PlayThrottledAlert( int iTeam, const char *sound, float fDelayBeforeNext );
 
@@ -387,14 +400,15 @@ protected:
 	void		 CheckWaitingForPlayers( void );
 	virtual bool AllowWaitingForPlayers( void ) { return true; }
 	void		 CheckRestartRound( void );
-	bool		 CheckTimeLimit( void );
+	bool		 CheckTimeLimit( bool bAllowEnd = true );
 	int			 GetTimeLeft( void );
-	virtual	bool CheckWinLimit( void );
-	bool		 CheckMaxRounds( void );
+	virtual	bool CheckWinLimit( bool bAllowEnd = true );
+	bool		 CheckMaxRounds( bool bAllowEnd = true );
 
 	void		 CheckReadyRestart( void );
 #if defined(TF_CLIENT_DLL) || defined(TF_DLL)
-	bool		 AreDefendingPlayersReady();
+	bool		 AreLobbyPlayersOnTeamReady( int iTeam );
+	bool		 AreLobbyPlayersConnected( void );
 #endif
 
 	virtual bool CanChangelevelBecauseOfTimeLimit( void ) { return true; }
@@ -473,6 +487,8 @@ protected:
 	bool MapHasActiveTimer( void );
 	void CreateTimeLimitTimer( void );
 
+	virtual float GetLastMajorEventTime( void ) OVERRIDE { return m_flLastTeamWin; }
+
 protected:
 	CGameRulesRoundStateInfo	*m_pCurStateInfo;			// Per-state data 
 	float						m_flStateTransitionTime;	// Timer for round states
@@ -515,10 +531,13 @@ protected:
 
 	gamerules_roundstate_t		m_prevState;
 
+	bool						m_bPlayerReadyBefore[MAX_PLAYERS+1];	// Test to see if a player has hit ready before
+
+	float						m_flLastTeamWin;
+
 private:
 
 	CUtlMap < int, int >	m_GameTeams;  // Team index, Score
-
 #endif
 	// End server specific
 	//----------------------------------------------------------------------------------
@@ -541,6 +560,7 @@ private:
 public:
 	bool WouldChangeUnbalanceTeams( int iNewTeam, int iCurrentTeam  );
 	bool AreTeamsUnbalanced( int &iHeaviestTeam, int &iLightestTeam );
+	virtual bool HaveCheatsBeenEnabledDuringLevel( void ) { return m_bCheatsEnabledDuringLevel; }
 
 protected:
 	CNetworkVar( gamerules_roundstate_t, m_iRoundState );
@@ -557,10 +577,11 @@ protected:
 	CNetworkVar( float,			m_flMapResetTime );						// Time that the map was reset
 	CNetworkArray( float,		m_flNextRespawnWave, MAX_TEAMS );		// Minor waste, but cleaner code
 	CNetworkArray( bool,		m_bTeamReady, MAX_TEAMS );
-	CNetworkVar( bool, m_bStopWatch );
-	CNetworkVar( bool, m_bMultipleTrains ); // two trains in this map?
+	CNetworkVar( bool,			m_bStopWatch );
+	CNetworkVar( bool,			m_bMultipleTrains ); // two trains in this map?
 	CNetworkArray( bool,		m_bPlayerReady, MAX_PLAYERS );
-	
+	CNetworkVar( bool,			m_bCheatsEnabledDuringLevel );
+
 public:
 	CNetworkArray( float,		m_TeamRespawnWaveTimes, MAX_TEAMS );	// Time between each team's respawn wave
 
@@ -573,6 +594,9 @@ private:
 	float	m_flAutoBalanceQueueTimeEnd;
 	int		m_nAutoBalanceQueuePlayerIndex;
 	int		m_nAutoBalanceQueuePlayerScore;
+
+protected:
+	bool	m_bAllowBetweenRounds;
 
 public:
 

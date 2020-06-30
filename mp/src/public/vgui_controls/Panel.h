@@ -180,6 +180,8 @@ public:
 	// all units are in pixels
 	void SetPos(int x,int y);		// sets position of panel, in local space (ie. relative to parent's position)
 	void GetPos(int &x,int &y);		// gets local position of panel
+	int GetXPos();
+	int GetYPos();
 	void SetSize(int wide,int tall);	// sets size of panel
 	void GetSize(int &wide, int &tall);	// gets size of panel
 	void SetBounds(int x, int y, int wide, int tall);		// combination of SetPos/SetSize
@@ -232,7 +234,7 @@ public:
 	Panel *FindSiblingByName(const char *siblingName);
 	void CallParentFunction(KeyValues *message);
 
-	template <class T>
+	template < class T >
 	T *FindControl( const char *pszName, bool recurseDown = false ) { return dynamic_cast<T *>( FindChildByName( pszName, recurseDown ) ); }
 
 	virtual void SetAutoDelete(bool state);		// if set to true, panel automatically frees itself when parent is deleted
@@ -274,6 +276,8 @@ public:
 		PIN_CENTER_RIGHT,
 		PIN_CENTER_BOTTOM,
 		PIN_CENTER_LEFT,
+
+		PIN_LAST
 	};
 
 	// specifies the auto-resize directions for the panel
@@ -398,6 +402,7 @@ public:
 	virtual void OnMousePressed(MouseCode code);
 	virtual void OnMouseDoublePressed(MouseCode code);
 	virtual void OnMouseReleased(MouseCode code);
+	virtual void OnMouseMismatchedRelease( MouseCode code, Panel* pPressedPanel );
 	virtual void OnMouseWheeled(int delta);
 
 	// Trip pressing (e.g., select all text in a TextEntry) requires this to be enabled
@@ -624,6 +629,8 @@ public:
 	void		SetParentNeedsCursorMoveEvents( bool bNeedsEvents ) { m_bParentNeedsCursorMoveEvents = bNeedsEvents; }
 	bool		ParentNeedsCursorMoveEvents() const { return m_bParentNeedsCursorMoveEvents; }
 
+	int ComputePos( const char *pszInput, int &nPos, const int& nSize, const int& nParentSize, const bool& bX );
+
 	// For 360: support directional navigation between UI controls via dpad
 	enum NAV_DIRECTION { ND_UP, ND_DOWN, ND_LEFT, ND_RIGHT, ND_BACK, ND_NONE };
 	virtual Panel* NavigateUp();
@@ -665,6 +672,8 @@ protected:
 	virtual void PaintTraverse(bool Repaint, bool allowForce = true);
 
 protected:
+	virtual void OnChildSettingsApplied( KeyValues *pInResourceData, Panel *pChild );
+
 	MESSAGE_FUNC_ENUM_ENUM( OnRequestFocus, "OnRequestFocus", VPANEL, subFocus, VPANEL, defaultPanel);
 	MESSAGE_FUNC_INT_INT( OnScreenSizeChanged, "OnScreenSizeChanged", oldwide, oldtall );
 	virtual void *QueryInterface(EInterfaceID id);
@@ -725,15 +734,23 @@ protected:
 private:
 	enum BuildModeFlags_t
 	{
-		BUILDMODE_EDITABLE					= 0x01,
-		BUILDMODE_DELETABLE					= 0x02,
-		BUILDMODE_SAVE_XPOS_RIGHTALIGNED	= 0x04,
-		BUILDMODE_SAVE_XPOS_CENTERALIGNED	= 0x08,
-		BUILDMODE_SAVE_YPOS_BOTTOMALIGNED	= 0x10,
-		BUILDMODE_SAVE_YPOS_CENTERALIGNED	= 0x20,
-		BUILDMODE_SAVE_WIDE_FULL			= 0x40,
-		BUILDMODE_SAVE_TALL_FULL			= 0x80,
-		BUILDMODE_SAVE_PROPORTIONAL_TO_PARENT = 0x100,
+		BUILDMODE_EDITABLE						= 1 << 0,
+		BUILDMODE_DELETABLE						= 1 << 1,
+		BUILDMODE_SAVE_XPOS_RIGHTALIGNED		= 1 << 2,
+		BUILDMODE_SAVE_XPOS_CENTERALIGNED		= 1 << 3,
+		BUILDMODE_SAVE_YPOS_BOTTOMALIGNED		= 1 << 4,
+		BUILDMODE_SAVE_YPOS_CENTERALIGNED		= 1 << 5,
+		BUILDMODE_SAVE_WIDE_FULL				= 1 << 6,
+		BUILDMODE_SAVE_TALL_FULL				= 1 << 7,
+		BUILDMODE_SAVE_PROPORTIONAL_TO_PARENT	= 1 << 8,
+		BUILDMODE_SAVE_WIDE_PROPORTIONAL		= 1 << 9,
+		BUILDMODE_SAVE_TALL_PROPORTIONAL		= 1 << 10,
+		BUILDMODE_SAVE_XPOS_PROPORTIONAL_SELF	= 1 << 11,
+		BUILDMODE_SAVE_YPOS_PROPORTIONAL_SELF	= 1 << 12,
+		BUILDMODE_SAVE_WIDE_PROPORTIONAL_TALL	= 1 << 13,
+		BUILDMODE_SAVE_TALL_PROPORTIONAL_WIDE	= 1 << 14,
+		BUILDMODE_SAVE_XPOS_PROPORTIONAL_PARENT = 1 << 15,
+		BUILDMODE_SAVE_YPOS_PROPORTIONAL_PARENT = 1 << 16
 	};
 
 	enum PanelFlags_t
@@ -758,6 +775,9 @@ private:
 		IS_MOUSE_DISABLED_FOR_THIS_PANEL_ONLY = 0x8000,
 		ALL_FLAGS							= 0xFFFF,
 	};
+
+	int ComputeWide( KeyValues *inResourceData, int nParentWide, int nParentTall, bool bComputingForTall );
+	int ComputeTall( KeyValues *inResourceData, int nParentWide, int nParentTall, bool bComputingForWide );
 
 	// used to get the Panel * for users with only IClientPanel
 	virtual Panel *GetPanel() { return this; }
@@ -899,6 +919,8 @@ private:
 	bool			m_bWorldPositionCurrentFrame;		// if set, Panel gets PerformLayout called after the camera and the renderer's m_matrixWorldToScreen has been setup, so panels can be correctly attached to entities in the world
 
 	bool			m_bForceStereoRenderToFrameBuffer;
+
+	static Panel* m_sMousePressedPanels[ ( MOUSE_MIDDLE - MOUSE_LEFT ) + 1 ];
 
 	CPanelAnimationVar( float, m_flAlpha, "alpha", "255" );
 

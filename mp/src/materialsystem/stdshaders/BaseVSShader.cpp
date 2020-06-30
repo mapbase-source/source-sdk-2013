@@ -458,6 +458,21 @@ void CBaseVSShader::SetPixelShaderTextureScaledTransform( int pixelReg, int tran
 //-----------------------------------------------------------------------------
 // Moves a matrix into vertex shader constants 
 //-----------------------------------------------------------------------------
+void CBaseVSShader::SetVertexShaderMatrix2x4( int vertexReg, int matrixVar )
+{
+	IMaterialVar* pTranslationVar = s_ppParams[ matrixVar ];
+	if ( pTranslationVar )
+	{
+		s_pShaderAPI->SetVertexShaderConstant( vertexReg, &pTranslationVar->GetMatrixValue()[ 0 ][ 0 ], 2 );
+	}
+	else
+	{
+		VMatrix matrix;
+		MatrixSetIdentity( matrix );
+		s_pShaderAPI->SetVertexShaderConstant( vertexReg, &matrix[ 0 ][ 0 ], 2 );
+	}
+}
+
 void CBaseVSShader::SetVertexShaderMatrix3x4( int vertexReg, int matrixVar )
 {
 	IMaterialVar* pTranslationVar = s_ppParams[matrixVar];
@@ -852,14 +867,14 @@ void CBaseVSShader::SetHWMorphVertexShaderState( int nDimConst, int nSubrectCons
 	s_pShaderAPI->GetStandardTextureDimensions( &nMorphWidth, &nMorphHeight, TEXTURE_MORPH_ACCUMULATOR );
 
 	int nDim = s_pShaderAPI->GetIntRenderingParameter( INT_RENDERPARM_MORPH_ACCUMULATOR_4TUPLE_COUNT );
-	float pMorphAccumSize[4] = { nMorphWidth, nMorphHeight, nDim, 0.0f };
+	float pMorphAccumSize[4] = { (float)nMorphWidth, (float)nMorphHeight, (float)nDim, 0.0f };
 	s_pShaderAPI->SetVertexShaderConstant( nDimConst, pMorphAccumSize );
 
 	int nXOffset = s_pShaderAPI->GetIntRenderingParameter( INT_RENDERPARM_MORPH_ACCUMULATOR_X_OFFSET );
 	int nYOffset = s_pShaderAPI->GetIntRenderingParameter( INT_RENDERPARM_MORPH_ACCUMULATOR_Y_OFFSET );
 	int nWidth = s_pShaderAPI->GetIntRenderingParameter( INT_RENDERPARM_MORPH_ACCUMULATOR_SUBRECT_WIDTH );
 	int nHeight = s_pShaderAPI->GetIntRenderingParameter( INT_RENDERPARM_MORPH_ACCUMULATOR_SUBRECT_HEIGHT );
-	float pMorphAccumSubrect[4] = { nXOffset, nYOffset, nWidth, nHeight };
+	float pMorphAccumSubrect[4] = { (float)nXOffset, (float)nYOffset, (float)nWidth, (float)nHeight };
 	s_pShaderAPI->SetVertexShaderConstant( nSubrectConst, pMorphAccumSubrect );
 
 	s_pShaderAPI->BindStandardVertexTexture( morphSampler, TEXTURE_MORPH_ACCUMULATOR );

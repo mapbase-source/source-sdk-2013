@@ -91,6 +91,10 @@ CMultiPlayerAnimState::CMultiPlayerAnimState( CBasePlayer *pPlayer, MultiPlayerM
 
 	m_flMaxGroundSpeed = 0.0f;
 
+	// If you are forcing aim yaw, your code is almost definitely broken if you don't include a delay between 
+	// teleporting and forcing yaw. This is due to an unfortunate interaction between the command lookback window,
+	// and the fact that m_flEyeYaw is never propogated from the server to the client.
+	// TODO: Fix this after Halloween 2014.
 	m_bForceAimYaw = false;
 
 	Init( pPlayer, movementData );
@@ -358,16 +362,21 @@ void CMultiPlayerAnimState::PlayFlinchGesture( Activity iActivity )
 //-----------------------------------------------------------------------------
 bool CMultiPlayerAnimState::InitGestureSlots( void )
 {
-	// Get the base player.
-	CBasePlayer *pPlayer = GetBasePlayer();
-	if( pPlayer )
+	// Setup the number of gesture slots.
+	m_aGestureSlots.AddMultipleToTail( GESTURE_SLOT_COUNT );
+
+	// Assign all of the the CAnimationLayer pointers to null early in case we bail.
+	for ( int iGesture = 0; iGesture < GESTURE_SLOT_COUNT; ++iGesture )
 	{
-		// Set the number of animation overlays we will use.
-		pPlayer->SetNumAnimOverlays( GESTURE_SLOT_COUNT );
+		m_aGestureSlots[iGesture].m_pAnimLayer = NULL;
 	}
 
-	// Setup the number of gesture slots. 
-	m_aGestureSlots.AddMultipleToTail( GESTURE_SLOT_COUNT );
+	// Get the base player.
+	CBasePlayer *pPlayer = GetBasePlayer();
+
+	// Set the number of animation overlays we will use.
+	pPlayer->SetNumAnimOverlays( GESTURE_SLOT_COUNT );
+
 	for ( int iGesture = 0; iGesture < GESTURE_SLOT_COUNT; ++iGesture )
 	{
 		m_aGestureSlots[iGesture].m_pAnimLayer = pPlayer->GetAnimOverlay( iGesture );
@@ -408,6 +417,9 @@ void CMultiPlayerAnimState::ResetGestureSlot( int iGestureSlot )
 {
 	// Sanity Check
 	Assert( iGestureSlot >= 0 && iGestureSlot < GESTURE_SLOT_COUNT );
+
+	if ( !VerifyAnimLayerInSlot( iGestureSlot ) )
+		return;
 
 	GestureSlot_t *pGestureSlot = &m_aGestureSlots[iGestureSlot];
 	if ( pGestureSlot )
@@ -486,6 +498,36 @@ bool CMultiPlayerAnimState::IsGestureSlotActive( int iGestureSlot )
 	return m_aGestureSlots[iGestureSlot].m_bActive;
 }
 
+
+//-----------------------------------------------------------------------------
+// Purpose: Track down a crash
+//-----------------------------------------------------------------------------
+bool CMultiPlayerAnimState::VerifyAnimLayerInSlot( int iGestureSlot )
+{
+	if ( iGestureSlot < 0 || iGestureSlot >= GESTURE_SLOT_COUNT )
+	{
+		return false;
+	}
+
+	if ( GetBasePlayer()->GetNumAnimOverlays() < iGestureSlot + 1 )
+	{
+		AssertMsg2( false, "Player %d doesn't have gesture slot %d any more.", GetBasePlayer()->entindex(), iGestureSlot );
+		Msg( "Player %d doesn't have gesture slot %d any more.\n", GetBasePlayer()->entindex(), iGestureSlot );
+		m_aGestureSlots[iGestureSlot].m_pAnimLayer = NULL;
+		return false;
+	}
+
+	CAnimationLayer *pExpected = GetBasePlayer()->GetAnimOverlay( iGestureSlot );
+	if ( m_aGestureSlots[iGestureSlot].m_pAnimLayer != pExpected )
+	{
+		AssertMsg3( false, "Gesture slot %d pointing to wrong address %p. Updating to new address %p.", iGestureSlot, m_aGestureSlots[iGestureSlot].m_pAnimLayer, pExpected );
+		Msg( "Gesture slot %d pointing to wrong address %p. Updating to new address %p.\n", iGestureSlot, m_aGestureSlots[iGestureSlot].m_pAnimLayer, pExpected );
+		m_aGestureSlots[iGestureSlot].m_pAnimLayer = pExpected;
+	}
+
+	return true;
+}
+
 //-----------------------------------------------------------------------------
 // Purpose:
 //-----------------------------------------------------------------------------
@@ -509,6 +551,9 @@ void CMultiPlayerAnimState::RestartGesture( int iGestureSlot, Activity iGestureA
 	// Sanity Check
 	Assert( iGestureSlot >= 0 && iGestureSlot < GESTURE_SLOT_COUNT );
 	
+	if ( !VerifyAnimLayerInSlot( iGestureSlot ) )
+			return;
+
 	if ( !IsGestureSlotPlaying( iGestureSlot, iGestureActivity ) )
 	{
 #ifdef CLIENT_DLL
@@ -547,6 +592,9 @@ void CMultiPlayerAnimState::AddToGestureSlot( int iGestureSlot, Activity iGestur
 
 	// Make sure we have a valid animation layer to fill out.
 	if ( !m_aGestureSlots[iGestureSlot].m_pAnimLayer )
+		return;
+
+	if ( !VerifyAnimLayerInSlot( iGestureSlot ) )
 		return;
 
 	// Get the sequence.
@@ -621,6 +669,9 @@ void CMultiPlayerAnimState::AddVCDSequenceToGestureSlot( int iGestureSlot, int i
 
 	// Make sure we have a valid animation layer to fill out.
 	if ( !m_aGestureSlots[iGestureSlot].m_pAnimLayer )
+		return;
+
+	if ( !VerifyAnimLayerInSlot( iGestureSlot ) )
 		return;
 
 	// Set the activity.
@@ -1154,6 +1205,9 @@ void CMultiPlayerAnimState::ComputeGestureSequence( CStudioHdr *pStudioHdr )
 		if ( !m_aGestureSlots[iGesture].m_bActive )
 			continue;
 
+		if ( !VerifyAnimLayerInSlot( iGesture ) )
+			continue;
+
 		UpdateGestureLayer( pStudioHdr, &m_aGestureSlots[iGesture] );
 	}
 }
@@ -1605,6 +1659,10 @@ void CMultiPlayerAnimState::ComputePoseParam_AimYaw( CStudioHdr *pStudioHdr )
 	bool bMoving = ( vecVelocity.Length() > 1.0f ) ? true : false;
 
 	// If we are moving or are prone and undeployed.
+	// If you are forcing aim yaw, your code is almost definitely broken if you don't include a delay between 
+	// teleporting and forcing yaw. This is due to an unfortunate interaction between the command lookback window,
+	// and the fact that m_flEyeYaw is never propogated from the server to the client.
+	// TODO: Fix this after Halloween 2014.
 	if ( bMoving || m_bForceAimYaw )
 	{
 		// The feet match the eye direction when moving - the move yaw takes care of the rest.
@@ -1638,6 +1696,10 @@ void CMultiPlayerAnimState::ComputePoseParam_AimYaw( CStudioHdr *pStudioHdr )
 	m_flGoalFeetYaw = AngleNormalize( m_flGoalFeetYaw );
 	if ( m_flGoalFeetYaw != m_flCurrentFeetYaw )
 	{
+		// If you are forcing aim yaw, your code is almost definitely broken if you don't include a delay between 
+		// teleporting and forcing yaw. This is due to an unfortunate interaction between the command lookback window,
+		// and the fact that m_flEyeYaw is never propogated from the server to the client.
+		// TODO: Fix this after Halloween 2014.
 		if ( m_bForceAimYaw )
 		{
 			m_flCurrentFeetYaw = m_flGoalFeetYaw;

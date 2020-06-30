@@ -65,7 +65,17 @@ vgui::Panel *g_lastPanel = NULL; // used for mouseover buttons, keeps track of t
 vgui::Button *g_lastButton = NULL; // used for mouseover buttons, keeps track of the last active button
 using namespace vgui;
 
-ConVar hud_autoreloadscript("hud_autoreloadscript", "0", FCVAR_NONE, "Automatically reloads the animation script each time one is ran");
+void hud_autoreloadscript_callback( IConVar *var, const char *pOldValue, float flOldValue );
+
+ConVar hud_autoreloadscript("hud_autoreloadscript", "0", FCVAR_NONE, "Automatically reloads the animation script each time one is ran", hud_autoreloadscript_callback);
+
+void hud_autoreloadscript_callback( IConVar *var, const char *pOldValue, float flOldValue )
+{
+	if ( g_pClientMode && g_pClientMode->GetViewportAnimationController() )
+	{
+		g_pClientMode->GetViewportAnimationController()->SetAutoReloadScript( hud_autoreloadscript.GetBool() );
+	}
+}
 
 static ConVar cl_leveloverviewmarker( "cl_leveloverviewmarker", "0", FCVAR_CHEAT );
 
@@ -229,12 +239,11 @@ void CBaseViewport::CreateDefaultPanels( void )
 	AddNewPanel( CreatePanelByName( PANEL_SCOREBOARD ), "PANEL_SCOREBOARD" );
 	AddNewPanel( CreatePanelByName( PANEL_INFO ), "PANEL_INFO" );
 	AddNewPanel( CreatePanelByName( PANEL_SPECGUI ), "PANEL_SPECGUI" );
+#if !defined( TF_CLIENT_DLL )
 	AddNewPanel( CreatePanelByName( PANEL_SPECMENU ), "PANEL_SPECMENU" );
 	AddNewPanel( CreatePanelByName( PANEL_NAV_PROGRESS ), "PANEL_NAV_PROGRESS" );
-	// AddNewPanel( CreatePanelByName( PANEL_TEAM ), "PANEL_TEAM" );
-	// AddNewPanel( CreatePanelByName( PANEL_CLASS ), "PANEL_CLASS" );
-	// AddNewPanel( CreatePanelByName( PANEL_BUY ), "PANEL_BUY" );
-#endif
+#endif // !TF_CLIENT_DLL
+#endif // !_XBOX
 }
 
 void CBaseViewport::UpdateAllPanels( void )
@@ -574,11 +583,12 @@ void CBaseViewport::OnThink()
 		else
 			m_pActivePanel = NULL;
 	}
-	
-	m_pAnimController->UpdateAnimations( gpGlobals->curtime );
 
-	// check the auto-reload cvar
-	m_pAnimController->SetAutoReloadScript(hud_autoreloadscript.GetBool());
+	// TF does this in OnTick in TFViewport.  This remains to preserve old
+	// behavior in other games
+#if !defined( TF_CLIENT_DLL )
+	m_pAnimController->UpdateAnimations( gpGlobals->curtime );
+#endif
 
 	int count = m_Panels.Count();
 
