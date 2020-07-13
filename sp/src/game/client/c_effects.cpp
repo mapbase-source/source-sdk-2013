@@ -1103,6 +1103,11 @@ void CClient_Precipitation::EmitParticles( float fTimeDelta )
 
 void CClient_Precipitation::ComputeWindVector( )
 {
+	// The time value is now unused though.
+	// This shall be fixed somehow in a future.
+	GetWindspeedAtTime( gpGlobals->curtime, s_WindVector );
+	
+#if 0
 	// Compute the wind direction
 	QAngle windangle( 0, cl_winddir.GetFloat(), 0 );	// used to turn wind yaw direction into a vector
 
@@ -1112,6 +1117,7 @@ void CClient_Precipitation::ComputeWindVector( )
 
 	AngleVectors( windangle, &s_WindVector );
 	VectorScale( s_WindVector, windspeed, s_WindVector );
+#endif
 }
 
 
