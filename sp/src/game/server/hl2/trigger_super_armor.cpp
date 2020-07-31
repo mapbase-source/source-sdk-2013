@@ -15,7 +15,6 @@ ConVar	sk_max_super_armor( "sk_max_super_armor","500");
 
 #define MAX_SUPER_ARMOR		sk_max_super_armor.GetInt()	
 
-
 //-----------------------------------------------------------------------------
 // Trigger that bestows super armor
 //-----------------------------------------------------------------------------
@@ -41,30 +40,26 @@ private:
 	float m_flLoopingSoundTime;
 };
 
-
 LINK_ENTITY_TO_CLASS( trigger_super_armor, CTriggerSuperArmor );
 
 BEGIN_DATADESC( CTriggerSuperArmor )
-
 	DEFINE_SOUNDPATCH( m_pChargingSound ),
 	DEFINE_FIELD( m_flLoopingSoundTime, FIELD_TIME ),
 	
 	DEFINE_THINKFUNC( RechargeThink ),
-
 END_DATADESC()
 
 
 static const char *s_pRechargeThinkContext = "RechargeThink";
 
 
-void CTriggerSuperAmmor::Precache()
+void CTriggerSuperArmor::Precache()
 {
 	BaseClass::Precache();
 
-	PrecacheScriptSound( "TriggerSuperArmor.StartCharging" );
-	PrecacheScriptSound( "TriggerSuperArmor.DoneCharging" );
-
-	PrecacheScriptSound( "TriggerSuperArmor.Charging" );
+	PrecacheScriptSound( "SuitRecharge.Deny" );
+	PrecacheScriptSound( "SuitRecharge.Start" );
+	PrecacheScriptSound( "SuitRecharge.ChargingLoop" );
 }
 
 //-----------------------------------------------------------------------------
@@ -77,7 +72,6 @@ void CTriggerSuperArmor::Spawn( void )
 	BaseClass::Spawn();
 }
 
-
 //-----------------------------------------------------------------------------
 // Starts looping sounds
 //-----------------------------------------------------------------------------
@@ -88,9 +82,8 @@ void CTriggerSuperArmor::StartLoopingSounds( CBaseEntity *pEntity )
 
 	CReliableBroadcastRecipientFilter filter;
 	CSoundEnvelopeController &controller = CSoundEnvelopeController::GetController();
-	m_pChargingSound = controller.SoundCreate( filter, pEntity->entindex(), "TriggerSuperArmor.Charging" );
+	m_pChargingSound = controller.SoundCreate( filter, pEntity->entindex(), "SuitRecharge.ChargingLoop" );
 }
-
 
 //-----------------------------------------------------------------------------
 // Stops looping sounds
@@ -107,7 +100,6 @@ void CTriggerSuperArmor::StopLoopingSounds()
 	BaseClass::StopLoopingSounds();
 }
 
-	
 //-----------------------------------------------------------------------------
 // Begins super-powering the entities
 //-----------------------------------------------------------------------------
@@ -120,12 +112,11 @@ void CTriggerSuperArmor::StartTouch( CBaseEntity *pOther )
 
 	if ( m_hTouchingEntities.Count() == 1 )
 	{
-		SetContextThink( RechargeThink, gpGlobals->curtime + 0.01f, s_pRechargeThinkContext );
-		pOther->EmitSound( "TriggerSuperArmor.StartCharging" );
+		SetContextThink( &CTriggerSuperArmor::RechargeThink, gpGlobals->curtime + 0.01f, s_pRechargeThinkContext );
+		pOther->EmitSound( "SuitRecharge.Start" );
 		m_flLoopingSoundTime = 0.56f + gpGlobals->curtime;
 	}
 }
-
 
 //-----------------------------------------------------------------------------
 // Ends super-powerings the entities
@@ -144,7 +135,6 @@ void CTriggerSuperArmor::EndTouch( CBaseEntity *pOther )
 	}
 }
 
-
 //-----------------------------------------------------------------------------
 // Super-powers the entities
 //-----------------------------------------------------------------------------
@@ -155,14 +145,14 @@ void CTriggerSuperArmor::RechargeThink()
 	{
 		CBasePlayer *pPlayer = assert_cast<CBasePlayer*>( m_hTouchingEntities[i].Get() );
 
-		if (( pPlayer->ArmorValue() < MAX_SUPER_ARMOR ) || ( pPlayer->GetHealth() < 100 ))
+		if ( ( pPlayer->ArmorValue() < MAX_SUPER_ARMOR ) || ( pPlayer->GetHealth() < 100 ) )
 		{
 			pPlayer->TakeHealth( 5, DMG_GENERIC );
 			pPlayer->IncrementArmorValue( 15, MAX_SUPER_ARMOR );
 
 			if ( pPlayer->ArmorValue() >= MAX_SUPER_ARMOR )
 			{
-				pPlayer->EmitSound( "TriggerSuperArmor.DoneCharging" );
+				pPlayer->EmitSound( "SuitRecharge.Deny" );
 				StopLoopingSounds();
 			}
 			else
@@ -175,5 +165,5 @@ void CTriggerSuperArmor::RechargeThink()
 		}
 	}
 
-	SetContextThink( RechargeThink, gpGlobals->curtime + 0.1f, s_pRechargeThinkContext );
+	SetContextThink( &CTriggerSuperArmor::RechargeThink, gpGlobals->curtime + 0.1f, s_pRechargeThinkContext );
 }
