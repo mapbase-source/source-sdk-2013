@@ -136,7 +136,7 @@ void CTriggerPortal::EndTouch(CBaseEntity *pOther)
 {
 	BaseClass::EndTouch(pOther);
 
-	if ( portal_debug.GetBool() )
+	if ( trigger_portal_debug.GetBool() )
 	{
 		Msg("%s ENDTOUCH: for %s\n", GetDebugName(), pOther->GetDebugName() );
 	}
@@ -163,7 +163,7 @@ void CTriggerPortal::Touch( CBaseEntity *pOther )
 			return;
 		}
 
-		bool bDebug = portal_debug.GetBool();
+		bool bDebug = trigger_portal_debug.GetBool();
 		if ( bDebug )
 		{
 			Msg("%s TOUCH: for %s\n", GetDebugName(), pOther->GetDebugName() );
