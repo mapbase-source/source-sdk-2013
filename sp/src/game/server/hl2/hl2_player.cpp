@@ -241,10 +241,9 @@ public:
 	void InputEnableCappedPhysicsDamage( inputdata_t &inputdata );
 	void InputDisableCappedPhysicsDamage( inputdata_t &inputdata );
 	void InputSetLocatorTargetEntity( inputdata_t &inputdata );
-#ifdef PORTAL
-	void InputSuppressCrosshair( inputdata_t &inputdata );
-#endif // PORTAL2
 #ifdef MAPBASE
+	void InputSuppressCrosshair( inputdata_t &inputdata );
+
 	void InputRequestPlayerArmor( inputdata_t &inputdata );
 	void InputRequestPlayerAuxPower( inputdata_t &inputdata );
 	void InputRequestPlayerFlashBattery( inputdata_t &inputdata );
@@ -4476,10 +4475,8 @@ BEGIN_DATADESC( CLogicPlayerProxy )
 	DEFINE_INPUTFUNC( FIELD_VOID,	"EnableCappedPhysicsDamage", InputEnableCappedPhysicsDamage ),
 	DEFINE_INPUTFUNC( FIELD_VOID,	"DisableCappedPhysicsDamage", InputDisableCappedPhysicsDamage ),
 	DEFINE_INPUTFUNC( FIELD_STRING,	"SetLocatorTargetEntity", InputSetLocatorTargetEntity ),
-#ifdef PORTAL
-	DEFINE_INPUTFUNC( FIELD_VOID,	"SuppressCrosshair", InputSuppressCrosshair ),
-#endif // PORTAL
 #ifdef MAPBASE
+	DEFINE_INPUTFUNC( FIELD_VOID,	"SuppressCrosshair", InputSuppressCrosshair ),
 	DEFINE_INPUTFUNC( FIELD_VOID,	"RequestPlayerArmor",	InputRequestPlayerArmor ),
 	DEFINE_INPUTFUNC( FIELD_VOID,	"RequestPlayerAuxPower",		InputRequestPlayerAuxPower ),
 	DEFINE_INPUTFUNC( FIELD_VOID,	"RequestPlayerFlashBattery",		InputRequestPlayerFlashBattery ),
@@ -4889,18 +4886,16 @@ void CLogicPlayerProxy::InputSetLocatorTargetEntity( inputdata_t &inputdata )
 	pPlayer->SetLocatorTargetEntity(pTarget);
 }
 
-#ifdef PORTAL
+#ifdef MAPBASE
 void CLogicPlayerProxy::InputSuppressCrosshair( inputdata_t &inputdata )
 {
 	if( m_hPlayer == NULL )
 		return;
 
-	CPortal_Player *pPlayer = ToPortalPlayer(m_hPlayer.Get());
-	pPlayer->SuppressCrosshair( true );
+	CBasePlayer *pPlayer = ToBasePlayer( m_hPlayer.Get() );
+	pPlayer->m_Local.m_iHideHUD |= HIDEHUD_CROSSHAIR;
 }
-#endif // PORTAL
 
-#ifdef MAPBASE
 void CLogicPlayerProxy::InputSetHandModel( inputdata_t &inputdata )
 {
 	if (!m_hPlayer)
