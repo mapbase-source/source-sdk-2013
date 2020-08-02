@@ -21,6 +21,8 @@ $Project
 		$File	"env_projectedtexture.h"
 		$File	"env_global_light.cpp"
 		$File	"skyboxswapper.cpp"
+		$File	"trigger_portal.cpp"
+		$File	"weight_button.cpp"
 
 		$Folder	"Mapbase"
 		{
@@ -67,6 +69,10 @@ $Project
 		
 		$Folder "HL2 DLL"
 		{
+			$File	"hl2\func_bulletshield.cpp"
+			$File	"hl2\func_bulletshield.h"
+			$File	"hl2\trigger_super_armor.cpp"
+	
 			// Original stunstick files are conditional'd out in the HL2 VPCs
 			$File	"$SRCDIR\game\shared\hl2mp\weapon_stunstick.cpp"
 			$File	"$SRCDIR\game\shared\hl2mp\weapon_stunstick.h"

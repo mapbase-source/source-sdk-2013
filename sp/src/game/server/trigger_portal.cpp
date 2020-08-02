@@ -17,7 +17,7 @@
 
 #define TRIGGER_DISABLED_THINK			"PortalDisabledThink"
 
-ConVar portal_debug( "portal_debug", "0", FCVAR_CHEAT, "Turn on debugging for portal connections." );
+ConVar trigger_portal_debug( "trigger_portal_debug", "0", FCVAR_CHEAT, "Turn on debugging for portal connections." );
 
 //////////////////////////////////////////////////////////////////////////
 // CTriggerPortal
@@ -136,7 +136,7 @@ void CTriggerPortal::EndTouch(CBaseEntity *pOther)
 {
 	BaseClass::EndTouch(pOther);
 
-	if ( portal_debug.GetBool() )
+	if ( trigger_portal_debug.GetBool() )
 	{
 		Msg("%s ENDTOUCH: for %s\n", GetDebugName(), pOther->GetDebugName() );
 	}
@@ -163,7 +163,7 @@ void CTriggerPortal::Touch( CBaseEntity *pOther )
 			return;
 		}
 
-		bool bDebug = portal_debug.GetBool();
+		bool bDebug = trigger_portal_debug.GetBool();
 		if ( bDebug )
 		{
 			Msg("%s TOUCH: for %s\n", GetDebugName(), pOther->GetDebugName() );
@@ -275,7 +275,7 @@ void CTriggerPortal::DisableForIncomingEntity( CBaseEntity *pEntity )
 	// Start thinking, and remove the other as soon as it's not touching me.
 	// Needs to be done in addition to EndTouch, because entities may move fast
 	// enough through the portal to come out not touching the other portal.
-	SetContextThink( DisabledThink, gpGlobals->curtime + 0.1, TRIGGER_DISABLED_THINK );
+	SetContextThink( &CTriggerPortal::DisabledThink, gpGlobals->curtime + 0.1, TRIGGER_DISABLED_THINK );
 }
 
 //-----------------------------------------------------------------------------
@@ -299,7 +299,7 @@ void CTriggerPortal::DisabledThink( void )
 		}
 	}
 
-	SetContextThink( DisabledThink, gpGlobals->curtime + 0.1, TRIGGER_DISABLED_THINK );
+	SetContextThink( &CTriggerPortal::DisabledThink, gpGlobals->curtime + 0.1, TRIGGER_DISABLED_THINK );
 }
 
 //-----------------------------------------------------------------------------
