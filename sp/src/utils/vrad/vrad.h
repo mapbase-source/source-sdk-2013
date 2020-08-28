@@ -281,6 +281,9 @@ extern qboolean		g_bLowPriority;
 extern qboolean		do_fast;
 extern bool			g_bInterrupt;		// Was used with background lighting in WC. Tells VRAD to stop lighting.
 extern IIncremental *g_pIncremental;	// null if not doing incremental lighting
+extern bool			g_bIgnoreModelVersions;
+extern bool			g_bAllowDynamicPropsAsStatic;
+extern bool			g_bAllowDX90VTX;
 
 extern float g_flSkySampleScale;								// extra sampling factor for indirect light
 
@@ -381,6 +384,7 @@ inline byte PVSCheck( const byte *pvs, int iCluster )
 
 // outputs 1 in fractionVisible if no occlusion, 0 if full occlusion, and in-between values
 void TestLine( FourVectors const& start, FourVectors const& stop, fltx4 *pFractionVisible, int static_prop_index_to_ignore=-1);
+void TestLine_IgnoreSky( FourVectors const& start, FourVectors const& stop, fltx4 *pFractionVisible, int static_prop_index_to_ignore = -1 );
 
 // returns 1 if the ray sees the sky, 0 if it doesn't, and in-between values for partial coverage
 void TestLine_DoesHitSky( FourVectors const& start, FourVectors const& stop,

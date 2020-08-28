@@ -46,6 +46,8 @@ struct faceneighbor_t
 	Vector	facenormal;				// face normal
 
 	bool	bHasDisp;				// is this surface a displacement surface???
+	
+	bool g_bNoAO;	
 };
 
 extern faceneighbor_t faceneighbor[MAX_MAP_FACES];

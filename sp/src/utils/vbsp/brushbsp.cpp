@@ -514,7 +514,7 @@ int	QuickTestBrushToPlanenum (bspbrush_t *brush, int planenum, int *numsplits)
 	for (i=0 ; i<brush->numsides ; i++)
 	{
 		num = brush->sides[i].planenum;
-		if (num >= 0x10000)
+		if (num >= MAX_MAP_PLANES)
 			Error ("bad planenum");
 		if (num == planenum)
 			return PSIDE_BACK|PSIDE_FACING;
@@ -559,7 +559,7 @@ int	TestBrushToPlanenum (bspbrush_t *brush, int planenum,
 	for (i=0 ; i<brush->numsides ; i++)
 	{
 		num = brush->sides[i].planenum;
-		if (num >= 0x10000)
+		if (num >= MAX_MAP_PLANES)
 			Error ("bad planenum");
 		if (num == planenum)
 			return PSIDE_BACK|PSIDE_FACING;

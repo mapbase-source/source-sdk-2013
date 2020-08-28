@@ -888,9 +888,13 @@ float DetermineVisRadius( )
 		if (!stricmp(pEntity, "env_fog_controller"))
 		{
 			flRadius = FloatForKey (&entities[i], "farz");
-			if (flRadius == 0.0f)
-				flRadius = -1.0f;
+			Msg ( "[THS]_DEV_VIS_CALC: add env_fog_controller (farz) Parametr to VIS optimization... " );			
+			if (flRadius <= 0.0f)
+			{	
+			Msg ( "[THS]_DEV_VIS_CALC: Entity parametr is NOPE... Aborting this process!!! " );			
 			break;
+			}
+			Msg ( "[THS]_DEV_VIS_CALC: Entity parametr is: %flRadius ", flRadius = FloatForKey (&entities[i], "farz") );			
 		}
 	}
 
@@ -1075,7 +1079,7 @@ int RunVVis( int argc, char **argv )
 	double		start, end;
 
 
-	Msg( "Valve Software - vvis.exe (%s)\n", __DATE__ );
+	Msg( "[THS] and Valve Software - vvis.exe (%s)\n", __DATE__ );
 
 	verbose = false;
 

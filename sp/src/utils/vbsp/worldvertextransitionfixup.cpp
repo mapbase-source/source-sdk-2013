@@ -89,6 +89,14 @@ void CreateWorldVertexTransitionPatchedMaterial( const char *pOriginalMaterialNa
 		{
 			RemoveKey( kv, "$envmap" );
 		}
+		
+		KeyValues* subkey = kv->FindKey( "lightmappedgeneric" );
+		if ( subkey )
+		{
+			kv->RemoveSubKey( subkey );
+			subkey->CopySubkeys( kv );
+			subkey->deleteThis();
+		}		
 
 		Warning( "Patching WVT material: %s\n", pPatchedMaterialName );
 		WriteMaterialKeyValuesToPak( pPatchedMaterialName, kv );

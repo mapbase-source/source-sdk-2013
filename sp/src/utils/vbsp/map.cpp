@@ -1599,6 +1599,12 @@ ChunkFileResult_t CMapFile::LoadEntityCallback(CChunkFile *pFile, int nParam)
 			AddVisCluster(mapent);
 			return(ChunkFile_Ok);
 		}
+		
+		if ( !strcmp( "func_detail_blocker" , pClassName ) )
+		{
+			AddDetailBlocker(mapent);
+			return(ChunkFile_Ok);
+		}		
 
 		//
 		// func_ladder brushes are moved into the world entity.  We convert the func_ladder to an info_ladder

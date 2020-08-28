@@ -315,6 +315,66 @@ void LoadEmitDetailObjectDictionary( const char* pGameDir )
 	values->deleteThis();
 }
 
+static CUtlVector<bspbrush_t *> g_DetailBlockers;
+//-----------------------------------------------------------------------------
+// Adds the brush entity to a list of volumes that prevent detail objects from
+// being placed inside them
+//-----------------------------------------------------------------------------
+void AddDetailBlocker( entity_t *pFuncDetailBlocker )
+{
+	Vector clipMins, clipMaxs;
+	clipMins[0] = clipMins[1] = clipMins[2] = MIN_COORD_INTEGER;
+	clipMaxs[0] = clipMaxs[1] = clipMaxs[2] = MAX_COORD_INTEGER;
+
+	int startBrushIndex = pFuncDetailBlocker->firstbrush;
+	int endBrushIndex = pFuncDetailBlocker->firstbrush + pFuncDetailBlocker->numbrushes;
+
+	for( int i = startBrushIndex; i < endBrushIndex; i++ )
+	{
+		// FIXME: Is there a neater way of getting each brush of the entity?
+		bspbrush_t *pBlockerBrush = MakeBspBrushList( i, i + 1, clipMins, clipMaxs, NO_DETAIL );
+
+		g_DetailBlockers.AddToTail( pBlockerBrush );
+	}
+
+	// Clear out this entity so it won't get written to the bsp
+	pFuncDetailBlocker->epairs = NULL;
+	pFuncDetailBlocker->numbrushes = 0;
+}
+
+
+//-----------------------------------------------------------------------------
+// Returns whether or not a detail object is allowed to be placed at the
+// specified position
+//-----------------------------------------------------------------------------
+bool IsDetailBlocked( Vector pt )
+{
+	for ( int i = g_DetailBlockers.Count(); --i >= 0; )
+	{
+		if( !IsPointInBox( pt, g_DetailBlockers[i]->mins, g_DetailBlockers[i]->maxs ) )
+			continue;
+
+		bool isInsideBrush = true;
+		for( int j = 0; j < g_DetailBlockers[i]->numsides; j++ )
+		{
+			int planeIndex = g_DetailBlockers[i]->sides[j].planenum;
+			plane_t *pPlane = &g_MainMap->mapplanes[planeIndex];
+
+			Vector normal = pPlane->normal;
+			Vector diff = pt - ( pPlane->normal * pPlane->dist );
+
+			vec_t dot = DotProduct( diff, normal );
+
+			if( dot > 0 )
+				isInsideBrush = false;
+		}
+
+		if( isInsideBrush )
+			return true;
+	}
+
+	return false;
+}
 
 //-----------------------------------------------------------------------------
 // Selects a detail group
@@ -691,6 +751,9 @@ static void EmitDetailObjectsOnFace( dface_t* pFace, DetailObject_t& detail )
 			VectorMA( pFirstVertex->point, u, e1, pt );
 			VectorMA( pt, v, e2, pt );
 			VectorDivide( areaVec, -normalLength, normal );
+			
+			if( IsDetailBlocked( pt ) )
+				continue;			
 
 			PlaceDetail( detail.m_Groups[group].m_Models[model], pt, normal );
 		}
@@ -760,6 +823,9 @@ static void EmitDetailObjectsOnDisplacementFace( dface_t* pFace,
 		Vector pt, normal;
 		coreDispInfo.GetPositionOnSurface( u, v, pt, &normal, &alpha );
 		alpha /= 255.0f;
+
+		if( IsDetailBlocked( pt ) )
+			continue;
 
 		// Select a group based on the alpha value
 		int group = SelectGroup( detail, alpha );

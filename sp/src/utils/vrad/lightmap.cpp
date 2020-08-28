@@ -32,6 +32,121 @@ enum
 #define SMOOTHING_GROUP_HARD_EDGE	0xff000000
 
 //==========================================================================//
+// Ambient occlusion
+//==========================================================================//
+bool g_bNoSoften = false;
+bool g_bNoAO = false;
+
+inline fltx4 AbsSIMD( const fltx4 & x )
+{
+	return fabs( x );
+}
+
+inline FourVectors Mul( const FourVectors &a, const fltx4 &b )
+{
+	FourVectors ret;
+	ret.x = MulSIMD( a.x, b );
+	ret.y = MulSIMD( a.y, b );
+	ret.z = MulSIMD( a.z, b );
+	return ret;
+}
+
+inline FourVectors Mul( const FourVectors &a, const FourVectors &b )
+{
+	FourVectors ret;
+	ret.x = MulSIMD( a.x, b.x );
+	ret.y = MulSIMD( a.y, b.y );
+	ret.z = MulSIMD( a.z, b.z );
+	return ret;
+}
+
+inline FourVectors operator-( const FourVectors &a, const FourVectors &b )
+{
+	FourVectors ret;
+	ret.x = SubSIMD( a.x, b.x );
+	ret.y = SubSIMD( a.y, b.y );
+	ret.z = SubSIMD( a.z, b.z );
+	return ret;
+}
+
+inline FourVectors operator+( const FourVectors &a, const FourVectors &b )			//< add 4 vectors to another 4 vectors
+{
+	FourVectors result;
+	result.x = AddSIMD( a.x, b.x );
+	result.y = AddSIMD( a.y, b.y );
+	result.z = AddSIMD( a.z, b.z );
+	return result;
+}
+
+fltx4 CalculateAmbientOcclusion4( const FourVectors &position4, const FourVectors &normal4, int static_prop_index_to_ignore )
+{
+	if ( g_bNoAO )
+	{
+		return Four_Ones;
+	}
+
+	DirectionalSampler_t sampler;
+	int nSamples = 32;
+	if ( do_fast )
+	{
+		nSamples /= 2;
+	}
+
+	fltx4 totalVisible = Four_Zeros;
+	fltx4 totalPossibleVisible = Four_Zeros;
+	for ( int i = 0; i < nSamples; i++ )
+	{
+		FourVectors rayStart = position4;
+		rayStart += normal4;
+
+		// Ray direction on the sphere
+		FourVectors rayDirection;
+		rayDirection.DuplicateVector( sampler.NextValue() );
+
+		// Mirror ray along normal so all rays are on the hemisphere defined by the normal
+		fltx4 rayDotN = rayDirection * normal4; // dot product
+		fltx4 absRayDotN = AbsSIMD( rayDotN );
+		rayDirection = rayDirection - Mul( normal4, rayDotN ) + Mul( normal4, absRayDotN );
+
+		// Set length of ray
+		FourVectors rayEnd = rayDirection;
+		rayEnd *= 36.0f;
+		rayEnd += rayStart;
+
+		// Raytrace for visibility function
+		fltx4 fractionVisible = Four_Ones;
+		TestLine_IgnoreSky( rayStart, rayEnd, &fractionVisible, static_prop_index_to_ignore );
+		totalVisible = AddSIMD( totalVisible, MulSIMD( fractionVisible, absRayDotN ) );
+		totalPossibleVisible = AddSIMD( totalPossibleVisible, absRayDotN );
+	}
+
+	fltx4 ao = DivSIMD( totalVisible, totalPossibleVisible );
+	ao = MulSIMD( ao, ao ); // Square ao term - This is an artistic choice by the CS:GO team
+	return ao;
+}
+
+//==========================================================================//
+// Give surfaces a softer look instead of the harsher linear N.L look
+//==========================================================================//
+float SoftenCosineTerm( float flDot )
+{
+	if ( g_bNoSoften )
+		return flDot;
+
+	flDot = Max( flDot, 0.0f );
+	return ( flDot + flDot * flDot ) * 0.5f; // This is cheaper than an exponent in shader code
+}
+
+fltx4 SoftenCosineTerm( fltx4 dots )
+{
+	if ( g_bNoSoften )
+		return dots;
+
+	dots = MaxSIMD( dots, Four_Zeros );
+	return MulSIMD( AddSIMD( dots, MulSIMD( dots, dots ) ), Four_PointFives );
+}
+
+//==========================================================================//
 // CNormalList.
 //==========================================================================//
 
@@ -1258,11 +1373,11 @@ static void SetLightFalloffParams( entity_t * e, directlight_t * dl )
 	}
 }
 
-static void ParseLightSpot( entity_t* e, directlight_t* dl )
+static void ParseLightSpot( entity_t* e )
 {
 	Vector dest;
 	GetVectorForKey (e, "origin", dest );
-	dl = AllocDLight( dest, true );
+	directlight_t* dl = AllocDLight( dest, true );
 
 	ParseLightGeneric( e, dl );
 
@@ -1472,23 +1587,24 @@ static char *ValueForKeyWithDefault (entity_t *ent, char *key, char *default_val
 	return default_value;
 }
 
-static void ParseLightEnvironment( entity_t* e, directlight_t* dl )
+static void ParseLightEnvironment( entity_t* e )
 {
-	Vector dest;
-	GetVectorForKey (e, "origin", dest );
-	dl = AllocDLight( dest, false );
-
-	ParseLightGeneric( e, dl );
-
-	char *angle_str=ValueForKeyWithDefault( e, "SunSpreadAngle" );
-	if (angle_str)
-	{
-		g_SunAngularExtent=atof(angle_str);
-		g_SunAngularExtent=sin((M_PI/180.0)*g_SunAngularExtent);
-		printf("sun extent from map=%f\n",g_SunAngularExtent);
-	}
 	if ( !gSkyLight )
 	{
+		Vector dest;
+		GetVectorForKey (e, "origin", dest );
+		directlight_t* dl = AllocDLight( dest, false );
+
+		ParseLightGeneric( e, dl );
+
+		char *angle_str=ValueForKeyWithDefault( e, "SunSpreadAngle" );
+		if (angle_str)
+		{
+			g_SunAngularExtent=atof(angle_str);
+			g_SunAngularExtent=sin((M_PI/180.0)*g_SunAngularExtent);
+			printf("sun extent from map=%f\n",g_SunAngularExtent);
+		}
+	
 		// Sky light.
 		gSkyLight = dl;
 		dl->light.type = emit_skylight;
@@ -1519,11 +1635,11 @@ static void ParseLightEnvironment( entity_t* e, directlight_t* dl )
 	}
 }
 
-static void ParseLightPoint( entity_t* e, directlight_t* dl )
+static void ParseLightPoint( entity_t* e )
 {
 	Vector dest;
 	GetVectorForKey (e, "origin", dest );
-	dl = AllocDLight( dest, true );
+	directlight_t* dl = AllocDLight( dest, true );
 
 	ParseLightGeneric( e, dl );
 
@@ -1597,15 +1713,15 @@ void CreateDirectLights (void)
 
 		if (!strcmp (name, "light_spot"))
 		{
-			ParseLightSpot( e, dl );
+			ParseLightSpot( e );
 		}
 		else if (!strcmp(name, "light_environment")) 
 		{
-			ParseLightEnvironment( e, dl );
+			ParseLightEnvironment( e );
 		}
 		else if (!strcmp(name, "light")) 
 		{
-			ParseLightPoint( e, dl );
+			ParseLightPoint( e );
 		}
 		else
 		{
@@ -1653,7 +1769,7 @@ void ExportDirectLightsToWorldLights()
 		wl->constant_attn = dl->light.constant_attn;
 		wl->linear_attn = dl->light.linear_attn;
 		wl->quadratic_attn = dl->light.quadratic_attn;
-		wl->flags = 0;
+		wl->flags = dl->light.flags;
 	}
 }
 
@@ -1664,9 +1780,9 @@ void ExportDirectLightsToWorldLights()
 */
 #define NORMALFORMFACTOR	40.156979 // accumuated dot products for hemisphere
 
-#define CONSTANT_DOT (.7/2)
+#define CONSTANT_DOT (.7f/2.f)
 
-#define NSAMPLES_SUN_AREA_LIGHT 30							// number of samples to take for an
+#define NSAMPLES_SUN_AREA_LIGHT 150							// number of samples to take for an
                                                             // non-point sun light
 
 // Helper function - gathers light from sun (emit_skylight)
@@ -1686,8 +1802,9 @@ void GatherSampleSkyLightSSE( SSE_sampleLightOutput_t &out, directlight_t *dl, i
 		dot = NegSIMD( pNormals[0] * dl->light.normal );
 
 	dot = MaxSIMD( dot, Four_Zeros );
-	int zeroMask = TestSignSIMD ( CmpEqSIMD( dot, Four_Zeros ) );
-	if (zeroMask == 0xF)
+	dot = SoftenCosineTerm( dot );
+
+	if ( TestSignSIMD( CmpEqSIMD( dot, Four_Zeros ) ) == 0xF)
 		return;
 
 	int nsamples = 1;
@@ -1728,7 +1845,7 @@ void GatherSampleSkyLightSSE( SSE_sampleLightOutput_t &out, directlight_t *dl, i
 	fltx4 seeAmount = MulSIMD ( totalFractionVisible, ReplicateX4 ( 1.0f / nsamples ) );
 	out.m_flDot[0] = MulSIMD ( dot, seeAmount );
 	out.m_flFalloff = Four_Ones;
-	out.m_flSunAmount = MulSIMD ( seeAmount, ReplicateX4( 10000.0f ) );
+	//out.m_flSunAmount = MulSIMD ( seeAmount, ReplicateX4( 10000.0f ) );
 	for ( int i = 1; i < normalCount; i++ )
 	{
 		if ( bIgnoreNormals )
@@ -1736,9 +1853,12 @@ void GatherSampleSkyLightSSE( SSE_sampleLightOutput_t &out, directlight_t *dl, i
 		else
 		{
 			out.m_flDot[i] = NegSIMD( pNormals[i] * dl->light.normal );
+			out.m_flDot[i] = MaxSIMD( out.m_flDot[i], Four_Zeros );
+			out.m_flDot[i] = SoftenCosineTerm( out.m_flDot[i] );
 			out.m_flDot[i] = MulSIMD( out.m_flDot[i], seeAmount );
 		}
 	}
+	out.m_flSunAmount = MulSIMD( out.m_flDot[0], out.m_flFalloff );
 }
 
 // Helper function - gathers light from ambient sky light
@@ -1778,6 +1898,7 @@ void GatherSampleAmbientSkySSE( SSE_sampleLightOutput_t &out, directlight_t *dl,
 			dots[0] = ReplicateX4( CONSTANT_DOT );
 		else
 			dots[0] = NegSIMD( pNormals[0] * anorm );
+		dots[0] = SoftenCosineTerm( dots[0] );
 
 		fltx4 validity = CmpGtSIMD( dots[0], ReplicateX4( EQUAL_EPSILON ) );
 
@@ -1795,6 +1916,8 @@ void GatherSampleAmbientSkySSE( SSE_sampleLightOutput_t &out, directlight_t *dl,
 				dots[i] = ReplicateX4( CONSTANT_DOT );
 			else
 				dots[i] = NegSIMD( pNormals[i] * anorm );
+			dots[i] = SoftenCosineTerm( dots[i] );
+			
 			fltx4 validity2 = CmpGtSIMD( dots[i], ReplicateX4 ( EQUAL_EPSILON ) );
 			dots[i] = AndSIMD( validity2, dots[i] );
 			possibleHitCount[i] = AddSIMD( AndSIMD( AndSIMD( validity, validity2 ), Four_Ones ), possibleHitCount[i] );
@@ -1829,7 +1952,7 @@ void GatherSampleAmbientSkySSE( SSE_sampleLightOutput_t &out, directlight_t *dl,
 		out.m_flDot[i] = ReciprocalSIMD( out.m_flDot[i] );
 		out.m_flDot[i] = MulSIMD( ambient_intensity[i], out.m_flDot[i] );
 	}
-
+	out.m_flSunAmount = Four_Zeros;
 }
 
 // Helper function - gathers light from area lights, spot lights, and point lights
@@ -1841,27 +1964,21 @@ void GatherSampleStandardLightSSE( SSE_sampleLightOutput_t &out, directlight_t *
 	bool bIgnoreNormals = ( nLFlags & GATHERLFLAGS_IGNORE_NORMALS ) != 0;
 
 	FourVectors src;
-	src.DuplicateVector( vec3_origin );
-
-	if (dl->facenum == -1)
-	{
-		src.DuplicateVector( dl->light.origin );
-	}
+	src.DuplicateVector( dl->facenum == -1 ? dl->light.origin : vec3_origin );
 
 	// Find light vector
-	FourVectors delta;
-	delta = src;
+	FourVectors delta = src;
 	delta -= pos;
 	fltx4 dist2 = delta.length2();
-	fltx4 rpcDist = ReciprocalSqrtSIMD( dist2 );
-	delta *= rpcDist;
+	delta *= ReciprocalSqrtSIMD( dist2 );
 	fltx4 dist = SqrtEstSIMD( dist2 );//delta.VectorNormalize();
 
 	// Compute dot
-	fltx4 dot = ReplicateX4( (float) CONSTANT_DOT );
+	fltx4 dot = ReplicateX4( CONSTANT_DOT );
 	if ( !bIgnoreNormals )
 		dot = delta * pNormals[0];
 	dot = MaxSIMD( Four_Zeros, dot );
+	dot = SoftenCosineTerm( dot );
 
 	// Affix dot to zero if past fade distz
 	bool bHasHardFalloff = ( dl->m_flEndFadeDistance > dl->m_flStartFadeDistance );
@@ -1950,7 +2067,8 @@ void GatherSampleStandardLightSSE( SSE_sampleLightOutput_t &out, directlight_t *
 		mult = AddSIMD( mult, AndNotSIMD( inFringe, Four_Ones ) );
 		out.m_flFalloff = MulSIMD( mult, out.m_flFalloff );
 		break;
-
+	default:
+		Error ("Bad dl->light.type");
 	}
 
 	// we may be in the fade region - modulate lighting by the fade curve
@@ -1985,13 +2103,14 @@ void GatherSampleStandardLightSSE( SSE_sampleLightOutput_t &out, directlight_t *
 	for ( int i = 1; i < normalCount; i++ )
 	{
 		if ( bIgnoreNormals )
-			out.m_flDot[i] = ReplicateX4( (float) CONSTANT_DOT );
+			out.m_flDot[i] = ReplicateX4( CONSTANT_DOT );
 		else
 		{
 			out.m_flDot[i] = pNormals[i] * delta;
 			out.m_flDot[i] = MaxSIMD( Four_Zeros, out.m_flDot[i] );
 		}
 	}
+	out.m_flSunAmount = Four_Zeros;
 }
 
 // returns dot product with normal and delta
@@ -2031,8 +2150,11 @@ void GatherSampleLightSSE( SSE_sampleLightOutput_t &out, directlight_t *dl, int 
 		break;
 	default:
 		Error ("Bad dl->light.type");
-		return;
 	}
+	
+	// Don't calculate ambient occlusion for objects that ignore normals for gathering light
+	fltx4 ao = ( nLFlags & GATHERLFLAGS_IGNORE_NORMALS ) == 0 ? CalculateAmbientOcclusion4( pos, *pNormals, static_prop_index_to_ignore ) : Four_Ones;
+	out.m_flSunAmount = MulSIMD( out.m_flSunAmount, ao );
 
 	// NOTE: Notice here that if the light is on the back side of the face
 	// (tested by checking the dot product of the face normal and the light position)
@@ -2040,10 +2162,12 @@ void GatherSampleLightSSE( SSE_sampleLightOutput_t &out, directlight_t *dl, int 
 	// in disturbing ways if we don't do this.
 	out.m_flDot[0] = MaxSIMD ( out.m_flDot[0], Four_Zeros );
 	fltx4 notZero = CmpGtSIMD( out.m_flDot[0], Four_Zeros );
+	out.m_flDot[0] = MulSIMD( out.m_flDot[0], ao );
 	for ( int n = 1; n < normalCount; n++ )
 	{
 		out.m_flDot[n] = MaxSIMD( out.m_flDot[n], Four_Zeros );
 		out.m_flDot[n] = AndSIMD( out.m_flDot[n], notZero );
+		out.m_flDot[n] = MulSIMD( out.m_flDot[n], ao );
 	}
 
 }
@@ -2436,9 +2560,6 @@ static int FindOrAllocateLightstyleSamples( dface_t* f, facelight_t	*fl, int lig
 //-----------------------------------------------------------------------------
 static void ComputeIlluminationPointAndNormalsSSE( lightinfo_t const& l, FourVectors const &pos, FourVectors const &norm, SSE_SampleInfo_t* pInfo, int numSamples )
 {
-
-	Vector v[4];
-
 	pInfo->m_Points = pos;
 	bool computeNormals = ( pInfo->m_NormalCount > 1 && ( pInfo->m_IsDispFace || !l.isflat ) );
 
@@ -3296,11 +3417,7 @@ void BuildPatchLights( int facenum )
 		}
 	}
 
-	bool needsBumpmap = false;
-	if( texinfo[f->texinfo].flags & SURF_BUMPLIGHT )
-	{
-		needsBumpmap = true;
-	}
+	bool needsBumpmap = (texinfo[f->texinfo].flags & SURF_BUMPLIGHT) != 0;
 
 	// add an ambient term if desired
 	if (ambient[0] || ambient[1] || ambient[2])
@@ -3497,7 +3614,7 @@ static void LinearToBumpedLightmap(
 	bumpAverage *= ( 1.0f / 3.0f );
 	
 	Vector correctionScale;
-	if( *( int * )&bumpAverage[0] != 0 && *( int * )&bumpAverage[1] != 0 && *( int * )&bumpAverage[2] != 0 )
+	if( bumpAverage.LengthSqr() != 0.f )
 	{
 		// fast path when we know that we don't have to worry about divide by zero.
 		VectorDivide( gammaGoal, bumpAverage, correctionScale );
@@ -3526,8 +3643,6 @@ static void LinearToBumpedLightmap(
 	VectorMultiply( linearBump2, correctionScale, correctedBumpColor2 );
 	VectorMultiply( linearBump3, correctionScale, correctedBumpColor3 );
 
-	Vector check = ( correctedBumpColor1 + correctedBumpColor2 + correctedBumpColor3 ) / 3.0f;
-
 	ColorClampBumped( correctedBumpColor1, correctedBumpColor2, correctedBumpColor3 );
 
 	ret[0] = RoundFloatToByte( gammaGoal[0] * 255.0f );
@@ -3554,9 +3669,9 @@ void ConvertRGBExp32ToRGBA8888( const ColorRGBExp32 *pSrc, unsigned char *pDst )
 	Vector		vertexColor;
 
 	// convert from ColorRGBExp32 to linear space
-	linearColor[0] = TexLightToLinear( ((ColorRGBExp32 *)pSrc)->r, ((ColorRGBExp32 *)pSrc)->exponent );
-	linearColor[1] = TexLightToLinear( ((ColorRGBExp32 *)pSrc)->g, ((ColorRGBExp32 *)pSrc)->exponent );
-	linearColor[2] = TexLightToLinear( ((ColorRGBExp32 *)pSrc)->b, ((ColorRGBExp32 *)pSrc)->exponent );
+	linearColor[0] = TexLightToLinear( pSrc->r, pSrc->exponent );
+	linearColor[1] = TexLightToLinear( pSrc->g, pSrc->exponent );
+	linearColor[2] = TexLightToLinear( pSrc->b, pSrc->exponent );
 
 	// convert from linear space to lightmap space
 	// cannot use mathlib routine directly because it doesn't match

@@ -738,7 +738,9 @@ void ComputeIndirectLightingAtPoint( Vector &position, Vector &normal, Vector &o
 			ColorRGBExp32ToVector( *pLightmap, lightmapColor );
 		}
 
-		VectorMultiply( lightmapColor, dtexdata[pTex->texdata].reflectivity, lightmapColor );
+		const float invLengthSqr = 1.0f / ( 1.0f + ( ( vEnd - position ) * surfEnum.m_HitFrac / 128.0 ).LengthSqr() );
+		// Include falloff using invsqrlaw.
+		VectorMultiply( lightmapColor, dtexdata[pTex->texdata].reflectivity * invLengthSqr, lightmapColor );
 		VectorAdd( outColor, lightmapColor, outColor );
 	}
 
@@ -770,8 +772,9 @@ static void ComputeAmbientLighting( int iThread, DetailObjectLump_t& prop, Vecto
 		return;
 	}
 
-	Vector radcolor[NUMVERTEXNORMALS];
-	ComputeAmbientLightingAtPoint( iThread, origin, radcolor, color );
+	//Vector radcolor[NUMVERTEXNORMALS];
+	//ComputeAmbientLightingAtPoint( iThread, origin, radcolor, color );
+	ComputeAmbientLightingAtPoint( iThread, origin, NULL, color );
 }
 
 
