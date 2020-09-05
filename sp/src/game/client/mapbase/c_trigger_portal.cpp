@@ -1,4 +1,4 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//================== Mapbase - Source 2013, Author(s) Krispy ===================//
 //
 // Purpose: Entity which teleports touched entities and reorients their physics
 //
