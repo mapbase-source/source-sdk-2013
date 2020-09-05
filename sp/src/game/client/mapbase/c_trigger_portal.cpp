@@ -1,7 +1,10 @@
-//================== Mapbase - Source 2013, Author(s) Krispy ===================//
+//========= Mapbase - https://github.com/mapbase-source/source-sdk-2013 ============//
 //
 // Purpose: Entity which teleports touched entities and reorients their physics
+// 
+// Author(s): Krispy: https://github.com/FriskTheFallenHuman/source-sdk-2013
 //
+// $NoKeywords: $
 //=============================================================================//
 
 #include "cbase.h"
