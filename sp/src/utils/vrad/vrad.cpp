@@ -2847,12 +2847,12 @@ void PrintUsage( int argc, char **argv )
 int RunVRAD( int argc, char **argv )
 {
 #if defined(_MSC_VER) && ( _MSC_VER >= 1310 )
-	Msg("[THS] and Valve Software - vrad.exe SSE (" __DATE__ ")\n" );
+	Msg("[Mapbase] and Valve Software - vrad.exe SSE (" __DATE__ ")\n" );
 #else
-	Msg("[THS] and Valve Software - vrad.exe (" __DATE__ ")\n" );
+	Msg("[Mapbase] and Valve Software - vrad.exe (" __DATE__ ")\n" );
 #endif
 
-	Msg("\n      [THS] and Valve Radiosity Simulator     \n");
+	Msg("\n      [Mapbase] and Valve Radiosity Simulator     \n");
 
 	verbose = true;  // Originally FALSE
 

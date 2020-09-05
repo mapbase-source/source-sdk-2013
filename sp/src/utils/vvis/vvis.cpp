@@ -1079,7 +1079,7 @@ int RunVVis( int argc, char **argv )
 	double		start, end;
 
 
-	Msg( "[THS] and Valve Software - vvis.exe (%s)\n", __DATE__ );
+	Msg( "[Mapbase] and Valve Software - vvis.exe (%s)\n", __DATE__ );
 
 	verbose = false;
 
