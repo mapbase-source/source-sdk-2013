@@ -1635,6 +1635,30 @@ static void ParseLightEnvironment( entity_t* e )
 	}
 }
 
+static void ParseLightDirectional( entity_t* e )
+{
+	Vector dest;
+	GetVectorForKey (e, "origin", dest );
+	directlight_t* dl = AllocDLight( dest, true );
+
+	ParseLightGeneric( e, dl );
+
+	char *angle_str=ValueForKeyWithDefault( e, "SunSpreadAngle" );
+	if (angle_str)
+	{
+		dl->m_flSkyLightSunAngularExtent = atof(angle_str);
+		dl->m_flSkyLightSunAngularExtent = sin((M_PI/180.0)*dl->m_flSkyLightSunAngularExtent);
+	}
+
+	dl->light.type = emit_skylight;
+	// For the engine, emit_skylight is the type we want.
+	// Set an additional flag identifying this as "not the global skylight" for vrad. This will cause it to use the angular extent associated with this light
+	// instead of the global one.
+	dl->m_bSkyLightIsDirectionalLight = true;
+
+	BuildVisForLightEnvironment();
+}
+
 static void ParseLightPoint( entity_t* e )
 {
 	Vector dest;
@@ -1719,6 +1743,11 @@ void CreateDirectLights (void)
 		{
 			ParseLightEnvironment( e );
 		}
+		else if (!strcmp(name, "light_directional")) 
+		{
+			ParseLightDirectional( e );
+			Msg( "  [THS] Found enchanced sky light!!! Parse it: \"%s\"\n  ", name );			
+		}		
 		else if (!strcmp(name, "light")) 
 		{
 			ParseLightPoint( e );

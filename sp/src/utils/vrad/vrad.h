@@ -81,6 +81,11 @@ struct directlight_t
 	float	soffset;
 	float	toffset;
 
+	// Flag indicating that even though light.type is emit_skylight, treat this light as a
+	// directional light source in vrad
+	bool	m_bSkyLightIsDirectionalLight;
+	float	m_flSkyLightSunAngularExtent;
+
 	int		dorecalc; // position, vector, spot angle, etc.
 	IncrementalLightID	m_IncrementalID;
 
@@ -93,6 +98,8 @@ struct directlight_t
 
 	directlight_t(void)
 	{
+		m_bSkyLightIsDirectionalLight = false;
+		m_flSkyLightSunAngularExtent = 0.0f;
 		m_flEndFadeDistance = -1.0;							// end<start indicates not set
 		m_flStartFadeDistance= 0.0;
 		m_flCapDist = 1.0e22;
