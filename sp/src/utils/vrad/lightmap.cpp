@@ -1746,7 +1746,7 @@ void CreateDirectLights (void)
 		else if (!strcmp(name, "light_directional")) 
 		{
 			ParseLightDirectional( e );
-			Msg( "  [THS] Found enchanced sky light!!! Parse it: \"%s\"\n  ", name );			
+			Msg( "  [MAPBASE] Found enchanced sky light!!! Parse it: \"%s\"\n  ", name );			
 		}		
 		else if (!strcmp(name, "light")) 
 		{
