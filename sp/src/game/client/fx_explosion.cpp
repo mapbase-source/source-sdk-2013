@@ -190,7 +190,11 @@ void C_BaseExplosionEffect::Create( const Vector &position, float force, float s
 	}
 
 	CreateDebris();
+#ifdef MAPBASE
+	CreateDynamicLight();
+#else
 	//FIXME: CreateDynamicLight();
+#endif
 	CreateMisc();
 }
 
@@ -697,6 +701,17 @@ void C_BaseExplosionEffect::CreateMisc( void )
 //-----------------------------------------------------------------------------
 void C_BaseExplosionEffect::CreateDynamicLight( void )
 {
+#ifdef MAPBASE
+		dlight_t *dl = effects->CL_AllocDlight ( 1 );
+		dl->origin = m_vecOrigin;
+		dl->color.r = 255;
+		dl->color.g = 220;
+		dl->color.b = 128;
+		dl->die = gpGlobals->curtime + 0.16f;
+		dl->radius = 460;
+		dl->decay = 512.0f;
+		dl->color.exponent = 4.6;
+#else
 	if ( m_fFlags & TE_EXPLFLAG_NODLIGHTS )
 		return;
 
@@ -710,6 +725,7 @@ void C_BaseExplosionEffect::CreateDynamicLight( void )
 	dl->color.g = 220;
 	dl->color.b = 128;
 	dl->die		= gpGlobals->curtime + 0.1f;
+#endif	
 }
 
 //-----------------------------------------------------------------------------
