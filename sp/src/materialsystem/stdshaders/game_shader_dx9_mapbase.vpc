@@ -61,6 +61,7 @@ $Project
 		$File	"MonitorScreen_dx9.cpp"
 		$File	"shatteredglass.cpp"
 		$File	"windowimposter_dx90.cpp"
+		$File	"ths_water.cpp"
 	}
 
 	//$Shaders	"mapbase_dx9_20b.txt"

@@ -96,6 +96,31 @@ public:
 		return m_pDataOut - m_Data;
 	}
 
+	FORCEINLINE uint8 *Copy()
+	{
+		const int size = Size();
+		uint8 *tmp = new uint8[size];
+		Q_memcpy( tmp, m_Data, size );
+		return  tmp;
+	}
+};
+
+//-----------------------------------------------------------------------------
+// Used by SetPixelShaderFlashlightState
+//-----------------------------------------------------------------------------
+struct CBCmdSetPixelShaderFlashlightState_t
+{
+	Sampler_t m_LightSampler;
+	Sampler_t m_DepthSampler;
+	Sampler_t m_ShadowNoiseSampler;
+	int m_nColorConstant;
+	int m_nAttenConstant;
+	int m_nOriginConstant;
+	int m_nDepthTweakConstant;
+	int m_nScreenScaleConstant;
+	int m_nWorldToTextureConstant;
+	bool m_bFlashlightNoLambert;
+	bool m_bSinglePassFlashlight;
 };
 
 template<class S> class CCommandBufferBuilder
@@ -163,6 +188,22 @@ public:
 	{
 		SetPixelShaderConstants( nFirstConstant, 1 );
 		OutputConstantData( pSrcData );
+	}
+
+
+	FORCEINLINE void SetPixelShaderConstant1( int nFirstConstant, float flVal0 )
+	{
+		SetPixelShaderConstant4( nFirstConstant, flVal0, 0, 0, 0 );
+	}
+
+	FORCEINLINE void SetPixelShaderConstant2( int nFirstConstant, float flVal0, float flVal1 )
+	{
+		SetPixelShaderConstant4( nFirstConstant, flVal0, flVal1, 0, 0 );
+	}
+
+	FORCEINLINE void SetPixelShaderConstant3( int nFirstConstant, float flVal0, float flVal1, float flVal2 )
+	{
+		SetPixelShaderConstant4( nFirstConstant, flVal0, flVal1, flVal2, 0 );
 	}
 
 	FORCEINLINE void SetPixelShaderConstant4( int nFirstConstant, float flVal0, float flVal1, float flVal2, float flVal3 )
@@ -339,7 +380,7 @@ public:
 		}
 	}
 
-	FORCEINLINE void BindTexture( CBaseVSShader *pShader, Sampler_t nSampler, int nTextureVar, int nFrameVar )
+	FORCEINLINE void BindTexture( CBaseVSShader *pShader, Sampler_t nSampler, int nTextureVar, int nFrameVar = -1 )
 	{
 		ShaderAPITextureHandle_t hTexture = pShader->GetShaderAPITextureBindHandle( nTextureVar, nFrameVar );
 		BindTexture( nSampler, hTexture );
@@ -372,6 +413,45 @@ public:
 		m_Storage.PutFloat( fDepthBlendScale );
 	}
 
+	FORCEINLINE void SetVertexShaderFlashlightState( int iConstant )
+	{
+		m_Storage.PutInt( CBCMD_SET_VERTEX_SHADER_FLASHLIGHT_STATE );
+		m_Storage.PutInt( iConstant );
+	}
+
+	FORCEINLINE void SetPixelShaderFlashlightState( const CBCmdSetPixelShaderFlashlightState_t &state )
+	{
+		m_Storage.PutInt( CBCMD_SET_PIXEL_SHADER_FLASHLIGHT_STATE );
+		m_Storage.PutInt( state.m_LightSampler );
+		m_Storage.PutInt( state.m_DepthSampler );
+		m_Storage.PutInt( state.m_ShadowNoiseSampler );
+		m_Storage.PutInt( state.m_nColorConstant );
+		m_Storage.PutInt( state.m_nAttenConstant );
+		m_Storage.PutInt( state.m_nOriginConstant );
+		m_Storage.PutInt( state.m_nDepthTweakConstant );
+		m_Storage.PutInt( state.m_nScreenScaleConstant );
+		m_Storage.PutInt( state.m_nWorldToTextureConstant );
+		m_Storage.PutInt( state.m_bFlashlightNoLambert );
+		m_Storage.PutInt( state.m_bSinglePassFlashlight );
+	}
+
+	FORCEINLINE void SetPixelShaderUberLightState( int iEdge0Const, float* edge0Data, int iEdge1Const, float* edge1Data, int iEdgeOOWConst, float* edgeOOWData,
+												   int iShearRoundConst, float* roundConst, int iAABBConst, float* aabbData, int iWorldToLightConst, float* worldToLightMatrix )
+	{
+		SetPixelShaderConstant( iEdge0Const, edge0Data );
+		SetPixelShaderConstant( iEdge1Const, edge1Data );
+		SetPixelShaderConstant( iEdgeOOWConst, edgeOOWData );
+		SetPixelShaderConstant( iShearRoundConst, roundConst );
+		SetPixelShaderConstant( iAABBConst, aabbData );
+		SetPixelShaderConstant( iWorldToLightConst, worldToLightMatrix, 4 );
+	}
+
+	FORCEINLINE void SetVertexShaderNearAndFarZ( int iRegNum )
+	{
+		m_Storage.PutInt( CBCMD_SET_VERTEX_SHADER_NEARZFARZ_STATE );
+		m_Storage.PutInt( iRegNum );
+	}
+
 	FORCEINLINE void Goto( uint8 *pCmdBuf )
 	{
 		m_Storage.PutInt( CBCMD_JUMP );
@@ -399,8 +479,10 @@ public:
 		return m_Storage.Base();
 	}
 
-
-
+	FORCEINLINE uint8 *Copy( void )
+	{
+		return m_Storage.Copy();
+	}
 };
 
 
