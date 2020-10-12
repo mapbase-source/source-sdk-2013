@@ -7,7 +7,7 @@
 //	    _vs20.vcs
 //
 
-THS_water_ps2x.fxc
-THS_Water_vs20.fxc
-THS_WaterCheap_ps2x.fxc
-THS_WaterCheap_vs20.fxc
+flow_water_ps2x.fxc
+flow_Water_vs20.fxc
+flow_WaterCheap_ps2x.fxc
+flow_WaterCheap_vs20.fxc
