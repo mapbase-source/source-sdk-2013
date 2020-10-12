@@ -1,0 +1,41 @@
+FlowWater
+{
+	$forceexpensive 1
+	$normalmap "FlowWater/thsdev_water01_normal_sharp"
+	$flowmap "FlowWater/c5m1_hflowmap"
+	$flow_normaluvscale 155.0
+	$flow_worlduvscale 0.5
+	$flow_timeintervalinseconds 0.2 
+	$flow_uvscrolldistance 0.075 
+	$flow_bumpstrength 0.4
+	$flow_timescale 0.5
+	$flow_noise_texture "FlowWater/thsdev_water01_noise"
+	$flow_noise_scale 0.0003
+	$flow_debug 0
+	$reflecttexture _rt_WaterReflection
+	$reflectamount ".4"
+	$reflecttint "{ 190 190 190 }"
+
+//	$reflectskyboxonly 0
+//	$reflect2dskybox 1
+	$reflectentities 1
+//	$reflectonlymarkedentities 1
+
+	"$refract"	1
+	"$refracttexture" _rt_WaterRefraction
+	"$refractamount" "0.15"
+	"$refracttint" "{ 151 135 34 }"
+	
+	$abovewater 1
+	$bottommaterial "FlowWater/thsdev_water01_beneath"
+	$fogenable 1
+	$fogstart 0
+	$fogend 24
+	$lightmapwaterfog 1
+
+	$fogcolor "{ 90 70 20 }"
+	$flashlighttint 1
+	"%compilewater" 1
+	"%tooltexture" "FlowWater/thsdev_water01_normal"
+	$surfaceprop slime
+}
