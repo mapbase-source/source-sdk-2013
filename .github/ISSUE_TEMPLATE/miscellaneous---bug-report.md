@@ -1,6 +1,6 @@
 ---
 name: Miscellaneous - Bug report
-about: Create a bug report not related to any of the subjects mentioned above.
+about: Create a bug report not related to any of the other subjects.
 title: "[MISC] "
 labels: Bug
 assignees: ''
@@ -22,4 +22,4 @@ A clear and concise description of what you expected to happen.
 ---
 
 ### Additional context
-Add any other context about the problem here.
+(Optional) Add any other context about the problem here.

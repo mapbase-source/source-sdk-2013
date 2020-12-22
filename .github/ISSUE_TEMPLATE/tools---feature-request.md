@@ -1,8 +1,8 @@
 ---
-name: VScript - Feature request
-about: Suggest an idea related to VScript.
-title: "[VSCRIPT] "
-labels: Enhancement, VScript
+name: Tools - Feature request
+about: Suggest an idea related to compile tools, editor stuff, etc.
+title: "[TOOLS] "
+labels: Enhancement, Tools
 assignees: ''
 
 ---

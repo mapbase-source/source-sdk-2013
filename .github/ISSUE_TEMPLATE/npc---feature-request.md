@@ -1,8 +1,8 @@
 ---
-name: VScript - Feature request
-about: Suggest an idea related to VScript.
-title: "[VSCRIPT] "
-labels: Enhancement, VScript
+name: NPCs - Feature request
+about: Suggest an idea related to NPCs.
+title: "[NPCs] "
+labels: Enhancement
 assignees: ''
 
 ---

@@ -1,9 +1,8 @@
 ---
-name: Visuals/Graphics - Bug report
-about: Create a bug report related to visual issues. (e.g. shaders, projected textures,
-  etc.)
-title: "[VISUAL] "
-labels: Bug
+name: Tools - Bug report
+about: Create a bug report related to compile tools, editor stuff, etc.
+title: "[TOOLS] "
+labels: Bug, Tools
 assignees: ''
 
 ---
@@ -19,9 +18,6 @@ Steps to reproduce the behavior:
 
 ### Expected behavior
 A clear and concise description of what you expected to happen.
-
-### Media
-Any related screenshots, videos, etc. which show the bug.
 
 ---
 
