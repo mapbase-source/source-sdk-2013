@@ -1,7 +1,7 @@
 ---
-name: Miscellaneous - Feature request
-about: Suggest an idea not related to any of the other subjects.
-title: "[MISC] "
+name: Feature request - Code
+about: Suggest an idea related to the source code itself. (e.g. a new utility function)
+title: "[CODE] "
 labels: Enhancement
 assignees: ''
 

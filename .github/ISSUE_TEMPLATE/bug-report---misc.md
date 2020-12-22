@@ -1,7 +1,7 @@
 ---
-name: Code - Bug report
-about: Create a bug report related to the source code itself. (e.g. a compile error)
-title: "[CODE] "
+name: Bug report - Miscellaneous
+about: Create a bug report not related to any of the other subjects.
+title: "[MISC] "
 labels: Bug
 assignees: ''
 
@@ -12,7 +12,7 @@ A clear and concise description of what the bug is.
 
 ### Steps to reproduce
 Steps to reproduce the behavior:
-1. Have '...' set to something
+1. Do '...'
 2. ???
 3. See error
 

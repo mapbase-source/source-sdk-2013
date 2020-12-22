@@ -1,7 +1,7 @@
 ---
-name: Miscellaneous - Bug report
-about: Create a bug report not related to any of the other subjects.
-title: "[MISC] "
+name: Bug report - NPCs
+about: Create a bug report related to NPCs.
+title: "[NPCs] "
 labels: Bug
 assignees: ''
 
@@ -12,7 +12,7 @@ A clear and concise description of what the bug is.
 
 ### Steps to reproduce
 Steps to reproduce the behavior:
-1. Do '...'
+1. Have '...' do something
 2. ???
 3. See error
 

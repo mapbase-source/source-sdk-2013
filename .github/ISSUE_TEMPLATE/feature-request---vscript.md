@@ -1,8 +1,8 @@
 ---
-name: Code - Feature request
-about: Suggest an idea related to the source code itself. (e.g. a new utility function)
-title: "[CODE] "
-labels: Enhancement
+name: Feature request - VScript
+about: Suggest an idea related to VScript.
+title: "[VSCRIPT] "
+labels: Enhancement, VScript
 assignees: ''
 
 ---

@@ -1,5 +1,5 @@
 ---
-name: NPCs - Feature request
+name: Feature request - NPCs
 about: Suggest an idea related to NPCs.
 title: "[NPCs] "
 labels: Enhancement

@@ -1,8 +1,7 @@
 ---
-name: Visuals/Graphics - Feature request
-about: Suggest an idea related to visuals or graphics. (e.g. shaders, projected textures,
-  etc.)
-title: "[VISUAL] "
+name: Feature request - Game
+about: Suggest an idea related to game behavior.
+title: "[GAME] "
 labels: Enhancement
 assignees: ''
 

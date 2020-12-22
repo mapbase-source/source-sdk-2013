@@ -1,7 +1,7 @@
 ---
-name: Game - Feature request
-about: Suggest an idea related to game behavior.
-title: "[GAME] "
+name: Feature request - Miscellaneous
+about: Suggest an idea not related to any of the other subjects.
+title: "[MISC] "
 labels: Enhancement
 assignees: ''
 

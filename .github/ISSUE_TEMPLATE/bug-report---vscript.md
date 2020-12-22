@@ -1,8 +1,8 @@
 ---
-name: Tools - Bug report
-about: Create a bug report related to compile tools, editor stuff, etc.
-title: "[TOOLS] "
-labels: Bug, Tools
+name: Bug report - VScript
+about: Create a bug report related to VScript.
+title: "[VSCRIPT] "
+labels: Bug, VScript
 assignees: ''
 
 ---
@@ -12,7 +12,7 @@ A clear and concise description of what the bug is.
 
 ### Steps to reproduce
 Steps to reproduce the behavior:
-1. Have '...' in the map
+1. Have '...' in the script
 2. ???
 3. See error
 

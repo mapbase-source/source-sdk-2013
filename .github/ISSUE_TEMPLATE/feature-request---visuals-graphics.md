@@ -1,8 +1,9 @@
 ---
-name: Tools - Feature request
-about: Suggest an idea related to compile tools, editor stuff, etc.
-title: "[TOOLS] "
-labels: Enhancement, Tools
+name: Feature request - Visuals/Graphics
+about: Suggest an idea related to visuals or graphics. (e.g. shaders, projected textures,
+  etc.)
+title: "[VISUAL] "
+labels: Enhancement
 assignees: ''
 
 ---
