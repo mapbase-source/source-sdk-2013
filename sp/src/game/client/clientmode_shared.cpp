@@ -36,6 +36,7 @@
 #include <vgui/ILocalize.h>
 #include "hud_vote.h"
 #include "ienginevgui.h"
+#include "viewpostprocess.h"
 #include "sourcevr/isourcevirtualreality.h"
 #if defined( _X360 )
 #include "xbox/xbox_console.h"
@@ -65,6 +66,10 @@ extern ConVar replay_rendersetting_renderglow;
 #include "econ_item_description.h"
 #endif
 
+#ifdef GLOWS_ENABLE
+#include "clienteffectprecachesystem.h"
+#endif
+
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
@@ -88,6 +93,13 @@ extern ConVar v_viewmodel_fov;
 extern ConVar voice_modenable;
 
 extern bool IsInCommentaryMode( void );
+
+#ifdef GLOWS_ENABLE
+CLIENTEFFECT_REGISTER_BEGIN( PrecachePostProcessingEffectsGlow )
+CLIENTEFFECT_MATERIAL( "dev/glow_color" )
+CLIENTEFFECT_MATERIAL( "dev/halo_add_to_screen" )
+CLIENTEFFECT_REGISTER_END_CONDITIONAL( engine->GetDXSupportLevel() >= 90 )
+#endif
 
 #ifdef VOICE_VOX_ENABLE
 void VoxCallback( IConVar *var, const char *oldString, float oldFloat )
@@ -279,6 +291,9 @@ ClientModeShared::ClientModeShared()
 	m_pChatElement = NULL;
 	m_pWeaponSelection = NULL;
 	m_nRootSize[ 0 ] = m_nRootSize[ 1 ] = -1;
+
+	m_pCurrentPostProcessController = NULL;
+	m_PostProcessLerpTimer.Invalidate();
 
 #if defined( REPLAY_ENABLED )
 	m_pReplayReminderPanel = NULL;
@@ -593,6 +608,8 @@ void ClientModeShared::Update()
 		m_pViewport->SetVisible( cl_drawhud.GetBool() );
 	}
 
+	UpdatePostProcessingEffects();
+
 	UpdateRumbleEffects();
 
 	if ( cl_show_num_particle_systems.GetBool() )
@@ -764,6 +781,10 @@ int ClientModeShared::HudElementKeyInput( int down, ButtonCode_t keynum, const c
 //-----------------------------------------------------------------------------
 bool ClientModeShared::DoPostScreenSpaceEffects( const CViewSetup *pSetup )
 {
+#ifdef GLOWS_ENABLE
+	g_GlowObjectManager.RenderGlowEffects( pSetup, 0 );
+#endif
+
 #if defined( REPLAY_ENABLED )
 	if ( engine->IsPlayingDemo() )
 	{
@@ -899,6 +920,17 @@ void ClientModeShared::LevelShutdown( void )
  		s_hVGuiContext = DEFAULT_VGUI_CONTEXT;
 	}
 
+#ifdef MAPBASE
+	// Always reset post-processing on level unload
+	//if (m_pCurrentPostProcessController)
+	{
+		m_CurrentPostProcessParameters = PostProcessParameters_t();
+		m_LerpEndPostProcessParameters = PostProcessParameters_t();
+		m_pCurrentPostProcessController = NULL;
+		SetPostProcessParams( &m_CurrentPostProcessParameters );
+	}
+#endif
+
 	// Reset any player explosion/shock effects
 	CLocalPlayerFilter filter;
 	enginesound->SetPlayerDSP( filter, 0, true );
@@ -971,6 +1003,69 @@ void ClientModeShared::Layout()
 float ClientModeShared::GetViewModelFOV( void )
 {
 	return v_viewmodel_fov.GetFloat();
+}
+
+#ifdef MAPBASE
+extern bool g_bPostProcessNeedsRestore;
+#endif
+
+void ClientModeShared::UpdatePostProcessingEffects()
+{
+	C_PostProcessController* pNewPostProcessController = NULL;
+	C_BasePlayer* pPlayer = C_BasePlayer::GetLocalPlayer();
+
+	if (pPlayer)
+		pNewPostProcessController = pPlayer->GetActivePostProcessController();
+
+	if (!pNewPostProcessController)
+	{
+		m_CurrentPostProcessParameters = PostProcessParameters_t();
+		m_pCurrentPostProcessController = NULL;
+		SetPostProcessParams( &m_CurrentPostProcessParameters );
+		return;
+	}
+
+	if (pNewPostProcessController != m_pCurrentPostProcessController)
+		m_pCurrentPostProcessController = pNewPostProcessController;
+
+	// Start a lerp timer if the parameters changed, regardless of whether the controller changed
+	if (m_LerpEndPostProcessParameters != pNewPostProcessController->m_PostProcessParameters)
+	{
+		m_LerpStartPostProcessParameters = m_CurrentPostProcessParameters;
+		m_LerpEndPostProcessParameters = pNewPostProcessController ? pNewPostProcessController->m_PostProcessParameters : m_CurrentPostProcessParameters;
+
+		float flFadeTime = pNewPostProcessController ? pNewPostProcessController->m_PostProcessParameters.m_flParameters[PPPN_FADE_TIME] : 0.0f;
+		if (flFadeTime <= 0.0f)
+		{
+			flFadeTime = 0.001f;
+		}
+
+		m_PostProcessLerpTimer.Start( flFadeTime );
+	}
+#ifdef MAPBASE
+	// HACKHACK: Needs to be checked here because OnRestore() doesn't seem to run before a lerp begins
+	else if (g_bPostProcessNeedsRestore)
+	{
+		// The player just loaded a saved game.
+		// Don't fade parameters from 0; instead, take what's already there and assume they were already active.
+		// (we have no way of knowing if they were in the middle of a lerp)
+		m_PostProcessLerpTimer.Invalidate();
+		g_bPostProcessNeedsRestore = false;
+	}
+#endif
+
+	// Lerp between old and new parameters
+	float flLerpFactor = 1.0f - m_PostProcessLerpTimer.GetRemainingRatio();
+	for (int nParameter = 0; nParameter < POST_PROCESS_PARAMETER_COUNT; ++nParameter)
+	{
+		m_CurrentPostProcessParameters.m_flParameters[nParameter] =
+			Lerp(
+			flLerpFactor,
+			m_LerpStartPostProcessParameters.m_flParameters[nParameter],
+			m_LerpEndPostProcessParameters.m_flParameters[nParameter] );
+	}
+
+	SetPostProcessParams( &m_CurrentPostProcessParameters );
 }
 
 class CHudChat;

@@ -141,7 +141,7 @@ public:
 	{
 		if (i > SCRIPT_MAT_PROXY_MAX_VARS || i < 0)
 		{
-			Warning("VScriptProxy: %i out of range", i);
+			CGWarning( 0, CON_GROUP_VSCRIPT, "VScriptProxy: %i out of range", i );
 			return false;
 		}
 
@@ -261,7 +261,7 @@ bool CScriptMaterialProxy::InitScript()
 
 		if (!bResult)
 		{
-			DevMsg("VScriptProxy couldn't create ScriptScope!\n");
+			CGMsg( 1, CON_GROUP_VSCRIPT, "VScriptProxy couldn't create ScriptScope!\n" );
 			return false;
 		}
 
@@ -445,6 +445,10 @@ bool VScriptClientInit()
 		{
 			// Allow world entity to override script language
 			scriptLanguage = GetClientWorldEntity()->GetScriptLanguage();
+
+			// Less than SL_NONE means the script language should literally be none
+			if (scriptLanguage < SL_NONE)
+				scriptLanguage = SL_NONE;
 		}
 		else
 #endif
@@ -462,9 +466,15 @@ bool VScriptClientInit()
 			{
 				scriptLanguage = SL_PYTHON;
 			}
+#ifdef MAPBASE_VSCRIPT
+			else if( !Q_stricmp(pszScriptLanguage, "lua") )
+			{
+				scriptLanguage = SL_LUA;
+			}
+#endif
 			else
 			{
-				DevWarning("-scriptlang does not recognize a language named '%s'. virtual machine did NOT start.\n", pszScriptLanguage );
+				CGWarning( 1, CON_GROUP_VSCRIPT, "-scriptlang does not recognize a language named '%s'. virtual machine did NOT start.\n", pszScriptLanguage );
 				scriptLanguage = SL_NONE;
 			}
 
@@ -476,7 +486,11 @@ bool VScriptClientInit()
 
 			if( g_pScriptVM )
 			{
+#ifdef MAPBASE_VSCRIPT
+				CGMsg( 0, CON_GROUP_VSCRIPT, "VSCRIPT CLIENT: Started VScript virtual machine using script language '%s'\n", g_pScriptVM->GetLanguageName() );
+#else
 				Log( "VSCRIPT: Started VScript virtual machine using script language '%s'\n", g_pScriptVM->GetLanguageName() );
+#endif
 				ScriptRegisterFunction( g_pScriptVM, GetMapName, "Get the name of the map.");
 				ScriptRegisterFunction( g_pScriptVM, Time, "Get the current server time" );
 				ScriptRegisterFunction( g_pScriptVM, DoIncludeScript, "Execute a script (internal)" );
@@ -487,10 +501,14 @@ bool VScriptClientInit()
 				}
 
 #ifdef MAPBASE_VSCRIPT
+				g_pScriptVM->RegisterAllClasses();
+				g_pScriptVM->RegisterAllEnums();
+
 				g_pScriptVM->RegisterInstance( &g_ScriptEntityIterator, "Entities" );
 
 				IGameSystem::RegisterVScriptAllSystems();
 
+				RegisterSharedScriptConstants();
 				RegisterSharedScriptFunctions();
 #else
 				//g_pScriptVM->RegisterInstance( &g_ScriptEntityIterator, "Entities" );
@@ -509,13 +527,13 @@ bool VScriptClientInit()
 			}
 			else
 			{
-				DevWarning("VM Did not start!\n");
+				CGWarning( 1, CON_GROUP_VSCRIPT, "VM Did not start!\n" );
 			}
 		}
 	}
 	else
 	{
-		Log( "\nVSCRIPT: Scripting is disabled.\n" );
+		CGWarning( 0, CON_GROUP_VSCRIPT, "\nVSCRIPT: Scripting is disabled.\n" );
 	}
 	g_pScriptVM = NULL;
 	return false;
@@ -553,17 +571,22 @@ public:
 	virtual void LevelInitPreEntity( void )
 	{
 		m_bAllowEntityCreationInScripts = true;
+#ifndef MAPBASE_VSCRIPT // Now initted in C_World
 		VScriptClientInit();
+#endif
 	}
 
 	virtual void LevelInitPostEntity( void )
 	{
 		m_bAllowEntityCreationInScripts = false;
 #ifdef MAPBASE_VSCRIPT
-		C_BasePlayer *pPlayer = C_BasePlayer::GetLocalPlayer();
-		if (pPlayer)
+		if (g_pScriptVM)
 		{
-			g_pScriptVM->SetValue( "player", pPlayer->GetScriptInstance() );
+			C_BasePlayer *pPlayer = C_BasePlayer::GetLocalPlayer();
+			if (pPlayer)
+			{
+				g_pScriptVM->SetValue( "player", pPlayer->GetScriptInstance() );
+			}
 		}
 #endif
 	}

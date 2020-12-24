@@ -53,6 +53,10 @@ ConVar hl2_episodic( "hl2_episodic", "0", FCVAR_REPLICATED );
 #include "tf_weaponbase.h"
 #endif // TF_DLL
 
+#ifdef MAPBASE_VSCRIPT
+#include "mapbase/vscript_funcs_shared.h"
+#endif
+
 #include "rumble_shared.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
@@ -439,6 +443,15 @@ bool CBaseEntity::KeyValue( const char *szKeyName, const char *szValue )
 		SetAbsOrigin( vecOrigin );
 		return true;
 	}
+
+#ifdef MAPBASE
+	if ( FStrEq( szKeyName, "eflags" ) )
+	{
+		// Can't use DEFINE_KEYFIELD since eflags might be set before KV are parsed
+		AddEFlags( atoi( szValue ) );
+		return true;
+	}
+#endif
 
 #ifdef GAME_DLL	
 	
@@ -1602,21 +1615,17 @@ void CBaseEntity::FireBullets( const FireBulletsInfo_t &info )
 #if defined(MAPBASE_VSCRIPT) && defined(GAME_DLL)
 	if (m_ScriptScope.IsInitialized())
 	{
-		CFireBulletsInfoAccessor pInfo( const_cast<FireBulletsInfo_t*>(&info) );
-		HSCRIPT hInfo = g_pScriptVM->RegisterInstance( &pInfo );
-
-		g_pScriptVM->SetValue( "info", hInfo );
+		HSCRIPT hInfo = g_pScriptVM->RegisterInstance( const_cast<FireBulletsInfo_t*>(&info) );
 
 		ScriptVariant_t functionReturn;
-		if ( CallScriptFunction( "FireBullets", &functionReturn ) )
+		ScriptVariant_t args[] = { hInfo };
+		if (g_Hook_FireBullets.Call( m_ScriptScope, &functionReturn, args ))
 		{
 			if (!functionReturn.m_bool)
 				return;
 		}
 
 		g_pScriptVM->RemoveInstance( hInfo );
-
-		g_pScriptVM->ClearValue( "info" );
 	}
 #endif
 

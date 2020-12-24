@@ -5641,6 +5641,8 @@ BEGIN_DATADESC( CMathMod )
 
 	DEFINE_KEYFIELD( m_Operator, FIELD_INTEGER, "SetOperator" ),
 
+	DEFINE_VARIANT( m_Mod ),
+
 	// Inputs
 	DEFINE_INPUTFUNC( FIELD_INPUT, "SetMod", InputSetMod ),
 	DEFINE_INPUTFUNC( FIELD_STRING, "SetOperator", InputSetOperator ),
@@ -6413,6 +6415,7 @@ bool CMathLightPattern::KeyValue( const char *szKeyName, const char *szValue )
 void CMathLightPattern::InputSetStyle( inputdata_t &inputdata )
 {
 	m_iszPattern = AllocPooledString(GetDefaultLightstyleString(inputdata.value.Int()));
+	m_NextLetter = 0;
 }
 
 //-----------------------------------------------------------------------------
@@ -6421,6 +6424,7 @@ void CMathLightPattern::InputSetStyle( inputdata_t &inputdata )
 void CMathLightPattern::InputSetPattern( inputdata_t &inputdata )
 {
 	m_iszPattern = inputdata.value.StringID();
+	m_NextLetter = 0;
 }
 
 //-----------------------------------------------------------------------------

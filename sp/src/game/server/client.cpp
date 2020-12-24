@@ -45,6 +45,10 @@
 #include "weapon_physcannon.h"
 #endif
 
+#ifdef MAPBASE
+#include "fmtstr.h"
+#endif
+
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
@@ -333,6 +337,16 @@ void ClientPrecache( void )
 	CBaseEntity::PrecacheScriptSound( "Bounce.ShotgunShell" );
 	CBaseEntity::PrecacheScriptSound( "Bounce.Shell" );
 	CBaseEntity::PrecacheScriptSound( "Bounce.Concrete" );
+
+#ifdef MAPBASE
+	// Game Instructor sounds
+	CBaseEntity::PrecacheScriptSound( "Instructor.LessonStart" );
+	CBaseEntity::PrecacheScriptSound( "Instructor.ImportantLessonStart" );
+
+	// TODO: Does sv_pure cover this? This is from the ASW SDK to prevent people from making simple scripted wall hacks
+	//engine->ForceExactFile( "scripts/instructor_lessons.txt" );
+	//engine->ForceExactFile( "scripts/mod_lessons.txt" );
+#endif
 
 	ClientGamePrecache();
 }
@@ -1521,6 +1535,32 @@ void ClientCommand( CBasePlayer *pPlayer, const CCommand &args )
 	{
 		if ( !g_pGameRules->ClientCommand( pPlayer, args ) )
 		{
+#ifdef MAPBASE_VSCRIPT
+			// Console command hook for VScript
+			if ( pPlayer->m_ScriptScope.IsInitialized() )
+			{
+				ScriptVariant_t functionReturn;
+				g_pScriptVM->SetValue( "command", ScriptVariant_t( pCmd ) );
+
+				ScriptVariant_t varTable;
+				g_pScriptVM->CreateTable( varTable );
+				HSCRIPT hTable = varTable.m_hScript;
+				for ( int i = 0; i < args.ArgC(); i++ )
+				{
+					g_pScriptVM->SetValue( hTable, CNumStr( i ), ScriptVariant_t( args[i] ) );
+				}
+				g_pScriptVM->SetValue( "args", varTable );
+
+				pPlayer->CallScriptFunction( "ClientCommand", &functionReturn );
+
+				g_pScriptVM->ClearValue( "command" );
+				g_pScriptVM->ClearValue( "args" );
+				g_pScriptVM->ReleaseValue( varTable );
+
+				if (functionReturn.m_bool)
+					return;
+			}
+#endif
 			if ( Q_strlen( pCmd ) > 128 )
 			{
 				ClientPrint( pPlayer, HUD_PRINTCONSOLE, "Console command too long.\n" );

@@ -85,9 +85,7 @@ static inline bool ShouldDrawLocalPlayerViewModel( void )
 {
 #if defined( PORTAL )
 	return false;
-#else
-
-#ifdef MAPBASE
+#elif MAPBASE
 	// We shouldn't draw the viewmodel externally.
 	C_BasePlayer *localplayer = C_BasePlayer::GetLocalPlayer();
 	if (localplayer)
@@ -101,14 +99,12 @@ static inline bool ShouldDrawLocalPlayerViewModel( void )
 		}
 
 		// Since we already have the local player, check its own ShouldDrawThisPlayer() to avoid extra checks
-		return localplayer->ShouldDrawThisPlayer();
+		return !localplayer->ShouldDrawThisPlayer();
 	}
 	else
 		return false;
 #else
 	return !C_BasePlayer::ShouldDrawLocalPlayer();
-#endif
-
 #endif
 }
 
@@ -181,11 +177,8 @@ void C_BaseCombatWeapon::OnDataChanged( DataUpdateType_t updateType )
 	}
 	else // weapon carried by other player or not at all
 	{
-		int overrideModelIndex = CalcOverrideModelIndex();
-		if( overrideModelIndex != -1 && overrideModelIndex != GetModelIndex() )
-		{
-			SetModelIndex( overrideModelIndex );
-		}
+		// See comment below
+		EnsureCorrectRenderingModel();
 	}
 
 	UpdateVisibility();
@@ -555,6 +548,35 @@ int C_BaseCombatWeapon::CalcOverrideModelIndex()
 	}
 }
 
+//-----------------------------------------------------------------------------
+// If the local player is visible (thirdperson mode, tf2 taunts, etc., then make sure that we are using the
+//  w_ (world) model not the v_ (view) model or else the model can flicker, etc.
+// Otherwise, if we're not the local player, always use the world model
+//-----------------------------------------------------------------------------
+void C_BaseCombatWeapon::EnsureCorrectRenderingModel()
+{
+	C_BasePlayer *localplayer = C_BasePlayer::GetLocalPlayer();
+	if ( localplayer &&
+		localplayer == GetOwner() &&
+		!ShouldDrawUsingViewModel() )
+	{
+		return;
+	}
+
+	// BRJ 10/14/02
+	// FIXME: Remove when Yahn's client-side prediction is done
+	// It's a hacky workaround for the model indices fighting
+	// (GetRenderBounds uses the model index, which is for the view model)
+	SetModelIndex( GetWorldModelIndex() );
+
+	// Validate our current sequence just in case ( in theory the view and weapon models should have the same sequences for sequences that overlap at least )
+	CStudioHdr *pStudioHdr = GetModelPtr();
+	if ( pStudioHdr &&
+		GetSequence() >= pStudioHdr->GetNumSeq() )
+	{
+		SetSequence( 0 );
+	}
+}
 
 //-----------------------------------------------------------------------------
 // tool recording

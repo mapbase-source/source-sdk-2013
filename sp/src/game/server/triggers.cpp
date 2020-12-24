@@ -131,6 +131,24 @@ BEGIN_DATADESC( CBaseTrigger )
 
 END_DATADESC()
 
+#ifdef MAPBASE_VSCRIPT
+
+BEGIN_ENT_SCRIPTDESC( CBaseTrigger, CBaseEntity, "Trigger entity" )
+	DEFINE_SCRIPTFUNC( Enable, "" )
+	DEFINE_SCRIPTFUNC( Disable, "" )
+	DEFINE_SCRIPTFUNC( TouchTest, "" )
+	DEFINE_SCRIPTFUNC_NAMED( ScriptIsTouching, "IsTouching", "Checks whether the passed entity is touching the trigger." )
+
+	DEFINE_SCRIPTFUNC( UsesFilter, "Returns true if this trigger uses a filter." )
+	DEFINE_SCRIPTFUNC_NAMED( ScriptPassesTriggerFilters, "PassesTriggerFilters", "Returns whether a target entity satisfies the trigger's spawnflags, filter, etc." )
+	DEFINE_SCRIPTFUNC_NAMED( ScriptGetTouchedEntityOfType, "GetTouchedEntityOfType", "Gets the first touching entity which matches the specified class." )
+
+	DEFINE_SCRIPTFUNC( PointIsWithin, "Checks if the given vector is within the trigger's volume." )
+
+	DEFINE_SCRIPTFUNC_NAMED( ScriptGetTouchingEntities, "GetTouchingEntities", "Gets all entities touching this trigger (and satisfying its criteria). This function copies them to a table with a maximum number of elements." )
+END_SCRIPTDESC();
+
+#endif // MAPBASE_VSCRIPT
 
 LINK_ENTITY_TO_CLASS( trigger, CBaseTrigger );
 
@@ -560,6 +578,19 @@ bool CBaseTrigger::IsTouching( CBaseEntity *pOther )
 	return ( m_hTouchingEntities.Find( hOther ) != m_hTouchingEntities.InvalidIndex() );
 }
 
+#ifdef MAPBASE_VSCRIPT
+bool CBaseTrigger::ScriptIsTouching( HSCRIPT hOther )
+{
+	CBaseEntity *pOther = ToEnt(hOther);
+	if ( !pOther )
+		return false;
+
+	EHANDLE eOther;
+	eOther = pOther;
+	return ( m_hTouchingEntities.Find( eOther ) != m_hTouchingEntities.InvalidIndex() );
+}
+#endif // MAPBASE_VSCRIPT
+
 //-----------------------------------------------------------------------------
 // Purpose: Return a pointer to the first entity of the specified type being touched by this trigger
 //-----------------------------------------------------------------------------
@@ -592,6 +623,19 @@ void CBaseTrigger::InputToggle( inputdata_t &inputdata )
 
 	PhysicsTouchTriggers();
 }
+
+#ifdef MAPBASE_VSCRIPT
+//-----------------------------------------------------------------------------
+// Purpose: Copies touching entities to a script table
+//-----------------------------------------------------------------------------
+void CBaseTrigger::ScriptGetTouchingEntities( HSCRIPT hTable )
+{
+	for (int i = 0; i < m_hTouchingEntities.Count(); i++)
+	{
+		g_pScriptVM->ArrayAppend( hTable, ToHScript( m_hTouchingEntities[i] ) );
+	}
+}
+#endif
 
 
 //-----------------------------------------------------------------------------
@@ -1228,6 +1272,9 @@ void CTriggerLook::Touch(CBaseEntity *pOther)
 		EHANDLE hLookingAtEntity = NULL;
 		for (int i = 0; i < m_hLookTargets.Count(); i++)
 		{
+			if (!m_hLookTargets[i])
+				continue;
+
 			Vector vTargetDir = m_hLookTargets[i]->GetAbsOrigin() - pOther->EyePosition();
 			VectorNormalize(vTargetDir);
 
@@ -2274,6 +2321,11 @@ public:
 	void Touch( CBaseEntity *pOther );
 	void Untouch( CBaseEntity *pOther );
 
+#ifdef MAPBASE
+	void InputSetSpeed( inputdata_t &inputdata );
+	void InputSetPushDir( inputdata_t &inputdata );
+#endif
+
 	Vector m_vecPushDir;
 
 	DECLARE_DATADESC();
@@ -2286,6 +2338,10 @@ BEGIN_DATADESC( CTriggerPush )
 	DEFINE_KEYFIELD( m_vecPushDir, FIELD_VECTOR, "pushdir" ),
 	DEFINE_KEYFIELD( m_flAlternateTicksFix, FIELD_FLOAT, "alternateticksfix" ),
 	//DEFINE_FIELD( m_flPushSpeed, FIELD_FLOAT ),
+#ifdef MAPBASE
+	DEFINE_INPUTFUNC( FIELD_FLOAT, "SetSpeed", InputSetSpeed ),
+	DEFINE_INPUTFUNC( FIELD_VECTOR, "SetPushDir", InputSetPushDir ),
+#endif
 END_DATADESC()
 
 LINK_ENTITY_TO_CLASS( trigger_push, CTriggerPush );
@@ -2431,6 +2487,35 @@ void CTriggerPush::Touch( CBaseEntity *pOther )
 		break;
 	}
 }
+
+#ifdef MAPBASE
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+void CTriggerPush::InputSetSpeed( inputdata_t &inputdata )
+{
+	m_flSpeed = inputdata.value.Float();
+
+	// Need to update push speed/alternative ticks
+	Activate();
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+void CTriggerPush::InputSetPushDir( inputdata_t &inputdata )
+{
+	inputdata.value.Vector3D( m_vecPushDir );
+
+	// Convert pushdir from angles to a vector
+	Vector vecAbsDir;
+	QAngle angPushDir = QAngle( m_vecPushDir.x, m_vecPushDir.y, m_vecPushDir.z );
+	AngleVectors( angPushDir, &vecAbsDir );
+
+	// Transform the vector into entity space
+	VectorIRotate( vecAbsDir, EntityToWorldTransform(), m_vecPushDir );
+}
+#endif
 
 
 //-----------------------------------------------------------------------------
@@ -3602,10 +3687,18 @@ int CTriggerCamera::ScriptGetFov(void)
 //-----------------------------------------------------------------------------
 void CTriggerCamera::ScriptSetFov(int iFOV, float fovSpeed)
 {
-	if (m_hPlayer)
+#ifdef MAPBASE
+	m_fov = iFOV;
+	m_fovSpeed = fovSpeed;
+	
+	if ( m_state == USE_ON && m_hPlayer )
+	{
+#else
+	if ( m_hPlayer )
 	{
 		m_fov = iFOV;
 		m_fovSpeed = fovSpeed;
+#endif
 
 		CBasePlayer* pBasePlayer = (CBasePlayer*)m_hPlayer.Get();
 		pBasePlayer->SetFOV(this, iFOV, fovSpeed);

@@ -82,6 +82,9 @@ public:
 	virtual void StartTouch(CBaseEntity *pOther);
 	virtual void EndTouch(CBaseEntity *pOther);
 	bool IsTouching( CBaseEntity *pOther );
+#ifdef MAPBASE_VSCRIPT
+	bool ScriptIsTouching( HSCRIPT hOther );
+#endif
 
 	CBaseEntity *GetTouchedEntityOfType( const char *sClassName );
 
@@ -91,6 +94,13 @@ public:
 	void TraceAttack(CBaseEntity *pAttacker, float flDamage, const Vector &vecDir, trace_t *ptr, int bitsDamageType) {}
 
 	bool PointIsWithin( const Vector &vecPoint );
+
+#ifdef MAPBASE_VSCRIPT
+	bool	ScriptPassesTriggerFilters( HSCRIPT hOther ) { return ToEnt(hOther) ? PassesTriggerFilters( ToEnt(hOther) ) : NULL; }
+	HSCRIPT	ScriptGetTouchedEntityOfType( const char *sClassName ) { return ToHScript( GetTouchedEntityOfType(sClassName) ); }
+
+	void	ScriptGetTouchingEntities( HSCRIPT hTable );
+#endif
 
 	bool		m_bDisabled;
 	string_t	m_iFilterName;
@@ -123,6 +133,9 @@ protected:
 #endif
 
 	DECLARE_DATADESC();
+#ifdef MAPBASE_VSCRIPT
+	DECLARE_ENT_SCRIPTDESC();
+#endif
 };
 
 //-----------------------------------------------------------------------------

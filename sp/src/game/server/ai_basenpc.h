@@ -1224,6 +1224,12 @@ public:
 
 	int					VScriptGetState();
 
+	void				VScriptWake( HSCRIPT hActivator ) { Wake( ToEnt(hActivator) ); }
+	void				VScriptSleep() { Sleep(); }
+
+	int					VScriptGetSleepState()	{ return (int)GetSleepState(); }
+	void				VScriptSetSleepState( int sleepState ) { SetSleepState( (AI_SleepState_t)sleepState ); }
+
 	const char*			VScriptGetHintGroup() { return STRING( GetHintGroup() ); }
 	HSCRIPT				VScriptGetHintNode();
 
@@ -1245,6 +1251,11 @@ public:
 	void				VScriptClearCondition( const char *szCondition ) { ClearCondition( GetConditionID( szCondition ) ); }
 
 	HSCRIPT				VScriptGetExpresser();
+
+	HSCRIPT				VScriptGetCine();
+	int					GetScriptState() { return m_scriptState; }
+
+	HSCRIPT				VScriptGetSquad();
 #endif
 
 	//-----------------------------------------------------
@@ -1715,7 +1726,7 @@ public:
 	virtual bool		DoHolster(void);
 	virtual bool		DoUnholster(void);
 
-	virtual bool		ShouldUnholsterWeapon() { return GetState() == NPC_STATE_COMBAT && CanUnholsterWeapon(); }
+	virtual bool		ShouldUnholsterWeapon() { return GetState() == NPC_STATE_COMBAT; }
 	virtual bool		CanUnholsterWeapon() { return IsWeaponHolstered(); }
 
 	void				InputGiveWeaponHolstered( inputdata_t &inputdata );
@@ -2888,7 +2899,11 @@ public:
 	derivedClass::AccessClassScheduleIdSpaceDirect().Init( #derivedClass, BaseClass::GetSchedulingSymbols(), &BaseClass::AccessClassScheduleIdSpaceDirect() ); \
 	derivedClass::gm_SquadSlotIdSpace.Init( &CAI_BaseNPC::gm_SquadSlotNamespace, &BaseClass::gm_SquadSlotIdSpace);
 
+#ifdef MAPBASE
+#define ADD_CUSTOM_INTERACTION( interaction )	{ CBaseCombatCharacter::AddInteractionWithString( interaction, #interaction ); }
+#else
 #define	ADD_CUSTOM_INTERACTION( interaction )	{ interaction = CBaseCombatCharacter::GetInteractionID(); }
+#endif
 
 #define ADD_CUSTOM_SQUADSLOT_NAMED(derivedClass,squadSlotName,squadSlotEN)\
 	if ( !derivedClass::gm_SquadSlotIdSpace.AddSymbol( squadSlotName, squadSlotEN, "squadslot", derivedClass::gm_pszErrorClassName ) ) return;

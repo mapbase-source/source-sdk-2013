@@ -100,6 +100,9 @@ public:
 	inline float SequenceDuration( void ) { return SequenceDuration( m_nSequence ); }
 	float	SequenceDuration( CStudioHdr *pStudioHdr, int iSequence );
 	inline float SequenceDuration( int iSequence ) { return SequenceDuration(GetModelPtr(), iSequence); }
+#ifdef MAPBASE_VSCRIPT
+	inline float ScriptSequenceDuration( int iSequence ) { return SequenceDuration(GetModelPtr(), iSequence); }
+#endif
 	float	GetSequenceCycleRate( CStudioHdr *pStudioHdr, int iSequence );
 	inline float	GetSequenceCycleRate( int iSequence ) { return GetSequenceCycleRate(GetModelPtr(),iSequence); }
 	float	GetLastVisibleCycle( CStudioHdr *pStudioHdr, int iSequence );
@@ -195,6 +198,17 @@ public:
 	void	ScriptSetPoseParameter(const char* szName, float fValue);
 
 	void	ScriptGetBoneTransform( int iBone, HSCRIPT hTransform );
+
+	int		ScriptGetSequenceActivity( int iSequence ) { return GetSequenceActivity( iSequence ); }
+	float	ScriptGetSequenceMoveDist( int iSequence ) { return GetSequenceMoveDist( GetModelPtr(), iSequence ); }
+	int		ScriptSelectHeaviestSequence( int activity ) { return SelectHeaviestSequence( (Activity)activity ); }
+	int		ScriptSelectWeightedSequence( int activity, int curSequence ) { return SelectWeightedSequence( (Activity)activity, curSequence ); }
+
+	HSCRIPT ScriptGetSequenceKeyValues( int iSequence );
+
+	// For VScript
+	int		GetSkin() { return m_nSkin; }
+	void	SetSkin( int iSkin ) { m_nSkin = iSkin; }
 #endif
 
 	// These return the attachment in the space of the entity

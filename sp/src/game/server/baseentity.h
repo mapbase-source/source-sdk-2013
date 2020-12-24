@@ -85,6 +85,7 @@ typedef struct KeyValueData_s KeyValueData;
 class CUserCmd;
 class CSkyCamera;
 class CEntityMapData;
+class CWorld;
 class INextBot;
 
 
@@ -553,6 +554,11 @@ public:
 	bool IsFollowingEntity();
 	CBaseEntity *GetFollowedEntity();
 
+#ifdef MAPBASE_VSCRIPT
+	void ScriptFollowEntity( HSCRIPT hBaseEntity, bool bBoneMerge );
+	HSCRIPT ScriptGetFollowedEntity();
+#endif
+
 	// initialization
 	virtual void Spawn( void );
 	virtual void Precache( void ) {}
@@ -580,6 +586,12 @@ public:
 	void ValidateEntityConnections();
 	void FireNamedOutput( const char *pszOutput, variant_t variant, CBaseEntity *pActivator, CBaseEntity *pCaller, float flDelay = 0.0f );
 	CBaseEntityOutput *FindNamedOutput( const char *pszOutput );
+#ifdef MAPBASE_VSCRIPT
+	void ScriptFireOutput( const char *pszOutput, HSCRIPT hActivator, HSCRIPT hCaller, const char *szValue, float flDelay );
+	float GetMaxOutputDelay( const char *pszOutput );
+	void CancelEventsByInput( const char *szInput );
+#endif
+
 
 	// Activate - called for each entity after each load game and level load
 	virtual void Activate( void );
@@ -591,6 +603,9 @@ public:
 	CBaseEntity *NextMovePeer( void );
 
 	void		SetName( string_t newTarget );
+#ifdef MAPBASE_VSCRIPT
+	void		SetNameAsCStr( const char *newTarget );
+#endif
 	void		SetParent( string_t newParent, CBaseEntity *pActivator, int iAttachment = -1 );
 	
 	// Set the movement parent. Your local origin and angles will become relative to this parent.
@@ -652,6 +667,11 @@ public:
 	// handles an input (usually caused by outputs)
 	// returns true if the the value in the pass in should be set, false if the input is to be ignored
 	virtual bool AcceptInput( const char *szInputName, CBaseEntity *pActivator, CBaseEntity *pCaller, variant_t Value, int outputID );
+#ifdef MAPBASE_VSCRIPT
+	bool ScriptAcceptInput(const char *szInputName, const char *szValue, HSCRIPT hActivator, HSCRIPT hCaller);
+#endif
+
+	bool ScriptInputHook( const char *szInputName, CBaseEntity *pActivator, CBaseEntity *pCaller, variant_t Value, ScriptVariant_t &functionReturn );
 
 	//
 	// Input handlers.
@@ -964,6 +984,7 @@ public:
 	bool	HasContext( string_t name, string_t value ) const; // NOTE: string_t version only compares pointers!
 	bool	HasContext( const char *nameandvalue ) const;
 	const char *GetContextValue( const char *contextName ) const;
+	float	GetContextExpireTime( const char *name );
 	void	RemoveContext( const char *nameandvalue );
 	void	AddContext( const char *name, const char *value, float duration = 0.0f );
 #endif
@@ -1056,7 +1077,7 @@ public:
 	virtual INextBot		*MyNextBotPointer( void ) { return NULL; }
 	virtual float			GetDelay( void ) { return 0; }
 	virtual bool			IsMoving( void );
-	bool					IsWorld() { return entindex() == 0; }
+	bool					IsWorld() const { extern CWorld *g_WorldEntity; return (void *)this == (void *)g_WorldEntity; } // Ported from the Alien Swarm SDK to fix false IsWorld() positives on server-only entities
 	virtual char const		*DamageDecal( int bitsDamageType, int gameMaterial );
 	virtual void			DecalTrace( trace_t *pTrace, char const *decalName );
 	virtual void			ImpactTrace( trace_t *pTrace, int iDamageType, const char *pCustomImpactName = NULL );
@@ -1309,7 +1330,9 @@ public:
 	// 
 	// Also, keep in mind pretty much all existing DispatchInteraction() calls are only performed on CBaseCombatCharacters.
 	// You'll need to change their code manually if you want other, non-character entities to use the interaction.
-	bool				DispatchInteraction( int interactionType, void *data, CBaseCombatCharacter* sourceEnt )	{ return ( interactionType > 0 ) ? HandleInteraction( interactionType, data, sourceEnt ) : false; }
+	bool				DispatchInteraction( int interactionType, void *data, CBaseCombatCharacter* sourceEnt );
+
+	// Do not call HandleInteraction directly, use DispatchInteraction
 	virtual bool		HandleInteraction( int interactionType, void *data, CBaseCombatCharacter* sourceEnt ) { return false; }
 #endif
 
@@ -1363,6 +1386,10 @@ public:
 	void			SetGravity( float gravity );
 	float			GetFriction( void ) const;
 	void			SetFriction( float flFriction );
+#ifdef MAPBASE_VSCRIPT
+	void			SetMass(float mass);
+	float			GetMass();
+#endif
 
 	virtual	bool FVisible ( CBaseEntity *pEntity, int traceMask = MASK_BLOCKLOS, CBaseEntity **ppBlocker = NULL );
 	virtual bool FVisible( const Vector &vecTarget, int traceMask = MASK_BLOCKLOS, CBaseEntity **ppBlocker = NULL );
@@ -1958,10 +1985,28 @@ public:
 	void ConnectOutputToScript(const char* pszOutput, const char* pszScriptFunc);
 	void DisconnectOutputFromScript(const char* pszOutput, const char* pszScriptFunc);
 	void ScriptThink();
+#ifdef MAPBASE_VSCRIPT
+	void ScriptSetThinkFunction(const char *szFunc, float time);
+	void ScriptStopThinkFunction();
+	void ScriptSetThink(HSCRIPT hFunc, float time);
+	void ScriptStopThink();
+	void ScriptThinkH();
+private:
+	HSCRIPT m_hfnThink;
+public:
+#endif
 	const char* GetScriptId();
 	HSCRIPT GetScriptScope();
+#ifdef MAPBASE_VSCRIPT
+	HSCRIPT GetOrCreatePrivateScriptScope();
+#endif
 	void RunPrecacheScripts(void);
 	void RunOnPostSpawnScripts(void);
+
+#ifdef MAPBASE_VSCRIPT
+	HSCRIPT LookupScriptFunction(const char* pFunctionName);
+	bool CallScriptFunctionHandle(HSCRIPT hFunc, ScriptVariant_t* pFunctionReturn);
+#endif
 
 	HSCRIPT ScriptGetMoveParent(void);
 	HSCRIPT ScriptGetRootMoveParent();
@@ -1984,11 +2029,22 @@ public:
 	void ScriptSetOrigin(const Vector& v) { Teleport(&v, NULL, NULL); }
 	void ScriptSetForward(const Vector& v) { QAngle angles; VectorAngles(v, angles); Teleport(NULL, &angles, NULL); }
 	const Vector& ScriptGetForward(void) { static Vector vecForward; GetVectors(&vecForward, NULL, NULL); return vecForward; }
-	const Vector& ScriptGetLeft(void) { static Vector vecLeft; GetVectors(NULL, &vecLeft, NULL); return vecLeft; }
+#ifdef MAPBASE_VSCRIPT
+	const Vector& ScriptGetRight(void) { static Vector vecRight; GetVectors(NULL, &vecRight, NULL); return vecRight; }
+#endif
+	const Vector& ScriptGetLeft(void)  { static Vector vecRight; GetVectors(NULL, &vecRight, NULL); return vecRight; }
+
 	const Vector& ScriptGetUp(void) { static Vector vecUp; GetVectors(NULL, NULL, &vecUp); return vecUp; }
 
 #ifdef MAPBASE_VSCRIPT
-	HSCRIPT ScriptEntityToWorldTransform(void) { return ScriptCreateMatrixInstance( EntityToWorldTransform() ); }
+	void ScriptSetOriginAngles(const Vector &vecOrigin, const QAngle &angAngles) { Teleport(&vecOrigin, &angAngles, NULL); }
+	void ScriptSetOriginAnglesVelocity(const Vector &vecOrigin, const QAngle &angAngles, const Vector &vecVelocity) { Teleport(&vecOrigin, &angAngles, &vecVelocity); }
+
+	HSCRIPT ScriptEntityToWorldTransform( void );
+
+	HSCRIPT ScriptGetPhysicsObject( void );
+
+	void ScriptSetParent(HSCRIPT hParent, const char *szAttachment);
 #endif
 
 	const char* ScriptGetModelName(void) const;
@@ -2015,6 +2071,7 @@ public:
 
 	void ScriptAddContext( const char *name, const char *value, float duration = 0.0f );
 	const char *ScriptGetContext( const char *name );
+	HSCRIPT ScriptGetContextIndex( int index );
 
 	int ScriptClassify(void);
 
@@ -2027,10 +2084,28 @@ public:
 	int ScriptGetColorB()	{ return m_clrRender.GetB(); }
 	int ScriptGetAlpha()	{ return m_clrRender.GetA(); }
 	void ScriptSetColorVector( const Vector& vecColor );
+	void ScriptSetColor( int r, int g, int b );
 	void ScriptSetColorR( int iVal )	{ SetRenderColorR( iVal ); }
 	void ScriptSetColorG( int iVal )	{ SetRenderColorG( iVal ); }
 	void ScriptSetColorB( int iVal )	{ SetRenderColorB( iVal ); }
 	void ScriptSetAlpha( int iVal )		{ SetRenderColorA( iVal ); }
+
+	int ScriptGetRenderMode() { return GetRenderMode(); }
+	void ScriptSetRenderMode( int nRenderMode ) { SetRenderMode( (RenderMode_t)nRenderMode ); }
+
+	int ScriptGetMoveType() { return GetMoveType(); }
+	void ScriptSetMoveType( int iMoveType ) { SetMoveType( (MoveType_t)iMoveType ); }
+
+	bool ScriptDispatchInteraction( int interactionType, HSCRIPT data, HSCRIPT sourceEnt );
+
+	int ScriptGetTakeDamage() { return m_takedamage; }
+	void ScriptSetTakeDamage( int val ) { m_takedamage = val; }
+
+	static ScriptHook_t	g_Hook_UpdateOnRemove;
+	static ScriptHook_t	g_Hook_VPhysicsCollision;
+	static ScriptHook_t	g_Hook_FireBullets;
+	static ScriptHook_t	g_Hook_OnDeath;
+	static ScriptHook_t	g_Hook_HandleInteraction;
 #endif
 
 	string_t		m_iszVScripts;
@@ -2038,7 +2113,11 @@ public:
 	CScriptScope	m_ScriptScope;
 	HSCRIPT			m_hScriptInstance;
 	string_t		m_iszScriptId;
+#ifdef MAPBASE_VSCRIPT
+	HSCRIPT			m_pScriptModelKeyValues;
+#else
 	CScriptKeyValues* m_pScriptModelKeyValues;
+#endif
 };
 
 // Send tables exposed in this module.
@@ -2187,6 +2266,12 @@ inline void CBaseEntity::SetName( string_t newName )
 	m_iName = newName;
 }
 
+#ifdef MAPBASE_VSCRIPT
+inline void CBaseEntity::SetNameAsCStr( const char *newName )
+{
+	m_iName = AllocPooledString(newName);
+}
+#endif
 
 inline bool CBaseEntity::NameMatches( const char *pszNameOrWildcard )
 {
@@ -2364,6 +2449,36 @@ inline const QAngle& CBaseEntity::GetAbsAngles( void ) const
 	return m_angAbsRotation;
 }
 
+#ifdef MAPBASE_VSCRIPT
+inline float CBaseEntity::GetMass()
+{
+	IPhysicsObject *vPhys = VPhysicsGetObject();
+	if (vPhys)
+	{
+		return vPhys->GetMass();
+	}
+	else
+	{
+		Warning("Tried to call GetMass() on %s but it has no physics.\n", GetDebugName());
+		return 0;
+	}
+}
+
+inline void CBaseEntity::SetMass(float mass)
+{
+	mass = clamp(mass, VPHYSICS_MIN_MASS, VPHYSICS_MAX_MASS);
+
+	IPhysicsObject *vPhys = VPhysicsGetObject();
+	if (vPhys)
+	{
+		vPhys->SetMass(mass);
+	}
+	else
+	{
+		Warning("Tried to call SetMass() on %s but it has no physics.\n", GetDebugName());
+	}
+}
+#endif
 
 
 //-----------------------------------------------------------------------------

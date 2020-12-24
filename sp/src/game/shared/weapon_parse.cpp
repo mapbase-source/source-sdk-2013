@@ -76,10 +76,12 @@ extern itemFlags_t g_ItemFlags[7];
 
 static CUtlDict< FileWeaponInfo_t*, unsigned short > m_WeaponInfoDatabase;
 
+#ifndef MAPBASE // Mapbase makes weapons in the same slot & position swap each other out, which is a feature mods can intentionally use.
 #ifdef _DEBUG
 // used to track whether or not two weapons have been mistakenly assigned the wrong slot
 bool g_bUsedWeaponSlots[MAX_WEAPON_SLOTS][MAX_WEAPON_POSITIONS] = { 0 };
 
+#endif
 #endif
 
 //-----------------------------------------------------------------------------
@@ -154,8 +156,10 @@ void ResetFileWeaponInfoDatabase( void )
 	}
 	m_WeaponInfoDatabase.RemoveAll();
 
+#ifndef MAPBASE // Mapbase makes weapons in the same slot & position swap each other out, which is a feature mods can intentionally use.
 #ifdef _DEBUG
 	memset(g_bUsedWeaponSlots, 0, sizeof(g_bUsedWeaponSlots));
+#endif
 #endif
 }
 #endif
@@ -279,7 +283,11 @@ bool ReadWeaponDataFromFileForSlot( IFileSystem* filesystem, const char *szWeapo
 	FileWeaponInfo_t *pFileInfo = GetFileWeaponInfoFromHandle( *phandle );
 	Assert( pFileInfo );
 
+#ifdef MAPBASE
+	if ( pFileInfo->bParsedScript && !pFileInfo->bCustom )
+#else
 	if ( pFileInfo->bParsedScript )
+#endif
 		return true;
 
 	char sz[128];
@@ -296,12 +304,58 @@ bool ReadWeaponDataFromFileForSlot( IFileSystem* filesystem, const char *szWeapo
 	if ( !pKV )
 		return false;
 
+#ifdef MAPBASE
+	pFileInfo->bCustom = false;
+#endif
 	pFileInfo->Parse( pKV, szWeaponName );
 
 	pKV->deleteThis();
 
 	return true;
 }
+
+#ifdef MAPBASE
+extern const char *g_MapName;
+
+bool ReadCustomWeaponDataFromFileForSlot( IFileSystem* filesystem, const char *szWeaponName, WEAPON_FILE_INFO_HANDLE *phandle, const unsigned char *pICEKey )
+{
+	if ( !phandle )
+	{
+		Assert( 0 );
+		return false;
+	}
+	
+	*phandle = FindWeaponInfoSlot( szWeaponName );
+	FileWeaponInfo_t *pFileInfo = GetFileWeaponInfoFromHandle( *phandle );
+	Assert( pFileInfo );
+
+	// Just parse the custom script anyway even if it was already loaded. This is because after one is loaded,
+	// there's no way of distinguishing between maps with no custom scripts and maps with their own new custom scripts.
+	//if ( pFileInfo->bParsedScript && pFileInfo->bCustom )
+	//	return true;
+
+	char sz[128];
+	Q_snprintf( sz, sizeof( sz ), "maps/%s_%s", g_MapName, szWeaponName );
+
+	KeyValues *pKV = ReadEncryptedKVFile( filesystem, sz, pICEKey,
+#if defined( DOD_DLL )
+		true			// Only read .ctx files!
+#else
+		false
+#endif
+		);
+
+	if ( !pKV )
+		return false;
+
+	pFileInfo->bCustom = true;
+	pFileInfo->Parse( pKV, szWeaponName );
+
+	pKV->deleteThis();
+
+	return true;
+}
+#endif
 
 
 //-----------------------------------------------------------------------------
@@ -412,6 +466,7 @@ void FileWeaponInfo_t::Parse( KeyValues *pKeyValuesData, const char *szWeaponNam
 	m_bAllowFlipping = ( pKeyValuesData->GetInt( "AllowFlipping", 1 ) != 0 ) ? true : false;
 	m_bMeleeWeapon = ( pKeyValuesData->GetInt( "MeleeWeapon", 0 ) != 0 ) ? true : false;
 
+#ifndef MAPBASE // Mapbase makes weapons in the same slot & position swap each other out, which is a feature mods can intentionally use.
 #if defined(_DEBUG) && defined(HL2_CLIENT_DLL)
 	// make sure two weapons aren't in the same slot & position
 	if ( iSlot >= MAX_WEAPON_SLOTS ||
@@ -428,6 +483,7 @@ void FileWeaponInfo_t::Parse( KeyValues *pKeyValuesData, const char *szWeaponNam
 		}
 		g_bUsedWeaponSlots[iSlot][iPosition] = true;
 	}
+#endif
 #endif
 
 	// Primary ammo used

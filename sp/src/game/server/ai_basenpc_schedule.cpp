@@ -470,7 +470,7 @@ CAI_Schedule *CAI_BaseNPC::GetNewSchedule( void )
 		// You may not be in combat state with no enemy!!! (sjb) 11/4/03
 		if( m_NPCState == NPC_STATE_COMBAT && !GetEnemy() )
 		{
-			DevMsg("**ERROR: Combat State with no enemy! slamming to ALERT\n");
+			CGMsg( 1, CON_GROUP_NPC_AI, "**ERROR: Combat State with no enemy! slamming to ALERT\n" );
 			SetState( NPC_STATE_ALERT );
 		}
 
@@ -693,7 +693,7 @@ void CAI_BaseNPC::MaintainSchedule ( void )
 
 		if ( !GetCurSchedule() || GetCurSchedule()->NumTasks() == 0 )
 		{
-			DevMsg("ERROR: Missing or invalid schedule!\n");
+			CGMsg( 1, CON_GROUP_NPC_AI, "ERROR: Missing or invalid schedule!\n" );
 			SetActivity ( ACT_IDLE );
 			return;
 		}
@@ -1007,7 +1007,7 @@ bool CAI_BaseNPC::FindCoverFromBestSound( Vector *pCoverPos )
 	}
 	else
 	{
-		DevMsg( 2, "Attempting to find cover from best sound, but best sound not founc.\n" );
+		CGMsg( 2, CON_GROUP_NPC_AI, "Attempting to find cover from best sound, but best sound not founc.\n" );
 	}
 	
 	return false;
@@ -2743,7 +2743,7 @@ void CAI_BaseNPC::StartTask( const Task_t *pTask )
 	case TASK_SOUND_ANGRY:
 		{
 			// sounds are complete as soon as we get here, cause we've already played them.
-			DevMsg( 2, "SOUND\n" );			
+			CGMsg( 2, CON_GROUP_NPC_AI, "SOUND\n" );			
 			TaskComplete();
 			break;
 		}
@@ -2785,7 +2785,7 @@ void CAI_BaseNPC::StartTask( const Task_t *pTask )
 		{
 			if ( !m_hCine )
 			{
-				DevMsg( "Scripted sequence destroyed while in use\n" );
+				CGMsg( 1, CON_GROUP_NPC_SCRIPTS, "Scripted sequence destroyed while in use\n" );
 				TaskFail( FAIL_SCHEDULE_NOT_FOUND );
 				break;
 			}
@@ -2796,7 +2796,7 @@ void CAI_BaseNPC::StartTask( const Task_t *pTask )
 		{
 			if ( !m_hCine )
 			{
-				DevMsg( "Scripted sequence destroyed while in use\n" );
+				CGMsg( 1, CON_GROUP_NPC_SCRIPTS, "Scripted sequence destroyed while in use\n" );
 				TaskFail( FAIL_SCHEDULE_NOT_FOUND );
 				break;
 			}
@@ -3143,7 +3143,7 @@ void CAI_BaseNPC::StartTask( const Task_t *pTask )
 
 	default:
 		{
-			DevMsg( "No StartTask entry for %s\n", TaskName( task ) );
+			CGMsg( 1, CON_GROUP_NPC_AI, "No StartTask entry for %s\n", TaskName( task ) );
 		}
 		break;
 	}
@@ -3290,7 +3290,7 @@ void CAI_BaseNPC::RunTask( const Task_t *pTask )
 			// Put a debugging check in here
 			if (GetHintNode()->User() != this)
 			{
-				DevMsg("Hint node (%s) being used by non-owner!\n",GetHintNode()->GetDebugName());
+				CGMsg( 1, CON_GROUP_NPC_AI, "Hint node (%s) being used by non-owner!\n", GetHintNode()->GetDebugName() );
 			}
 
 			if ( IsActivityFinished() )
@@ -3750,8 +3750,6 @@ void CAI_BaseNPC::RunTask( const Task_t *pTask )
 									// only slightly above our initial search conditions.
 									if (GetNavigator()->BuildAndGetPathDistToGoal() < 300.0f)
 									{
-										// NOTE: Remove this DevMsg() when this is tested!
-										DevMsg("Player Withdrawal Destination Dist: %f\n", GetNavigator()->GetPathDistToGoal());
 										pHint->NPCHandleStartNav(this, false);
 										pHint->DisableForSeconds( 0.1f ); // Force others to find their own.
 										TaskComplete();
@@ -3999,7 +3997,7 @@ void CAI_BaseNPC::RunTask( const Task_t *pTask )
 			}
 			else if (!m_hCine)
 			{
-				DevMsg( "Cine died!\n");
+				CGMsg( 1, CON_GROUP_NPC_SCRIPTS, "Cine died!\n" );
 				TaskComplete();
 			}
 			else if ( IsRunningDynamicInteraction() )
@@ -4055,7 +4053,7 @@ void CAI_BaseNPC::RunTask( const Task_t *pTask )
 		{
 			if ( !m_hCine )
 			{
-				DevMsg( "Scripted sequence destroyed while in use\n" );
+				CGMsg( 1, CON_GROUP_NPC_SCRIPTS, "Scripted sequence destroyed while in use\n" );
 				TaskFail( FAIL_SCHEDULE_NOT_FOUND );
 				break;
 			}
@@ -4074,7 +4072,7 @@ void CAI_BaseNPC::RunTask( const Task_t *pTask )
 		{
 			if ( !m_hCine )
 			{
-				DevMsg( "Scripted sequence destroyed while in use\n" );
+				CGMsg( 1, CON_GROUP_NPC_SCRIPTS, "Scripted sequence destroyed while in use\n" );
 				TaskFail( FAIL_SCHEDULE_NOT_FOUND );
 				break;
 			}
@@ -4231,7 +4229,7 @@ void CAI_BaseNPC::RunTask( const Task_t *pTask )
 
 	default:
 		{
-			DevMsg( "No RunTask entry for %s\n", TaskName( pTask->iTask ) );
+			CGMsg( 1, CON_GROUP_NPC_AI, "No RunTask entry for %s\n", TaskName( pTask->iTask ) );
 			TaskComplete();
 		}
 		break;
@@ -4403,7 +4401,7 @@ int CAI_BaseNPC::GetScriptCustomMoveSequence( void )
 		iSequence = LookupSequence( STRING( m_hCine->m_iszCustomMove ) );
 		if ( iSequence == ACTIVITY_NOT_AVAILABLE )
 		{
-			DevMsg( "SCRIPT_CUSTOM_MOVE: %s has no sequence:%s\n", GetClassname(), STRING(m_hCine->m_iszCustomMove) );
+			CGMsg( 1, CON_GROUP_NPC_SCRIPTS, "SCRIPT_CUSTOM_MOVE: %s has no sequence:%s\n", GetClassname(), STRING(m_hCine->m_iszCustomMove) );
 		}
 	}
 	else if ( m_iszSceneCustomMoveSeq != NULL_STRING )

@@ -1,4 +1,16 @@
+//========= Mapbase - https://github.com/mapbase-source/source-sdk-2013 ============//
+//
+// Purpose: Custom implementation of VScript in Source 2013, created from scratch
+//			using the Alien Swarm SDK as a reference for Valve's library.
+// 
+// Author(s): ReDucTor (header written by Blixibon)
+//
+// $NoKeywords: $
+//=============================================================================//
+
 #include "vscript/ivscript.h"
+
+#include "vscript_bindings_base.h"
 
 #include "tier1/tier1.h"
 
@@ -31,7 +43,10 @@ public:
 			delete pScriptVM;
 			return nullptr;
 		}
-		
+
+		// Register base bindings for all VMs
+		RegisterBaseBindings( pScriptVM );
+
 		return pScriptVM;
 	}
 
@@ -42,6 +57,25 @@ public:
 			pScriptVM->Shutdown();
 			delete pScriptVM;
 		}
+	}
+
+	// Mapbase moves CScriptKeyValues into the library so it could be used elsewhere
+	virtual HSCRIPT CreateScriptKeyValues( IScriptVM *pVM, KeyValues *pKV, bool bAllowDestruct ) override
+	{
+		CScriptKeyValues *pSKV = new CScriptKeyValues( pKV );
+		HSCRIPT hSKV = pVM->RegisterInstance( pSKV, bAllowDestruct );
+		return hSKV;
+	}
+
+	virtual KeyValues *GetKeyValuesFromScriptKV( IScriptVM *pVM, HSCRIPT hSKV ) override
+	{
+		CScriptKeyValues *pSKV = (hSKV ? (CScriptKeyValues*)pVM->GetInstanceValue( hSKV, GetScriptDesc( (CScriptKeyValues*)NULL ) ) : nullptr);
+		if (pSKV)
+		{
+			return pSKV->m_pKeyValues;
+		}
+
+		return nullptr;
 	}
 };
 

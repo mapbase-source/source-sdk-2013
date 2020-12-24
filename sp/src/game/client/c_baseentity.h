@@ -261,10 +261,27 @@ public:
 
 	string_t						m_iClassname;
 
+#ifdef MAPBASE_VSCRIPT
+	// VSCRIPT
+	bool ValidateScriptScope();
+	bool CallScriptFunction( const char* pFunctionName, ScriptVariant_t* pFunctionReturn );
+
+	HSCRIPT GetScriptScope() { return m_ScriptScope; }
+
+	HSCRIPT LookupScriptFunction(const char* pFunctionName);
+	bool CallScriptFunctionHandle(HSCRIPT hFunc, ScriptVariant_t* pFunctionReturn);
+
+	bool RunScriptFile( const char* pScriptFile, bool bUseRootScope = false );
+	bool RunScript( const char* pScriptText, const char* pDebugFilename = "C_BaseEntity::RunScript" );
+#endif
+
 	HSCRIPT GetScriptInstance();
 
 	HSCRIPT			m_hScriptInstance;
 	string_t		m_iszScriptId;
+#ifdef MAPBASE_VSCRIPT
+	CScriptScope	m_ScriptScope;
+#endif
 
 // IClientUnknown overrides.
 public:
@@ -366,6 +383,11 @@ public:
 	bool							IsMarkedForDeletion( void );
 
 	virtual int						entindex( void ) const;
+
+#ifdef MAPBASE_VSCRIPT
+	// "I don't know why but wrapping entindex() works, while calling it directly crashes."
+	inline int C_BaseEntity::GetEntityIndex() const { return entindex(); }
+#endif
 	
 	// This works for client-only entities and returns the GetEntryIndex() of the entity's handle,
 	// so the sound system can get an IClientEntity from it.
@@ -868,6 +890,7 @@ public:
 	void							SetSize( const Vector &vecMin, const Vector &vecMax ); // UTIL_SetSize( pev, mins, maxs );
 	char const						*GetClassname( void );
 	char const						*GetDebugName( void );
+	virtual const char				*GetPlayerName() const { return NULL; }
 	static int						PrecacheModel( const char *name ); 
 	static bool						PrecacheSound( const char *name );
 	static void						PrefetchSound( const char *name );
@@ -1010,6 +1033,7 @@ public:
 	/////////////////
 
 	virtual bool					IsPlayer( void ) const { return false; };
+	virtual bool						IsBot( void ) const { return ((GetFlags() & FL_FAKECLIENT) == FL_FAKECLIENT) ? true : false; }
 	virtual bool					IsBaseCombatCharacter( void ) { return false; };
 	virtual C_BaseCombatCharacter	*MyCombatCharacterPointer( void ) { return NULL; }
 	virtual bool					IsNPC( void ) { return false; }
@@ -1130,7 +1154,11 @@ public:
 	virtual int GetSkin() { return 0; }
 
 	const Vector& ScriptGetForward(void) { static Vector vecForward; GetVectors(&vecForward, NULL, NULL); return vecForward; }
-	const Vector& ScriptGetLeft(void) { static Vector vecLeft; GetVectors(NULL, &vecLeft, NULL); return vecLeft; }
+#ifdef MAPBASE_VSCRIPT
+	const Vector& ScriptGetRight(void) { static Vector vecRight; GetVectors(NULL, &vecRight, NULL); return vecRight; }
+#endif
+	const Vector& ScriptGetLeft(void)  { static Vector vecRight; GetVectors(NULL, &vecRight, NULL); return vecRight; }
+
 	const Vector& ScriptGetUp(void) { static Vector vecUp; GetVectors(NULL, NULL, &vecUp); return vecUp; }
 
 #ifdef MAPBASE_VSCRIPT

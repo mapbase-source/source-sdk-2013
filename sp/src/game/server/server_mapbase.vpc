@@ -8,7 +8,8 @@ $Configuration
 {
 	$Compiler
 	{
-		$PreprocessorDefinitions		"$BASE;ASW_PROJECTED_TEXTURES;DYNAMIC_RTT_SHADOWS"
+		$PreprocessorDefinitions		"$BASE;ASW_PROJECTED_TEXTURES;DYNAMIC_RTT_SHADOWS;GLOWS_ENABLE"
+		$PreprocessorDefinitions		"$BASE;MAPBASE_VSCRIPT"		[$MAPBASE_VSCRIPT]
 	}
 }
 
@@ -21,6 +22,11 @@ $Project
 		$File	"env_projectedtexture.h"
 		$File	"env_global_light.cpp"
 		$File	"skyboxswapper.cpp"
+		$File	"env_instructor_hint.cpp"
+		$File	"postprocesscontroller.cpp"
+		$File	"postprocesscontroller.h"
+		$File	"env_dof_controller.cpp"
+		$File	"env_dof_controller.h"
 
 		$Folder	"Mapbase"
 		{
@@ -32,8 +38,14 @@ $Project
 			$File	"$SRCDIR\game\shared\mapbase\matchers.cpp"
 			$File	"$SRCDIR\game\shared\mapbase\matchers.h"
 			$File	"$SRCDIR\game\shared\mapbase\vscript_funcs_shared.cpp" [$MAPBASE_VSCRIPT]
-			$File	"$SRCDIR\game\shared\mapbase\vscript_funcs_math.cpp" [$MAPBASE_VSCRIPT]
+			$File	"$SRCDIR\game\shared\mapbase\vscript_funcs_shared.h" [$MAPBASE_VSCRIPT]
+			$File	"$SRCDIR\game\shared\mapbase\vscript_singletons.cpp" [$MAPBASE_VSCRIPT]
+			$File	"$SRCDIR\game\shared\mapbase\vscript_singletons.h" [$MAPBASE_VSCRIPT]
 			$File	"$SRCDIR\game\shared\mapbase\vscript_funcs_hl2.cpp" [$MAPBASE_VSCRIPT]
+			$File	"$SRCDIR\game\shared\mapbase\vscript_consts_shared.cpp" [$MAPBASE_VSCRIPT]
+			$File	"$SRCDIR\game\shared\mapbase\vscript_consts_weapons.cpp" [$MAPBASE_VSCRIPT]
+			$File	"$SRCDIR\game\shared\mapbase\weapon_custom_scripted.cpp" [$MAPBASE_VSCRIPT]
+			$File	"$SRCDIR\game\shared\mapbase\weapon_custom_scripted.h" [$MAPBASE_VSCRIPT]
 			
 			$File	"mapbase\ai_grenade.cpp"
 			$File	"mapbase\ai_grenade.h"
@@ -44,6 +56,7 @@ $Project
 			$File	"mapbase\datadesc_mod.h"
 			$File	"mapbase\expandedrs_combine.h"
 			$File	"mapbase\func_clientclip.cpp"
+			$File	"mapbase\func_fake_worldportal.cpp"
 			$File	"mapbase\GlobalStrings.cpp"
 			$File	"mapbase\GlobalStrings.h"
 			$File	"mapbase\logic_externaldata.cpp"
@@ -55,6 +68,7 @@ $Project
 			//$File	"mapbase\point_physics_control.cpp" // Backlogged
 			$File	"mapbase\point_projectile.cpp"
 			$File	"mapbase\point_radiation_source.cpp"
+			$File	"mapbase\point_glow.cpp"
 			$File	"mapbase\SystemConvarMod.cpp"
 			$File	"mapbase\SystemConvarMod.h"
 			$File	"mapbase\variant_tools.h"

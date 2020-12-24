@@ -158,13 +158,19 @@ BEGIN_ENT_SCRIPTDESC( CBaseCombatCharacter, CBaseFlex, "The base class shared by
 	DEFINE_SCRIPTFUNC_NAMED( GetScriptWeaponIndex, "GetWeapon", "Get a specific weapon in the character's inventory." )
 	DEFINE_SCRIPTFUNC_NAMED( GetScriptWeaponByType, "FindWeapon", "Find a specific weapon in the character's inventory by its classname." )
 	DEFINE_SCRIPTFUNC_NAMED( GetScriptAllWeapons, "GetAllWeapons", "Get the character's weapon inventory." )
+	DEFINE_SCRIPTFUNC_NAMED( ScriptGetCurrentWeaponProficiency, "GetCurrentWeaponProficiency", "Get the character's current proficiency (accuracy) with their current weapon." )
 
 	DEFINE_SCRIPTFUNC_NAMED( Weapon_ShootPosition, "ShootPosition", "Get the character's shoot position." )
 	DEFINE_SCRIPTFUNC_NAMED( Weapon_DropAll, "DropAllWeapons", "Make the character drop all of its weapons." )
 	DEFINE_SCRIPTFUNC_NAMED( ScriptEquipWeapon, "EquipWeapon", "Make the character equip the specified weapon entity. If they don't already own the weapon, they will acquire it instantly." )
+	DEFINE_SCRIPTFUNC_NAMED( ScriptDropWeapon, "DropWeapon", "Make the character drop the specified weapon entity if they own it." )
 
 	DEFINE_SCRIPTFUNC_NAMED( ScriptGetAmmoCount, "GetAmmoCount", "Get the ammo count of the specified ammo type." )
 	DEFINE_SCRIPTFUNC_NAMED( ScriptSetAmmoCount, "SetAmmoCount", "Set the ammo count of the specified ammo type." )
+
+	DEFINE_SCRIPTFUNC( DoMuzzleFlash, "Does a muzzle flash." )
+	DEFINE_SCRIPTFUNC_NAMED( ScriptGetAttackSpread, "GetAttackSpread", "Get the attack spread." )
+	DEFINE_SCRIPTFUNC_NAMED( ScriptGetSpreadBias, "GetSpreadBias", "Get the spread bias." )
 
 	DEFINE_SCRIPTFUNC_NAMED( ScriptRelationType, "GetRelationship", "Get a character's relationship to a specific entity." )
 	DEFINE_SCRIPTFUNC_NAMED( ScriptRelationPriority, "GetRelationPriority", "Get a character's relationship priority for a specific entity." )
@@ -303,6 +309,21 @@ int	CBaseCombatCharacter::GetInteractionID(void)
 	m_lastInteraction++;
 	return (m_lastInteraction);
 }
+
+#ifdef MAPBASE
+//-----------------------------------------------------------------------------
+// Purpose: New method of adding interactions which allows their name to be available (currently used for VScript)
+//-----------------------------------------------------------------------------
+void CBaseCombatCharacter::AddInteractionWithString( int &interaction, const char *szName )
+{
+	interaction = GetInteractionID();
+
+	if (g_pScriptVM)
+	{
+		ScriptRegisterConstantNamed( g_pScriptVM, interaction, szName, "An interaction which could be used with HandleInteraction or DispatchInteraction. NOTE: These are usually only initialized by certain types of NPCs when an instance of one spawns in the level for the first time!!! (the fact you're seeing this one means there was an NPC in the level which initialized it)" );
+	}
+}
+#endif
 
 // ============================================================================
 bool CBaseCombatCharacter::HasHumanGibs( void )
@@ -1704,6 +1725,25 @@ Killed
 */
 void CBaseCombatCharacter::Event_Killed( const CTakeDamageInfo &info )
 {
+#ifdef MAPBASE_VSCRIPT
+	if (m_ScriptScope.IsInitialized() && g_Hook_OnDeath.CanRunInScope( m_ScriptScope ))
+	{
+		HSCRIPT hInfo = g_pScriptVM->RegisterInstance( const_cast<CTakeDamageInfo*>(&info) );
+
+		// info
+		ScriptVariant_t functionReturn;
+		ScriptVariant_t args[] = { ScriptVariant_t( hInfo ) };
+		if ( g_Hook_OnDeath.Call( m_ScriptScope, &functionReturn, args ) && (functionReturn.m_type == FIELD_BOOLEAN && functionReturn.m_bool == false) )
+		{
+			// Make this entity cheat death
+			g_pScriptVM->RemoveInstance( hInfo );
+			return;
+		}
+
+		g_pScriptVM->RemoveInstance( hInfo );
+	}
+#endif
+
 	extern ConVar npc_vphysics;
 
 	// Advance life state to dying
@@ -4383,11 +4423,29 @@ void CBaseCombatCharacter::GetScriptAllWeapons( HSCRIPT hTable )
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
+void CBaseCombatCharacter::ScriptDropWeapon( HSCRIPT hWeapon )
+{
+	CBaseCombatWeapon *pWeapon = HScriptToClass<CBaseCombatWeapon>( hWeapon );
+	if (!pWeapon)
+		return;
+
+	if (pWeapon->GetOwner() == this)
+	{
+		// Drop the weapon
+		Weapon_Drop( pWeapon );
+	}
+	else
+	{
+		CGMsg( 1, CON_GROUP_VSCRIPT, "ScriptDropWeapon: %s is not owned by %s", pWeapon->GetDebugName(), GetDebugName() );
+	}
+}
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 void CBaseCombatCharacter::ScriptEquipWeapon( HSCRIPT hWeapon )
 {
-	CBaseEntity *pEntity = ToEnt( hWeapon );
-	CBaseCombatWeapon *pWeapon = pEntity->MyCombatWeaponPointer();
-	if (!pEntity || !pWeapon)
+	CBaseCombatWeapon *pWeapon = HScriptToClass<CBaseCombatWeapon>( hWeapon );
+	if (!pWeapon)
 		return;
 
 	if (pWeapon->GetOwner() == this)
@@ -4435,6 +4493,37 @@ void CBaseCombatCharacter::ScriptSetAmmoCount( int iType, int iCount )
 	}
 
 	return SetAmmoCount( iCount, iType );
+}
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+const Vector& CBaseCombatCharacter::ScriptGetAttackSpread( HSCRIPT hWeapon, HSCRIPT hTarget )
+{
+	CBaseEntity *pWeapon = ToEnt( hWeapon );
+	if (!pWeapon || !pWeapon->IsBaseCombatWeapon())
+	{
+		Warning( "GetAttackSpread: %s is not a valid weapon\n", pWeapon ? pWeapon->GetDebugName() : "Null entity" );
+		return vec3_origin;
+	}
+
+	// TODO: Make this a simple non-reference Vector?
+	static Vector vec;
+	vec = GetAttackSpread( pWeapon->MyCombatWeaponPointer(), ToEnt( hTarget ) );
+	return vec;
+}
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+float CBaseCombatCharacter::ScriptGetSpreadBias( HSCRIPT hWeapon, HSCRIPT hTarget )
+{
+	CBaseEntity *pWeapon = ToEnt( hWeapon );
+	if (!pWeapon || !pWeapon->IsBaseCombatWeapon())
+	{
+		Warning( "GetSpreadBias: %s is not a valid weapon\n", pWeapon ? pWeapon->GetDebugName() : "Null entity" );
+		return 1.0f;
+	}
+
+	return GetSpreadBias( pWeapon->MyCombatWeaponPointer(), ToEnt( hTarget ) );
 }
 
 //-----------------------------------------------------------------------------

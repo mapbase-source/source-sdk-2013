@@ -23,13 +23,20 @@ All contributions must follow the following rules:
    is usually not fit for Mapbase.
    
  * All content in a contribution must be either already legally open-source or done with the
-   full permission of the contribution's original creator(s).
+   full permission of the content's original creator(s).
+   
+ * Contributions must not break existing maps/content or interfere with them in a negative or non-objective way.
    
  * Code contributions are not obliged to follow Mapbase's preprocessor conventions (e.g. #ifdef MAPBASE),
-   although it's acceptable.
+   although following them is usually acceptable.
    
-If your contribution is accepted, you may be listed in Mapbase's credits:
+ * If you are contributing a file you created yourself specifically for Mapbase, you are required to
+   use the custom "Mapbase - Source 2013" header used in other Mapbase files as of Mapbase v5.0.
+   You are encouraged to append an "Author(s)" part to that header in your file in order to clarify who wrote it.
+   
+If your contribution is accepted, you may be listed in Mapbase's credits and the README's external content list:
 	https://github.com/mapbase-source/source-sdk-2013/wiki/Mapbase-Credits#Contributors
+	https://github.com/mapbase-source/source-sdk-2013/blob/master/README
 	
 You may also receive the "Contributor" or "Major Contributor" role on Mapbase's Discord server if you are
 a member of it.

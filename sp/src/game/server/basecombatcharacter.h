@@ -161,8 +161,10 @@ public:
 	virtual bool		ShouldShootMissTarget( CBaseCombatCharacter *pAttacker );
 	virtual CBaseEntity *FindMissTarget( void );
 
+#ifndef MAPBASE // This function now exists in CBaseEntity
 	// Do not call HandleInteraction directly, use DispatchInteraction
 	bool				DispatchInteraction( int interactionType, void *data, CBaseCombatCharacter* sourceEnt )	{ return ( interactionType > 0 ) ? HandleInteraction( interactionType, data, sourceEnt ) : false; }
+#endif
 	virtual bool		HandleInteraction( int interactionType, void *data, CBaseCombatCharacter* sourceEnt );
 
 	virtual QAngle		BodyAngles();
@@ -414,16 +416,21 @@ public:
 	virtual	float		GetSpreadBias(  CBaseCombatWeapon *pWeapon, CBaseEntity *pTarget );
 	virtual void		DoMuzzleFlash();
 
-#ifdef MAPBASE_VSCRIPT // DO NOT COMMIT; WAIT UNTIL FULL MERGE (5/15/2020)
+#ifdef MAPBASE_VSCRIPT
 	HSCRIPT				GetScriptActiveWeapon();
 	HSCRIPT				GetScriptWeaponIndex( int i );
 	HSCRIPT				GetScriptWeaponByType( const char *pszWeapon, int iSubType = 0 );
 	void				GetScriptAllWeapons( HSCRIPT hTable );
+	int					ScriptGetCurrentWeaponProficiency() { return GetCurrentWeaponProficiency(); }
 
+	void				ScriptDropWeapon( HSCRIPT hWeapon );
 	void				ScriptEquipWeapon( HSCRIPT hWeapon );
 
 	int					ScriptGetAmmoCount( int iType ) const;
 	void				ScriptSetAmmoCount( int iType, int iCount );
+
+	const Vector&		ScriptGetAttackSpread( HSCRIPT hWeapon, HSCRIPT hTarget );
+	float				ScriptGetSpreadBias( HSCRIPT hWeapon, HSCRIPT hTarget );
 
 	int					ScriptRelationType( HSCRIPT pTarget );
 	int					ScriptRelationPriority( HSCRIPT pTarget );
@@ -574,6 +581,11 @@ protected:
 
 public:
 	static int					GetInteractionID();	// Returns the next interaction #
+
+#ifdef MAPBASE
+	// Mapbase's new method for adding interactions which allows them to be handled with their names, currently for VScript
+	static void					AddInteractionWithString( int &interaction, const char *szName );
+#endif
 
 protected:
 	// Visibility-related stuff

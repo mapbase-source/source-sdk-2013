@@ -294,6 +294,11 @@ public:
 	virtual void			SharedSpawn(); // Shared between client and server.
 	virtual void			ForceRespawn( void );
 
+#ifdef MAPBASE
+	// For the logic_playerproxy output
+	virtual void			SpawnedAtPoint( CBaseEntity *pSpawnPoint ) {}
+#endif
+
 	virtual void			InitialSpawn( void );
 	virtual void			InitHUD( void ) {}
 	virtual void			ShowViewPortPanel( const char * name, bool bShow = true, KeyValues *data = NULL );
@@ -392,6 +397,17 @@ public:
 
 #ifdef MAPBASE_VSCRIPT
 	HSCRIPT					VScriptGetExpresser();
+
+	int						GetButtons() { return m_nButtons; }
+	int						GetButtonPressed() { return m_afButtonPressed; }
+	int						GetButtonReleased() { return m_afButtonReleased; }
+	int						GetButtonLast() { return m_afButtonLast; }
+	int						GetButtonDisabled() { return m_afButtonDisabled; }
+	int						GetButtonForced() { return m_afButtonForced; }
+
+	const Vector&			ScriptGetEyeForward() { static Vector vecForward; EyeVectors( &vecForward, NULL, NULL ); return vecForward; }
+	const Vector&			ScriptGetEyeRight() { static Vector vecRight; EyeVectors( NULL, &vecRight, NULL ); return vecRight; }
+	const Vector&			ScriptGetEyeUp() { static Vector vecUp; EyeVectors( NULL, NULL, &vecUp ); return vecUp; }
 #endif
 
 	// View model prediction setup
@@ -564,8 +580,9 @@ public:
 	virtual void			PickupObject( CBaseEntity *pObject, bool bLimitMassAndSize = true ) {}
 	virtual void			ForceDropOfCarriedPhysObjects( CBaseEntity *pOnlyIfHoldindThis = NULL ) {}
 	virtual float			GetHeldObjectMass( IPhysicsObject *pHeldObject );
+	virtual CBaseEntity		*GetHeldObject( void );
 
-	void					CheckSuitUpdate();
+	virtual void			CheckSuitUpdate();
 	void					SetSuitUpdate(const char *name, int fgroup, int iNoRepeat);
 	virtual void			UpdateGeigerCounter( void );
 	void					CheckTimeBasedDamage( void );
@@ -575,6 +592,10 @@ public:
 	virtual Vector			GetAutoaimVector( float flScale );
 	virtual Vector			GetAutoaimVector( float flScale, float flMaxDist );
 	virtual void			GetAutoaimVector( autoaim_params_t &params );
+#ifdef MAPBASE_VSCRIPT
+	Vector					ScriptGetAutoaimVector( float flScale ) { return GetAutoaimVector( flScale ); }
+	Vector					ScriptGetAutoaimVectorCustomMaxDist( float flScale, float flMaxDist ) { return GetAutoaimVector( flScale, flMaxDist ); }
+#endif
 
 	float					GetAutoaimScore( const Vector &eyePosition, const Vector &viewDir, const Vector &vecTarget, CBaseEntity *pTarget, float fScale, CBaseCombatWeapon *pActiveWeapon );
 	QAngle					AutoaimDeflection( Vector &vecSrc, autoaim_params_t &params );
@@ -680,7 +701,7 @@ public:
 	bool	IsConnected() const		{ return m_iConnected != PlayerDisconnected; }
 	bool	IsDisconnecting() const	{ return m_iConnected == PlayerDisconnecting; }
 	bool	IsSuitEquipped() const	{ return m_Local.m_bWearingSuit; }
-	int		ArmorValue() const		{ return m_ArmorValue; }
+	virtual int		ArmorValue() const		{ return m_ArmorValue; }
 	bool	HUDNeedsRestart() const { return m_fInitHUD; }
 	float	MaxSpeed() const		{ return m_flMaxspeed; }
 	Activity GetActivity( ) const	{ return m_Activity; }
@@ -758,6 +779,10 @@ public:
 	int		GetDefaultFOV( void ) const;										// Default FOV if not specified otherwise
 	int		GetFOVForNetworking( void );										// Get the current FOV used for network computations
 	bool	SetFOV( CBaseEntity *pRequester, int FOV, float zoomRate = 0.0f, int iZoomStart = 0 );	// Alters the base FOV of the player (must have a valid requester)
+#ifdef MAPBASE_VSCRIPT
+	void	ScriptSetFOV(int iFOV, float flSpeed);								// Overrides player FOV, ignores zoom owner
+	HSCRIPT ScriptGetFOVOwner() { return ToHScript(m_hZoomOwner); }
+#endif
 	void	SetDefaultFOV( int FOV );											// Sets the base FOV if nothing else is affecting it by zooming
 	CBaseEntity *GetFOVOwner( void ) { return m_hZoomOwner; }
 	float	GetFOVDistanceAdjustFactor(); // shared between client and server
@@ -858,6 +883,10 @@ public:
 
 	void InitFogController( void );
 	void InputSetFogController( inputdata_t &inputdata );
+
+	CNetworkHandle( CPostProcessController, m_hPostProcessCtrl );	// active postprocessing controller
+	void InitPostProcessController( void );
+	void InputSetPostProcessController( inputdata_t& inputdata );
 
 	// Used by env_soundscape_triggerable to manage when the player is touching multiple
 	// soundscape triggers simultaneously.
@@ -1241,6 +1270,23 @@ private:
 
 public:
 	virtual unsigned int PlayerSolidMask( bool brushOnly = false ) const;	// returns the solid mask for the given player, so bots can have a more-restrictive set
+
+private:
+	//
+	//Tony; new tonemap controller changes, specifically for multiplayer.
+	//
+	void	ClearTonemapParams();		//Tony; we need to clear our tonemap params every time we spawn to -1, if we trigger an input, the values will be set again.
+public:
+	void	InputSetTonemapScale( inputdata_t &inputdata );			//Set m_Local.
+//	void	InputBlendTonemapScale( inputdata_t &inputdata );		//TODO; this should be calculated on the client, if we use it; perhaps an entity message would suffice? .. hmm..
+	void	InputSetTonemapRate( inputdata_t &inputdata );
+	void	InputSetAutoExposureMin( inputdata_t &inputdata );
+	void	InputSetAutoExposureMax( inputdata_t &inputdata );
+	void	InputSetBloomScale( inputdata_t &inputdata );
+
+	//Tony; restore defaults (set min/max to -1.0 so nothing gets overridden)
+	void	InputUseDefaultAutoExposure( inputdata_t &inputdata );
+	void	InputUseDefaultBloomScale( inputdata_t &inputdata );
 
 };
 
