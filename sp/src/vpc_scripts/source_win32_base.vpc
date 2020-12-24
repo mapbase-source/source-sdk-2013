@@ -10,8 +10,7 @@ $Configuration
 		// Request a specific compiler toolset.
 		$PlatformToolset "v110_xp" [$VS2012 && !$ANALYZE] // VS 2012 targeting Windows XP - http://msdn.microsoft.com/en-us/library/vstudio/jj851139.aspx
 		$PlatformToolset "v110" [$VS2012 && $ANALYZE] // VS 2012 for /analyze
-		$PlatformToolset "v120_xp" [$VS2013 && !$ANALYZE] // VS 2013 targeting Windows XP - http://msdn.microsoft.com/en-us/library/vstudio/jj851139.aspx
-		$PlatformToolset "v120" [$VS2013 && $ANALYZE] // VS 2013 for /analyze
+		$PlatformToolset "v120" [$VS2013] // VS 2013 for /analyze
 	}
 
 	$General
@@ -38,7 +37,7 @@ $Configuration
 		// window since F8 stops on both warnings and errors. The only way to
 		// keep the warning count down is to have warnings-as-errors.
 		// We will not be warning free on 64-bit for a while...
-		$TreatWarningsAsErrors				"Yes (/WX)" [!$ANALYZE && !$WIN64]
+		$TreatWarningsAsErrors				"No (/WX-)" [!$ANALYZE && !$WIN64]
 
 		// Defines to differentiate 32 from 64 bit builds
 		$PreprocessorDefinitions			"$BASE;PLATFORM_64BITS;WIN64;_WIN64;COMPILER_MSVC64" [$WIN64]
