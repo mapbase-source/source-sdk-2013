@@ -36,6 +36,9 @@ client.lib
 server.pdb
 server.dll
 server.lib
+game_shader_dx9.lib
+game_shader_dx9.dll
+discord-rpc.dll
 
 client.so
 client.so.dbg
@@ -66,8 +69,7 @@ config.cfg
 *.db-shm
 sp/src/utils/sapi51
 *.db-wal
-sp/src/game/server/Debug_boxobama/server_boxobama.vcxproj.FileListAbsolute.txt
-sp/src/game/client/Debug_boxobama/client_boxobama.vcxproj.FileListAbsolute.txt
+*FileListAbsolute.txt
 
 # Backup files
 *.bak

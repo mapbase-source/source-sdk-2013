@@ -2119,7 +2119,7 @@ CAmmoDef *GetAmmoDef()
 		def.AddAmmoType("AR2",				DMG_BULLET,					TRACER_LINE_AND_WHIZ,	"sk_plr_dmg_ar2",			"sk_npc_dmg_ar2",			"sk_max_ar2",			BULLET_IMPULSE(200, 1225), 0 );
 		def.AddAmmoType("AlyxGun",			DMG_BULLET,					TRACER_LINE,			"sk_plr_dmg_alyxgun",		"sk_npc_dmg_alyxgun",		"sk_max_alyxgun",		BULLET_IMPULSE(200, 1225), 0 );
 		def.AddAmmoType("9MM",				DMG_BULLET,					TRACER_LINE_AND_WHIZ,	"sk_plr_dmg_9mm",			"sk_npc_dmg_9mm",			"sk_max_9mm",			BULLET_IMPULSE(115, 1180), 0 ); //Based off Federal FMJ stats from Wikipedia
-		def.AddAmmoType("50AE",				DMG_BULLET,					TRACER_LINE_AND_WHIZ,	"sk_plr_dmg_50ae",			"sk_npc_dmg_50ae",			"sk_max_50ae",			BULLET_IMPULSE(325, 1450), 0 ); //Based off UCHP Speer stats from Wikipedia
+		def.AddAmmoType("50AE",				DMG_BULLET,					TRACER_LINE_AND_WHIZ,	"sk_plr_dmg_50ae",			"sk_npc_dmg_50ae",			"sk_max_50ae",			BULLET_IMPULSE(325, 1450), 0 ); //Based off Speer UCHP stats from Wikipedia
 		def.AddAmmoType("XBowBolt",			DMG_BULLET,					TRACER_LINE,			"sk_plr_dmg_crossbow",		"sk_npc_dmg_crossbow",		"sk_max_crossbow",		BULLET_IMPULSE(800, 8000), 0 );
 
 		def.AddAmmoType("Buckshot",			DMG_BULLET | DMG_BUCKSHOT,	TRACER_LINE,			"sk_plr_dmg_buckshot",		"sk_npc_dmg_buckshot",		"sk_max_buckshot",		BULLET_IMPULSE(400, 1200), 0 );
@@ -2179,7 +2179,6 @@ CAmmoDef *GetAmmoDef()
 
 		def.AddAmmoType("StriderMinigunDirect",	DMG_BULLET,				TRACER_LINE,			2, 2, 15, 1.0 * 750 * 12, AMMO_FORCE_DROP_IF_CARRIED ); // hit like a 1.0kg weight at 750 ft/s
 		def.AddAmmoType("HelicopterGun",	DMG_BULLET,					TRACER_LINE_AND_WHIZ,	"sk_npc_dmg_helicopter_to_plr", "sk_npc_dmg_helicopter",	"sk_max_smg1",	BULLET_IMPULSE(400, 1225), AMMO_FORCE_DROP_IF_CARRIED | AMMO_INTERPRET_PLRDAMAGE_AS_DAMAGE_TO_PLAYER );
-		def.AddAmmoType("Grenade",			DMG_BURN,					TRACER_NONE,			"sk_plr_dmg_grenade",		"sk_npc_dmg_grenade",		"sk_max_grenade",		0, 0);
 	}
 
 	return &def;
