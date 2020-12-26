@@ -48,7 +48,6 @@ static DynamicResupplyItems_t g_DynamicResupplyAmmoItems[] =
 {
 	{ "item_ammo_556",				"556",			SIZE_AMMO_556,			0.1f },
 	{ "item_ammo_9mm",				"9MM",			SIZE_AMMO_9MM,			0.5f },
-//	{ "item_ammo_smg1_grenade",		"SMG1_Grenade", SIZE_AMMO_SMG1_GRENADE, 0.0f },
 	{ "item_ammo_ar2",				"AR2",			SIZE_AMMO_AR2,			0.3f },
 	{ "item_box_buckshot",			"Buckshot",		SIZE_AMMO_BUCKSHOT,		0.2f },
 	{ "item_rpg_round",				"RPG_Round",	SIZE_AMMO_RPG_ROUND,	0.0f },

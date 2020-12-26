@@ -509,40 +509,6 @@ LINK_ENTITY_TO_CLASS( item_ml_grenade, CItem_RPG_Round );
 LINK_ENTITY_TO_CLASS( item_rpg_round, CItem_RPG_Round );
 
 // ========================================================================
-//	>> AR2_Grenade
-// ========================================================================
-/*class CItem_AR2_Grenade : public CItem
-{
-public:
-	DECLARE_CLASS( CItem_AR2_Grenade, CItem );
-
-	void Spawn( void )
-	{ 
-		Precache( );
-		SetModel( "models/items/ar2_grenade.mdl");
-		BaseClass::Spawn( );
-	}
-	void Precache( void )
-	{
-		PrecacheModel ("models/items/ar2_grenade.mdl");
-	}
-	bool MyTouch( CBasePlayer *pPlayer )
-	{
-		if (ITEM_GiveAmmo( pPlayer, SIZE_AMMO_SMG1_GRENADE, "SMG1_Grenade"))
-		{
-			if ( g_pGameRules->ItemShouldRespawn( this ) == GR_ITEM_RESPAWN_NO )
-			{
-				UTIL_Remove(this);	
-			}	
-			return true;
-		}
-		return false;
-	}
-};
-LINK_ENTITY_TO_CLASS(item_ar2_grenade, CItem_AR2_Grenade);
-LINK_ENTITY_TO_CLASS(item_ammo_smg1_grenade, CItem_AR2_Grenade);*/
-
-// ========================================================================
 //	>> BoxSniperRounds
 // ========================================================================
 #define SIZE_BOX_SNIPER_ROUNDS 10
@@ -732,10 +698,10 @@ const char *CItem_AmmoCrate::m_lpzModelNames[NUM_AMMO_CRATE_TYPES] =
 
 // Ammo type names
 const char *CItem_AmmoCrate::m_lpzAmmoNames[NUM_AMMO_CRATE_TYPES] =
-{
-	"Pistol",		
-	"9MM",			
+{	
+	"9MM",
 	"AR2",			
+	"556",
 	"RPG_Round",	
 	"Buckshot",		
 	"Grenade",
@@ -744,9 +710,9 @@ const char *CItem_AmmoCrate::m_lpzAmmoNames[NUM_AMMO_CRATE_TYPES] =
 // Ammo amount given per +use
 int CItem_AmmoCrate::m_nAmmoAmounts[NUM_AMMO_CRATE_TYPES] =
 {
-	300,	// Pistol
-	300,	// SMG1
+	300,	// 9MM
 	300,	// AR2
+	300,	// 556
 	3,		// RPG rounds
 	120,	// Buckshot
 	5,		// Grenades
@@ -754,9 +720,9 @@ int CItem_AmmoCrate::m_nAmmoAmounts[NUM_AMMO_CRATE_TYPES] =
 
 const char *CItem_AmmoCrate::m_pGiveWeapon[NUM_AMMO_CRATE_TYPES] =
 {
-	NULL,	// Pistol
-	NULL,	// SMG1
+	NULL,	// 9MM
 	NULL,	// AR2
+	NULL,	// 556
 	NULL,		// RPG rounds
 	NULL,	// Buckshot
 	"weapon_frag",		// Grenades

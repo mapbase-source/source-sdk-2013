@@ -47,6 +47,7 @@ extern Vector		g_vecAttackDir;
 #ifndef HL1_DLL
 	const char *CBreakable::pSpawnObjects[] =
 	{
+		NULL,						//this is so dumb, just add 1 to everything from here on
 		NULL,						// 0
 		"item_battery",				// 1
 		"item_healthkit",			// 2
