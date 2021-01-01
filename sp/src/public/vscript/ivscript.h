@@ -760,10 +760,11 @@ struct ScriptEnumDesc_t
 		ScriptHook_t *pHook = &hook; \
 		pHook->m_desc.m_pszScriptName = hookName; pHook->m_desc.m_pszFunction = #hook; pHook->m_desc.m_ReturnType = returnType; pHook->m_desc.m_pszDescription = description;
 
+// Define parameter as global variable
 #define DEFINE_SCRIPTHOOK_PARAM( paramName, type ) pHook->AddParameter( paramName, type );
 
-// Define actual parameters instead of global variables
-#define DEFINE_SCRIPTHOOK_REALPARAM( paramName, type )
+// Define actual function parameter
+#define DEFINE_SCRIPTHOOK_REALPARAM( type ) pHook->AddRealParameter( type );
 
 #define END_SCRIPTHOOK() \
 		pDesc->m_Hooks.AddToTail(pHook); \
@@ -1577,12 +1578,22 @@ struct ScriptHook_t
 	ScriptFuncDescriptor_t	m_desc;
 	CUtlVector<const char*> m_pszParameterNames;
 	bool m_bDefined;
+	bool m_bUsingRealParams;
 
 	void AddParameter( const char *pszName, ScriptDataType_t type )
 	{
 		int iCur = m_desc.m_Parameters.Count();
 		m_desc.m_Parameters.SetGrowSize( 1 ); m_desc.m_Parameters.EnsureCapacity( iCur + 1 ); m_desc.m_Parameters.AddToTail( type );
 		m_pszParameterNames.SetGrowSize( 1 ); m_pszParameterNames.EnsureCapacity( iCur + 1 ); m_pszParameterNames.AddToTail( pszName );
+		m_bUsingRealParams = false;
+	}
+
+	void AddRealParameter( ScriptDataType_t type )
+	{
+		m_desc.m_Parameters.SetGrowSize( 1 );
+		m_desc.m_Parameters.EnsureCapacity( m_desc.m_Parameters.Count() + 1 );
+		m_desc.m_Parameters.AddToTail( type );
+		m_bUsingRealParams = true;
 	}
 
 	// -----------------------------------------------------------------
@@ -1620,21 +1631,35 @@ struct ScriptHook_t
 			return false;
 		else
 		{
-			for (int i = 0; i < m_desc.m_Parameters.Count(); i++)
+			// using function parameters
+			if ( m_bUsingRealParams )
 			{
-				g_pScriptVM->SetValue( m_pszParameterNames[i], pArgs[i] );
+				g_pScriptVM->ExecuteFunction( m_hFunc, pArgs, m_desc.m_Parameters.Count(), pReturn, hScope, true );
+
+				if ( bRelease )
+					g_pScriptVM->ReleaseFunction( m_hFunc );
+
+				m_hFunc = NULL;
 			}
-
-			g_pScriptVM->ExecuteFunction( m_hFunc, NULL, 0, pReturn, hScope, true );
-
-			if (bRelease)
-				g_pScriptVM->ReleaseFunction( m_hFunc );
-
-			m_hFunc = NULL;
-
-			for (int i = 0; i < m_desc.m_Parameters.Count(); i++)
+			// using global variables
+			else
 			{
-				g_pScriptVM->ClearValue( m_pszParameterNames[i] );
+				for (int i = 0; i < m_desc.m_Parameters.Count(); i++)
+				{
+					g_pScriptVM->SetValue( m_pszParameterNames[i], pArgs[i] );
+				}
+
+				g_pScriptVM->ExecuteFunction( m_hFunc, NULL, 0, pReturn, hScope, true );
+
+				if (bRelease)
+					g_pScriptVM->ReleaseFunction( m_hFunc );
+
+				m_hFunc = NULL;
+
+				for (int i = 0; i < m_desc.m_Parameters.Count(); i++)
+				{
+					g_pScriptVM->ClearValue( m_pszParameterNames[i] );
+				}
 			}
 
 			return true;

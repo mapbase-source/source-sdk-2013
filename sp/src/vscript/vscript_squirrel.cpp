@@ -1566,9 +1566,12 @@ void RegisterHookDocumentation(HSQUIRRELVM vm, const ScriptHook_t* pHook, const 
 			V_strcat_safe(signature, ", ");
 
 		V_strcat_safe(signature, ScriptDataTypeToName(pFuncDesc.m_Parameters[i]));
-		V_strcat_safe(signature, " [");
-		V_strcat_safe(signature, pHook->m_pszParameterNames[i]);
-		V_strcat_safe(signature, "]");
+		if ( !pHook->m_bUsingRealParams )
+		{
+			V_strcat_safe(signature, " [");
+			V_strcat_safe(signature, pHook->m_pszParameterNames[i]);
+			V_strcat_safe(signature, "]");
+		}
 	}
 
 	V_strcat_safe(signature, ")");
