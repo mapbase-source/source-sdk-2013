@@ -1128,7 +1128,16 @@ static void ParseLightGeneric( entity_t *e, directlight_t *dl )
 	Vector	        dest;
 
 	dl->light.style = (int)FloatForKey (e, "style");
-	
+#ifdef MAPBASE
+	if( (int)FloatForKeyWithDefault(e, "_castentityshadow", 1.0f ) != 0 )
+	{
+		dl->light.flags |= DWL_FLAGS_CASTENTITYSHADOWS;
+	}
+	else
+	{
+		dl->light.flags &= ~DWL_FLAGS_CASTENTITYSHADOWS;
+	}
+#endif
 	// get intenfsity
 	if( g_bHDR && LightForKey( e, "_lightHDR", dl->light.intensity ) ) 
 	{
@@ -1510,7 +1519,11 @@ static void ParseLightEnvironment( entity_t* e, directlight_t* dl )
 						 FloatForKeyWithDefault( e, "_AmbientScaleHDR", 1.0 ), 
 						 gAmbient->light.intensity );
 		}
-		
+#ifdef MAPBASE
+		// skylight and ambient light never cast entity shadows
+		gSkyLight->light.flags &= ~DWL_FLAGS_CASTENTITYSHADOWS;
+		gAmbient->light.flags &= ~DWL_FLAGS_CASTENTITYSHADOWS;
+#endif
 		BuildVisForLightEnvironment();
  
 		// Add sky and sky ambient lights to the list.
@@ -1571,6 +1584,9 @@ void CreateDirectLights (void)
 			dl = AllocDLight( p->origin, true );
 
 			dl->light.type = emit_surface;
+#ifdef MAPBASE
+			dl->light.flags &= ~DWL_FLAGS_CASTENTITYSHADOWS;
+#endif
 			VectorCopy (p->normal, dl->light.normal);
 			Assert( VectorLength( p->normal ) > 1.0e-20 );
 			// scale intensity by number of texture instances

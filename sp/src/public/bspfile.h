@@ -973,7 +973,9 @@ enum emittype_t
 
 // Flags for dworldlight_t::flags
 #define DWL_FLAGS_INAMBIENTCUBE		0x0001	// This says that the light was put into the per-leaf ambient cubes.
-
+#ifdef MAPBASE
+#define DWL_FLAGS_CASTENTITYSHADOWS	0x0002	// This says that the light will cast shadows from entities.
+#endif
 
 struct dworldlight_t
 {

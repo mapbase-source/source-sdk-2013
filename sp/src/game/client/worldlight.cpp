@@ -218,7 +218,10 @@ bool CWorldLights::GetBrightestLightSource(const Vector &vecPosition, Vector &ve
 	for(int i = 0; i < m_nWorldLights; ++i)
 	{
 		dworldlight_t *light = &m_pWorldLights[i];
-
+#ifdef MAPBASE
+		if ( light->flags & DWL_FLAGS_CASTENTITYSHADOWS  )
+		{
+#endif
 		// Skip skyambient
 		if(light->type == emit_skyambient)
 		{
@@ -305,6 +308,9 @@ bool CWorldLights::GetBrightestLightSource(const Vector &vecPosition, Vector &ve
 		vecLightBrightness = vecIntensity;
 
 		//engine->Con_NPrintf(i, "%d: set (%.2f)", i, vecIntensity.Length());
+#ifdef MAPBASE
+	}
+#endif
 	}
 
 	delete[] pvs;
