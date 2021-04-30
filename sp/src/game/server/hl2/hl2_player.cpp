@@ -725,12 +725,20 @@ void CHL2_Player::HandleSpeedChanges( void )
 
 	bool bCanSprint = CanSprint();
 	bool bIsSprinting = IsSprinting();
-	bool bWantSprint = ( bCanSprint && IsSuitEquipped() && (m_nButtons & IN_SPEED) );
+	bool bWantSprint = ( IsSuitEquipped() && (m_nButtons & IN_SPEED) );
+#ifndef MAPBASE
+	// for Mapbase this is added later so the IN_SPEED button is depressed while !bCanSprint
+	// this allows resuming sprint as soon as it is possible again
+	bWantSprint &= bCanSprint;
+#endif
 	if ( bIsSprinting != bWantSprint && (buttonsChanged & IN_SPEED) )
 	{
 		// If someone wants to sprint, make sure they've pressed the button to do so. We want to prevent the
 		// case where a player can hold down the sprint key and burn tiny bursts of sprint as the suit recharges
 		// We want a full debounce of the key to resume sprinting after the suit is completely drained
+#ifdef MAPBASE
+		bWantSprint &= bCanSprint;
+#endif
 		if ( bWantSprint )
 		{
 			if ( sv_stickysprint.GetBool() )
