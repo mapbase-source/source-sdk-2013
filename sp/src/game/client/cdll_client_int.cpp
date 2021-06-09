@@ -1048,7 +1048,12 @@ int CHLClient::Init( CreateInterfaceFn appSystemFactory, CreateInterfaceFn physi
 	IGameSystem::Add( ClientSoundscapeSystem() );
 	IGameSystem::Add( PerfVisualBenchmark() );
 	IGameSystem::Add( MumbleSystem() );
-	IGameSystem::Add( g_pNovelUI );
+
+    // This would be good for debugging and stuff...
+    // TODO: additionally check for something like "novelui" "1"
+    // key-value in the gameinfo.txt
+    if( !CommandLine()->FindParm("-nonovelui") )
+	    IGameSystem::Add( g_pNovelUI );
 	
 	#if defined( TF_CLIENT_DLL )
 	IGameSystem::Add( CustomTextureToolCacheGameSystem() );
