@@ -124,6 +124,7 @@
 #include "sourcevr/isourcevirtualreality.h"
 #include "client_virtualreality.h"
 #include "mumble.h"
+#include "novelui/novelui.h"
 
 // NVNT includes
 #include "hud_macros.h"
@@ -1047,6 +1048,7 @@ int CHLClient::Init( CreateInterfaceFn appSystemFactory, CreateInterfaceFn physi
 	IGameSystem::Add( ClientSoundscapeSystem() );
 	IGameSystem::Add( PerfVisualBenchmark() );
 	IGameSystem::Add( MumbleSystem() );
+	IGameSystem::Add( g_pNovelUI );
 	
 	#if defined( TF_CLIENT_DLL )
 	IGameSystem::Add( CustomTextureToolCacheGameSystem() );
@@ -1293,9 +1295,8 @@ void CHLClient::Shutdown( void )
 int CHLClient::HudVidInit( void )
 {
 	gHUD.VidInit();
-
+    IGameSystem::VidInitAllSystems();
 	GetClientVoiceMgr()->VidInit();
-
 	return 1;
 }
 

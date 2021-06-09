@@ -65,6 +65,16 @@ $Project
 			$File	"mapbase\c_vgui_text_display.cpp"
 		}
 		
+        $Folder "Novel UI"
+        {
+            $File "novelui\novelui.cpp"
+            $File "novelui\novelui.h"
+            $File "novelui\rootpanel.cpp"
+            $File "novelui\rootpanel.h"
+            $File "novelui\gametitle.cpp"
+            $File "novelui\gamemenu.cpp"
+        }
+
 		$Folder "HL2 DLL"
 		{
 			// Original stunstick files are conditional'd out in the HL2 VPCs

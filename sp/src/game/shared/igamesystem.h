@@ -34,6 +34,9 @@ public:
 	virtual bool Init() = 0;
 	virtual void PostInit() = 0;
 	virtual void Shutdown() = 0;
+#ifdef CLIENT_DLL
+    virtual void VidInit() = 0;
+#endif
 
 	// Level init, shutdown
 	virtual void LevelInitPreEntity() = 0;
@@ -74,6 +77,9 @@ public:
 	static bool InitAllSystems();
 	static void PostInitAllSystems();
 	static void ShutdownAllSystems();
+#ifdef CLIENT_DLL
+    static void VidInitAllSystems();
+#endif
 	static void LevelInitPreEntityAllSystems( char const* pMapName );
 	static void LevelInitPostEntityAllSystems();
 	static void LevelShutdownPreClearSteamAPIContextAllSystems(); // Called prior to steamgameserverapicontext->Clear()
@@ -144,6 +150,9 @@ public:
 	virtual bool Init() { return true; }
 	virtual void PostInit() {}
 	virtual void Shutdown() {}
+#ifdef CLIENT_DLL
+    virtual void VidInit() { }
+#endif
 
 	// Level init, shutdown
 	virtual void LevelInitPreEntity() {}
@@ -191,6 +200,9 @@ public:
 	virtual bool Init() { return true; }
 	virtual void PostInit() {}
 	virtual void Shutdown() {}
+#ifdef CLIENT_DLL
+    virtual void VidInit() { }
+#endif
 
 	// Level init, shutdown
 	virtual void LevelInitPreEntity() {}

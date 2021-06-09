@@ -372,6 +372,7 @@ public:
 	}
 	void PostInit() {}
 	void Shutdown() {}
+    void VidInit() { }
 
 	// Level init, shutdown
 	void LevelInitPreEntity();

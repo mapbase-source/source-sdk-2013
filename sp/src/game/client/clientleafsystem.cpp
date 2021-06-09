@@ -72,6 +72,7 @@ public:
 	bool Init() { return true; }
 	void PostInit() {}
 	void Shutdown() {}
+    void VidInit() { }
 
 	virtual bool IsPerFrame() { return true; }
 

@@ -240,6 +240,13 @@ void IGameSystem::ShutdownAllSystems()
 	InvokeMethodReverseOrder( &IGameSystem::Shutdown );
 }
 
+#ifdef CLIENT_DLL
+void IGameSystem::VidInitAllSystems()
+{
+    InvokeMethod( &IGameSystem::VidInit );
+}
+#endif
+
 void IGameSystem::LevelInitPreEntityAllSystems( char const* pMapName )
 {
 	// Store off the map name

@@ -1,8 +1,7 @@
 "GameInfo"
 {
 	game 		"My First HL2 Mod"
-	title 		"HALF-LIFE'"
-	title2		""
+	novel_title	"HALFLIFE'"
 	supportsvr	1
 
 	type		singleplayer_only

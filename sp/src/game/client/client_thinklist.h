@@ -59,6 +59,7 @@ public:
 	virtual bool Init();
 	virtual void PostInit() {};
 	virtual void Shutdown();
+    virtual void VidInit() { }
 	virtual void LevelInitPreEntity();
 	virtual void LevelInitPostEntity() {}
 	virtual void LevelShutdownPreEntity();
