@@ -721,16 +721,29 @@ void CHL2_Player::RemoveSuit( void )
 
 void CHL2_Player::HandleSpeedChanges( void )
 {
-	int buttonsChanged = m_afButtonPressed | m_afButtonReleased;
+	bool sprintChanged = ( m_afButtonPressed | m_afButtonReleased ) & IN_SPEED;
+#ifdef MAPBASE
+	// always start sprinting if desired and possible
+	// this allows resuming sprinting after ducking or emerging from water for instance
+	sprintChanged = true;
+#endif
 
 	bool bCanSprint = CanSprint();
 	bool bIsSprinting = IsSprinting();
-	bool bWantSprint = ( bCanSprint && IsSuitEquipped() && (m_nButtons & IN_SPEED) );
-	if ( bIsSprinting != bWantSprint && (buttonsChanged & IN_SPEED) )
+	bool bWantSprint = ( IsSuitEquipped() && (m_nButtons & IN_SPEED) );
+#ifndef MAPBASE
+	// for Mapbase this is added later so the IN_SPEED button is depressed while !bCanSprint
+	// this allows resuming sprint as soon as it is possible again
+	bWantSprint &= bCanSprint;
+#endif
+	if ( bIsSprinting != bWantSprint && sprintChanged )
 	{
 		// If someone wants to sprint, make sure they've pressed the button to do so. We want to prevent the
 		// case where a player can hold down the sprint key and burn tiny bursts of sprint as the suit recharges
 		// We want a full debounce of the key to resume sprinting after the suit is completely drained
+#ifdef MAPBASE
+		bWantSprint &= bCanSprint;
+#endif
 		if ( bWantSprint )
 		{
 			if ( sv_stickysprint.GetBool() )
@@ -1617,7 +1630,14 @@ bool CHL2_Player::CanSprint()
 {
 	return ( m_bSprintEnabled &&										// Only if sprint is enabled 
 			!IsWalking() &&												// Not if we're walking
+#ifdef MAPBASE
+			// sprint is stopped when ducked *or* while ducking
+			// disallow sprinting while ducking as well
+			// to avoid a loop of starting and stopping sprint
+			!( m_Local.m_bDucked || m_Local.m_bDucking ) &&				// Nor if we're ducking
+#else
 			!( m_Local.m_bDucked && !m_Local.m_bDucking ) &&			// Nor if we're ducking
+#endif
 			(GetWaterLevel() != 3) &&									// Certainly not underwater
 			(GlobalEntity_GetState("suit_no_sprint") != GLOBAL_ON) );	// Out of the question without the sprint module
 }
