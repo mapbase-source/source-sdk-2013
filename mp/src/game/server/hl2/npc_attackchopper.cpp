@@ -115,6 +115,9 @@ static const char *s_pChunkModelName[CHOPPER_MAX_CHUNKS] =
 #define SF_HELICOPTER_IGNORE_AVOID_FORCES	0x00080000
 #define SF_HELICOPTER_AGGRESSIVE			0x00100000
 #define SF_HELICOPTER_LONG_SHADOW			0x00200000
+#ifdef MAPBASE
+#define SF_HELICOPTER_AIM_WITH_GUN_OFF		0x00400000
+#endif
 
 #define CHOPPER_SLOW_BOMB_SPEED	250
 
@@ -346,6 +349,10 @@ public:
 protected:
 
 	void	CollisionCallback( CHelicopterChunk *pCaller );
+
+#ifdef MAPBASE
+	void	InputFallApart( inputdata_t &inputdata );
+#endif
 
 	void	FallThink( void );
 
@@ -760,8 +767,13 @@ private:
 	CSoundPatch	*m_pGunFiringSound;
 
 	// Outputs
+#ifndef MAPBASE
 	COutputInt	m_OnHealthChanged;
+#endif
 	COutputEvent m_OnShotDown;
+#ifdef MAPBASE
+	COutputEHANDLE m_OutBomb;
+#endif
 
 	// Crashing
 	EHANDLE		m_hCrashPoint;
@@ -842,6 +854,10 @@ BEGIN_DATADESC( CNPC_AttackHelicopter )
 	DEFINE_KEYFIELD( m_flMaxSpeed,		FIELD_FLOAT, "PatrolSpeed" ),
 	DEFINE_KEYFIELD( m_bNonCombat,		FIELD_BOOLEAN,	"NonCombat" ),
 
+#ifdef MAPBASE
+	DEFINE_KEYFIELD( m_flFieldOfView,	FIELD_FLOAT, "FieldOfView" ),
+#endif
+
 	DEFINE_FIELD( m_hCrashPoint,		FIELD_EHANDLE ),
 
 	DEFINE_INPUTFUNC( FIELD_VOID, "ResetIdleTime", InputResetIdleTime ),
@@ -866,7 +882,9 @@ BEGIN_DATADESC( CNPC_AttackHelicopter )
 	DEFINE_INPUTFUNC( FIELD_VOID, "StartContinuousShooting", InputStartContinuousShooting ),
 	DEFINE_INPUTFUNC( FIELD_VOID, "StartFastShooting", InputStartFastShooting ),
 	DEFINE_INPUTFUNC( FIELD_VOID, "GunOff", InputGunOff ),
+#ifndef MAPBASE // This has been added to all NPCs. npc_helicopter overrides it with its original function, but the datadesc entry isn't needed anymore.
 	DEFINE_INPUTFUNC( FIELD_FLOAT, "SetHealthFraction", InputSetHealthFraction ),
+#endif
 	DEFINE_INPUTFUNC( FIELD_VOID, "StartBombExplodeOnContact", InputStartBombExplodeOnContact ),
 	DEFINE_INPUTFUNC( FIELD_VOID, "StopBombExplodeOnContact", InputStopBombExplodeOnContact ),
 
@@ -878,8 +896,13 @@ BEGIN_DATADESC( CNPC_AttackHelicopter )
 	DEFINE_THINKFUNC( BlinkLightsThink ),
 	DEFINE_THINKFUNC( SpotlightThink ),
 
+#ifndef MAPBASE
 	DEFINE_OUTPUT( m_OnHealthChanged, "OnHealthChanged" ),
+#endif
 	DEFINE_OUTPUT( m_OnShotDown, "OnShotDown" ),
+#ifdef MAPBASE
+	DEFINE_OUTPUT( m_OutBomb, "OutBomb" ),
+#endif
 
 END_DATADESC()
 
@@ -893,6 +916,9 @@ CNPC_AttackHelicopter::CNPC_AttackHelicopter() :
 	m_bBombsExplodeOnContact( false )
 {
 	m_flMaxSpeed = 0;
+#ifdef MAPBASE
+	m_flFieldOfView = -1.0; // 360 degrees
+#endif
 }
 
 CNPC_AttackHelicopter::~CNPC_AttackHelicopter(void)
@@ -937,6 +963,13 @@ void CNPC_AttackHelicopter::Precache( void )
 {
 	BaseClass::Precache();
 
+#ifdef MAPBASE
+	if ( GetModelName() != NULL_STRING )
+	{
+		PrecacheModel( STRING(GetModelName()) );
+	}
+	else
+#endif
 	if ( !HasSpawnFlags(SF_HELICOPTER_ELECTRICAL_DRONE) )
 	{
 		PrecacheModel( CHOPPER_MODEL_NAME );
@@ -1038,6 +1071,13 @@ void CNPC_AttackHelicopter::Spawn( void )
 	m_bBombingSuppressed = false;
 	m_bIgnorePathVisibilityTests = false;
 
+#ifdef MAPBASE
+	if ( GetModelName() != NULL_STRING )
+	{
+		SetModel( STRING(GetModelName()) );
+	}
+	else
+#endif
 	if ( !HasSpawnFlags(SF_HELICOPTER_ELECTRICAL_DRONE) )
 	{
 		SetModel( CHOPPER_MODEL_NAME );
@@ -1070,6 +1110,11 @@ void CNPC_AttackHelicopter::Spawn( void )
 
 	SetPauseState( PAUSE_NO_PAUSE );
 
+#ifdef MAPBASE
+	if (m_iHealth != 0)
+		m_iMaxHealth = m_iHealth;
+	else
+#endif
 	m_iMaxHealth = m_iHealth = sk_helicopter_health.GetInt();
 	
 	m_flMaxSpeed = flLoadedSpeed;
@@ -1081,7 +1126,9 @@ void CNPC_AttackHelicopter::Spawn( void )
 
 	m_nGrenadeCount = CHOPPER_BOMB_DROP_COUNT;
 
+#ifndef MAPBASE // Moved to constructor because this is a keyvalue now
 	m_flFieldOfView = -1.0; // 360 degrees
+#endif
 	m_flIdleTimeDelay = 0.0f;
 	m_iAmmoType = GetAmmoDef()->Index("HelicopterGun"); 
 
@@ -2790,6 +2837,10 @@ CGrenadeHelicopter *CNPC_AttackHelicopter::SpawnBombEntity( const Vector &vecPos
 	}
 #endif // HL2_EPISODIC
 
+#ifdef MAPBASE
+	m_OutBomb.Set(pGrenade, pGrenade, this);
+#endif
+
 	return pGrenade;
 }
 
@@ -3475,9 +3526,16 @@ void CNPC_AttackHelicopter::TraceAttack( const CTakeDamageInfo &info, const Vect
 	// Take no damage from trace attacks unless it's blast damage. RadiusDamage() sometimes calls
 	// TraceAttack() as a means for delivering blast damage. Usually when the explosive penetrates
 	// the target. (RPG missiles do this sometimes).
+#ifdef MAPBASE
+	if ( ( info.GetDamageType() & DMG_AIRBOAT ) || 
+		 ( info.GetInflictor()->Classify() == CLASS_MISSILE ) || 
+		 ( info.GetAttacker()->Classify() == CLASS_MISSILE ) ||
+		 m_bAllowAnyDamage )
+#else
 	if ( ( info.GetDamageType() & DMG_AIRBOAT ) || 
 		 ( info.GetInflictor()->Classify() == CLASS_MISSILE ) || 
 		 ( info.GetAttacker()->Classify() == CLASS_MISSILE ) )
+#endif
 	{
 		BaseClass::BaseClass::TraceAttack( info, vecDir, ptr, pAccumulator );
 	}
@@ -3490,7 +3548,11 @@ void CNPC_AttackHelicopter::TraceAttack( const CTakeDamageInfo &info, const Vect
 int CNPC_AttackHelicopter::OnTakeDamage( const CTakeDamageInfo &info )
 {
 	// We don't take blast damage from anything but the airboat or missiles (or myself!)
+#ifdef MAPBASE
+	if( info.GetInflictor() != this && !m_bAllowAnyDamage )
+#else
 	if( info.GetInflictor() != this )
+#endif
 	{
 		if ( ( ( info.GetDamageType() & DMG_AIRBOAT ) == 0 ) && 
 			( info.GetInflictor()->Classify() != CLASS_MISSILE ) && 
@@ -3605,12 +3667,14 @@ int CNPC_AttackHelicopter::OnTakeDamage_Alive( const CTakeDamageInfo &info )
 			ExplodeAndThrowChunk( info.GetDamagePosition() );
 		}
 
+#ifndef MAPBASE // We need to make sure the base OnHealthChanged works with helicopters
 		int nPrevPercent = (int)(100.0f * nPrevHealth / GetMaxHealth());
 		int nCurrPercent = (int)(100.0f * GetHealth() / GetMaxHealth());
 		if (( (nPrevPercent + 9) / 10 ) != ( (nCurrPercent + 9) / 10 ))
 		{
 			m_OnHealthChanged.Set( nCurrPercent, this, this );
 		}
+#endif
 	}
 
 	return nRetVal;
@@ -4795,6 +4859,26 @@ void CNPC_AttackHelicopter::Hunt( void )
 		{
 			BullrushBombs();
 		}
+#ifdef MAPBASE
+		// Some may want the hunter-chopper to aim at different positions searching for its target
+		// without actually firing at anything. Gun aiming is only handled in FireGun(), which is
+		// disabled when the gun is disabled. point_posecontroller doesn't seem to work well for this either,
+		// so a new spawnflag is handled here to allow the chopper to aim at its enemy even when the gun is off.
+		else if ( HasSpawnFlags( SF_HELICOPTER_AIM_WITH_GUN_OFF ) && GetEnemy() )
+		{
+			// Get gun attachment points
+			Vector vBasePos;
+			GetAttachment( m_nGunBaseAttachment, vBasePos );
+
+			Vector vecFireAtPosition;
+			ComputeFireAtPosition( &vecFireAtPosition );
+	
+			Vector vTargetDir = vecFireAtPosition - vBasePos;
+			VectorNormalize( vTargetDir );
+
+			PoseGunTowardTargetDirection( vTargetDir );
+		}
+#endif
 	}
 
 #ifdef HL2_EPISODIC
@@ -5939,6 +6023,10 @@ BEGIN_DATADESC( CHelicopterChunk )
 	DEFINE_PHYSPTR( m_pTailConstraint ),
 	DEFINE_PHYSPTR( m_pCockpitConstraint ),
 
+#ifdef MAPBASE
+	DEFINE_INPUTFUNC( FIELD_VOID, "FallApart", InputFallApart ),
+#endif
+
 END_DATADESC()
 
 //-----------------------------------------------------------------------------
@@ -6039,6 +6127,17 @@ void CHelicopterChunk::CollisionCallback( CHelicopterChunk *pCaller )
 		m_bLanded = true;
 	}
 }
+
+#ifdef MAPBASE
+//-----------------------------------------------------------------------------
+// Purpose: 
+// Input  : *pCaller - 
+//-----------------------------------------------------------------------------
+void CHelicopterChunk::InputFallApart( inputdata_t &inputdata )
+{
+	CollisionCallback(this);
+}
+#endif
 
 //-----------------------------------------------------------------------------
 // Purpose: 

@@ -25,6 +25,11 @@
 #define SUPPORT_DX8 1
 #define SUPPORT_DX7 1
 #endif
+
+#ifdef MAPBASE
+extern ConVar mat_specular_disable_on_missing;
+#endif
+
 //-----------------------------------------------------------------------------
 // Helper macro for vertex shaders
 //-----------------------------------------------------------------------------
@@ -297,6 +302,9 @@ public:
 		int m_nFlashlightTextureFrameVar;
 		int m_nBaseTexture2Var;
 		int m_nBaseTexture2FrameVar;
+#ifdef MAPBASE
+		int m_nBaseTexture2TransformVar;
+#endif
 		int m_nBumpmap2Var;
 		int m_nBumpmap2Frame;
 		int m_nBump2Transform;
@@ -337,6 +345,8 @@ private:
 
 };
 
+extern ConVar r_flashlightbrightness;
+
 FORCEINLINE void SetFlashLightColorFromState( FlashlightState_t const &state, IShaderDynamicAPI *pShaderAPI, int nPSRegister=28, bool bFlashlightNoLambert=false )
 {
 	// Old code
@@ -349,8 +359,7 @@ FORCEINLINE void SetFlashLightColorFromState( FlashlightState_t const &state, IS
 	//	flToneMapScale = 1.0f;
 	//float flFlashlightScale = 1.0f / flToneMapScale;
 
-	// Force flashlight to 25% bright always
-	float flFlashlightScale = 0.25f;
+	float flFlashlightScale = r_flashlightbrightness.GetFloat();
 
 	if ( !g_pHardwareConfig->GetHDREnabled() )
 	{
@@ -363,6 +372,9 @@ FORCEINLINE void SetFlashLightColorFromState( FlashlightState_t const &state, IS
 	{
 		flFlashlightScale *= 2.5f; // Magic number that works well on the NVIDIA 8800
 	}
+
+	// INSOLENCE: This causes very odd projected texture flickering bugs, so it's commented out for now
+	/*flFlashlightScale *= state.m_fBrightnessScale;*/
 
 	// Generate pixel shader constant
 	float const *pFlashlightColor = state.m_Color;
@@ -386,8 +398,11 @@ FORCEINLINE float ShadowAttenFromState( FlashlightState_t const &state )
 
 FORCEINLINE float ShadowFilterFromState( FlashlightState_t const &state )
 {
-	// We developed shadow maps at 1024, so we expect the penumbra size to have been tuned relative to that
-	return state.m_flShadowFilterSize / 1024.0f;
+	//// We developed shadow maps at 1024, so we expect the penumbra size to have been tuned relative to that
+	//return state.m_flShadowFilterSize / 1024.0f;
+
+	// INSOLENCE: Get the shadow map resolution from the same place we get the shadow filter size
+	return state.m_flShadowFilterSize / state.m_flShadowMapResolution;
 }
 
 

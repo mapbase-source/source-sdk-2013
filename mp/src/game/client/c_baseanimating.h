@@ -95,6 +95,7 @@ public:
 	DECLARE_CLIENTCLASS();
 	DECLARE_PREDICTABLE();
 	DECLARE_INTERPOLATION();
+	DECLARE_ENT_SCRIPTDESC();
 
 	enum
 	{
@@ -162,6 +163,13 @@ public:
 	virtual void FireEvent( const Vector& origin, const QAngle& angles, int event, const char *options );
 	virtual void FireObsoleteEvent( const Vector& origin, const QAngle& angles, int event, const char *options );
 	virtual const char* ModifyEventParticles( const char* token ) { return token; }
+
+#if defined ( SDK_DLL ) || defined ( HL2MP )
+	virtual void ResetEventsParity() { m_nPrevResetEventsParity = -1; } // used to force animation events to function on players so the muzzleflashes and other events occur
+																		// so new functions don't have to be made to parse the models like CSS does in ProcessMuzzleFlashEvent
+																		// allows the multiplayer world weapon models to declare the muzzleflashes, and other effects like sp
+																		// without the need to script it and add extra parsing code.
+#endif
 
 	// Parses and distributes muzzle flash events
 	virtual bool DispatchMuzzleEffect( const char *options, bool isFirstPerson );
@@ -447,6 +455,10 @@ public:
 	virtual bool					IsViewModel() const;
 	virtual void					UpdateOnRemove( void );
 
+#ifdef MAPBASE_VSCRIPT
+	float							ScriptGetPoseParameter(const char* szName);
+#endif
+	void							ScriptSetPoseParameter(const char* szName, float fValue);
 protected:
 	// View models scale their attachment positions to account for FOV. To get the unmodified
 	// attachment position (like if you're rendering something else during the view model's DrawModel call),
@@ -464,6 +476,10 @@ protected:
 	virtual int						GetStudioBody( void ) { return m_nBody; }
 
 	virtual bool					CalcAttachments();
+
+#ifdef MAPBASE_VSCRIPT
+	int								ScriptGetSequenceActivity( int iSequence ) { return GetSequenceActivity( iSequence ); }
+#endif
 
 private:
 	// This method should return true if the bones have changed + SetupBones needs to be called

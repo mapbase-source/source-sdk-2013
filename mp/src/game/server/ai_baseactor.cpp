@@ -98,6 +98,15 @@ BEGIN_DATADESC( CAI_BaseActor )
 
 END_DATADESC()
 
+#ifdef MAPBASE_VSCRIPT
+BEGIN_ENT_SCRIPTDESC( CAI_BaseActor, CAI_BaseNPC, "The base class for NPCs which act in complex choreo scenes." )
+
+	DEFINE_SCRIPTFUNC_NAMED( ScriptAddLookTarget, "AddLookTarget", "Add a potential look target for this actor." )
+	DEFINE_SCRIPTFUNC_NAMED( ScriptAddLookTargetPos, "AddLookTargetPos", "Add a potential look target position for this actor." )
+
+END_SCRIPTDESC();
+#endif
+
 
 BEGIN_SIMPLE_DATADESC( CAI_InterestTarget_t )
 	DEFINE_FIELD( m_eType,		FIELD_INTEGER ),
@@ -230,7 +239,11 @@ void CAI_BaseActor::SetModel( const char *szModelName )
 // Purpose: 
 //-----------------------------------------------------------------------------
 
+#ifdef MAPBASE
+bool CAI_BaseActor::StartSceneEvent( CSceneEventInfo *info, CChoreoScene *scene, CChoreoEvent *event, CChoreoActor *actor, CBaseEntity *pTarget, CSceneEntity *pSceneEnt )
+#else
 bool CAI_BaseActor::StartSceneEvent( CSceneEventInfo *info, CChoreoScene *scene, CChoreoEvent *event, CChoreoActor *actor, CBaseEntity *pTarget )
+#endif
 {
 	Assert( info );
 	Assert( info->m_pScene );
@@ -314,6 +327,109 @@ bool CAI_BaseActor::StartSceneEvent( CSceneEventInfo *info, CChoreoScene *scene,
 			{
 				info->m_nType = SCENE_AI_DISABLEAI;
 			}
+#ifdef MAPBASE
+			else if (stricmp(event->GetParameters(), "AI_ADDCONTEXT") == 0)
+			{
+				// Adds a response context to the caller in place of the target field.
+				// This is supposed to be used with the talker system.
+				if (event->GetParameters2())
+				{
+					info->m_nType = SCENE_AI_ADDCONTEXT;
+					AddContext(event->GetParameters2());
+					return true;
+				}
+			}
+			else if (stricmp(event->GetParameters(), "AI_INPUT") == 0)
+			{
+				// Fires an input on an entity in place of the target field.
+				// This is supposed to be used with the talker system.
+				if (event->GetParameters2())
+				{
+					info->m_nType = SCENE_AI_INPUT;
+
+					const char *raw = event->GetParameters2();
+					char sTarget[128];
+					char sInput[128];
+					char sParameter[128];
+					char *colon1 = Q_strstr( raw, ":" );
+					if (!colon1)
+					{
+						Warning("%s (%s) AI_INPUT missing colon separator!\n", GetClassname(), GetDebugName());
+						return false;
+					}
+
+					int len = colon1 - raw;
+					Q_strncpy( sTarget, raw, MIN( len + 1, sizeof(sTarget) ) );
+					sTarget[MIN(len, sizeof(sTarget) - 1)] = 0;
+
+					bool bParameter = true;
+					char *colon2 = Q_strstr(colon1 + 1, ":");
+					if (!colon2)
+					{
+						DevMsg("Assuming no parameter\n");
+						colon2 = colon1 + 1;
+						bParameter = false;
+					}
+					
+					if (bParameter)
+					{
+						len = MIN(colon2 - (colon1 + 1), sizeof(sInput) - 1);
+						Q_strncpy(sInput, colon1 + 1, MIN(len + 1, sizeof(sInput)));
+						sInput[MIN(len, sizeof(sInput) - 1)] = 0;
+
+						Q_strncpy(sParameter, colon2 + 1, sizeof(sInput));
+					}
+					else
+					{
+						len = colon2 - raw;
+						Q_strncpy(sInput, colon2, sizeof(sInput));
+					}
+
+					CBaseEntity *pEnt = gEntList.FindEntityByName(NULL, sTarget, this);
+					if (!pEnt)
+					{
+						DevMsg("%s not found with normal search, slamming to scene ent\n", sTarget);
+						pEnt = UTIL_FindNamedSceneEntity(sTarget, this, pSceneEnt);
+						if (!pEnt)
+						{
+							DevWarning("%s slammed to self!\n", sTarget);
+							pEnt = this;
+						}
+					}
+
+					if (pEnt && sInput)
+					{
+						variant_t variant;
+						if (bParameter && sParameter)
+						{
+							const char *strParam = sParameter;
+							if (strParam[0] == '!')
+							{
+								CBaseEntity *pParamEnt = UTIL_FindNamedSceneEntity(strParam, this, pSceneEnt);
+								if (pParamEnt && pParamEnt->GetEntityName() != NULL_STRING && !gEntList.FindEntityProcedural(strParam))
+								{
+									// We make sure it's a scene entity that can't be found with entlist procedural so we can translate !target# without messing with !activators, etc.
+									//const char *newname = pParamEnt->GetEntityName().ToCStr();
+									strParam = pParamEnt->GetEntityName().ToCStr();
+								}
+							}
+
+							if (strParam)
+							{
+								variant.SetString(MAKE_STRING(strParam));
+							}
+						}
+
+						pEnt->AcceptInput(sInput, this, this, variant, 0);
+						return true;
+					}
+					else
+					{
+						Warning("%s (%s) AI_INPUT cannot find entity %s!\n", GetClassname(), GetDebugName(), sTarget);
+					}
+				}
+			}
+#endif
 			else
 			{
 				return BaseClass::StartSceneEvent( info, scene, event, actor, pTarget );
@@ -508,6 +624,11 @@ bool CAI_BaseActor::ProcessSceneEvent( CSceneEventInfo *info, CChoreoScene *scen
 							Vector vecAimTargetLoc = info->m_hTarget->EyePosition();
 							Vector vecAimDir = vecAimTargetLoc - EyePosition();
 
+#ifdef MAPBASE
+							// Mind the ramp
+							vecAimDir *= event->GetIntensity(scene->GetTime());
+#endif
+
 							VectorNormalize( vecAimDir );
 							SetAim( vecAimDir);
 						}
@@ -548,6 +669,16 @@ bool CAI_BaseActor::ProcessSceneEvent( CSceneEventInfo *info, CChoreoScene *scen
 						EnterSceneSequence( scene, event );
 					}
 					return true;
+#ifdef MAPBASE
+				case SCENE_AI_ADDCONTEXT:
+					{
+					}
+					return true;
+				case SCENE_AI_INPUT:
+					{
+					}
+					return true;
+#endif
 				default:
 					return false;
 			}
@@ -1802,7 +1933,7 @@ void CAI_BaseActor::OnStateChange( NPC_STATE OldState, NPC_STATE NewState )
 {
 	PlayExpressionForState( NewState );
 
-#ifdef HL2_EPISODIC
+#if defined(HL2_EPISODIC) || defined(MAPBASE)
 	// If we've just switched states, ensure we stop any scenes that asked to be stopped
 	if ( OldState == NPC_STATE_IDLE )
 	{

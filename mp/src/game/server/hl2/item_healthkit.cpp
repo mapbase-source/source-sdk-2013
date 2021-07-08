@@ -78,7 +78,7 @@ bool CHealthKit::MyTouch( CBasePlayer *pPlayer )
 		CPASAttenuationFilter filter( pPlayer, "HealthKit.Touch" );
 		EmitSound( filter, pPlayer->entindex(), "HealthKit.Touch" );
 
-		if ( g_pGameRules->ItemShouldRespawn( this ) )
+		if ( g_pGameRules->ItemShouldRespawn( this ) == GR_ITEM_RESPAWN_YES )
 		{
 			Respawn();
 		}
@@ -131,7 +131,7 @@ public:
 			CPASAttenuationFilter filter( pPlayer, "HealthVial.Touch" );
 			EmitSound( filter, pPlayer->entindex(), "HealthVial.Touch" );
 
-			if ( g_pGameRules->ItemShouldRespawn( this ) )
+			if ( g_pGameRules->ItemShouldRespawn( this ) == GR_ITEM_RESPAWN_YES )
 			{
 				Respawn();
 			}
@@ -432,6 +432,17 @@ public:
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
 	virtual int	ObjectCaps( void ) { return BaseClass::ObjectCaps() | m_iCaps; }
 
+#ifdef MAPBASE
+	void InputRecharge( inputdata_t &inputdata );
+	void InputSetCharge( inputdata_t &inputdata );
+	void InputSetChargeNoMax( inputdata_t &inputdata );
+	void UpdateJuice( int newJuice );
+	float MaxJuice() const;
+	void SetInitialCharge( void );
+	int		m_iMaxJuice;
+	int		m_iIncrementValue;
+#endif
+
 	float m_flNextCharge; 
 	int		m_iReactivate ; // DeathMatch Delay until reactvated
 	int		m_iJuice;
@@ -442,6 +453,11 @@ public:
 	int		m_iCaps;
 
 	COutputFloat m_OutRemainingHealth;
+#ifdef MAPBASE
+	COutputEvent m_OnHalfEmpty;
+	COutputEvent m_OnEmpty;
+	COutputEvent m_OnFull;
+#endif
 	COutputEvent m_OnPlayerUse;
 
 	void StudioFrameAdvance ( void );
@@ -458,12 +474,20 @@ BEGIN_DATADESC( CNewWallHealth )
 
 	DEFINE_FIELD( m_flNextCharge, FIELD_TIME),
 	DEFINE_FIELD( m_iReactivate, FIELD_INTEGER),
+#ifdef MAPBASE
+	DEFINE_KEYFIELD( m_iJuice, FIELD_INTEGER, "Charge" ),
+#else
 	DEFINE_FIELD( m_iJuice, FIELD_INTEGER),
+#endif
 	DEFINE_FIELD( m_iOn, FIELD_INTEGER),
 	DEFINE_FIELD( m_flSoundTime, FIELD_TIME),
 	DEFINE_FIELD( m_nState, FIELD_INTEGER ),
 	DEFINE_FIELD( m_iCaps, FIELD_INTEGER ),
 	DEFINE_FIELD( m_flJuice, FIELD_FLOAT ),
+#ifdef MAPBASE
+	DEFINE_KEYFIELD( m_iMaxJuice, FIELD_INTEGER, "MaxCharge" ),
+	DEFINE_INPUT( m_iIncrementValue, FIELD_INTEGER, "SetIncrementValue" ),
+#endif
 
 	// Function Pointers
 	DEFINE_FUNCTION( Off ),
@@ -471,6 +495,15 @@ BEGIN_DATADESC( CNewWallHealth )
 
 	DEFINE_OUTPUT( m_OnPlayerUse, "OnPlayerUse" ),
 	DEFINE_OUTPUT( m_OutRemainingHealth, "OutRemainingHealth"),
+#ifdef MAPBASE
+	DEFINE_OUTPUT(m_OnHalfEmpty, "OnHalfEmpty" ),
+	DEFINE_OUTPUT(m_OnEmpty, "OnEmpty" ),
+	DEFINE_OUTPUT(m_OnFull, "OnFull" ),
+
+	DEFINE_INPUTFUNC( FIELD_VOID, "Recharge", InputRecharge ),
+	DEFINE_INPUTFUNC( FIELD_INTEGER, "SetCharge", InputSetCharge ),
+	DEFINE_INPUTFUNC( FIELD_FLOAT, "SetChargeNoMax", InputSetChargeNoMax ),
+#endif
 
 END_DATADESC()
 
@@ -478,6 +511,10 @@ END_DATADESC()
 #define CHARGE_RATE 0.25f
 #define CHARGES_PER_SECOND 1.0f / CHARGE_RATE
 #define CALLS_PER_SECOND 7.0f * CHARGES_PER_SECOND
+
+#ifdef MAPBASE
+#define CUSTOM_CHARGES_PER_SECOND(inc) inc / CHARGE_RATE
+#endif
 
 
 //-----------------------------------------------------------------------------
@@ -503,6 +540,30 @@ bool CNewWallHealth::KeyValue(  const char *szKeyName, const char *szValue )
 	return(BaseClass::KeyValue( szKeyName, szValue ));
 }
 
+#ifdef MAPBASE
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+void CNewWallHealth::SetInitialCharge( void )
+{
+	if ( m_iMaxJuice != 0 )
+	{
+		// It must've been overridden by the mapper
+		return;
+	}
+
+	m_iMaxJuice = sk_healthcharger.GetFloat();
+}
+
+//-----------------------------------------------------------------------------
+// Max juice for recharger
+//-----------------------------------------------------------------------------
+float CNewWallHealth::MaxJuice()	const
+{
+	return m_iMaxJuice;
+}
+#endif
+
 
 //-----------------------------------------------------------------------------
 // Purpose: 
@@ -515,12 +576,34 @@ void CNewWallHealth::Spawn(void)
 	SetSolid( SOLID_VPHYSICS );
 	CreateVPhysics();
 
+#ifdef MAPBASE
+	SetModel( STRING(GetModelName()) );
+#else
 	SetModel( HEALTH_CHARGER_MODEL_NAME );
+#endif
 	AddEffects( EF_NOSHADOW );
 
 	ResetSequence( LookupSequence( "idle" ) );
 
+#ifdef MAPBASE
+	if (m_iIncrementValue == 0)
+		m_iIncrementValue = 1;
+
+	SetInitialCharge();
+
+	// In case the juice was overridden
+	if (m_iJuice == 0)
+		UpdateJuice( MaxJuice() );
+	else if (m_iJuice == -1)
+	{
+		UpdateJuice( 0 );
+		ResetSequence( LookupSequence( "empty" ) );
+	}
+	else
+		UpdateJuice( m_iJuice );
+#else
 	m_iJuice = sk_healthcharger.GetFloat();
+#endif
 
 	m_nState = 0;	
 	
@@ -530,7 +613,11 @@ void CNewWallHealth::Spawn(void)
 	CreateVPhysics();
 
 	m_flJuice = m_iJuice;
+#ifdef MAPBASE
+	SetCycle( 1.0f - ( m_flJuice / MaxJuice() ) );
+#else
 	SetCycle( 1.0f - ( m_flJuice /  sk_healthcharger.GetFloat() ) );
+#endif
 }
 
 int CNewWallHealth::DrawDebugTextOverlays(void) 
@@ -560,7 +647,14 @@ bool CNewWallHealth::CreateVPhysics(void)
 //-----------------------------------------------------------------------------
 void CNewWallHealth::Precache(void)
 {
+#ifdef MAPBASE
+	if ( GetModelName() == NULL_STRING )
+		SetModelName( AllocPooledString(HEALTH_CHARGER_MODEL_NAME) );
+
+	PrecacheModel( STRING(GetModelName()) );
+#else
 	PrecacheModel( HEALTH_CHARGER_MODEL_NAME );
+#endif
 
 	PrecacheScriptSound( "WallHealth.Deny" );
 	PrecacheScriptSound( "WallHealth.Start" );
@@ -572,7 +666,11 @@ void CNewWallHealth::StudioFrameAdvance( void )
 {
 	m_flPlaybackRate = 0;
 
+#ifdef MAPBASE
+	float flMaxJuice = MaxJuice() + 0.1f;
+#else
 	float flMaxJuice = sk_healthcharger.GetFloat();
+#endif
 	
 	SetCycle( 1.0f - (float)( m_flJuice / flMaxJuice ) );
 //	Msg( "Cycle: %f - Juice: %d - m_flJuice :%f - Interval: %f\n", (float)GetCycle(), (int)m_iJuice, (float)m_flJuice, GetAnimTimeInterval() );
@@ -587,6 +685,62 @@ void CNewWallHealth::StudioFrameAdvance( void )
 	// Set current
 	m_flAnimTime = gpGlobals->curtime;
 }
+
+#ifdef MAPBASE
+//-----------------------------------------------------------------------------
+// Purpose: 
+// Input  : newJuice - 
+//-----------------------------------------------------------------------------
+void CNewWallHealth::UpdateJuice( int newJuice )
+{
+	bool reduced = newJuice < m_iJuice;
+	if ( reduced )
+	{
+		// Fire 1/2 way output and/or empyt output
+		int oneHalfJuice = (int)(MaxJuice() * 0.5f);
+		if ( newJuice <= oneHalfJuice && m_iJuice > oneHalfJuice )
+		{
+			m_OnHalfEmpty.FireOutput( this, this );
+		}
+
+		if ( newJuice <= 0 )
+		{
+			m_OnEmpty.FireOutput( this, this );
+		}
+	}
+	else if ( newJuice != m_iJuice &&
+		newJuice == (int)MaxJuice() )
+	{
+		m_OnFull.FireOutput( this, this );
+	}
+	m_iJuice = newJuice;
+}
+
+void CNewWallHealth::InputRecharge( inputdata_t &inputdata )
+{
+	Recharge();
+}
+
+void CNewWallHealth::InputSetCharge( inputdata_t &inputdata )
+{
+	int iJuice = inputdata.value.Int();
+
+	m_flJuice = m_iMaxJuice = m_iJuice = iJuice;
+
+	ResetSequence( m_iJuice > 0 ? LookupSequence( "idle" ) : LookupSequence( "empty" ) );
+	StudioFrameAdvance();
+}
+
+void CNewWallHealth::InputSetChargeNoMax( inputdata_t &inputdata )
+{
+	m_flJuice = inputdata.value.Float();
+
+	UpdateJuice(m_flJuice);
+
+	ResetSequence( m_iJuice > 0 ? LookupSequence( "idle" ) : LookupSequence( "empty" ) );
+	StudioFrameAdvance();
+}
+#endif
 
 //-----------------------------------------------------------------------------
 // Purpose: 
@@ -613,6 +767,11 @@ void CNewWallHealth::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYP
 	{
 		float flCharges = CHARGES_PER_SECOND;
 		float flCalls = CALLS_PER_SECOND;
+
+#ifdef MAPBASE
+		if ( m_iIncrementValue != 0 )
+			flCharges = CUSTOM_CHARGES_PER_SECOND(m_iIncrementValue);
+#endif
 
 		m_flJuice -= flCharges / flCalls;
 		StudioFrameAdvance();
@@ -679,13 +838,24 @@ void CNewWallHealth::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYP
 	}
 
 	// charge the player
+#ifdef MAPBASE
+	if ( pActivator->TakeHealth( m_iIncrementValue, DMG_GENERIC ) )
+	{
+		UpdateJuice(m_iJuice - m_iIncrementValue);
+	}
+#else
 	if ( pActivator->TakeHealth( 1, DMG_GENERIC ) )
 	{
 		m_iJuice--;
 	}
+#endif
 
 	// Send the output.
+#ifdef MAPBASE
+	float flRemaining = m_iJuice / MaxJuice();
+#else
 	float flRemaining = m_iJuice / sk_healthcharger.GetFloat();
+#endif
 	m_OutRemainingHealth.Set(flRemaining, pActivator, this);
 
 	// govern the rate of charge
@@ -699,7 +869,12 @@ void CNewWallHealth::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYP
 void CNewWallHealth::Recharge(void)
 {
 	EmitSound( "WallHealth.Recharge" );
+#ifdef MAPBASE
+	UpdateJuice(MaxJuice());
+	m_flJuice = m_iJuice;
+#else
 	m_flJuice = m_iJuice = sk_healthcharger.GetFloat();
+#endif
 	m_nState = 0;
 
 	ResetSequence( LookupSequence( "idle" ) );

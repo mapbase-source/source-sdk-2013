@@ -19,6 +19,9 @@
 #include "qfiles.h"
 #include "utilmatlib.h"
 #include "ChunkFile.h"
+#ifdef MAPBASE_VSCRIPT
+#include "vscript/ivscript.h"
+#endif
 
 #ifdef WIN32
 #pragma warning( disable: 4706 )
@@ -33,6 +36,12 @@ class CUtlBuffer;
 
 // this will output glview files for the given brushmodel.  Brushmodel 1 is the world, 2 is the first brush entity, etc.
 #define DEBUG_BRUSHMODEL 0
+
+#ifdef MAPBASE
+// Activates compiler code for parallax corrected cubemaps
+// https://developer.valvesoftware.com/wiki/Parallax_Corrected_Cubemaps
+#define PARALLAX_CORRECTED_CUBEMAPS 1
+#endif
 
 struct portal_t;
 struct node_t;
@@ -334,6 +343,32 @@ public:
 
 	int					m_StartMapOverlays;
 	int					m_StartMapWaterOverlays;
+
+#ifdef MAPBASE_VSCRIPT
+	HSCRIPT				GetScriptInstance();
+
+	// VScript functions
+	ALLOW_SCRIPT_ACCESS();
+private:
+
+	const Vector&	GetMins() { return map_mins; }
+	const Vector&	GetMaxs() { return map_maxs; }
+
+	int				GetNumMapBrushes() { return nummapbrushes; }
+
+	const Vector&	GetEntityOrigin(int idx) { return (idx < num_entities && idx >= 0) ? entities[idx].origin : vec3_origin; }
+	int				GetEntityFirstBrush(int idx) { return (idx < num_entities && idx >= 0) ? entities[idx].firstbrush : 0; }
+	int				GetEntityNumBrushes(int idx) { return (idx < num_entities && idx >= 0) ? entities[idx].numbrushes : 0; }
+
+	void			ScriptGetEntityKeyValues(int idx, HSCRIPT hKeyTable, HSCRIPT hValTable);
+
+	int				ScriptAddSimpleEntityKV(HSCRIPT hKV/*, const Vector& vecOrigin, int iFirstBrush, int iNumBrushes*/);
+	int				ScriptAddInstance(const char *pszVMF, const Vector& vecOrigin, const QAngle& angAngles);
+
+	int				GetNumEntities() { return num_entities; }
+
+	HSCRIPT			m_hScriptInstance;
+#endif
 };
 
 extern CMapFile	*g_MainMap;
@@ -365,6 +400,7 @@ extern	bool		g_NodrawTriggers;
 extern	bool		g_DisableWaterLighting;
 extern	bool		g_bAllowDetailCracks;
 extern	bool		g_bNoVirtualMesh;
+extern	bool		g_bNoHiddenManifestMaps;
 extern	char		outbase[32];
 
 extern	char	source[1024];
@@ -607,7 +643,12 @@ void SaveVertexNormals( void );
 
 //=============================================================================
 // cubemap.cpp
+#ifdef PARALLAX_CORRECTED_CUBEMAPS
+extern char* g_pParallaxObbStrs[MAX_MAP_CUBEMAPSAMPLES];
+void Cubemap_InsertSample( const Vector& origin, int size, char* pParallaxObbStr );
+#else
 void Cubemap_InsertSample( const Vector& origin, int size );
+#endif
 void Cubemap_CreateDefaultCubemaps( void );
 void Cubemap_SaveBrushSides( const char *pSideListStr );
 void Cubemap_FixupBrushSidesMaterials( void );

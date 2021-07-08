@@ -53,6 +53,10 @@ ConVar hl2_episodic( "hl2_episodic", "0", FCVAR_REPLICATED );
 #include "tf_weaponbase.h"
 #endif // TF_DLL
 
+#ifdef MAPBASE_VSCRIPT
+#include "mapbase/vscript_funcs_shared.h"
+#endif
+
 #include "rumble_shared.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
@@ -408,7 +412,11 @@ bool CBaseEntity::KeyValue( const char *szKeyName, const char *szValue )
 		}
 
 		// Do this so inherited classes looking for 'angles' don't have to bother with 'angle'
+#ifdef MAPBASE
+		return KeyValue( "angles", szBuf );
+#else
 		return KeyValue( szKeyName, szBuf );
+#endif
 	}
 
 	// NOTE: Have to do these separate because they set two values instead of one
@@ -435,6 +443,15 @@ bool CBaseEntity::KeyValue( const char *szKeyName, const char *szValue )
 		SetAbsOrigin( vecOrigin );
 		return true;
 	}
+
+#ifdef MAPBASE
+	if ( FStrEq( szKeyName, "eflags" ) )
+	{
+		// Can't use DEFINE_KEYFIELD since eflags might be set before KV are parsed
+		AddEFlags( atoi( szValue ) );
+		return true;
+	}
+#endif
 
 #ifdef GAME_DLL	
 	
@@ -1602,6 +1619,23 @@ typedef CTraceFilterSimpleList CBulletsTraceFilter;
 
 void CBaseEntity::FireBullets( const FireBulletsInfo_t &info )
 {
+#if defined(MAPBASE_VSCRIPT) && defined(GAME_DLL)
+	if (m_ScriptScope.IsInitialized())
+	{
+		HSCRIPT hInfo = g_pScriptVM->RegisterInstance( const_cast<FireBulletsInfo_t*>(&info) );
+
+		ScriptVariant_t functionReturn;
+		ScriptVariant_t args[] = { hInfo };
+		if (g_Hook_FireBullets.Call( m_ScriptScope, &functionReturn, args ))
+		{
+			if (!functionReturn.m_bool)
+				return;
+		}
+
+		g_pScriptVM->RemoveInstance( hInfo );
+	}
+#endif
+
 	static int	tracerCount;
 	trace_t		tr;
 	CAmmoDef*	pAmmoDef	= GetAmmoDef();
@@ -1674,6 +1708,19 @@ void CBaseEntity::FireBullets( const FireBulletsInfo_t &info )
 		traceFilter.AddEntityToIgnore( MyCombatCharacterPointer()->GetVehicleEntity() );
 	}
 #endif // SERVER_DLL
+
+#ifdef MAPBASE
+	if (info.m_pIgnoreEntList != NULL)
+	{
+		for (int i = 0; i < info.m_pIgnoreEntList->Count(); i++)
+		{
+			if (info.m_pIgnoreEntList->Element(i))
+			{
+				traceFilter.AddEntityToIgnore(info.m_pIgnoreEntList->Element(i));
+			}
+		}
+	}
+#endif
 
 	bool bUnderwaterBullets = ShouldDrawUnderwaterBulletBubbles();
 	bool bStartedInWater = false;
@@ -2145,7 +2192,11 @@ void CBaseEntity::TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir
 
 		int blood = BloodColor();
 		
+#if defined(MAPBASE) && defined(GAME_DLL)
+		if ( blood != DONT_BLEED && DamageFilterAllowsBlood( info ) )
+#else
 		if ( blood != DONT_BLEED )
+#endif
 		{
 			SpawnBlood( vecOrigin, vecDir, blood, info.GetDamage() );// a little surface blood.
 			TraceBleed( info.GetDamage(), vecDir, ptr, info.GetDamageType() );

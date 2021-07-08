@@ -59,7 +59,17 @@ BEGIN_RECV_TABLE( C_World, DT_World )
 	RecvPropFloat(RECVINFO(m_flMinPropScreenSpaceWidth)),
 	RecvPropString(RECVINFO(m_iszDetailSpriteMaterial)),
 	RecvPropInt(RECVINFO(m_bColdWorld)),
+#ifdef MAPBASE
+	RecvPropString(RECVINFO(m_iszChapterTitle)),
+#endif
+#ifdef MAPBASE_VSCRIPT
+	RecvPropInt(RECVINFO(m_iScriptLanguageClient)),
+#endif
 END_RECV_TABLE()
+
+#ifdef MAPBASE_VSCRIPT
+extern bool VScriptClientInit();
+#endif
 
 
 C_World::C_World( void )
@@ -119,6 +129,11 @@ void C_World::OnDataChanged( DataUpdateType_t updateType )
 		engine->SetOcclusionParameters( params );
 
 		modelinfo->SetLevelScreenFadeRange( m_flMinPropScreenSpaceWidth, m_flMaxPropScreenSpaceWidth );
+
+#ifdef MAPBASE_VSCRIPT
+		// This is now here so that C_World has time to receive the selected script language
+		VScriptClientInit();
+#endif
 	}
 }
 

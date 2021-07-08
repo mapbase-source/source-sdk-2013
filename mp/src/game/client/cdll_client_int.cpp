@@ -215,6 +215,11 @@ IEngineReplay *g_pEngineReplay = NULL;
 IEngineClientReplay *g_pEngineClientReplay = NULL;
 IReplaySystem *g_pReplay = NULL;
 #endif
+#ifdef MAPBASE
+IVEngineServer	*serverengine = NULL;
+#endif
+
+IScriptManager *scriptmanager = NULL;
 
 IHaptics* haptics = NULL;// NVNT haptics system interface singleton
 
@@ -334,6 +339,13 @@ static ConVar s_cl_class("cl_class", "default", FCVAR_USERINFO|FCVAR_ARCHIVE, "D
 
 #ifdef HL1MP_CLIENT_DLL
 static ConVar s_cl_load_hl1_content("cl_load_hl1_content", "0", FCVAR_ARCHIVE, "Mount the content from Half-Life: Source if possible");
+#endif
+
+#ifdef MAPBASE_RPC
+// Mapbase stuff
+extern void MapbaseRPC_Init();
+extern void MapbaseRPC_Shutdown();
+extern void MapbaseRPC_Update( int iType, const char *pMapName );
 #endif
 
 
@@ -847,6 +859,7 @@ CHLClient::CHLClient()
 }
 
 
+
 extern IGameSystem *ViewportClientSystem();
 
 
@@ -940,8 +953,27 @@ int CHLClient::Init( CreateInterfaceFn appSystemFactory, CreateInterfaceFn physi
 		return false;
 #endif
 
+#ifdef MAPBASE
+	// Implements the server engine interface on the client.
+	// I'm extremely confused as to how this is even possible, but Saul Rennison's worldlight did it.
+	// If it's really this possible, why wasn't it available before?
+	// Hopefully there's no SP-only magic going on here, because I want to use this for RPC.
+	if ( (serverengine = (IVEngineServer*)appSystemFactory(INTERFACEVERSION_VENGINESERVER, NULL )) == NULL )
+		return false;
+#endif
+
 	if (!g_pMatSystemSurface)
 		return false;
+
+	if ( !CommandLine()->CheckParm( "-noscripting") )
+	{
+		scriptmanager = (IScriptManager *)appSystemFactory( VSCRIPT_INTERFACE_VERSION, NULL );
+
+		if (scriptmanager == nullptr)
+		{
+			scriptmanager = (IScriptManager*)Sys_GetFactoryThis()(VSCRIPT_INTERFACE_VERSION, NULL);
+		}
+	}
 
 #ifdef WORKSHOP_IMPORT_ENABLED
 	if ( !ConnectDataModel( appSystemFactory ) )
@@ -1089,6 +1121,14 @@ int CHLClient::Init( CreateInterfaceFn appSystemFactory, CreateInterfaceFn physi
 	HookHapticMessages(); // Always hook the messages
 #endif
 
+#ifdef MAPBASE_RPC
+	MapbaseRPC_Init();
+#endif
+
+#ifdef MAPBASE
+	CommandLine()->AppendParm( "+r_hunkalloclightmaps", "0" );
+#endif
+
 	return true;
 }
 
@@ -1212,6 +1252,10 @@ void CHLClient::Shutdown( void )
 	ShutdownDataModel();
 	DisconnectDataModel();
 	ShutdownFbx();
+#endif
+
+#ifdef MAPBASE_RPC
+	MapbaseRPC_Shutdown();
 #endif
 	
 	// This call disconnects the VGui libraries which we rely on later in the shutdown path, so don't do it
@@ -1626,6 +1670,13 @@ void CHLClient::LevelInitPreEntity( char const* pMapName )
 	}
 #endif
 
+#ifdef MAPBASE_RPC
+	if (!g_bTextMode)
+	{
+		MapbaseRPC_Update(RPCSTATE_LEVEL_INIT, pMapName);
+	}
+#endif
+
 	// Check low violence settings for this map
 	g_RagdollLVManager.SetLowViolence( pMapName );
 
@@ -1716,6 +1767,13 @@ void CHLClient::LevelShutdown( void )
 	StopAllRumbleEffects();
 
 	gHUD.LevelShutdown();
+
+#ifdef MAPBASE_RPC
+	if (!g_bTextMode)
+	{
+		MapbaseRPC_Update(RPCSTATE_LEVEL_SHUTDOWN, NULL);
+	}
+#endif
 
 	internalCenterPrint->Clear();
 
@@ -2147,7 +2205,9 @@ void OnRenderStart()
 	// are at the correct location
 	view->OnRenderStart();
 
+#ifndef MAPBASE
 	RopeManager()->OnRenderStart();
+#endif
 	
 	// This will place all entities in the correct position in world space and in the KD-tree
 	C_BaseAnimating::UpdateClientSideAnimations();

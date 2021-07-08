@@ -130,6 +130,10 @@ void Hack_FixEscapeChars( char *str )
 	Q_strncpy( str, osave, len );
 }
 
+#ifdef MAPBASE
+static const ConVar *pHostTimescale;
+#endif
+
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
@@ -322,6 +326,10 @@ public:
 				InternalPrecacheWaves( i );
 			}
 		}
+#endif
+
+#ifdef MAPBASE
+		pHostTimescale = cvar->FindVar( "host_timescale" );
 #endif
 	}
 
@@ -534,7 +542,11 @@ public:
 			params.volume,
 			(soundlevel_t)params.soundlevel,
 			ep.m_nFlags,
+#ifdef MAPBASE
+			pHostTimescale->GetFloat() != 0.0f ? params.pitch * pHostTimescale->GetFloat() : params.pitch,
+#else
 			params.pitch,
+#endif
 			ep.m_nSpecialDSP,
 			ep.m_pOrigin,
 			NULL,
@@ -613,7 +625,11 @@ public:
 				ep.m_flVolume, 
 				ep.m_SoundLevel, 
 				ep.m_nFlags, 
+#ifdef MAPBASE
+				pHostTimescale->GetFloat() != 0.0f ? ep.m_nPitch * pHostTimescale->GetFloat() : ep.m_nPitch,
+#else
 				ep.m_nPitch, 
+#endif
 				ep.m_nSpecialDSP,
 				ep.m_pOrigin,
 				NULL, 
@@ -835,6 +851,13 @@ public:
 			params.volume = flVolume;
 		}
 
+#ifdef MAPBASE
+		if ( pHostTimescale->GetFloat() != 0.0f )
+		{
+			params.pitch *= pHostTimescale->GetFloat();
+		}
+#endif
+
 #if defined( CLIENT_DLL )
 		enginesound->EmitAmbientSound( params.soundname, params.volume, params.pitch, iFlags, soundtime );
 #else
@@ -963,6 +986,13 @@ public:
 
 		if ( pSample && ( Q_stristr( pSample, ".wav" ) || Q_stristr( pSample, ".mp3" )) )
 		{
+#ifdef MAPBASE
+			if ( pHostTimescale->GetFloat() != 0.0f )
+			{
+				pitch *= pHostTimescale->GetFloat();
+			}
+#endif
+
 #if defined( CLIENT_DLL )
 			enginesound->EmitAmbientSound( pSample, volume, pitch, flags, soundtime );
 #else
@@ -1192,6 +1222,19 @@ void CBaseEntity::EmitSound( const char *soundname, HSOUNDSCRIPTHANDLE& handle, 
 
 	EmitSound( filter, entindex(), params, handle );
 }
+
+#if !defined ( CLIENT_DLL ) || defined( MAPBASE_VSCRIPT )
+void CBaseEntity::ScriptEmitSound( const char *soundname )
+{
+	EmitSound( soundname );
+}
+
+float CBaseEntity::ScriptSoundDuration( const char *soundname, const char *actormodel )
+{
+	float duration = CBaseEntity::GetSoundDuration( soundname, actormodel );
+	return duration;
+}
+#endif // !CLIENT
 
 //-----------------------------------------------------------------------------
 // Purpose: 
@@ -1426,7 +1469,17 @@ static const char *UTIL_TranslateSoundName( const char *soundname, const char *a
 
 void CBaseEntity::GenderExpandString( char const *in, char *out, int maxlen )
 {
+#ifdef MAPBASE
+	// This is so models without globalactors.txt declarations can still play scenes.
+	gender_t gender = soundemitterbase->GetActorGender(STRING(GetModelName()));
+
+	if (gender == GENDER_NONE)
+		gender = GENDER_MALE;
+
+	soundemitterbase->GenderExpandString(gender, in, out, maxlen);
+#else
 	soundemitterbase->GenderExpandString( STRING( GetModelName() ), in, out, maxlen );
+#endif
 }
 
 bool CBaseEntity::GetParametersForSound( const char *soundname, CSoundParameters &params, const char *actormodel )
@@ -1451,6 +1504,14 @@ HSOUNDSCRIPTHANDLE CBaseEntity::PrecacheScriptSound( const char *soundname )
 	return soundemitterbase->GetSoundIndex( soundname );
 #endif
 }
+
+#if !defined ( CLIENT_DLL ) || defined( MAPBASE_VSCRIPT )
+// Same as server version of above, but signiture changed so it can be deduced by the macros
+void CBaseEntity::VScriptPrecacheScriptSound(const char* soundname)
+{
+	g_SoundEmitterSystem.PrecacheScriptSound(soundname);
+}
+#endif // !CLIENT_DLL
 
 void CBaseEntity::PrefetchScriptSound( const char *soundname )
 {

@@ -22,6 +22,9 @@
 class CRagdollProp : public CBaseAnimating, public CDefaultPlayerPickupVPhysics
 {
 	DECLARE_CLASS( CRagdollProp, CBaseAnimating );
+#ifdef MAPBASE_VSCRIPT
+	DECLARE_ENT_SCRIPTDESC();
+#endif
 
 public:
 	CRagdollProp( void );
@@ -49,6 +52,9 @@ public:
 	virtual void SetupBones( matrix3x4_t *pBoneToWorld, int boneMask );
 	virtual void VPhysicsUpdate( IPhysicsObject *pPhysics );
 	virtual int VPhysicsGetObjectList( IPhysicsObject **pList, int listMax );
+#ifdef MAPBASE
+	int VPhysicsGetFlesh();
+#endif
 
 	virtual int DrawDebugTextOverlays(void);
 
@@ -56,6 +62,9 @@ public:
 	virtual IResponseSystem *GetResponseSystem();
 	virtual void ModifyOrAppendCriteria( AI_CriteriaSet& set );
 	void SetSourceClassName( const char *pClassname );
+#ifdef MAPBASE
+	const char *GetSourceClassNameAsCStr() { return STRING( m_strSourceClassName ); }
+#endif
 
 	// Physics attacker
 	virtual CBasePlayer *HasPhysicsAttacker( float dt );
@@ -101,9 +110,18 @@ public:
 	void			InputStartRadgollBoogie( inputdata_t &inputdata );
 	void			InputEnableMotion( inputdata_t &inputdata );
 	void			InputDisableMotion( inputdata_t &inputdata );
+#ifdef MAPBASE
+	void			InputWake( inputdata_t &inputdata );
+	void			InputSleep( inputdata_t &inputdata );
+#endif
 	void			InputTurnOn( inputdata_t &inputdata );
 	void			InputTurnOff( inputdata_t &inputdata );
 	void			InputFadeAndRemove( inputdata_t &inputdata );
+
+#ifdef MAPBASE_VSCRIPT
+	HSCRIPT			ScriptGetRagdollObject( int iIndex );
+	int				ScriptGetRagdollObjectCount();
+#endif
 
 	DECLARE_DATADESC();
 

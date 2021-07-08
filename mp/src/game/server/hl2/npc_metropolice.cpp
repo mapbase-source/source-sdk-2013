@@ -19,6 +19,10 @@
 #include "iservervehicle.h"
 #include "items.h"
 #include "hl2_gamerules.h"
+#ifdef MAPBASE
+#include "grenade_frag.h"
+#include "mapbase/GlobalStrings.h"
+#endif
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -119,6 +123,10 @@ ConVar	metropolice_chase_use_follow( "metropolice_chase_use_follow", "0" );
 ConVar  metropolice_move_and_melee("metropolice_move_and_melee", "1" );
 ConVar  metropolice_charge("metropolice_charge", "1" );
 
+#ifdef MAPBASE
+ConVar	metropolice_new_component_behavior("metropolice_new_component_behavior", "1");
+#endif
+
 // How many clips of pistol ammo a metropolice carries.
 #define METROPOLICE_NUM_CLIPS			5
 #define METROPOLICE_BURST_RELOAD_COUNT	20
@@ -172,7 +180,9 @@ BEGIN_DATADESC( CNPC_MetroPolice )
 	DEFINE_KEYFIELD( m_fWeaponDrawn, FIELD_BOOLEAN, "weapondrawn" ),
 	DEFINE_FIELD( m_LastShootSlot, FIELD_INTEGER ),
 	DEFINE_EMBEDDED( m_TimeYieldShootSlot ),
+#ifndef METROPOLICE_USES_RESPONSE_SYSTEM
 	DEFINE_EMBEDDED( m_Sentences ),
+#endif
 	DEFINE_FIELD( m_bPlayerIsNear, FIELD_BOOLEAN ),
 
 	DEFINE_FIELD( m_vecBurstTargetPos, FIELD_POSITION_VECTOR ),
@@ -225,13 +235,33 @@ BEGIN_DATADESC( CNPC_MetroPolice )
 
 	DEFINE_KEYFIELD( m_iManhacks, FIELD_INTEGER, "manhacks" ),
 	DEFINE_INPUTFUNC( FIELD_VOID, "EnableManhackToss", InputEnableManhackToss ),
+#ifdef MAPBASE
+	DEFINE_INPUTFUNC( FIELD_VOID, "DisableManhackToss", InputDisableManhackToss ),
+	DEFINE_INPUTFUNC( FIELD_VOID, "DeployManhack", InputDeployManhack ),
+	DEFINE_INPUTFUNC( FIELD_INTEGER, "AddManhacks", InputAddManhacks ),
+	DEFINE_INPUTFUNC( FIELD_INTEGER, "SetManhacks", InputSetManhacks ),
+#endif
 	DEFINE_INPUTFUNC( FIELD_STRING, "SetPoliceGoal", InputSetPoliceGoal ),
 	DEFINE_INPUTFUNC( FIELD_VOID, "ActivateBaton", InputActivateBaton ),
+#ifdef MAPBASE
+	DEFINE_INPUTFUNC( FIELD_VOID, "AdministerJustice", InputAdministerJustice ),
+	DEFINE_INPUTFUNC( FIELD_INTEGER, "AddWarnings", InputAddWarnings ),
+	DEFINE_INPUTFUNC( FIELD_INTEGER, "SetWarnings", InputSetWarnings ),
+#endif
 	
 	DEFINE_USEFUNC( PrecriminalUse ),
 
 	DEFINE_OUTPUT( m_OnStunnedPlayer,	"OnStunnedPlayer" ),
 	DEFINE_OUTPUT( m_OnCupCopped, "OnCupCopped" ),
+#ifdef MAPBASE
+	DEFINE_OUTPUT( m_OnHitByPhysicsObject, "OnHitByPhysicsObject" ),
+	DEFINE_OUTPUT( m_OutManhack, "OutManhack" ),
+#endif
+
+#ifdef MAPBASE
+	DEFINE_AIGRENADE_DATADESC()
+	DEFINE_INPUT( m_iGrenadeCapabilities, FIELD_INTEGER, "SetGrenadeCapabilities" ),
+#endif
 
 END_DATADESC()
 
@@ -333,7 +363,11 @@ public:
 			if ( pBCC && pVictimBCC )
 			{
 				// Can only damage other NPCs that we hate
+#ifdef MAPBASE
+				if ( m_bDamageAnyNPC || pBCC->IRelationType( pEntity ) <= D_FR || pEntity->IsPlayer() )
+#else
 				if ( m_bDamageAnyNPC || pBCC->IRelationType( pEntity ) == D_HT || pEntity->IsPlayer() )
+#endif
 				{
 					if ( info.GetDamage() )
 					{
@@ -434,9 +468,20 @@ void CNPC_MetroPolice::NotifyDeadFriend( CBaseEntity* pFriend )
 {
 	BaseClass::NotifyDeadFriend(pFriend);
 
+#ifdef MAPBASE
+	// m_hManhack is set to NULL after it's finished deploying, which means this has no chance of playing unless the manhack
+	// was still being deployed. This is thought to be an unintended oversight.
+	// Mapbase stores the metrocop thrower as the manhack's owner entity, so this code is now able to check that instead.
+	if ( pFriend->GetOwnerEntity() == this )
+#else
 	if ( pFriend == m_hManhack )
+#endif
 	{
+#ifdef METROPOLICE_USES_RESPONSE_SYSTEM
+		SpeakIfAllowed(TLK_COP_MANHACKKILLED, "my_manhack:1", SENTENCE_PRIORITY_NORMAL, SENTENCE_CRITERIA_NORMAL);
+#else
 		m_Sentences.Speak( "METROPOLICE_MANHACK_KILLED", SENTENCE_PRIORITY_NORMAL, SENTENCE_CRITERIA_NORMAL );
+#endif
 		DevMsg("My manhack died!\n");
 		m_hManhack = NULL;
 		return;
@@ -452,6 +497,9 @@ void CNPC_MetroPolice::NotifyDeadFriend( CBaseEntity* pFriend )
 		m_nIdleChatterType = METROPOLICE_CHATTER_ASK_QUESTION;
 	}
 
+#ifdef METROPOLICE_USES_RESPONSE_SYSTEM
+	SpeakIfAllowed(TLK_COP_MANDOWN, SENTENCE_PRIORITY_MEDIUM, SENTENCE_CRITERIA_NORMAL);
+#else
 	if ( GetSquad()->NumMembers() < 2 )
 	{
 		m_Sentences.Speak( "METROPOLICE_LAST_OF_SQUAD", SENTENCE_PRIORITY_MEDIUM, SENTENCE_CRITERIA_NORMAL );
@@ -459,6 +507,7 @@ void CNPC_MetroPolice::NotifyDeadFriend( CBaseEntity* pFriend )
 	}
 
 	m_Sentences.Speak( "METROPOLICE_MAN_DOWN", SENTENCE_PRIORITY_MEDIUM );
+#endif
 }
 
 
@@ -466,6 +515,9 @@ void CNPC_MetroPolice::NotifyDeadFriend( CBaseEntity* pFriend )
 //-----------------------------------------------------------------------------
 CNPC_MetroPolice::CNPC_MetroPolice()
 {
+#ifdef MAPBASE
+	m_iGrenadeCapabilities = GRENCAP_GRENADE;
+#endif
 }
 
 
@@ -490,8 +542,10 @@ void CNPC_MetroPolice::PrescheduleThink( void )
 {
 	BaseClass::PrescheduleThink();
 
+#ifndef METROPOLICE_USES_RESPONSE_SYSTEM
 	// Speak any queued sentences
 	m_Sentences.UpdateSentenceQueue();
+#endif
 
 	// Look at near players, always
 	m_bPlayerIsNear = false;
@@ -572,6 +626,11 @@ bool CNPC_MetroPolice::OverrideMoveFacing( const AILocalMoveGoal_t &move, float 
 //-----------------------------------------------------------------------------
 void CNPC_MetroPolice::Precache( void )
 {
+#ifdef MAPBASE
+	// It doesn't matter if we can't find models/police.mdl in the string pool because then we know this NPC doesn't have that model.
+	if ( GetModelName() == NULL_STRING || GetModelName() == FindPooledString("models/police.mdl") )
+	{
+#endif
 	if ( HasSpawnFlags( SF_NPC_START_EFFICIENT ) )
 	{
 		SetModelName( AllocPooledString("models/police_cheaple.mdl" ) );
@@ -580,6 +639,9 @@ void CNPC_MetroPolice::Precache( void )
 	{
 		SetModelName( AllocPooledString("models/police.mdl") );
 	}
+#ifdef MAPBASE
+	}
+#endif
 
 	PrecacheModel( STRING( GetModelName() ) );
 
@@ -602,7 +664,9 @@ bool CNPC_MetroPolice::CreateComponents()
 	if ( !BaseClass::CreateComponents() )
 		return false;
 
+#ifndef METROPOLICE_USES_RESPONSE_SYSTEM
 	m_Sentences.Init( this, "NPC_Metropolice.SentenceParameters" );
+#endif
 	return true;
 }
 
@@ -681,7 +745,11 @@ void CNPC_MetroPolice::Spawn( void )
 
 		pWeapon = GetActiveWeapon();
 
+#ifdef MAPBASE
+		if (!EntIsClass(pWeapon, gm_isz_class_Pistol) && !EntIsClass(pWeapon, gm_isz_class_357))
+#else
 		if( !FClassnameIs( pWeapon, "weapon_pistol" ) )
+#endif
 		{
 			m_fWeaponDrawn = true;
 		}
@@ -706,7 +774,11 @@ void CNPC_MetroPolice::Spawn( void )
 	// Clear out spawnflag if we're missing the smg1
 	if( HasSpawnFlags( SF_METROPOLICE_ALWAYS_STITCH ) )
 	{
+#ifdef MAPBASE
+		if ( !Weapon_OwnsThisType( STRING(gm_isz_class_SMG1) ) )
+#else
 		if ( !Weapon_OwnsThisType( "weapon_smg1" ) )
+#endif
 		{
 			Warning( "Warning! Metrocop is trying to use the stitch behavior but he has no smg1!\n" );
 			RemoveSpawnFlags( SF_METROPOLICE_ALWAYS_STITCH );
@@ -752,6 +824,23 @@ void CNPC_MetroPolice::SpeakFuncTankSentence( int nSentenceType )
 {
 	switch ( nSentenceType )
 	{
+#ifdef METROPOLICE_USES_RESPONSE_SYSTEM
+	case FUNCTANK_SENTENCE_MOVE_TO_MOUNT:
+		SpeakIfAllowed( TLK_COP_FT_APPROACH, SENTENCE_PRIORITY_MEDIUM );
+		break;
+
+	case FUNCTANK_SENTENCE_JUST_MOUNTED:
+		SpeakIfAllowed( TLK_COP_FT_MOUNT, SENTENCE_PRIORITY_HIGH );
+		break;
+
+	case FUNCTANK_SENTENCE_SCAN_FOR_ENEMIES:
+		SpeakIfAllowed( TLK_COP_FT_SCAN, SENTENCE_PRIORITY_NORMAL );
+		break;
+
+	case FUNCTANK_SENTENCE_DISMOUNTING:
+		SpeakIfAllowed( TLK_COP_FT_DISMOUNT, SENTENCE_PRIORITY_HIGH );
+		break;
+#else
 	case FUNCTANK_SENTENCE_MOVE_TO_MOUNT:
 		m_Sentences.Speak( "METROPOLICE_FT_APPROACH", SENTENCE_PRIORITY_MEDIUM );
 		break;
@@ -767,6 +856,7 @@ void CNPC_MetroPolice::SpeakFuncTankSentence( int nSentenceType )
 	case FUNCTANK_SENTENCE_DISMOUNTING:
 		m_Sentences.Speak( "METROPOLICE_FT_DISMOUNT", SENTENCE_PRIORITY_HIGH );
 		break;
+#endif
 	}
 }
 
@@ -778,6 +868,31 @@ void CNPC_MetroPolice::SpeakStandoffSentence( int nSentenceType )
 {
 	switch ( nSentenceType )
 	{
+#ifdef METROPOLICE_USES_RESPONSE_SYSTEM
+	case STANDOFF_SENTENCE_BEGIN_STANDOFF:
+		SpeakIfAllowed( TLK_COP_SO_BEGIN, SENTENCE_PRIORITY_HIGH, SENTENCE_CRITERIA_SQUAD_LEADER );
+		break;
+
+	case STANDOFF_SENTENCE_END_STANDOFF:
+		SpeakIfAllowed( TLK_COP_SO_END, SENTENCE_PRIORITY_HIGH, SENTENCE_CRITERIA_SQUAD_LEADER );
+		break;
+
+	case STANDOFF_SENTENCE_OUT_OF_AMMO:
+		AnnounceOutOfAmmo( );
+		break;
+
+	case STANDOFF_SENTENCE_FORCED_TAKE_COVER:
+		SpeakIfAllowed( TLK_COP_SO_END );
+		break;
+
+	case STANDOFF_SENTENCE_STAND_CHECK_TARGET:
+		if ( gm_flTimeLastSpokePeek != 0 && gpGlobals->curtime - gm_flTimeLastSpokePeek > 20 )
+		{
+			SpeakIfAllowed( TLK_COP_SO_PEEK );
+			gm_flTimeLastSpokePeek = gpGlobals->curtime;
+		}
+		break;
+#else
 	case STANDOFF_SENTENCE_BEGIN_STANDOFF:
 		m_Sentences.Speak( "METROPOLICE_SO_BEGIN", SENTENCE_PRIORITY_HIGH, SENTENCE_CRITERIA_SQUAD_LEADER );
 		break;
@@ -801,6 +916,7 @@ void CNPC_MetroPolice::SpeakStandoffSentence( int nSentenceType )
 			gm_flTimeLastSpokePeek = gpGlobals->curtime;
 		}
 		break;
+#endif
 	}
 }
 
@@ -811,6 +927,37 @@ void CNPC_MetroPolice::SpeakAssaultSentence( int nSentenceType )
 {
 	switch ( nSentenceType )
 	{
+#ifdef METROPOLICE_USES_RESPONSE_SYSTEM
+	case ASSAULT_SENTENCE_HIT_RALLY_POINT:
+		SpeakIfAllowed( TLK_COP_AS_HIT_RALLY, SENTENCE_PRIORITY_NORMAL );
+		break;
+
+	case ASSAULT_SENTENCE_HIT_ASSAULT_POINT:
+		SpeakIfAllowed( TLK_COP_AS_HIT_ASSAULT, SENTENCE_PRIORITY_NORMAL );
+		break;
+
+	case ASSAULT_SENTENCE_SQUAD_ADVANCE_TO_RALLY:
+		if ( SpeakIfAllowed( TLK_COP_AS_ADV_RALLY, SENTENCE_PRIORITY_MEDIUM, SENTENCE_CRITERIA_SQUAD_LEADER ) )
+		{
+			GetSquad()->BroadcastInteraction( g_interactionMetrocopClearSentenceQueues, NULL );
+		}
+		break;
+
+	case ASSAULT_SENTENCE_SQUAD_ADVANCE_TO_ASSAULT:
+		if ( SpeakIfAllowed( TLK_COP_AS_ADV_ASSAULT, SENTENCE_PRIORITY_MEDIUM, SENTENCE_CRITERIA_SQUAD_LEADER ) )
+		{
+			GetSquad()->BroadcastInteraction( g_interactionMetrocopClearSentenceQueues, NULL );
+		}
+		break;
+
+	case ASSAULT_SENTENCE_COVER_NO_AMMO:
+		AnnounceOutOfAmmo( );
+		break;
+
+	case ASSAULT_SENTENCE_UNDER_ATTACK:
+		SpeakIfAllowed( TLK_COP_GO_ALERT );
+		break;
+#else
 	case ASSAULT_SENTENCE_HIT_RALLY_POINT:
 		m_Sentences.SpeakQueued( "METROPOLICE_AS_HIT_RALLY", SENTENCE_PRIORITY_NORMAL );
 		break;
@@ -840,6 +987,7 @@ void CNPC_MetroPolice::SpeakAssaultSentence( int nSentenceType )
 	case ASSAULT_SENTENCE_UNDER_ATTACK:
 		m_Sentences.Speak( "METROPOLICE_GO_ALERT" );
 		break;
+#endif
 	}
 }
 
@@ -875,6 +1023,70 @@ void CNPC_MetroPolice::SpeakSentence( int nSentenceType )
 
 	switch ( nSentenceType )
 	{
+#ifdef METROPOLICE_USES_RESPONSE_SYSTEM
+	case METROPOLICE_SENTENCE_FREEZE:
+		SpeakIfAllowed( TLK_COP_FREEZE, SENTENCE_PRIORITY_MEDIUM, SENTENCE_CRITERIA_NORMAL );
+		break;
+
+	case METROPOLICE_SENTENCE_HES_OVER_HERE:
+		SpeakIfAllowed( TLK_COP_OVER_HERE, SENTENCE_PRIORITY_MEDIUM, SENTENCE_CRITERIA_NORMAL );
+		break;
+
+	case METROPOLICE_SENTENCE_HES_RUNNING:
+		SpeakIfAllowed( TLK_COP_HES_RUNNING, SENTENCE_PRIORITY_HIGH, SENTENCE_CRITERIA_NORMAL );
+		break;
+
+	case METROPOLICE_SENTENCE_TAKE_HIM_DOWN:
+		SpeakIfAllowed( TLK_COP_TAKE_HIM_DOWN, SENTENCE_PRIORITY_HIGH, SENTENCE_CRITERIA_NORMAL );
+		break;
+
+	case METROPOLICE_SENTENCE_ARREST_IN_POSITION:
+		SpeakIfAllowed( TLK_COP_ARREST_IN_POS, SENTENCE_PRIORITY_MEDIUM, SENTENCE_CRITERIA_NORMAL );
+		break;
+
+	case METROPOLICE_SENTENCE_DEPLOY_MANHACK:
+		SpeakIfAllowed( TLK_COP_DEPLOY_MANHACK );
+		break;
+
+	case METROPOLICE_SENTENCE_MOVE_INTO_POSITION:
+		{
+			CBaseEntity *pEntity = GetEnemy();
+			
+			// NOTE: This is a good time to check to see if the player is hurt.
+			// Have the cops notice this and call out
+			if ( pEntity && !HasSpawnFlags( SF_METROPOLICE_ARREST_ENEMY ) )
+			{
+				if ( pEntity->IsPlayer() && (pEntity->GetHealth() <= 20) )
+				{
+					if ( !HasMemory(bits_MEMORY_PLAYER_HURT) ) 
+					{
+						if ( SpeakIfAllowed( TLK_COP_PLAYERHIT, SENTENCE_PRIORITY_HIGH ) )
+						{
+#ifdef MAPBASE
+							if (GetSquad())
+								GetSquad()->SquadRemember(bits_MEMORY_PLAYER_HURT);
+#else
+							m_pSquad->SquadRemember(bits_MEMORY_PLAYER_HURT);
+#endif
+						}
+					}
+				}
+
+				if ( GetNavigator()->GetPath()->GetPathLength() > 20 * 12.0f )
+				{
+					SpeakIfAllowed( TLK_COP_FLANK );
+				}
+			}
+		}
+		break;
+
+	case METROPOLICE_SENTENCE_HEARD_SOMETHING:
+		if ( ( GetState() == NPC_STATE_ALERT ) || ( GetState() == NPC_STATE_IDLE ) )
+		{
+			SpeakIfAllowed( TLK_COP_HEARD_SOMETHING, SENTENCE_PRIORITY_MEDIUM );
+		}
+		break;
+#else
 	case METROPOLICE_SENTENCE_FREEZE:
 		m_Sentences.Speak( "METROPOLICE_FREEZE", SENTENCE_PRIORITY_MEDIUM, SENTENCE_CRITERIA_NORMAL );
 		break;
@@ -932,8 +1144,51 @@ void CNPC_MetroPolice::SpeakSentence( int nSentenceType )
 			m_Sentences.Speak( "METROPOLICE_HEARD_SOMETHING", SENTENCE_PRIORITY_MEDIUM );
 		}
 		break;
+#endif
 	}
 }
+
+#ifdef METROPOLICE_USES_RESPONSE_SYSTEM
+//=========================================================
+//=========================================================
+bool CNPC_MetroPolice::SpeakIfAllowed( const char *concept, const char *modifiers, SentencePriority_t sentencepriority, SentenceCriteria_t sentencecriteria )
+{
+	AI_CriteriaSet set;
+	if (modifiers)
+	{
+		GetExpresser()->MergeModifiers(set, modifiers);
+	}
+	return SpeakIfAllowed( concept, set, sentencepriority, sentencecriteria );
+}
+
+//=========================================================
+//=========================================================
+bool CNPC_MetroPolice::SpeakIfAllowed( const char *concept, AI_CriteriaSet& modifiers, SentencePriority_t sentencepriority, SentenceCriteria_t sentencecriteria )
+{
+	if ( sentencepriority != SENTENCE_PRIORITY_INVALID && !FOkToMakeSound( sentencepriority ) )
+		return false;
+
+	if ( !GetExpresser()->CanSpeakConcept( concept ) )
+		return false;
+
+	if ( Speak( concept, modifiers ) )
+	{
+		JustMadeSound( sentencepriority, 2.0f /*GetTimeSpeechComplete()*/ );
+		return true;
+	}
+
+	return false;
+}
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+void CNPC_MetroPolice::ModifyOrAppendCriteria( AI_CriteriaSet& set )
+{
+	BaseClass::ModifyOrAppendCriteria( set );
+
+	set.AppendCriteria( "numwarnings", UTIL_VarArgs("%d", m_nNumWarnings) );
+}
+#endif
 
 
 //-----------------------------------------------------------------------------
@@ -954,6 +1209,24 @@ void CNPC_MetroPolice::AnnounceEnemyType( CBaseEntity *pEnemy )
 
 	if ( m_pSquad->IsLeader( this ) || ( m_pSquad->GetLeader() && m_pSquad->GetLeader()->GetEnemy() != GetEnemy() ) )
 	{
+#ifdef METROPOLICE_USES_RESPONSE_SYSTEM
+		// First contact, and I'm the squad leader.
+		bool bEnemyInVehicle = false;
+		switch ( pEnemy->Classify() )
+		{
+		case CLASS_PLAYER:
+			{
+				CBasePlayer *pPlayer = assert_cast<CBasePlayer*>( pEnemy );
+				if ( pPlayer && pPlayer->IsInAVehicle() )
+				{
+					bEnemyInVehicle = true;
+				}
+			}
+			break;
+		}
+
+		SpeakIfAllowed( TLK_COP_ENEMY, UTIL_VarArgs("enemy_in_vehicle:%d", bEnemyInVehicle), SENTENCE_PRIORITY_HIGH );
+#else
 		// First contact, and I'm the squad leader.
 		const char *pSentenceName = "METROPOLICE_MONST";
 		switch ( pEnemy->Classify() )
@@ -998,6 +1271,7 @@ void CNPC_MetroPolice::AnnounceEnemyType( CBaseEntity *pEnemy )
 		}
 
 		m_Sentences.Speak( pSentenceName, SENTENCE_PRIORITY_HIGH );
+#endif
 	}
 	else
 	{
@@ -1019,6 +1293,11 @@ void CNPC_MetroPolice::AnnounceEnemyKill( CBaseEntity *pEnemy )
 	if ( !pEnemy )
 		return;
 
+#ifdef METROPOLICE_USES_RESPONSE_SYSTEM
+	AI_CriteriaSet set;
+	ModifyOrAppendEnemyCriteria(set, pEnemy);
+	SpeakIfAllowed( TLK_COP_KILLENEMY, set, SENTENCE_PRIORITY_HIGH );
+#else
 	const char *pSentenceName = "METROPOLICE_KILL_MONST";
 	switch ( pEnemy->Classify() )
 	{
@@ -1053,6 +1332,7 @@ void CNPC_MetroPolice::AnnounceEnemyKill( CBaseEntity *pEnemy )
 	}
 
 	m_Sentences.Speak( pSentenceName, SENTENCE_PRIORITY_HIGH );
+#endif
 }
 
 
@@ -1061,6 +1341,16 @@ void CNPC_MetroPolice::AnnounceEnemyKill( CBaseEntity *pEnemy )
 //-----------------------------------------------------------------------------
 void CNPC_MetroPolice::AnnounceOutOfAmmo( )
 {
+#ifdef METROPOLICE_USES_RESPONSE_SYSTEM
+	if ( HasCondition( COND_NO_PRIMARY_AMMO ) )
+	{
+		SpeakIfAllowed( TLK_COP_NOAMMO );
+	}
+	else
+	{
+		SpeakIfAllowed( TLK_COP_LOWAMMO );
+	}
+#else
 	if ( HasCondition( COND_NO_PRIMARY_AMMO ) )
 	{
 		m_Sentences.Speak( "METROPOLICE_COVER_NO_AMMO" );
@@ -1069,6 +1359,7 @@ void CNPC_MetroPolice::AnnounceOutOfAmmo( )
 	{
 		m_Sentences.Speak( "METROPOLICE_COVER_LOW_AMMO" );
 	}
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -1076,6 +1367,38 @@ void CNPC_MetroPolice::AnnounceOutOfAmmo( )
 //-----------------------------------------------------------------------------
 void CNPC_MetroPolice::AnnounceTakeCoverFromDanger( CSound *pSound )
 {
+#ifdef METROPOLICE_USES_RESPONSE_SYSTEM
+	bool bGrenade = false;
+	bool bVehicle = false;
+	bool bManhack = false;
+
+	CBaseEntity *pSoundOwner = pSound->m_hOwner;
+	if ( pSoundOwner )
+	{
+		CBaseGrenade *pGrenade = dynamic_cast<CBaseGrenade *>(pSoundOwner);
+		if ( pGrenade )
+		{
+			if ( IRelationType( pGrenade->GetThrower() ) != D_LI )
+			{
+				// special case call out for enemy grenades
+				bGrenade = true;
+			}
+		}
+		else if ( pSoundOwner->GetServerVehicle() )
+		{
+			bVehicle = true;
+		}
+		else if ( FClassnameIs( pSoundOwner, "npc_manhack" ) )
+		{
+			if ( pSoundOwner->HasPhysicsAttacker( 1.0f ) )
+			{
+				bManhack = true;
+			}
+		}
+	}
+
+	SpeakIfAllowed(TLK_COP_DANGER, UTIL_VarArgs("grenade:%d,vehicle:%d,manhack:%d", bGrenade, bVehicle, bManhack), SENTENCE_PRIORITY_HIGH, SENTENCE_CRITERIA_NORMAL);
+#else
 	CBaseEntity *pSoundOwner = pSound->m_hOwner;
 	if ( pSoundOwner )
 	{
@@ -1110,6 +1433,7 @@ void CNPC_MetroPolice::AnnounceTakeCoverFromDanger( CSound *pSound )
 	// dangerous sound nearby!, call it out
 	const char *pSentenceName = "METROPOLICE_DANGER";
 	m_Sentences.Speak( pSentenceName, SENTENCE_PRIORITY_HIGH, SENTENCE_CRITERIA_NORMAL );
+#endif
 }
 
 
@@ -2444,12 +2768,54 @@ void CNPC_MetroPolice::InputEnableManhackToss( inputdata_t &inputdata )
 	}
 }
 
+#ifdef MAPBASE
+void CNPC_MetroPolice::InputDisableManhackToss( inputdata_t &inputdata )
+{
+	if ( !HasSpawnFlags( SF_METROPOLICE_NO_MANHACK_DEPLOY ) )
+	{
+		AddSpawnFlags( SF_METROPOLICE_NO_MANHACK_DEPLOY );
+	}
+}
+
+void CNPC_MetroPolice::InputDeployManhack( inputdata_t &inputdata )
+{
+	// I am aware this bypasses regular deployment conditions, but the mapper wants us to deploy a manhack, damn it!
+	// We do have to have one, though.
+	if ( m_iManhacks > 0 )
+	{
+		SetSchedule(SCHED_METROPOLICE_DEPLOY_MANHACK);
+	}
+}
+
+void CNPC_MetroPolice::InputAddManhacks( inputdata_t &inputdata )
+{
+	m_iManhacks += inputdata.value.Int();
+
+	SetBodygroup( METROPOLICE_BODYGROUP_MANHACK, (m_iManhacks > 0) );
+}
+
+void CNPC_MetroPolice::InputSetManhacks( inputdata_t &inputdata )
+{
+	m_iManhacks = inputdata.value.Int();
+
+	SetBodygroup( METROPOLICE_BODYGROUP_MANHACK, (m_iManhacks > 0) );
+}
+#endif
+
 //-----------------------------------------------------------------------------
 // Purpose: 
 // Input  : &inputdata - 
 //-----------------------------------------------------------------------------
 void CNPC_MetroPolice::InputSetPoliceGoal( inputdata_t &inputdata )
 {
+#ifdef MAPBASE
+	if (/*!inputdata.value.String() ||*/ inputdata.value.String()[0] == 0)
+	{
+		m_PolicingBehavior.Disable();
+		return;
+	}
+#endif
+
 	CBaseEntity *pGoal = gEntList.FindEntityByName( NULL, inputdata.value.String() );
 
 	if ( pGoal == NULL )
@@ -2478,6 +2844,35 @@ void CNPC_MetroPolice::InputActivateBaton( inputdata_t &inputdata )
 	SetBatonState( inputdata.value.Bool() );
 }
 
+#ifdef MAPBASE
+//-----------------------------------------------------------------------------
+// Purpose: 
+// Input  : &inputdata - 
+//-----------------------------------------------------------------------------
+void CNPC_MetroPolice::InputAdministerJustice( inputdata_t &inputdata )
+{
+	AdministerJustice();
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+// Input  : &inputdata - 
+//-----------------------------------------------------------------------------
+void CNPC_MetroPolice::InputAddWarnings( inputdata_t &inputdata )
+{
+	m_nNumWarnings += inputdata.value.Int();
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+// Input  : &inputdata - 
+//-----------------------------------------------------------------------------
+void CNPC_MetroPolice::InputSetWarnings( inputdata_t &inputdata )
+{
+	m_nNumWarnings = inputdata.value.Int();
+}
+#endif
+
 
 //-----------------------------------------------------------------------------
 // Purpose: 
@@ -2485,7 +2880,11 @@ void CNPC_MetroPolice::InputActivateBaton( inputdata_t &inputdata )
 //-----------------------------------------------------------------------------
 void CNPC_MetroPolice::AlertSound( void )
 {
+#ifdef METROPOLICE_USES_RESPONSE_SYSTEM
+	SpeakIfAllowed( TLK_COP_GO_ALERT );
+#else
 	m_Sentences.Speak( "METROPOLICE_GO_ALERT" );
+#endif
 }
 
 
@@ -2498,7 +2897,13 @@ void CNPC_MetroPolice::DeathSound( const CTakeDamageInfo &info )
 	if ( IsOnFire() )
 		return;
 
+#ifdef METROPOLICE_USES_RESPONSE_SYSTEM
+	AI_CriteriaSet set;
+	ModifyOrAppendDamageCriteria(set, info);
+	SpeakIfAllowed( TLK_COP_DIE, set, SENTENCE_PRIORITY_INVALID, SENTENCE_CRITERIA_ALWAYS );
+#else
 	m_Sentences.Speak( "METROPOLICE_DIE", SENTENCE_PRIORITY_INVALID, SENTENCE_CRITERIA_ALWAYS );
+#endif
 }
 
 
@@ -2517,6 +2922,12 @@ void CNPC_MetroPolice::LostEnemySound( void)
 	if ( gpGlobals->curtime <= m_flNextLostSoundTime )
 		return;
 
+#ifdef METROPOLICE_USES_RESPONSE_SYSTEM
+	if (SpeakIfAllowed(TLK_COP_LOSTENEMY))
+	{
+		m_flNextLostSoundTime = gpGlobals->curtime + random->RandomFloat(5.0,15.0);
+	}
+#else
 	const char *pSentence;
 	if (!(CBaseEntity*)GetEnemy() || gpGlobals->curtime - GetEnemyLastTimeSeen() > 10)
 	{
@@ -2531,6 +2942,7 @@ void CNPC_MetroPolice::LostEnemySound( void)
 	{
 		m_flNextLostSoundTime = gpGlobals->curtime + random->RandomFloat(5.0,15.0);
 	}
+#endif
 }
 
 
@@ -2546,7 +2958,11 @@ void CNPC_MetroPolice::FoundEnemySound( void)
 	if ( HasSpawnFlags( SF_METROPOLICE_ARREST_ENEMY ) )
 		return;
 
+#ifdef METROPOLICE_USES_RESPONSE_SYSTEM
+	SpeakIfAllowed( TLK_COP_REFINDENEMY, SENTENCE_PRIORITY_HIGH );
+#else
 	m_Sentences.Speak( "METROPOLICE_REFIND_ENEMY", SENTENCE_PRIORITY_HIGH );
+#endif
 }
 
 
@@ -2571,6 +2987,59 @@ bool CNPC_MetroPolice::ShouldPlayIdleSound( void )
 //-----------------------------------------------------------------------------
 void CNPC_MetroPolice::IdleSound( void )
 {
+#ifdef METROPOLICE_USES_RESPONSE_SYSTEM
+	// This happens when the NPC is waiting for his buddies to respond to him
+	switch( m_nIdleChatterType )
+	{
+	case METROPOLICE_CHATTER_WAIT_FOR_RESPONSE:
+		break;
+
+	case METROPOLICE_CHATTER_ASK_QUESTION:
+		{
+			if ( m_bPlayerIsNear && !HasMemory(bits_MEMORY_PLAYER_HARASSED) )
+			{
+				if ( SpeakIfAllowed( TLK_COP_HARASS, SENTENCE_PRIORITY_NORMAL, SENTENCE_CRITERIA_NORMAL ) )
+				{
+					Remember( bits_MEMORY_PLAYER_HARASSED );
+					if ( GetSquad() )
+					{
+						GetSquad()->SquadRemember(bits_MEMORY_PLAYER_HARASSED);
+					}
+				}
+				return;
+			}
+
+			if ( !random->RandomInt(0,1) )
+				break;
+
+			int nQuestionType = random->RandomInt( 0, METROPOLICE_CHATTER_RESPONSE_TYPE_COUNT );
+			if ( !IsInSquad() || ( nQuestionType == METROPOLICE_CHATTER_RESPONSE_TYPE_COUNT ) )
+			{
+				SpeakIfAllowed(TLK_COP_IDLE);
+				break;
+			}
+
+			if ( SpeakIfAllowed( TLK_COP_QUESTION, UTIL_VarArgs("combinequestion:%d", nQuestionType) ) )
+			{
+				GetSquad()->BroadcastInteraction( g_interactionMetrocopIdleChatter, (void*)(METROPOLICE_CHATTER_RESPONSE + nQuestionType), this );
+				m_nIdleChatterType = METROPOLICE_CHATTER_WAIT_FOR_RESPONSE;
+			}
+		}
+		break;
+
+	default:
+		{
+			int nResponseType = m_nIdleChatterType - METROPOLICE_CHATTER_RESPONSE;
+
+			if ( SpeakIfAllowed( TLK_COP_ANSWER, UTIL_VarArgs("combinequestion:%d", nResponseType) ) )
+			{
+				GetSquad()->BroadcastInteraction( g_interactionMetrocopIdleChatter, (void*)(METROPOLICE_CHATTER_ASK_QUESTION), this );
+				m_nIdleChatterType = METROPOLICE_CHATTER_ASK_QUESTION;
+			}
+		}
+		break;
+	}
+#else
 	bool bIsCriminal = PlayerIsCriminal();
 
 	// This happens when the NPC is waiting for his buddies to respond to him
@@ -2636,6 +3105,7 @@ void CNPC_MetroPolice::IdleSound( void )
 		}
 		break;
 	}
+#endif
 }
 
 
@@ -2651,6 +3121,12 @@ void CNPC_MetroPolice::PainSound( const CTakeDamageInfo &info )
 	if ( IsOnFire() )
 		return;
 
+#ifdef METROPOLICE_USES_RESPONSE_SYSTEM
+	AI_CriteriaSet set;
+	ModifyOrAppendDamageCriteria(set, info);
+	SpeakIfAllowed(TLK_COP_PAIN, set, SENTENCE_PRIORITY_INVALID, SENTENCE_CRITERIA_ALWAYS);
+	m_flNextPainSoundTime = gpGlobals->curtime + 1;
+#else
 	float healthRatio = (float)GetHealth() / (float)GetMaxHealth();
 	if ( healthRatio > 0.0f )
 	{
@@ -2670,6 +3146,7 @@ void CNPC_MetroPolice::PainSound( const CTakeDamageInfo &info )
 		m_Sentences.Speak( pSentenceName, SENTENCE_PRIORITY_INVALID, SENTENCE_CRITERIA_ALWAYS );
 		m_flNextPainSoundTime = gpGlobals->curtime + 1;
 	}
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -2769,7 +3246,7 @@ void CNPC_MetroPolice::OnAnimEventStartDeployManhack( void )
 	
 	if ( m_iManhacks <= 0 )
 	{
-		DevMsg( "Error: Throwing manhack but out of manhacks!\n" );
+		CGMsg( 1, CON_GROUP_NPC_AI, "Error: Throwing manhack but out of manhacks!\n" );
 		return;
 	}
 
@@ -2806,6 +3283,10 @@ void CNPC_MetroPolice::OnAnimEventStartDeployManhack( void )
 	pManhack->SetParent( this, handAttachment );
 
 	m_hManhack = pManhack;
+
+#ifdef MAPBASE
+	m_OutManhack.Set(m_hManhack, pManhack, this);
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -2883,7 +3364,7 @@ void CNPC_MetroPolice::OnAnimEventShove( void )
 //-----------------------------------------------------------------------------
 void CNPC_MetroPolice::OnAnimEventBatonOn( void )
 {
-#ifndef HL2MP
+#if !defined(HL2MP) || defined(MAPBASE)
 
 	CWeaponStunStick *pStick = dynamic_cast<CWeaponStunStick *>(GetActiveWeapon());
 
@@ -2900,7 +3381,7 @@ void CNPC_MetroPolice::OnAnimEventBatonOn( void )
 //-----------------------------------------------------------------------------
 void CNPC_MetroPolice::OnAnimEventBatonOff( void )
 {
-#ifndef HL2MP
+#if !defined(HL2MP) || defined(MAPBASE)
 
 	CWeaponStunStick *pStick = dynamic_cast<CWeaponStunStick *>(GetActiveWeapon());
 	
@@ -2989,7 +3470,9 @@ bool CNPC_MetroPolice::HandleInteraction(int interactionType, void *data, CBaseC
 
 	if ( interactionType == g_interactionMetrocopClearSentenceQueues )
 	{
+#ifndef METROPOLICE_USES_RESPONSE_SYSTEM
 			m_Sentences.ClearQueue();
+#endif
 			return true;
 	}
 
@@ -3010,8 +3493,15 @@ bool CNPC_MetroPolice::HandleInteraction(int interactionType, void *data, CBaseC
 		CBaseProp *pProp = (CBaseProp*)data;
 		if( pProp != NULL )
 		{
+#ifdef MAPBASE
+			if( pProp->NameMatches("cupcop_can") )
+				m_OnCupCopped.FireOutput( sourceEnt, this );
+
+			m_OnHitByPhysicsObject.Set(pProp, sourceEnt, this);
+#else
 			if( pProp->NameMatches("cupcop_can") )
 				m_OnCupCopped.FireOutput( this, NULL );
+#endif
 		}
 
 		return true;
@@ -3046,8 +3536,70 @@ Activity CNPC_MetroPolice::NPC_TranslateActivity( Activity newActivity )
 		newActivity = ACT_IDLE_ANGRY;
 	}
 
+#ifdef MAPBASE
+	if (newActivity == ACT_RANGE_ATTACK2)
+	{
+		return ACT_COMBINE_THROW_GRENADE;
+	}
+#endif
+
 	return newActivity;
 }
+
+#ifdef MAPBASE
+Activity CNPC_MetroPolice::Weapon_TranslateActivity( Activity baseAct, bool *pRequired )
+{
+	Activity translated = BaseClass::Weapon_TranslateActivity(baseAct, pRequired);
+
+	if (!m_fWeaponDrawn)
+	{
+		// If our pistol is holstered, don't act like we have one in our hands.
+		switch (translated)
+		{
+			case ACT_WALK_PISTOL:	return ACT_WALK;
+			case ACT_RUN_PISTOL:	return ACT_RUN;
+			case ACT_IDLE_PISTOL:	return ACT_IDLE;
+		}
+	}
+
+	return translated;
+}
+
+int CNPC_MetroPolice::UnholsterWeapon()
+{
+#if 0
+	if (!m_fWeaponDrawn && (!IsCurSchedule(SCHED_METROPOLICE_DRAW_PISTOL)))
+		SetSchedule(SCHED_METROPOLICE_DRAW_PISTOL);
+
+	return -1;
+#else
+	// Remain compatible with the original behavior
+	if (IsCurSchedule(SCHED_METROPOLICE_DRAW_PISTOL))
+		return -1;
+	else if (!m_fWeaponDrawn)
+	{
+		SetSchedule(SCHED_METROPOLICE_DRAW_PISTOL);
+		return -1;
+	}
+
+	return BaseClass::UnholsterWeapon();
+#endif
+}
+
+void CNPC_MetroPolice::OnChangeRunningBehavior( CAI_BehaviorBase *pOldBehavior,  CAI_BehaviorBase *pNewBehavior )
+{
+	BaseClass::OnChangeRunningBehavior( pOldBehavior,  pNewBehavior );
+
+	// Fix the npc_metropolice using an invisible gun
+	if (!m_fWeaponDrawn)
+	{
+		// We can't just stop and draw, so fall back to gesture unholstering.
+		// Our implementation of UnholsterWeapon() just handles stopping and drawing, which we can skip in this case.
+		m_fWeaponDrawn = true;
+		BaseClass::UnholsterWeapon();
+	}
+}
+#endif
 
 //-----------------------------------------------------------------------------
 // Purpose: Makes the held manhack solid
@@ -3068,6 +3620,12 @@ void CNPC_MetroPolice::ReleaseManhack( void )
 	// Make us active
 	m_hManhack->RemoveSpawnFlags( SF_NPC_WAIT_FOR_SCRIPT );
 	m_hManhack->ClearSchedule( "Manhack released by metropolice" );
+
+#ifdef MAPBASE
+	// FSOLID_COLLIDE_WITH_OWNER allows us to be remembered as the manhack's owner without making us invulnerable to it
+	m_hManhack->SetOwnerEntity( this );
+	m_hManhack->AddSolidFlags( FSOLID_COLLIDE_WITH_OWNER );
+#endif
 	
 	// Start him with knowledge of our current enemy
 	if ( GetEnemy() )
@@ -3159,6 +3717,17 @@ int CNPC_MetroPolice::SelectRangeAttackSchedule()
 	{
 		return SCHED_METROPOLICE_DEPLOY_MANHACK;
 	}
+
+#ifdef MAPBASE
+	// Throw a grenade if not allowed to engage with weapon.
+	if ( CanGrenadeEnemy() )
+	{
+		if ( OccupyStrategySlot( SQUAD_SLOT_SPECIAL_ATTACK ) )
+		{
+			return SCHED_METROPOLICE_RANGE_ATTACK2;
+		}
+	}
+#endif
 
 	return SCHED_METROPOLICE_ADVANCE;
 }
@@ -3333,7 +3902,11 @@ int CNPC_MetroPolice::SelectCombatSchedule()
 	{
 		m_nRecentDamage = 0;
 		m_flRecentDamageTime = 0;
+#ifdef METROPOLICE_USES_RESPONSE_SYSTEM
+		SpeakIfAllowed(TLK_COP_COVER_HEAVY_DAMAGE, SENTENCE_PRIORITY_MEDIUM, SENTENCE_CRITERIA_NORMAL);
+#else
 		m_Sentences.Speak( "METROPOLICE_COVER_HEAVY_DAMAGE", SENTENCE_PRIORITY_MEDIUM, SENTENCE_CRITERIA_NORMAL );
+#endif
 
 		return SCHED_TAKE_COVER_FROM_ENEMY;
 	}
@@ -3376,7 +3949,11 @@ int CNPC_MetroPolice::SelectCombatSchedule()
 		CBaseEntity *pBlocker = GetEnemyOccluder();
 		if ( pBlocker && pBlocker->GetHealth() > 0 && OccupyStrategySlotRange( SQUAD_SLOT_POLICE_ATTACK_OCCLUDER1, SQUAD_SLOT_POLICE_ATTACK_OCCLUDER2 ) )
 		{
+#ifdef METROPOLICE_USES_RESPONSE_SYSTEM
+			SpeakIfAllowed(TLK_COP_SHOOTCOVER);
+#else
 			m_Sentences.Speak( "METROPOLICE_SHOOT_COVER" );
+#endif
 			return SCHED_SHOOT_ENEMY_COVER;
 		}
 	}
@@ -3385,6 +3962,27 @@ int CNPC_MetroPolice::SelectCombatSchedule()
 	{
 		if ( GetEnemy() && !(GetEnemy()->GetFlags() & FL_NOTARGET) )
 		{
+#ifdef MAPBASE
+			if ( HasGrenades() )
+			{
+				// We don't see our enemy. If it hasn't been long since I last saw him,
+				// and he's pretty close to the last place I saw him, throw a grenade in 
+				// to flush him out. A wee bit of cheating here...
+
+				float flTime;
+				float flDist;
+
+				flTime = gpGlobals->curtime - GetEnemies()->LastTimeSeen( GetEnemy() );
+				flDist = ( GetEnemy()->GetAbsOrigin() - GetEnemies()->LastSeenPosition( GetEnemy() ) ).Length();
+
+				//Msg("Time: %f   Dist: %f\n", flTime, flDist );
+				if ( flTime <= COMBINE_GRENADE_FLUSH_TIME && flDist <= COMBINE_GRENADE_FLUSH_DIST && CanGrenadeEnemy( false ) && OccupyStrategySlot( SQUAD_SLOT_SPECIAL_ATTACK ) )
+				{
+					return SCHED_METROPOLICE_RANGE_ATTACK2;
+				}
+			}
+#endif
+
 			// Charge in and break the enemy's cover!
 			return SCHED_ESTABLISH_LINE_OF_FIRE;
 		}
@@ -3800,6 +4398,148 @@ int CNPC_MetroPolice::SelectAirboatCombatSchedule()
 }
 
 
+#ifdef MAPBASE
+//-----------------------------------------------------------------------------
+// Standoff schedule selection 
+//-----------------------------------------------------------------------------
+int CNPC_MetroPolice::SelectBehaviorOverrideSchedule()
+{
+	// Announce a new enemy
+	if ( HasCondition( COND_NEW_ENEMY ) )
+	{
+		AnnounceEnemyType( GetEnemy() );
+	}
+
+	int nResult = SelectScheduleNewEnemy();
+	if ( nResult != SCHED_NONE )
+		return nResult;
+
+	if (!HasBaton() && ((float)m_nRecentDamage / (float)GetMaxHealth()) > RECENT_DAMAGE_THRESHOLD)
+	{
+		m_nRecentDamage = 0;
+		m_flRecentDamageTime = 0;
+#ifdef METROPOLICE_USES_RESPONSE_SYSTEM
+		SpeakIfAllowed(TLK_COP_COVER_HEAVY_DAMAGE, SENTENCE_PRIORITY_MEDIUM, SENTENCE_CRITERIA_NORMAL);
+#else
+		m_Sentences.Speak( "METROPOLICE_COVER_HEAVY_DAMAGE", SENTENCE_PRIORITY_MEDIUM, SENTENCE_CRITERIA_NORMAL );
+#endif
+
+		return SCHED_TAKE_COVER_FROM_ENEMY;
+	}
+
+	if ( HasCondition( COND_CAN_RANGE_ATTACK1 ) )
+	{
+		nResult = SelectRangeAttackSchedule();
+		if ( !GetShotRegulator()->IsInRestInterval() && nResult != SCHED_METROPOLICE_ADVANCE && nResult != SCHED_RANGE_ATTACK1 )
+			return nResult;
+	}
+
+	if ( HasCondition( COND_TOO_CLOSE_TO_ATTACK ) )
+	{
+		return SCHED_BACK_AWAY_FROM_ENEMY;
+	}
+	
+	if ( HasCondition( COND_LOW_PRIMARY_AMMO ) || HasCondition( COND_NO_PRIMARY_AMMO ) )
+	{
+		AnnounceOutOfAmmo( );
+		return SCHED_HIDE_AND_RELOAD;
+	}
+
+	if ( HasCondition(COND_WEAPON_SIGHT_OCCLUDED) && !HasBaton() )
+	{
+		// If they are hiding behind something that we can destroy, start shooting at it.
+		CBaseEntity *pBlocker = GetEnemyOccluder();
+		if ( pBlocker && pBlocker->GetHealth() > 0 && OccupyStrategySlotRange( SQUAD_SLOT_POLICE_ATTACK_OCCLUDER1, SQUAD_SLOT_POLICE_ATTACK_OCCLUDER2 ) )
+		{
+#ifdef METROPOLICE_USES_RESPONSE_SYSTEM
+			SpeakIfAllowed(TLK_COP_SHOOTCOVER);
+#else
+			m_Sentences.Speak( "METROPOLICE_SHOOT_COVER" );
+#endif
+			return SCHED_SHOOT_ENEMY_COVER;
+		}
+	}
+
+	if (HasCondition(COND_ENEMY_OCCLUDED))
+	{
+		if ( GetEnemy() && !(GetEnemy()->GetFlags() & FL_NOTARGET) )
+		{
+			if ( HasGrenades() )
+			{
+				// We don't see our enemy. If it hasn't been long since I last saw him,
+				// and he's pretty close to the last place I saw him, throw a grenade in 
+				// to flush him out. A wee bit of cheating here...
+
+				float flTime;
+				float flDist;
+
+				flTime = gpGlobals->curtime - GetEnemies()->LastTimeSeen( GetEnemy() );
+				flDist = ( GetEnemy()->GetAbsOrigin() - GetEnemies()->LastSeenPosition( GetEnemy() ) ).Length();
+
+				//Msg("Time: %f   Dist: %f\n", flTime, flDist );
+				if ( flTime <= COMBINE_GRENADE_FLUSH_TIME && flDist <= COMBINE_GRENADE_FLUSH_DIST && CanGrenadeEnemy( false ) && OccupyStrategySlot( SQUAD_SLOT_SPECIAL_ATTACK ) )
+				{
+					return SCHED_METROPOLICE_RANGE_ATTACK2;
+				}
+			}
+		}
+	}
+
+	// If you can't attack, but you can deploy a manhack, do it!
+	if( CanDeployManhack() && OccupyStrategySlot( SQUAD_SLOT_POLICE_DEPLOY_MANHACK ) )
+		return SCHED_METROPOLICE_DEPLOY_MANHACK;
+
+	return SCHED_NONE;
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+bool CNPC_MetroPolice::IsCrouchedActivity( Activity activity )
+{
+	Activity realActivity = TranslateActivity(activity);
+
+	switch ( realActivity )
+	{
+		case ACT_RELOAD_LOW:
+		case ACT_COVER_LOW:
+		case ACT_COVER_PISTOL_LOW:
+		case ACT_COVER_SMG1_LOW:
+		case ACT_RELOAD_SMG1_LOW:
+		//case ACT_RELOAD_AR2_LOW:
+		case ACT_RELOAD_PISTOL_LOW:
+		case ACT_RELOAD_SHOTGUN_LOW:
+
+			// These animations aren't actually "low" on metrocops
+		//case ACT_RANGE_AIM_LOW:
+		//case ACT_RANGE_AIM_AR2_LOW:
+		//case ACT_RANGE_AIM_SMG1_LOW:
+		//case ACT_RANGE_AIM_PISTOL_LOW:
+
+		//case ACT_RANGE_ATTACK1_LOW:
+		//case ACT_RANGE_ATTACK_AR2_LOW:
+		//case ACT_RANGE_ATTACK_SMG1_LOW:
+		//case ACT_RANGE_ATTACK_PISTOL_LOW:
+		//case ACT_RANGE_ATTACK2_LOW:
+			return true;
+	}
+
+	return false;
+}
+
+//-----------------------------------------------------------------------------
+// Standoff schedule selection 
+//-----------------------------------------------------------------------------
+int CNPC_MetroPolice::CMetroPoliceStandoffBehavior::SelectScheduleAttack()
+{
+	int result = metropolice_new_component_behavior.GetBool() ? GetOuter()->SelectBehaviorOverrideSchedule() : SCHED_NONE;
+	if (result == SCHED_NONE)
+		result = BaseClass::SelectScheduleAttack();
+	return result;
+}
+#endif
+
+
 //-----------------------------------------------------------------------------
 // Purpose: 
 // Input  : &info - 
@@ -3884,6 +4624,9 @@ void CNPC_MetroPolice::PlayFlinchGesture( void )
 //-----------------------------------------------------------------------------
 void CNPC_MetroPolice::AnnounceHarrassment( void )
 {
+#ifdef METROPOLICE_USES_RESPONSE_SYSTEM
+	SpeakIfAllowed(TLK_COP_BACK_UP, SENTENCE_PRIORITY_MEDIUM, SENTENCE_CRITERIA_NORMAL);
+#else
 	static const char *pWarnings[3] = 
 	{
 		"METROPOLICE_BACK_UP_A",
@@ -3892,6 +4635,7 @@ void CNPC_MetroPolice::AnnounceHarrassment( void )
 	};
 
 	m_Sentences.Speak( pWarnings[ random->RandomInt( 0, ARRAYSIZE(pWarnings)-1 ) ], SENTENCE_PRIORITY_MEDIUM, SENTENCE_CRITERIA_NORMAL );
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -4013,7 +4757,11 @@ int CNPC_MetroPolice::SelectSchedule( void )
 
 	if ( HasCondition(COND_METROPOLICE_ON_FIRE) )
 	{
+#ifdef METROPOLICE_USES_RESPONSE_SYSTEM
+		SpeakIfAllowed(TLK_COP_ON_FIRE, "hurt_by_fire:1", SENTENCE_PRIORITY_INVALID, SENTENCE_CRITERIA_ALWAYS);
+#else
 		m_Sentences.Speak( "METROPOLICE_ON_FIRE", SENTENCE_PRIORITY_INVALID, SENTENCE_CRITERIA_ALWAYS );
+#endif
 		return SCHED_METROPOLICE_BURNING_STAND;
 	}
 
@@ -4025,16 +4773,65 @@ int CNPC_MetroPolice::SelectSchedule( void )
 		// See which state our player relationship is in
 		if ( PlayerIsCriminal() == false )
 		{
+#ifdef METROPOLICE_USES_RESPONSE_SYSTEM
+			SpeakIfAllowed( TLK_COP_HIT_BY_PHYSOBJ, SENTENCE_PRIORITY_INVALID, SENTENCE_CRITERIA_ALWAYS );
+#else
 			m_Sentences.Speak( "METROPOLICE_HIT_BY_PHYSOBJECT", SENTENCE_PRIORITY_INVALID, SENTENCE_CRITERIA_ALWAYS );
+#endif
 			m_nNumWarnings = METROPOLICE_MAX_WARNINGS;
 			AdministerJustice();
 		}
 		else if ( GlobalEntity_GetState( "gordon_precriminal" ) == GLOBAL_ON )
 		{
 			// We're not allowed to respond, but warn them
+#ifdef METROPOLICE_USES_RESPONSE_SYSTEM
+			SpeakIfAllowed( TLK_COP_HARASS, SENTENCE_PRIORITY_INVALID, SENTENCE_CRITERIA_ALWAYS );
+#else
 			m_Sentences.Speak( "METROPOLICE_IDLE_HARASS_PLAYER", SENTENCE_PRIORITY_INVALID, SENTENCE_CRITERIA_ALWAYS );
+#endif
 		}
 	}
+
+#ifdef MAPBASE
+	if ( m_hForcedGrenadeTarget )
+	{
+		if ( m_flNextGrenadeCheck < gpGlobals->curtime )
+		{
+			Vector vecTarget = m_hForcedGrenadeTarget->WorldSpaceCenter();
+
+			// The fact we have a forced grenade target overrides whether we're marked as "capable".
+			// If we're *only* alt-fire capable, use an energy ball. If not, throw a grenade.
+			if (!IsAltFireCapable() || IsGrenadeCapable())
+			{
+				Vector vecTarget = m_hForcedGrenadeTarget->WorldSpaceCenter();
+				{
+					// If we can, throw a grenade at the target. 
+					// Ignore grenade count / distance / etc
+					if ( CheckCanThrowGrenade( vecTarget ) )
+					{
+						m_hForcedGrenadeTarget = NULL;
+						return SCHED_METROPOLICE_FORCED_GRENADE_THROW;
+					}
+				}
+			}
+			else
+			{
+				if ( FVisible( m_hForcedGrenadeTarget ) )
+				{
+					m_vecAltFireTarget = vecTarget;
+					m_hForcedGrenadeTarget = NULL;
+					return SCHED_METROPOLICE_AR2_ALTFIRE;
+				}
+			}
+		}
+
+		// Can't throw at the target, so lets try moving to somewhere where I can see it
+		if ( !FVisible( m_hForcedGrenadeTarget ) )
+		{
+			return SCHED_METROPOLICE_MOVE_TO_FORCED_GREN_LOS;
+		}
+	}
+#endif
 
 	int nSched = SelectFlinchSchedule();
 	if ( nSched != SCHED_NONE )
@@ -4125,7 +4922,11 @@ int CNPC_MetroPolice::SelectSchedule( void )
 	{
 		if ( GetActiveWeapon() && (GetActiveWeapon()->m_iClip1 <= 5) )
 		{
+#ifdef METROPOLICE_USES_RESPONSE_SYSTEM
+			SpeakIfAllowed( TLK_COP_LOWAMMO );
+#else
 			m_Sentences.Speak( "METROPOLICE_COVER_LOW_AMMO" );
+#endif
 			return SCHED_HIDE_AND_RELOAD;
 		}
 	}
@@ -4168,7 +4969,11 @@ int CNPC_MetroPolice::SelectSchedule( void )
 			break;
 
 		case NPC_STATE_COMBAT:
+#ifdef MAPBASE
+			if (!IsEnemyInAnAirboat() || !GetActiveWeapon() || !EntIsClass(GetActiveWeapon(), gm_isz_class_SMG1))
+#else
 			if (!IsEnemyInAnAirboat() || !Weapon_OwnsThisType( "weapon_smg1" ) )
+#endif
 			{
 				int nResult = SelectCombatSchedule();
 				if ( nResult != SCHED_NONE )
@@ -4244,6 +5049,14 @@ int CNPC_MetroPolice::TranslateSchedule( int scheduleType )
 			if ( nSched != SCHED_NONE )
 				return nSched;
 		}
+#ifdef MAPBASE
+		if ( CanAltFireEnemy(false) && OccupyStrategySlot(SQUAD_SLOT_SPECIAL_ATTACK) )
+		{
+			// If this metrocop has the balls to alt-fire the enemy's last known position,
+			// do so!
+			return SCHED_METROPOLICE_AR2_ALTFIRE;
+		}
+#endif
 		return SCHED_METROPOLICE_ESTABLISH_LINE_OF_FIRE;		
 		
 	case SCHED_WAKE_ANGRY:
@@ -4270,7 +5083,21 @@ int CNPC_MetroPolice::TranslateSchedule( int scheduleType )
 			return SCHED_METROPOLICE_DRAW_PISTOL;
 		}
 
+#ifdef MAPBASE
+		if (CanAltFireEnemy( true ) && OccupyStrategySlot( SQUAD_SLOT_SPECIAL_ATTACK ))
+		{
+			// Since I'm holding this squadslot, no one else can try right now. If I die before the shot 
+			// goes off, I won't have affected anyone else's ability to use this attack at their nearest
+			// convenience.
+			return SCHED_METROPOLICE_AR2_ALTFIRE;
+		}
+#endif
+
+#ifdef MAPBASE
+		if (GetActiveWeapon() && EntIsClass(GetActiveWeapon(), gm_isz_class_SMG1))
+#else
 		if( Weapon_OwnsThisType( "weapon_smg1" ) )
+#endif
 		{
 			if ( IsEnemyInAnAirboat() )
 			{
@@ -4289,10 +5116,44 @@ int CNPC_MetroPolice::TranslateSchedule( int scheduleType )
 			}
 		}
 		break;
+#ifdef MAPBASE
+	case SCHED_TAKE_COVER_FROM_ENEMY:
+		{
+			if ( m_pSquad )
+			{
+				// Have to explicitly check innate range attack condition as may have weapon with range attack 2
+				if (	g_pGameRules->IsSkillLevel( SKILL_HARD )	&& 
+					HasCondition(COND_CAN_RANGE_ATTACK2)		&&
+					OccupyStrategySlot( SQUAD_SLOT_SPECIAL_ATTACK ) )
+				{
+	#ifdef METROPOLICE_USES_RESPONSE_SYSTEM
+					SpeakIfAllowed( TLK_COP_THROWGRENADE );
+	#else
+					m_Sentences.Speak( "COMBINE_THROW_GRENADE" );
+	#endif
+					return SCHED_METROPOLICE_RANGE_ATTACK2;
+				}
+			}
+		}
+		break;
+	case SCHED_HIDE_AND_RELOAD:
+		{
+			if( CanGrenadeEnemy() && OccupyStrategySlot( SQUAD_SLOT_SPECIAL_ATTACK ) && random->RandomInt( 0, 100 ) < 20 )
+			{
+				// If I COULD throw a grenade and I need to reload, 20% chance I'll throw a grenade before I hide to reload.
+				return SCHED_METROPOLICE_RANGE_ATTACK2;
+			}
+		}
+		break;
+#endif
 	case SCHED_METROPOLICE_ADVANCE:
 		if ( m_NextChargeTimer.Expired() && metropolice_charge.GetBool() )
 		{	
+#ifdef MAPBASE
+			if (GetActiveWeapon() && EntIsClass(GetActiveWeapon(), gm_isz_class_Pistol))
+#else
 			if ( Weapon_OwnsThisType( "weapon_pistol" ) )
+#endif
 			{
 				if (  GetEnemy() && GetEnemy()->GetAbsOrigin().DistToSqr( GetAbsOrigin() ) > 300*300 )
 				{
@@ -4417,7 +5278,11 @@ void CNPC_MetroPolice::StartTask( const Task_t *pTask )
 					break;
 				}
 
+#ifdef METROPOLICE_USES_RESPONSE_SYSTEM
+				SpeakIfAllowed(TLK_COP_ACTIVATE_BATON, SENTENCE_PRIORITY_NORMAL, SENTENCE_CRITERIA_NORMAL);
+#else
 				m_Sentences.Speak( "METROPOLICE_ACTIVATE_BATON", SENTENCE_PRIORITY_NORMAL, SENTENCE_CRITERIA_NORMAL );
+#endif
 				SetIdealActivity( (Activity) ACT_ACTIVATE_BATON );
 			}
 			else
@@ -4428,7 +5293,11 @@ void CNPC_MetroPolice::StartTask( const Task_t *pTask )
 					break;
 				}
 
+#ifdef METROPOLICE_USES_RESPONSE_SYSTEM
+				SpeakIfAllowed(TLK_COP_DEACTIVATE_BATON, SENTENCE_PRIORITY_NORMAL, SENTENCE_CRITERIA_NORMAL);
+#else
 				m_Sentences.Speak( "METROPOLICE_DEACTIVATE_BATON", SENTENCE_PRIORITY_NORMAL, SENTENCE_CRITERIA_NORMAL );
+#endif
 				SetIdealActivity( (Activity) ACT_DEACTIVATE_BATON );
 			}
 		}
@@ -4464,6 +5333,23 @@ void CNPC_MetroPolice::StartTask( const Task_t *pTask )
 		EnemyResistingArrest();
 		TaskComplete();
 		break;
+
+#ifdef MAPBASE
+	case TASK_METROPOLICE_GET_PATH_TO_FORCED_GREN_LOS:
+		StartTask_GetPathToForced( pTask );
+		break;
+
+	case TASK_METROPOLICE_DEFER_SQUAD_GRENADES:
+		StartTask_DeferSquad( pTask );
+		break;
+
+	case TASK_METROPOLICE_FACE_TOSS_DIR:
+		break;
+
+	case TASK_METROPOLICE_PLAY_SEQUENCE_FACE_ALTFIRE_TARGET:
+		StartTask_FaceAltFireTarget( pTask );
+		break;
+#endif
 
 	case TASK_METROPOLICE_GET_PATH_TO_STITCH:
 		{
@@ -4828,6 +5714,20 @@ void CNPC_MetroPolice::RunTask( const Task_t *pTask )
 		}
 		break;
 
+#ifdef MAPBASE
+	case TASK_METROPOLICE_PLAY_SEQUENCE_FACE_ALTFIRE_TARGET:
+		RunTask_FaceAltFireTarget( pTask );
+		break;
+
+	case TASK_METROPOLICE_GET_PATH_TO_FORCED_GREN_LOS:
+		RunTask_GetPathToForced( pTask );
+		break;
+
+	case TASK_METROPOLICE_FACE_TOSS_DIR:
+		RunTask_FaceTossDir( pTask );
+		break;
+#endif
+
 	default:
 		BaseClass::RunTask( pTask );
 		break;
@@ -4947,18 +5847,34 @@ void CNPC_MetroPolice::BuildScheduleTestBits( void )
 	{
 		ClearCustomInterruptCondition( COND_CAN_MELEE_ATTACK1 );
 	}
+
+#ifdef MAPBASE
+	if (gpGlobals->curtime < m_flNextAttack)
+	{
+		ClearCustomInterruptCondition( COND_CAN_RANGE_ATTACK1 );
+		ClearCustomInterruptCondition( COND_CAN_RANGE_ATTACK2 );
+	}
+#endif
 }
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 WeaponProficiency_t CNPC_MetroPolice::CalcWeaponProficiency( CBaseCombatWeapon *pWeapon )
 {
+#ifdef MAPBASE
+	if (EntIsClass(pWeapon, gm_isz_class_Pistol))
+#else
 	if( FClassnameIs( pWeapon, "weapon_pistol" ) )
+#endif
 	{
 		return WEAPON_PROFICIENCY_POOR;
 	}
 
+#ifdef MAPBASE
+	if (EntIsClass(pWeapon, gm_isz_class_SMG1))
+#else
 	if( FClassnameIs( pWeapon, "weapon_smg1" ) )
+#endif
 	{
 		return WEAPON_PROFICIENCY_VERY_GOOD;
 	}
@@ -5040,7 +5956,11 @@ bool CNPC_MetroPolice::HasBaton( void )
 	CBaseCombatWeapon *pWeapon = GetActiveWeapon();
 
 	if ( pWeapon )
+#ifdef MAPBASE
+		return EntIsClass(pWeapon, gm_isz_class_Stunstick);
+#else
 		return FClassnameIs( pWeapon, "weapon_stunstick" );
+#endif
 
 	return false;
 }
@@ -5051,7 +5971,7 @@ bool CNPC_MetroPolice::HasBaton( void )
 //-----------------------------------------------------------------------------
 bool CNPC_MetroPolice::BatonActive( void )
 {
-#ifndef HL2MP
+#if !defined(HL2MP) || defined(MAPBASE)
 
 	CWeaponStunStick *pStick = dynamic_cast<CWeaponStunStick *>(GetActiveWeapon());
 
@@ -5180,12 +6100,20 @@ AI_BEGIN_CUSTOM_NPC( npc_metropolice, CNPC_MetroPolice )
 	DECLARE_ANIMEVENT( AE_METROPOLICE_START_DEPLOY );
 	DECLARE_ANIMEVENT( AE_METROPOLICE_DRAW_PISTOL );
 	DECLARE_ANIMEVENT( AE_METROPOLICE_DEPLOY_MANHACK );
+#ifdef MAPBASE
+	DECLARE_ANIMEVENT( COMBINE_AE_BEGIN_ALTFIRE )
+	DECLARE_ANIMEVENT( COMBINE_AE_ALTFIRE )
+#endif
 
 	DECLARE_SQUADSLOT( SQUAD_SLOT_POLICE_CHARGE_ENEMY );
 	DECLARE_SQUADSLOT( SQUAD_SLOT_POLICE_HARASS );
 	DECLARE_SQUADSLOT( SQUAD_SLOT_POLICE_DEPLOY_MANHACK );
 	DECLARE_SQUADSLOT( SQUAD_SLOT_POLICE_ATTACK_OCCLUDER1 );
 	DECLARE_SQUADSLOT( SQUAD_SLOT_POLICE_ATTACK_OCCLUDER2 );
+#ifdef MAPBASE
+	DECLARE_SQUADSLOT( SQUAD_SLOT_POLICE_COVERING_FIRE1 );
+	DECLARE_SQUADSLOT( SQUAD_SLOT_POLICE_COVERING_FIRE2 );
+#endif
 	DECLARE_SQUADSLOT( SQUAD_SLOT_POLICE_ARREST_ENEMY );
 
 	DECLARE_ACTIVITY( ACT_METROPOLICE_DRAW_PISTOL );
@@ -5223,6 +6151,12 @@ AI_BEGIN_CUSTOM_NPC( npc_metropolice, CNPC_MetroPolice )
 	DECLARE_TASK( TASK_METROPOLICE_WAIT_FOR_SENTENCE );
 	DECLARE_TASK( TASK_METROPOLICE_GET_PATH_TO_PRECHASE );
 	DECLARE_TASK( TASK_METROPOLICE_CLEAR_PRECHASE );
+#ifdef MAPBASE
+	DECLARE_TASK( TASK_METROPOLICE_GET_PATH_TO_FORCED_GREN_LOS )
+	DECLARE_TASK( TASK_METROPOLICE_DEFER_SQUAD_GRENADES )
+	DECLARE_TASK( TASK_METROPOLICE_FACE_TOSS_DIR )
+	DECLARE_TASK( TASK_METROPOLICE_PLAY_SEQUENCE_FACE_ALTFIRE_TARGET )
+#endif
 
 	DECLARE_CONDITION( COND_METROPOLICE_ON_FIRE );
 	DECLARE_CONDITION( COND_METROPOLICE_ENEMY_RESISTING_ARREST );
@@ -5841,6 +6775,86 @@ DEFINE_SCHEDULE
 	"		COND_NEW_ENEMY"
 	"		COND_ENEMY_DEAD"
 );
+
+#ifdef MAPBASE
+//=========================================================
+ // Mapmaker forced grenade throw
+ //=========================================================
+ DEFINE_SCHEDULE
+ (
+ SCHED_METROPOLICE_FORCED_GRENADE_THROW,
+
+ "	Tasks"
+ "		TASK_STOP_MOVING					0"
+ "		TASK_METROPOLICE_FACE_TOSS_DIR			0"
+ "		TASK_ANNOUNCE_ATTACK				2"	// 2 = grenade
+ "		TASK_PLAY_SEQUENCE					ACTIVITY:ACT_RANGE_ATTACK2"
+ "		TASK_METROPOLICE_DEFER_SQUAD_GRENADES	0"
+ ""
+ "	Interrupts"
+ )
+
+ //=========================================================
+ // Move to LOS of the mapmaker's forced grenade throw target
+ //=========================================================
+ DEFINE_SCHEDULE
+ (
+ SCHED_METROPOLICE_MOVE_TO_FORCED_GREN_LOS,
+
+ "	Tasks "
+ "		TASK_SET_TOLERANCE_DISTANCE					48"
+ "		TASK_METROPOLICE_GET_PATH_TO_FORCED_GREN_LOS	0"
+ "		TASK_SPEAK_SENTENCE							1"
+ "		TASK_RUN_PATH								0"
+ "		TASK_WAIT_FOR_MOVEMENT						0"
+ "	"
+ "	Interrupts "
+ "		COND_NEW_ENEMY"
+ "		COND_ENEMY_DEAD"
+ "		COND_CAN_MELEE_ATTACK1"
+ "		COND_CAN_MELEE_ATTACK2"
+ "		COND_HEAR_DANGER"
+ "		COND_HEAR_MOVE_AWAY"
+ "		COND_HEAVY_DAMAGE"
+ )
+
+ //=========================================================
+ // 	SCHED_METROPOLICE_RANGE_ATTACK2	
+ //
+ //	secondary range attack. Overriden because base class stops attacking when the enemy is occluded.
+ //	combines's grenade toss requires the enemy be occluded.
+ //=========================================================
+ DEFINE_SCHEDULE
+ (
+ SCHED_METROPOLICE_RANGE_ATTACK2,
+
+ "	Tasks"
+ "		TASK_STOP_MOVING					0"
+ "		TASK_METROPOLICE_FACE_TOSS_DIR			0"
+ "		TASK_ANNOUNCE_ATTACK				2"	// 2 = grenade
+ "		TASK_PLAY_SEQUENCE					ACTIVITY:ACT_RANGE_ATTACK2"
+ "		TASK_METROPOLICE_DEFER_SQUAD_GRENADES	0"
+ "		TASK_SET_SCHEDULE					SCHEDULE:SCHED_HIDE_AND_RELOAD"	// don't run immediately after throwing grenade.
+ ""
+ "	Interrupts"
+ )
+
+ //=========================================================
+ // AR2 Alt Fire Attack
+ //=========================================================
+ DEFINE_SCHEDULE
+ (
+ SCHED_METROPOLICE_AR2_ALTFIRE,
+
+ "	Tasks"
+ "		TASK_STOP_MOVING									0"
+ "		TASK_ANNOUNCE_ATTACK								1"
+ "		TASK_METROPOLICE_PLAY_SEQUENCE_FACE_ALTFIRE_TARGET		ACTIVITY:ACT_COMBINE_AR2_ALTFIRE"
+ ""
+ "	Interrupts"
+ "		COND_TOO_CLOSE_TO_ATTACK"
+ )
+#endif
 
 AI_END_CUSTOM_NPC()
 

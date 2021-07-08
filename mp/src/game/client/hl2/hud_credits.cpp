@@ -109,6 +109,9 @@ private:
 
 	float m_flScrollTime;
 	float m_flSeparation;
+#ifdef MAPBASE
+	int m_iEndLines;
+#endif
 	float m_flFadeTime;
 	bool  m_bLastOneInPlace;
 	int   m_Alpha;
@@ -133,6 +136,12 @@ private:
 	char m_szLogo2[256];
 
 	Color m_cColor;
+
+#ifdef MAPBASE
+	char m_szCreditsFile[MAX_PATH];
+
+	char m_szLogoFont[64];
+#endif
 };	
 
 
@@ -141,7 +150,11 @@ void CHudCredits::PrepareCredits( const char *pKeyName )
 	Clear();
 
 	KeyValues *pKV= new KeyValues( "CreditsFile" );
+#ifdef MAPBASE
+	if ( !pKV->LoadFromFile( filesystem, m_szCreditsFile, "MOD" ) )
+#else
 	if ( !pKV->LoadFromFile( filesystem, CREDITS_FILE, "MOD" ) )
+#endif
 	{
 		pKV->deleteThis();
 
@@ -233,6 +246,9 @@ void CHudCredits::ReadParams( KeyValues *pKeyValue )
 
 	m_flScrollTime = pKeyValue->GetFloat( "scrolltime", 57 );
 	m_flSeparation = pKeyValue->GetFloat( "separation", 5 );
+#ifdef MAPBASE
+	m_iEndLines = pKeyValue->GetInt( "endlines", 1 );
+#endif
 
 	m_flFadeInTime = pKeyValue->GetFloat( "fadeintime", 1 );
 	m_flFadeHoldTime = pKeyValue->GetFloat( "fadeholdtime", 3 );
@@ -249,6 +265,10 @@ void CHudCredits::ReadParams( KeyValues *pKeyValue )
 
 	Q_strncpy( m_szLogo, pKeyValue->GetString( "logo", "HALF-LIFE'" ), sizeof( m_szLogo ) );
 	Q_strncpy( m_szLogo2, pKeyValue->GetString( "logo2", "" ), sizeof( m_szLogo2 ) );
+
+#ifdef MAPBASE
+	Q_strncpy( m_szLogoFont, pKeyValue->GetString( "logofont", "" ), sizeof( m_szLogoFont ) );
+#endif
 }
 
 int CHudCredits::GetStringPixelWidth( wchar_t *pString, vgui::HFont hFont )
@@ -296,9 +316,14 @@ void CHudCredits::DrawOutroCreditsName( void )
 
 		Color cColor = m_TextColor;
 
+#ifdef MAPBASE
+		// Some lines should stick around and fade out
+		if ( i >= m_CreditsList.Count()-m_iEndLines )
+#else
 		//HACKHACK
 		//Last one stays on screen and fades out
 		if ( i == m_CreditsList.Count()-1 )
+#endif
 		{
 			if ( m_bLastOneInPlace == false )
 			{
@@ -418,6 +443,14 @@ void CHudCredits::DrawLogo( void )
 
 	char szLogoFont[64];
 
+#ifdef MAPBASE
+	if (m_szLogoFont[0] != '\0')
+	{
+		// Custom logo font
+		Q_strncpy( szLogoFont, m_szLogoFont, sizeof( szLogoFont ) );
+	}
+	else
+#endif
 	if ( IsXbox() )
 	{
 		Q_snprintf( szLogoFont, sizeof( szLogoFont ), "WeaponIcons_Small" );
@@ -638,6 +671,20 @@ void CHudCredits::PrepareOutroCredits( void )
 
 	int iHeight = iTall;
 
+#ifdef MAPBASE
+	if (m_iEndLines <= 0)
+	{
+		// We need a credit to fade out at the end so we know when the credits are done.
+		// Add a dummy credit to act as the "end line".
+		creditname_t DummyCredit;
+		V_strcpy_safe( DummyCredit.szCreditName, "");
+		V_strcpy_safe( DummyCredit.szFontName, "Default" );
+
+		m_CreditsList.AddToTail(DummyCredit);
+		m_iEndLines = 1;
+	}
+#endif
+
 	for ( int i = 0; i < m_CreditsList.Count(); i++ )
 	{
 		creditname_t *pCredit = &m_CreditsList[i];
@@ -706,6 +753,13 @@ void CHudCredits::MsgFunc_CreditsMsg( bf_read &msg )
 {
 	m_iCreditsType = msg.ReadByte();
 
+#ifdef MAPBASE
+	msg.ReadString(m_szCreditsFile, sizeof(m_szCreditsFile));
+
+	if (m_szCreditsFile[0] == '\0')
+		Q_strncpy(m_szCreditsFile, CREDITS_FILE, sizeof(m_szCreditsFile));
+#endif
+
 	switch ( m_iCreditsType )
 	{
 		case CREDITS_LOGO:
@@ -729,7 +783,17 @@ void CHudCredits::MsgFunc_CreditsMsg( bf_read &msg )
 void CHudCredits::MsgFunc_LogoTimeMsg( bf_read &msg )
 {
 	m_iCreditsType = CREDITS_LOGO;
+#ifdef MAPBASE
+	float flLogoTime = msg.ReadFloat();
+	msg.ReadString(m_szCreditsFile, sizeof(m_szCreditsFile));
+
+	if (m_szCreditsFile[0] == '\0')
+		Q_strncpy(m_szCreditsFile, CREDITS_FILE, sizeof(m_szCreditsFile));
+
+	PrepareLogo(flLogoTime);
+#else
 	PrepareLogo( msg.ReadFloat() );
+#endif
 }
 
 

@@ -703,6 +703,24 @@ int UTIL_EntitiesAlongRay( C_BaseEntity **pList, int listMax, const Ray_t &ray, 
 	return rayEnum.GetCount();
 }
 
+#ifdef MAPBASE
+//-----------------------------------------------------------------------------
+// Purpose: Pass in an array of pointers and an array size, it fills the array and returns the number inserted
+// Input  : **pList - 
+//			listMax - 
+//			&point - 
+//			flagMask - 
+// Output : int
+//-----------------------------------------------------------------------------
+int UTIL_EntitiesAtPoint( C_BaseEntity **pList, int listMax, const Vector &point, int flagMask, int partitionMask )
+{
+	CFlaggedEntitiesEnum rayEnum( pList, listMax, flagMask );
+	partition->EnumerateElementsAtPoint( partitionMask, point, false, &rayEnum );
+
+	return rayEnum.GetCount();
+}
+#endif
+
 CEntitySphereQuery::CEntitySphereQuery( const Vector &center, float radius, int flagMask, int partitionMask )
 {
 	m_listIndex = 0;
@@ -729,11 +747,14 @@ CBaseEntity *CEntitySphereQuery::GetCurrentEntity()
 //			sep - Character to use as separator. UNDONE: allow multiple separator chars
 // Output : Returns a pointer to the next token to be parsed.
 //-----------------------------------------------------------------------------
-const char *nexttoken(char *token, const char *str, char sep)
+const char *nexttoken(char *token, const char *str, char sep, size_t tokenLen)
 {
 	if ((str == NULL) || (*str == '\0'))
 	{
-		*token = '\0';
+		if(tokenLen)
+		{
+			*token = '\0';
+		}
 		return(NULL);
 	}
 
@@ -741,11 +762,25 @@ const char *nexttoken(char *token, const char *str, char sep)
 	// Copy everything up to the first separator into the return buffer.
 	// Do not include separators in the return buffer.
 	//
-	while ((*str != sep) && (*str != '\0'))
+	while ((*str != sep) && (*str != '\0') && (tokenLen > 1))
 	{
 		*token++ = *str++;
+		tokenLen--;
 	}
-	*token = '\0';
+
+	//
+	// If token is to big for return buffer, skip rest of token.
+	//
+	while ((*str != sep) && (*str != '\0'))
+	{
+		str++;
+	}
+
+	if(tokenLen)
+	{
+		*token = '\0';
+		tokenLen--;
+	}
 
 	//
 	// Advance the pointer unless we hit the end of the input string.

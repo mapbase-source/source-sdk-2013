@@ -407,15 +407,13 @@ void CBaseViewModel::CalcViewModelView( CBasePlayer *owner, const Vector& eyePos
 	}
 	// Add model-specific bob even if no weapon associated (for head bob for off hand models)
 	AddViewModelBob( owner, vmorigin, vmangles );
-#if !defined ( CSTRIKE_DLL )
-	// This was causing weapon jitter when rotating in updated CS:S; original Source had this in above InPrediction block  07/14/10
-	// Add lag
-	CalcViewModelLag( vmorigin, vmangles, vmangoriginal );
-#endif
 
 #if defined( CLIENT_DLL )
 	if ( !prediction->InPrediction() )
 	{
+		// Add lag
+		CalcViewModelLag( vmorigin, vmangles, vmangoriginal );
+
 		// Let the viewmodel shake at about 10% of the amplitude of the player's view
 		vieweffects->ApplyShake( vmorigin, vmangles, 0.1 );	
 	}
@@ -688,4 +686,36 @@ bool CBaseViewModel::GetAttachmentVelocity( int number, Vector &originVel, Quate
 	return BaseClass::GetAttachmentVelocity( number, originVel, angleVel );
 }
 
+#endif
+
+#ifdef MAPBASE
+#if defined( CLIENT_DLL )
+#define CHandViewModel C_HandViewModel
+#endif
+
+// ---------------------------------------
+// OzxyBox's hand viewmodel code.
+// All credit goes to him.
+// ---------------------------------------
+class CHandViewModel : public CBaseViewModel
+{
+	DECLARE_CLASS( CHandViewModel, CBaseViewModel );
+public:
+	DECLARE_NETWORKCLASS();
+private:
+};
+
+LINK_ENTITY_TO_CLASS(hand_viewmodel, CHandViewModel);
+IMPLEMENT_NETWORKCLASS_ALIASED(HandViewModel, DT_HandViewModel)
+
+// for whatever reason the parent doesn't get sent 
+// I don't really want to mess with the baseviewmodel
+// so now it does
+BEGIN_NETWORK_TABLE(CHandViewModel, DT_HandViewModel)
+#ifndef CLIENT_DLL
+	SendPropEHandle(SENDINFO_NAME(m_hMoveParent, moveparent)),
+#else
+	RecvPropInt(RECVINFO_NAME(m_hNetworkMoveParent, moveparent), 0, RecvProxy_IntToMoveParent),
+#endif
+END_NETWORK_TABLE()
 #endif

@@ -54,6 +54,11 @@ public:
 	void InputEnable( inputdata_t &inputdata );
 	void InputDisable( inputdata_t &inputdata );
 	void InputSetSpeakerName( inputdata_t &inputdata );
+#ifdef MAPBASE
+	void InputSetDSPPreset( inputdata_t &inputdata );
+	void InputSetPitchScale( inputdata_t &inputdata );
+	void InputSetChannel( inputdata_t &inputdata );
+#endif
 
 	DECLARE_DATADESC();
 
@@ -79,6 +84,12 @@ private:
 	int			m_iSpeakerDSPPreset;	// Speaker DSP preset to use when this microphone is enabled
 	string_t	m_iszListenFilter;
 	CHandle<CBaseFilter>	m_hListenFilter;
+#ifdef MAPBASE
+	string_t	m_iszLandmarkName;
+	EHANDLE		m_hLandmark;
+	float		m_flPitchScale = 1.0f;
+	int			m_nChannel = CHAN_STATIC;
+#endif
 
 	COutputFloat m_SoundLevel;			// Fired when the sampled volume level changes.
 	COutputEvent m_OnRoutedSound;		// Fired when a sound has been played through our speaker

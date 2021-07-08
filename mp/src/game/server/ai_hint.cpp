@@ -890,12 +890,32 @@ BEGIN_DATADESC( CAI_Hint )
 	// Inputs
 	DEFINE_INPUTFUNC( FIELD_VOID,		"EnableHint",		InputEnableHint ),
 	DEFINE_INPUTFUNC( FIELD_VOID,		"DisableHint",		InputDisableHint ),
+#ifdef MAPBASE
+	DEFINE_INPUTFUNC( FIELD_STRING,		"SetHintGroup",		InputSetHintGroup ),
+#endif
 
 	// Outputs
 	DEFINE_OUTPUT( m_OnNPCStartedUsing,	"OnNPCStartedUsing" ),
 	DEFINE_OUTPUT( m_OnNPCStoppedUsing,	"OnNPCStoppedUsing" ),
 
 END_DATADESC( );
+
+#ifdef MAPBASE_VSCRIPT
+BEGIN_ENT_SCRIPTDESC( CAI_Hint, CBaseEntity, "An entity which gives contextual pointers for NPCs." )
+
+	DEFINE_SCRIPTFUNC_NAMED( ScriptGetHintType, "GetHintType", "Get the hint's type ID." )
+	DEFINE_SCRIPTFUNC_NAMED( ScriptGetUser, "GetUser", "Get the hint's current user." )
+	DEFINE_SCRIPTFUNC_NAMED( ScriptGetHintGroup, "GetHintGroup", "Get the name of the hint's group." )
+	DEFINE_SCRIPTFUNC_NAMED( ScriptGetHintActivity, "GetHintActivity", "Get the name of the hint activity." )
+
+	DEFINE_SCRIPTFUNC( IsDisabled, "Check if the hint is disabled." )
+	DEFINE_SCRIPTFUNC( IsLocked, "Check if the hint is locked." )
+	DEFINE_SCRIPTFUNC( GetNodeId, "Get the hint's node ID." )
+	DEFINE_SCRIPTFUNC( Yaw, "Get the hint's yaw." )
+	DEFINE_SCRIPTFUNC( GetDirection, "Get the hint's direction." )
+
+END_SCRIPTDESC();
+#endif
 
 //------------------------------------------------------------------------------
 // Purpose : 
@@ -912,6 +932,18 @@ void CAI_Hint::InputDisableHint( inputdata_t &inputdata )
 {
 	m_NodeData.iDisabled		= true;
 }
+
+#ifdef MAPBASE
+void CAI_Hint::SetGroup( string_t iszNewGroup )
+{
+	m_NodeData.strGroup = iszNewGroup;
+}
+
+void CAI_Hint::InputSetHintGroup( inputdata_t &inputdata )
+{
+	SetGroup(inputdata.value.StringID());
+}
+#endif
 
 
 //------------------------------------------------------------------------------
@@ -1074,6 +1106,40 @@ bool CAI_Hint::IsInNodeFOV( CBaseEntity *pOther )
 
 	return false;
 }
+
+#ifdef MAPBASE
+//-----------------------------------------------------------------------------
+// An easy way of engaging certain hint parameters on certain hint types that didn't use it before.
+//-----------------------------------------------------------------------------
+void CAI_Hint::NPCHandleStartNav( CAI_BaseNPC *pNPC, bool bDefaultFacing )
+{
+	Assert( pNPC != NULL );
+
+	HintIgnoreFacing_t facing = GetIgnoreFacing();
+	if (facing == HIF_DEFAULT)
+		facing = bDefaultFacing ? HIF_YES : HIF_NO;
+
+	if (facing == HIF_YES)
+		pNPC->GetNavigator()->SetArrivalDirection(GetDirection());
+
+	if (HintActivityName() != NULL_STRING)
+	{
+		Activity hintActivity = (Activity)CAI_BaseNPC::GetActivityID( STRING(HintActivityName()) );
+		if ( hintActivity != ACT_INVALID )
+		{
+			pNPC->GetNavigator()->SetArrivalActivity( pNPC->GetHintActivity(HintType(), hintActivity) );
+		}
+		else
+		{
+			int iSequence = pNPC->LookupSequence(STRING(HintActivityName()));
+			if ( iSequence != ACT_INVALID )
+			{
+				pNPC->GetNavigator()->SetArrivalSequence( iSequence );
+			}
+		}
+	}
+}
+#endif
 
 //-----------------------------------------------------------------------------
 // Purpose: Locks the node for use by an AI for hints
@@ -1425,6 +1491,15 @@ int CAI_Hint::DrawDebugTextOverlays(void)
 		Q_snprintf(tempstr,sizeof(tempstr),"delay %f", MAX( 0.0f, m_flNextUseTime - gpGlobals->curtime ) ) ;
 		EntityText(text_offset,tempstr,0);
 		text_offset++;
+
+#ifdef MAPBASE
+		if (m_NodeData.strGroup != NULL_STRING)
+		{
+			Q_snprintf(tempstr,sizeof(tempstr),"hintgroup %s", STRING(m_NodeData.strGroup) ) ;
+			EntityText(text_offset,tempstr,0);
+			text_offset++;
+		}
+#endif
 
 		if ( m_NodeData.iDisabled )
 		{

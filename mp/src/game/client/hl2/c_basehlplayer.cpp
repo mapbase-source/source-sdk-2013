@@ -38,6 +38,11 @@ BEGIN_PREDICTION_DATA( C_BaseHLPlayer )
 	DEFINE_PRED_FIELD( m_fIsSprinting, FIELD_BOOLEAN, FTYPEDESC_INSENDTABLE ),
 END_PREDICTION_DATA()
 
+// link to the correct class.
+#if !defined ( HL2MP ) && !defined ( PORTAL )
+LINK_ENTITY_TO_CLASS( player, C_BaseHLPlayer );
+#endif
+
 //-----------------------------------------------------------------------------
 // Purpose: Drops player's primary weapon
 //-----------------------------------------------------------------------------
@@ -66,6 +71,11 @@ C_BaseHLPlayer::C_BaseHLPlayer()
 	m_flZoomRate		= 0.0f;
 	m_flZoomStartTime	= 0.0f;
 	m_flSpeedMod		= cl_forwardspeed.GetFloat();
+
+#ifdef MAPBASE
+	ConVarRef scissor("r_flashlightscissor");
+	scissor.SetValue("0");
+#endif
 }
 
 //-----------------------------------------------------------------------------
