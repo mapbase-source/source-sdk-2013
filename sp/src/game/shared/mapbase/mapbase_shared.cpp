@@ -9,6 +9,7 @@
 #include "cbase.h"
 
 #include "tier0/icommandline.h"
+#include "tier1/mapbase_con_groups.h"
 #include "igamesystem.h"
 #include "filesystem.h"
 #include <vgui_controls/Controls.h> 
@@ -52,13 +53,13 @@ ConVar mapbase_load_soundscripts("mapbase_load_soundscripts", "1", FCVAR_ARCHIVE
 
 //ConVar mapbase_load_soundscapes("mapbase_load_soundscapes", "1", FCVAR_ARCHIVE, "Should we load map-specific soundscapes? e.g. \"maps/mapname_soundscapes.txt\"");
 
-ConVar mapbase_load_localization("mapbase_load_localization", "1", FCVAR_ARCHIVE, "Should we load map-specific localized text files? e.g. \"maps/mapname_english.txt\"");
+ConVar mapbase_load_localization( "mapbase_load_localization", "1", FCVAR_ARCHIVE, "Should we load map-specific localized text files? e.g. \"maps/mapname_english.txt\"" );
 
-#ifdef CLIENT_DLL
+ConVar mapbase_load_surfaceprops( "mapbase_load_surfaceprops", "1", FCVAR_ARCHIVE, "Should we load map-specific surfaceproperties files? e.g. \"maps/mapname_surfaceproperties.txt\"" );
 
-//ConVar mapbase_load_cc("mapbase_load_cc", "1", FCVAR_ARCHIVE, "Should we load map-specific closed captioning? e.g. \"maps/mapname_closecaption_english.txt\" and \"maps/mapname_closecaption_english.dat\"");
-
-#else
+#ifdef GAME_DLL
+// This constant should change with each Mapbase update
+ConVar mapbase_version( "mapbase_version", MAPBASE_VERSION, FCVAR_NONE, "The version of Mapbase currently being used in this mod's server.dll" );
 
 ConVar mapbase_load_sentences("mapbase_load_sentences", "1", FCVAR_ARCHIVE, "Should we load map-specific sentences? e.g. \"maps/mapname_sentences.txt\"");
 
@@ -66,12 +67,6 @@ ConVar mapbase_load_talker("mapbase_load_talker", "1", FCVAR_ARCHIVE, "Should we
 ConVar mapbase_flush_talker("mapbase_flush_talker", "1", FCVAR_NONE, "Normally, when a map with custom talker files is unloaded, the response system resets to rid itself of the custom file(s). Turn this convar off to prevent that from happening.");
 
 ConVar mapbase_load_actbusy("mapbase_load_actbusy", "1", FCVAR_ARCHIVE, "Should we load map-specific actbusy files? e.g. \"maps/mapname_actbusy.txt\"");
-
-#endif
-
-#ifdef GAME_DLL
-// This cvar should change with each Mapbase update
-ConVar mapbase_version( "mapbase_version", "6.3", FCVAR_NONE, "The version of Mapbase currently being used in this mod." );
 
 extern void MapbaseGameLog_Init();
 
@@ -82,7 +77,15 @@ extern void ReloadResponseSystem();
 
 // Reloads the response system when the map changes to avoid custom talker leaking
 static bool g_bMapContainsCustomTalker;
+#else
+// This constant should change with each Mapbase update
+ConVar mapbase_version_client( "mapbase_version_client", MAPBASE_VERSION, FCVAR_NONE, "The version of Mapbase currently being used in this mod's client.dll" );
+
+//ConVar mapbase_load_cc("mapbase_load_cc", "1", FCVAR_ARCHIVE, "Should we load map-specific closed captioning? e.g. \"maps/mapname_closecaption_english.txt\" and \"maps/mapname_closecaption_english.dat\"");
+
 #endif
+
+extern void AddSurfacepropFile( const char *pFileName, IPhysicsSurfaceProps *pProps, IFileSystem *pFileSystem );
 
 // Indicates this is a core Mapbase mod and not a mod using its code.
 static bool g_bMapbaseCore;
@@ -96,6 +99,7 @@ enum
 	//MANIFEST_PROPDATA,
 	//MANIFEST_SOUNDSCAPES,
 	MANIFEST_LOCALIZATION,
+	MANIFEST_SURFACEPROPS,
 #ifdef CLIENT_DLL
 	//MANIFEST_CLOSECAPTION,
 	MANIFEST_VGUI,
@@ -122,6 +126,7 @@ static const ManifestType_t gm_szManifestFileStrings[MANIFEST_NUM_TYPES] = {
 	//{ "propdata",			&mapbase_load_propdata },
 	//{ "soundscapes",		&mapbase_load_soundscapes },
 	{ "localization",		&mapbase_load_localization },
+	{ "surfaceprops",		&mapbase_load_surfaceprops },
 #ifdef CLIENT_DLL
 	//{ "closecaption",		&mapbase_load_cc },
 	{ "vgui",				NULL },
@@ -151,6 +156,8 @@ public:
 
 	virtual bool Init()
 	{
+		InitConsoleGroups( g_pFullFileSystem );
+
 		// Checks gameinfo.txt for additional command line options
 		KeyValues *gameinfo = new KeyValues("GameInfo");
 		if (GetGameInfoKeyValues(gameinfo))
@@ -380,6 +387,7 @@ public:
 			case MANIFEST_SOUNDSCRIPTS: { soundemitterbase->AddSoundOverrides(value); } break;
 			//case MANIFEST_PROPDATA: { g_PropDataSystem.ParsePropDataFile(value); } break;
 			case MANIFEST_LOCALIZATION: { g_pVGuiLocalize->AddFile( value, "MOD", true ); } break;
+			case MANIFEST_SURFACEPROPS: { AddSurfacepropFile( value, physprops, filesystem ); } break;
 #ifdef CLIENT_DLL
 			//case MANIFEST_CLOSECAPTION: { todo } break;
 			case MANIFEST_VGUI: { PanelMetaClassMgr()->LoadMetaClassDefinitionFile( value ); } break;
@@ -626,3 +634,38 @@ BEGIN_DATADESC( CMapbaseManifestEntity )
 
 END_DATADESC()
 #endif
+
+//-----------------------------------------------------------------------------
+
+void CV_IncludeNameChanged( IConVar *pConVar, const char *pOldString, float flOldValue );
+
+#ifdef CLIENT_DLL
+ConVar con_group_include_name_client( "con_group_include_name_client", "0", FCVAR_NONE, "Includes groups when printing on the client.", CV_IncludeNameChanged );
+
+void CV_IncludeNameChanged( IConVar *pConVar, const char *pOldString, float flOldValue )
+{
+	SetConsoleGroupIncludeNames( con_group_include_name_client.GetBool() );
+}
+#else
+ConVar con_group_include_name( "con_group_include_name", "0", FCVAR_NONE, "Includes groups when printing.", CV_IncludeNameChanged );
+
+void CV_IncludeNameChanged( IConVar *pConVar, const char *pOldString, float flOldValue )
+{
+	SetConsoleGroupIncludeNames( con_group_include_name.GetBool() );
+}
+#endif
+
+CON_COMMAND_SHARED( con_group_reload, "Reloads all console groups." )
+{
+	InitConsoleGroups( g_pFullFileSystem );
+}
+
+CON_COMMAND_SHARED( con_group_list, "Prints a list of all console groups." )
+{
+	PrintAllConsoleGroups();
+}
+
+CON_COMMAND_SHARED( con_group_toggle, "Toggles a console group." )
+{
+	ToggleConsoleGroups( args.Arg( 1 ) );
+}

@@ -151,6 +151,9 @@ BEGIN_DATADESC( CBaseCombatCharacter )
 END_DATADESC()
 
 #ifdef MAPBASE_VSCRIPT
+ScriptHook_t	CBaseCombatCharacter::g_Hook_RelationshipType;
+ScriptHook_t	CBaseCombatCharacter::g_Hook_RelationshipPriority;
+
 BEGIN_ENT_SCRIPTDESC( CBaseCombatCharacter, CBaseFlex, "The base class shared by players and NPCs." )
 
 	DEFINE_SCRIPTFUNC_NAMED( GetScriptActiveWeapon, "GetActiveWeapon", "Get the character's active weapon entity." )
@@ -191,6 +194,19 @@ BEGIN_ENT_SCRIPTDESC( CBaseCombatCharacter, CBaseFlex, "The base class shared by
 	DEFINE_SCRIPTFUNC( HeadDirection3D, "Get the head's 3D direction." )
 	DEFINE_SCRIPTFUNC( EyeDirection2D, "Get the eyes' 2D direction." )
 	DEFINE_SCRIPTFUNC( EyeDirection3D, "Get the eyes' 3D direction." )
+
+	// 
+	// Hooks
+	// 
+	BEGIN_SCRIPTHOOK( CBaseCombatCharacter::g_Hook_RelationshipType, "RelationshipType", FIELD_INTEGER, "Called when a character's relationship to another entity is requested. Returning a disposition will make the game use that disposition instead of the default relationship. (note: 'default' in this case includes overrides from ai_relationship/SetRelationship)" )
+		DEFINE_SCRIPTHOOK_PARAM( "entity", FIELD_HSCRIPT )
+		DEFINE_SCRIPTHOOK_PARAM( "def", FIELD_INTEGER )
+	END_SCRIPTHOOK()
+
+	BEGIN_SCRIPTHOOK( CBaseCombatCharacter::g_Hook_RelationshipPriority, "RelationshipPriority", FIELD_INTEGER, "Called when a character's relationship priority for another entity is requested. Returning a number will make the game use that priority instead of the default priority. (note: 'default' in this case includes overrides from ai_relationship/SetRelationship)" )
+		DEFINE_SCRIPTHOOK_PARAM( "entity", FIELD_HSCRIPT )
+		DEFINE_SCRIPTHOOK_PARAM( "def", FIELD_INTEGER )
+	END_SCRIPTHOOK()
 
 END_SCRIPTDESC();
 #endif
@@ -1725,25 +1741,6 @@ Killed
 */
 void CBaseCombatCharacter::Event_Killed( const CTakeDamageInfo &info )
 {
-#ifdef MAPBASE_VSCRIPT
-	if (m_ScriptScope.IsInitialized() && g_Hook_OnDeath.CanRunInScope( m_ScriptScope ))
-	{
-		HSCRIPT hInfo = g_pScriptVM->RegisterInstance( const_cast<CTakeDamageInfo*>(&info) );
-
-		// info
-		ScriptVariant_t functionReturn;
-		ScriptVariant_t args[] = { ScriptVariant_t( hInfo ) };
-		if ( g_Hook_OnDeath.Call( m_ScriptScope, &functionReturn, args ) && (functionReturn.m_type == FIELD_BOOLEAN && functionReturn.m_bool == false) )
-		{
-			// Make this entity cheat death
-			g_pScriptVM->RemoveInstance( hInfo );
-			return;
-		}
-
-		g_pScriptVM->RemoveInstance( hInfo );
-	}
-#endif
-
 	extern ConVar npc_vphysics;
 
 	// Advance life state to dying
@@ -2893,6 +2890,12 @@ int CBaseCombatCharacter::OnTakeDamage( const CTakeDamageInfo &info )
 #endif
 		if ( m_iHealth <= 0 )
 		{
+#ifdef MAPBASE_VSCRIPT
+			// False = Cheat death
+			if (ScriptDeathHook( const_cast<CTakeDamageInfo*>(&info) ) == false)
+				return retVal;
+#endif
+
 			IPhysicsObject *pPhysics = VPhysicsGetObject();
 			if ( pPhysics )
 			{
@@ -3296,7 +3299,24 @@ Relationship_t *CBaseCombatCharacter::FindEntityRelationship( CBaseEntity *pTarg
 Disposition_t CBaseCombatCharacter::IRelationType ( CBaseEntity *pTarget )
 {
 	if ( pTarget )
+	{
+#ifdef MAPBASE_VSCRIPT
+		if (m_ScriptScope.IsInitialized() && g_Hook_RelationshipType.CanRunInScope( m_ScriptScope ))
+		{
+			// entity, default
+			ScriptVariant_t functionReturn;
+			ScriptVariant_t args[] = { ScriptVariant_t( pTarget->GetScriptInstance() ), FindEntityRelationship( pTarget )->disposition };
+			if (g_Hook_RelationshipType.Call( m_ScriptScope, &functionReturn, args ) && (functionReturn.m_type == FIELD_INTEGER && functionReturn.m_int != D_ER))
+			{
+				// Use the disposition returned by the script
+				return (Disposition_t)functionReturn.m_int;
+			}
+		}
+#endif
+
 		return FindEntityRelationship( pTarget )->disposition;
+	}
+
 	return D_NU;
 }
 
@@ -3308,7 +3328,24 @@ Disposition_t CBaseCombatCharacter::IRelationType ( CBaseEntity *pTarget )
 int CBaseCombatCharacter::IRelationPriority( CBaseEntity *pTarget )
 {
 	if ( pTarget )
+	{
+#ifdef MAPBASE_VSCRIPT
+		if (m_ScriptScope.IsInitialized() && g_Hook_RelationshipPriority.CanRunInScope( m_ScriptScope ))
+		{
+			// entity, default
+			ScriptVariant_t functionReturn;
+			ScriptVariant_t args[] = { ScriptVariant_t( pTarget->GetScriptInstance() ), FindEntityRelationship( pTarget )->priority };
+			if (g_Hook_RelationshipPriority.Call( m_ScriptScope, &functionReturn, args ) && functionReturn.m_type == FIELD_INTEGER)
+			{
+				// Use the priority returned by the script
+				return functionReturn.m_int;
+			}
+		}
+#endif
+
 		return FindEntityRelationship( pTarget )->priority;
+	}
+
 	return 0;
 }
 
@@ -4068,14 +4105,13 @@ void CBaseCombatCharacter::InputKilledNPC( inputdata_t &inputdata )
 
 #ifdef MAPBASE
 //-----------------------------------------------------------------------------
-// Purpose: Handle enemy kills. This actually measures players too.
+// Purpose: Handle enemy kills. (this technically measures players too)
 //-----------------------------------------------------------------------------
 void CBaseCombatCharacter::OnKilledNPC( CBaseCombatCharacter *pKilled )
 {
-	// I know this can sometimes pass as NULL, but that can work here...right?
 	m_OnKilledEnemy.Set(pKilled, pKilled, this);
 
-	// Fire an additional output if this was the player
+	// Fire an additional output if this was a player
 	if (pKilled && pKilled->IsPlayer())
 		m_OnKilledPlayer.Set(pKilled, pKilled, this);
 }

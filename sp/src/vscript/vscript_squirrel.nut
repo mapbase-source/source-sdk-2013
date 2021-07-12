@@ -122,214 +122,362 @@ class CSimpleCallChainer
 	chain = null;
 }
 
+//---------------------------------------------------------
+// Hook handler
+//---------------------------------------------------------
+local s_List = {}
+
+Hooks <-
+{
+	// table, string, closure, string
+	function Add( scope, event, callback, context )
+	{
+		if ( typeof callback != "function" )
+			throw "invalid callback param"
+
+		if ( !(scope in s_List) )
+			s_List[scope] <- {}
+
+		local t = s_List[scope]
+
+		if ( !(event in t) )
+			t[event] <- {}
+
+		t[event][context] <- callback
+	}
+
+	function Remove( context, event = null )
+	{
+		if ( event )
+		{
+			foreach( k,scope in s_List )
+			{
+				if ( event in scope )
+				{
+					local t = scope[event]
+					if ( context in t )
+					{
+						delete t[context]
+					}
+
+					// cleanup?
+					if ( !t.len() )
+						delete scope[event]
+				}
+
+				// cleanup?
+				if ( !scope.len() )
+					delete s_List[k]
+			}
+		}
+		else
+		{
+			foreach( k,scope in s_List )
+			{
+				foreach( kk,ev in scope )
+				{
+					if ( context in ev )
+					{
+						delete ev[context]
+					}
+
+					// cleanup?
+					if ( !ev.len() )
+						delete scope[kk]
+				}
+
+				// cleanup?
+				if ( !scope.len() )
+					delete s_List[k]
+			}
+		}
+	}
+
+	function Call( scope, event, ... )
+	{
+		local firstReturn = null
+
+		if ( scope == null )
+		{
+			// null scope = global hook; call all scopes
+			vargv.insert(0,this)
+			foreach ( t in s_List )
+			{
+				if ( event in t )
+				{
+					foreach( context, callback in t[event] )
+					{
+						//printf( "(%.4f) Calling hook '%s' of context '%s' in static iteration\n", Time(), event, context )
+
+						local curReturn = callback.acall(vargv)
+						if (firstReturn == null)
+							firstReturn = curReturn
+					}
+				}
+			}
+		}
+		else if ( scope in s_List )
+		{
+			local t = s_List[scope]
+			if ( event in t )
+			{
+				vargv.insert(0,scope)
+				foreach( context, callback in t[event] )
+				{
+					//printf( "(%.4f) Calling hook '%s' of context '%s'\n", Time(), event, context )
+
+					local curReturn = callback.acall(vargv)
+					if (firstReturn == null)
+						firstReturn = curReturn
+				}
+			}
+		}
+
+		return firstReturn
+	}
+
+	function ScopeHookedToEvent( scope, event )
+	{
+		if ( scope in s_List )
+		{
+			if (event in s_List[scope])
+				return true
+		}
+
+		return false
+	}
+}
+
+//---------------------------------------------------------
+// Documentation
+//---------------------------------------------------------
 __Documentation <- {}
 
-local DocumentedFuncs   = {}
-local DocumentedClasses = {}
-local DocumentedEnums   = {}
-local DocumentedConsts  = {}
-local DocumentedHooks   = {}
-local DocumentedMembers = {}
+local developer = (delete developer)()
 
-local function AddAliasedToTable(name, signature, description, table)
+if (developer)
 {
-	// This is an alias function, could use split() if we could guarantee
-	// that ':' would not occur elsewhere in the description and Squirrel had
-	// a convience join() function -- It has split()
-	local colon = description.find(":");
-	if (colon == null)
-		colon = description.len();
-	local alias = description.slice(1, colon);
-	description = description.slice(colon + 1);
-	name = alias;
-	signature = null;
+	local DocumentedFuncs   = {}
+	local DocumentedClasses = {}
+	local DocumentedEnums   = {}
+	local DocumentedConsts  = {}
+	local DocumentedHooks   = {}
+	local DocumentedMembers = {}
 
-	table[name] <- [signature, description];
-}
-
-function __Documentation::RegisterHelp(name, signature, description)
-{
-	if (description.len() && description[0] == '#')
+	local function AddAliasedToTable(name, signature, description, table)
 	{
-		AddAliasedToTable(name, signature, description, DocumentedFuncs)
+		// This is an alias function, could use split() if we could guarantee
+		// that ':' would not occur elsewhere in the description and Squirrel had
+		// a convience join() function -- It has split()
+		local colon = description.find(":");
+		if (colon == null)
+			colon = description.len();
+		local alias = description.slice(1, colon);
+		description = description.slice(colon + 1);
+		name = alias;
+		signature = null;
+
+		table[name] <- [signature, description];
 	}
-	else
+
+	function __Documentation::RegisterHelp(name, signature, description)
 	{
-		DocumentedFuncs[name] <- [signature, description];
-	}
-}
-
-function __Documentation::RegisterClassHelp(name, baseclass, description)
-{
-	DocumentedClasses[name] <- [baseclass, description];
-}
-
-function __Documentation::RegisterEnumHelp(name, num_elements, description)
-{
-	DocumentedEnums[name] <- [num_elements, description];
-}
-
-function __Documentation::RegisterConstHelp(name, signature, description)
-{
-	if (description.len() && description[0] == '#')
-	{
-		AddAliasedToTable(name, signature, description, DocumentedConsts)
-	}
-	else
-	{
-		DocumentedConsts[name] <- [signature, description];
-	}
-}
-
-function __Documentation::RegisterHookHelp(name, signature, description)
-{
-	DocumentedHooks[name] <- [signature, description];
-}
-
-function __Documentation::RegisterMemberHelp(name, signature, description)
-{
-	DocumentedMembers[name] <- [signature, description];
-}
-
-local function printdoc( text )
-{
-	return ::printc(200,224,255,text);
-}
-
-local function printdocl( text )
-{
-	return printdoc(text + "\n");
-}
-
-local function PrintClass(name, doc)
-{
-	local text = "=====================================\n";
-	text += ("Class:       " + name + "\n");
-	text += ("Base:        " + doc[0] + "\n");
-	if (doc[1].len())
-		text += ("Description: " + doc[1] + "\n");
-	text += "=====================================\n\n";
-
-	printdoc(text);
-}
-
-local function PrintFunc(name, doc)
-{
-	local text = "Function:    " + name + "\n"
-
-	if (doc[0] == null)
-	{
-		// Is an aliased function
-		text += ("Signature:   function " + name + "(");
-		foreach(k,v in this[name].getinfos().parameters)
+		if (description.len() && description[0] == '#')
 		{
-			if (k == 0 && v == "this") continue;
-			if (k > 1) text += (", ");
-			text += (v);
+			AddAliasedToTable(name, signature, description, DocumentedFuncs)
 		}
-		text += (")\n");
+		else
+		{
+			DocumentedFuncs[name] <- [signature, description];
+		}
 	}
-	else
+
+	function __Documentation::RegisterClassHelp(name, baseclass, description)
 	{
+		DocumentedClasses[name] <- [baseclass, description];
+	}
+
+	function __Documentation::RegisterEnumHelp(name, num_elements, description)
+	{
+		DocumentedEnums[name] <- [num_elements, description];
+	}
+
+	function __Documentation::RegisterConstHelp(name, signature, description)
+	{
+		if (description.len() && description[0] == '#')
+		{
+			AddAliasedToTable(name, signature, description, DocumentedConsts)
+		}
+		else
+		{
+			DocumentedConsts[name] <- [signature, description];
+		}
+	}
+
+	function __Documentation::RegisterHookHelp(name, signature, description)
+	{
+		DocumentedHooks[name] <- [signature, description];
+	}
+
+	function __Documentation::RegisterMemberHelp(name, signature, description)
+	{
+		DocumentedMembers[name] <- [signature, description];
+	}
+
+	local function printdoc( text )
+	{
+		return ::printc(200,224,255,text);
+	}
+
+	local function printdocl( text )
+	{
+		return printdoc(text + "\n");
+	}
+
+	local function PrintClass(name, doc)
+	{
+		local text = "=====================================\n";
+		text += ("Class:       " + name + "\n");
+		text += ("Base:        " + doc[0] + "\n");
+		if (doc[1].len())
+			text += ("Description: " + doc[1] + "\n");
+		text += "=====================================\n\n";
+
+		printdoc(text);
+	}
+
+	local function PrintFunc(name, doc)
+	{
+		local text = "Function:    " + name + "\n"
+
+		if (doc[0] == null)
+		{
+			// Is an aliased function
+			text += ("Signature:   function " + name + "(");
+			foreach(k,v in this[name].getinfos().parameters)
+			{
+				if (k == 0 && v == "this") continue;
+				if (k > 1) text += (", ");
+				text += (v);
+			}
+			text += (")\n");
+		}
+		else
+		{
+			text += ("Signature:   " + doc[0] + "\n");
+		}
+		if (doc[1].len())
+			text += ("Description: " + doc[1] + "\n");
+		printdocl(text);
+	}
+
+	local function PrintMember(name, doc)
+	{
+		local text = ("Member:      " + name + "\n");
 		text += ("Signature:   " + doc[0] + "\n");
+		if (doc[1].len())
+			text += ("Description: " + doc[1] + "\n");
+		printdocl(text);
 	}
-	if (doc[1].len())
-		text += ("Description: " + doc[1] + "\n");
-	printdocl(text);
-}
 
-local function PrintMember(name, doc)
-{
-	local text = ("Member:      " + name + "\n");
-	text += ("Signature:   " + doc[0] + "\n");
-	if (doc[1].len())
-		text += ("Description: " + doc[1] + "\n");
-	printdocl(text);
-}
-
-local function PrintEnum(name, doc)
-{
-	local text = "=====================================\n";
-	text += ("Enum:        " + name + "\n");
-	text += ("Elements:    " + doc[0] + "\n");
-	if (doc[1].len())
-		text += ("Description: " + doc[1] + "\n");
-	text += "=====================================\n\n";
-
-	printdoc(text);
-}
-
-local function PrintConst(name, doc)
-{
-	local text = ("Constant:    " + name + "\n");
-	if (doc[0] == null)
+	local function PrintEnum(name, doc)
 	{
-		text += ("Value:       null\n");
+		local text = "=====================================\n";
+		text += ("Enum:        " + name + "\n");
+		text += ("Elements:    " + doc[0] + "\n");
+		if (doc[1].len())
+			text += ("Description: " + doc[1] + "\n");
+		text += "=====================================\n\n";
+
+		printdoc(text);
 	}
-	else
-	{
-		text += ("Value:       " + doc[0] + "\n");
-	}
-	if (doc[1].len())
-		text += ("Description: " + doc[1] + "\n");
-	printdocl(text);
-}
 
-local function PrintHook(name, doc)
-{
-	local text = ("Hook:        " + name + "\n");
-	if (doc[0] == null)
+	local function PrintConst(name, doc)
 	{
-		// Is an aliased function
-		text += ("Signature:   function " + name + "(");
-		foreach(k,v in this[name].getinfos().parameters)
+		local text = ("Constant:    " + name + "\n");
+		if (doc[0] == null)
 		{
-			if (k == 0 && v == "this") continue;
-			if (k > 1) text += (", ");
-			text += (v);
+			text += ("Value:       null\n");
 		}
-		text += (")\n");
-	}
-	else
-	{
-		text += ("Signature:   " + doc[0] + "\n");
-	}
-	if (doc[1].len())
-		text += ("Description: " + doc[1] + "\n");
-	printdocl(text);
-}
-
-local function PrintMatchesInDocList(pattern, list, printfunc)
-{
-	local foundMatches = 0;
-
-	foreach(name, doc in list)
-	{
-		if (pattern == "*" || name.tolower().find(pattern) != null || (doc[1].len() && doc[1].tolower().find(pattern) != null))
+		else
 		{
-			foundMatches = 1;
-			printfunc(name, doc)
+			text += ("Value:       " + doc[0] + "\n");
 		}
+		if (doc[1].len())
+			text += ("Description: " + doc[1] + "\n");
+		printdocl(text);
 	}
 
-	return foundMatches;
-}
-
-function __Documentation::PrintHelp(pattern = "*")
-{
-	local patternLower = pattern.tolower();
-
-	// Have a specific order
-	if (!(
-		PrintMatchesInDocList( patternLower, DocumentedEnums, PrintEnum )		|
-		PrintMatchesInDocList( patternLower, DocumentedConsts, PrintConst )		|
-		PrintMatchesInDocList( patternLower, DocumentedClasses, PrintClass )	|
-		PrintMatchesInDocList( patternLower, DocumentedFuncs, PrintFunc )		|
-		PrintMatchesInDocList( patternLower, DocumentedMembers, PrintMember )	|
-		PrintMatchesInDocList( patternLower, DocumentedHooks, PrintHook )
-	   ))
+	local function PrintHook(name, doc)
 	{
-		printdocl("Pattern " + pattern + " not found");
+		local text = ("Hook:        " + name + "\n");
+		if (doc[0] == null)
+		{
+			// Is an aliased function
+			text += ("Signature:   function " + name + "(");
+			foreach(k,v in this[name].getinfos().parameters)
+			{
+				if (k == 0 && v == "this") continue;
+				if (k > 1) text += (", ");
+				text += (v);
+			}
+			text += (")\n");
+		}
+		else
+		{
+			text += ("Signature:   " + doc[0] + "\n");
+		}
+		if (doc[1].len())
+			text += ("Description: " + doc[1] + "\n");
+		printdocl(text);
+	}
+
+	local function PrintMatchesInDocList(pattern, list, printfunc)
+	{
+		local foundMatches = 0;
+
+		foreach(name, doc in list)
+		{
+			if (pattern == "*" || name.tolower().find(pattern) != null || (doc[1].len() && doc[1].tolower().find(pattern) != null))
+			{
+				foundMatches = 1;
+				printfunc(name, doc)
+			}
+		}
+
+		return foundMatches;
+	}
+
+	function __Documentation::PrintHelp(pattern = "*")
+	{
+		local patternLower = pattern.tolower();
+
+		// Have a specific order
+		if (!(
+			PrintMatchesInDocList( patternLower, DocumentedEnums, PrintEnum )		|
+			PrintMatchesInDocList( patternLower, DocumentedConsts, PrintConst )		|
+			PrintMatchesInDocList( patternLower, DocumentedClasses, PrintClass )	|
+			PrintMatchesInDocList( patternLower, DocumentedFuncs, PrintFunc )		|
+			PrintMatchesInDocList( patternLower, DocumentedMembers, PrintMember )	|
+			PrintMatchesInDocList( patternLower, DocumentedHooks, PrintHook )
+		   ))
+		{
+			printdocl("Pattern " + pattern + " not found");
+		}
+	}
+}
+else
+{
+	__Documentation.RegisterHelp <-
+	__Documentation.RegisterClassHelp <-
+	__Documentation.RegisterEnumHelp <-
+	__Documentation.RegisterConstHelp <-
+	__Documentation.RegisterHookHelp <-
+	__Documentation.RegisterMemberHelp <- dummy
+
+	function __Documentation::PrintHelp( pattern = null )
+	{
+		printcl(200, 224, 255, "Documentation is not enabled. To enable documentation, restart the server with the 'developer' cvar set to 1 or higher.");
 	}
 }
 

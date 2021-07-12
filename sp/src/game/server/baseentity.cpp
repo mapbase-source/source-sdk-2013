@@ -66,6 +66,9 @@
 #include "mapbase/matchers.h"
 #include "mapbase/datadesc_mod.h"
 #endif
+#ifdef NEW_RESPONSE_SYSTEM
+#include "ai_speech.h"
+#endif
 
 #if defined( TF_DLL )
 #include "tf_gamerules.h"
@@ -1716,22 +1719,9 @@ int CBaseEntity::VPhysicsTakeDamage( const CTakeDamageInfo &info )
 void CBaseEntity::Event_Killed( const CTakeDamageInfo &info )
 {
 #ifdef MAPBASE_VSCRIPT
-	if (m_ScriptScope.IsInitialized() && g_Hook_OnDeath.CanRunInScope( m_ScriptScope ))
-	{
-		HSCRIPT hInfo = g_pScriptVM->RegisterInstance( const_cast<CTakeDamageInfo*>(&info) );
-
-		// info
-		ScriptVariant_t functionReturn;
-		ScriptVariant_t args[] = { ScriptVariant_t( hInfo ) };
-		if ( g_Hook_OnDeath.Call( m_ScriptScope, &functionReturn, args ) && (functionReturn.m_type == FIELD_BOOLEAN && functionReturn.m_bool == false) )
-		{
-			// Make this entity cheat death
-			g_pScriptVM->RemoveInstance( hInfo );
-			return;
-		}
-
-		g_pScriptVM->RemoveInstance( hInfo );
-	}
+	// False = Cheat death
+	if (ScriptDeathHook( const_cast<CTakeDamageInfo*>(&info) ) == false)
+		return;
 #endif
 
 	if( info.GetAttacker() )
@@ -1766,6 +1756,22 @@ void CBaseEntity::SendOnKilledGameEvent( const CTakeDamageInfo &info )
 		event->SetInt( "damagebits", info.GetDamageType() );
 		gameeventmanager->FireEvent( event );
 	}
+}
+
+void CBaseEntity::Event_KilledOther( CBaseEntity *pVictim, const CTakeDamageInfo &info )
+{
+#ifdef MAPBASE_VSCRIPT
+	if (m_ScriptScope.IsInitialized() && g_Hook_OnKilledOther.CanRunInScope( m_ScriptScope ))
+	{
+		HSCRIPT hInfo = g_pScriptVM->RegisterInstance( const_cast<CTakeDamageInfo*>(&info) );
+
+		// victim, info
+		ScriptVariant_t args[] = { ScriptVariant_t( pVictim->GetScriptInstance() ), ScriptVariant_t( hInfo ) };
+		g_Hook_OnKilledOther.Call( m_ScriptScope, NULL, args );
+
+		g_pScriptVM->RemoveInstance( hInfo );
+	}
+#endif
 }
 
 
@@ -2206,6 +2212,7 @@ ScriptHook_t	CBaseEntity::g_Hook_UpdateOnRemove;
 ScriptHook_t	CBaseEntity::g_Hook_VPhysicsCollision;
 ScriptHook_t	CBaseEntity::g_Hook_FireBullets;
 ScriptHook_t	CBaseEntity::g_Hook_OnDeath;
+ScriptHook_t	CBaseEntity::g_Hook_OnKilledOther;
 ScriptHook_t	CBaseEntity::g_Hook_HandleInteraction;
 #endif
 
@@ -2311,6 +2318,8 @@ BEGIN_ENT_SCRIPTDESC_ROOT( CBaseEntity, "Root class of all server-side entities"
 	DEFINE_SCRIPTFUNC_NAMED( ScriptGetModelKeyValues, "GetModelKeyValues", "Get a KeyValue class instance on this entity's model")
 
 #ifdef MAPBASE_VSCRIPT
+	DEFINE_SCRIPTFUNC( Activate, "" )
+
 	DEFINE_SCRIPTFUNC_NAMED( ScriptIsVisible, "IsVisible", "Check if the specified position can be visible to this entity." )
 	DEFINE_SCRIPTFUNC_NAMED( ScriptIsEntVisible, "IsEntVisible", "Check if the specified entity can be visible to this entity." )
 	DEFINE_SCRIPTFUNC_NAMED( ScriptIsVisibleWithMask, "IsVisibleWithMask", "Check if the specified position can be visible to this entity with a specific trace mask." )
@@ -2408,7 +2417,10 @@ BEGIN_ENT_SCRIPTDESC_ROOT( CBaseEntity, "Root class of all server-side entities"
 	DEFINE_SCRIPTFUNC( SetFriction, "" )
 	DEFINE_SCRIPTFUNC( GetMass, "" )
 	DEFINE_SCRIPTFUNC( SetMass, "" )
-	
+
+	DEFINE_SCRIPTFUNC_NAMED( ScriptGetSolid, "GetSolid", "" )
+	DEFINE_SCRIPTFUNC_NAMED( ScriptSetSolid, "SetSolid", "" )
+
 	DEFINE_SCRIPTFUNC( GetSolidFlags, "Get solid flags" )
 	DEFINE_SCRIPTFUNC( AddSolidFlags, "Add solid flags" )
 	DEFINE_SCRIPTFUNC( RemoveSolidFlags, "Remove solid flags" )
@@ -2464,6 +2476,11 @@ BEGIN_ENT_SCRIPTDESC_ROOT( CBaseEntity, "Root class of all server-side entities"
 	END_SCRIPTHOOK()
 
 	BEGIN_SCRIPTHOOK( CBaseEntity::g_Hook_OnDeath, "OnDeath", FIELD_BOOLEAN, "Called when the entity dies (Event_Killed). Returning false makes the entity cancel death, although this could have unforeseen consequences. For hooking any damage instead of just death, see filter_script and PassesFinalDamageFilter." )
+		DEFINE_SCRIPTHOOK_PARAM( "info", FIELD_HSCRIPT )
+	END_SCRIPTHOOK()
+
+	BEGIN_SCRIPTHOOK( CBaseEntity::g_Hook_OnKilledOther, "OnKilledOther", FIELD_VOID, "Called when the entity kills another entity." )
+		DEFINE_SCRIPTHOOK_PARAM( "victim", FIELD_HSCRIPT )
 		DEFINE_SCRIPTHOOK_PARAM( "info", FIELD_HSCRIPT )
 	END_SCRIPTHOOK()
 
@@ -4660,6 +4677,16 @@ bool CBaseEntity::AcceptInput( const char *szInputName, CBaseEntity *pActivator,
 	return false;
 }
 
+#ifdef MAPBASE_VSCRIPT
+bool CBaseEntity::ScriptAcceptInput( const char *szInputName, const char *szValue, HSCRIPT hActivator, HSCRIPT hCaller )
+{
+	variant_t value;
+	value.SetString( MAKE_STRING( szValue ) );
+
+	return AcceptInput( szInputName, ToEnt( hActivator ), ToEnt( hCaller ), value, 0 );
+}
+#endif
+
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
@@ -4692,12 +4719,26 @@ bool CBaseEntity::ScriptInputHook( const char *szInputName, CBaseEntity *pActiva
 }
 
 #ifdef MAPBASE_VSCRIPT
-bool CBaseEntity::ScriptAcceptInput( const char *szInputName, const char *szValue, HSCRIPT hActivator, HSCRIPT hCaller )
+bool CBaseEntity::ScriptDeathHook( CTakeDamageInfo *info )
 {
-	variant_t value;
-	value.SetString( MAKE_STRING(szValue) );
+	if (m_ScriptScope.IsInitialized() && g_Hook_OnDeath.CanRunInScope( m_ScriptScope ))
+	{
+		HSCRIPT hInfo = g_pScriptVM->RegisterInstance( info );
 
-	return AcceptInput( szInputName, ToEnt(hActivator), ToEnt(hCaller), value, 0 );
+		// info
+		ScriptVariant_t functionReturn;
+		ScriptVariant_t args[] = { ScriptVariant_t( hInfo ) };
+		if ( g_Hook_OnDeath.Call( m_ScriptScope, &functionReturn, args ) && (functionReturn.m_type == FIELD_BOOLEAN && functionReturn.m_bool == false) )
+		{
+			// Make this entity cheat death
+			g_pScriptVM->RemoveInstance( hInfo );
+			return false;
+		}
+
+		g_pScriptVM->RemoveInstance( hInfo );
+	}
+
+	return true;
 }
 #endif
 
@@ -7657,7 +7698,11 @@ bool CBaseEntity::HasContext( const char *nameandvalue ) const
 	const char *p = nameandvalue;
 	while ( p )
 	{
+#ifdef NEW_RESPONSE_SYSTEM
+		p = SplitContext( p, key, sizeof( key ), value, sizeof( value ), NULL, nameandvalue );
+#else
 		p = SplitContext( p, key, sizeof( key ), value, sizeof( value ), NULL );
+#endif
 		
 		return HasContext( key, value );
 	}
@@ -7704,7 +7749,11 @@ void CBaseEntity::RemoveContext( const char *contextName )
 	while ( p )
 	{
 		duration = 0.0f;
+#ifdef NEW_RESPONSE_SYSTEM
+		p = SplitContext( p, key, sizeof( key ), value, sizeof( value ), &duration, contextName );
+#else
 		p = SplitContext( p, key, sizeof( key ), value, sizeof( value ), &duration );
+#endif
 		if ( duration )
 		{
 			duration += gpGlobals->curtime;
@@ -8775,56 +8824,76 @@ void CBaseEntity::AddContext( const char *contextName )
 {
 	char key[ 128 ];
 	char value[ 128 ];
-	float duration;
+	float duration = 0.0f;
 
 	const char *p = contextName;
 	while ( p )
 	{
 		duration = 0.0f;
+#ifdef NEW_RESPONSE_SYSTEM
+		p = SplitContext( p, key, sizeof( key ), value, sizeof( value ), &duration, contextName );
+#else
 		p = SplitContext( p, key, sizeof( key ), value, sizeof( value ), &duration );
+#endif
 		if ( duration )
 		{
 			duration += gpGlobals->curtime;
 		}
 
-		int iIndex = FindContextByName( key );
-		if ( iIndex != -1 )
-		{
-			// Set the existing context to the new value
-			m_ResponseContexts[iIndex].m_iszValue = AllocPooledString( value );
-			m_ResponseContexts[iIndex].m_fExpirationTime = duration;
-			continue;
-		}
-
-		ResponseContext_t newContext;
-		newContext.m_iszName = AllocPooledString( key );
-		newContext.m_iszValue = AllocPooledString( value );
-		newContext.m_fExpirationTime = duration;
-
-		m_ResponseContexts.AddToTail( newContext );
+		AddContext( key, value, duration );
 	}
 }
 
-#ifdef MAPBASE
 void CBaseEntity::AddContext( const char *name, const char *value, float duration )
 {
 	int iIndex = FindContextByName( name );
 	if ( iIndex != -1 )
 	{
 		// Set the existing context to the new value
+
+#ifdef NEW_RESPONSE_SYSTEM
+		char buf[64];
+		if ( RR::CApplyContextOperator::FindOperator( value )->Apply( 
+			m_ResponseContexts[iIndex].m_iszValue.ToCStr(), value, buf, sizeof(buf) ) )
+		{
+			m_ResponseContexts[iIndex].m_iszValue = AllocPooledString( buf );
+		}
+		else
+		{
+			Warning( "RR: could not apply operator %s to prior value %s\n", 
+				value, m_ResponseContexts[iIndex].m_iszValue.ToCStr() );
+			m_ResponseContexts[iIndex].m_iszValue = AllocPooledString( value );
+		}
+#else
 		m_ResponseContexts[iIndex].m_iszValue = AllocPooledString( value );
-		m_ResponseContexts[iIndex].m_fExpirationTime = duration;
-		return;
-	}
-
-	ResponseContext_t newContext;
-	newContext.m_iszName = AllocPooledString( name );
-	newContext.m_iszValue = AllocPooledString( value );
-	newContext.m_fExpirationTime = duration;
-
-	m_ResponseContexts.AddToTail( newContext );
-}
 #endif
+		m_ResponseContexts[iIndex].m_fExpirationTime = duration;
+	}
+	else
+	{
+		ResponseContext_t newContext;
+		newContext.m_iszName = AllocPooledString( name );
+
+#ifdef NEW_RESPONSE_SYSTEM
+		char buf[64];
+		if ( RR::CApplyContextOperator::FindOperator( value )->Apply( 
+			NULL, value, buf, sizeof(buf) ) )
+		{
+			newContext.m_iszValue = AllocPooledString( buf );
+		}
+		else
+		{
+			newContext.m_iszValue = AllocPooledString( value );
+		}
+#else
+		newContext.m_iszValue = AllocPooledString( value );
+#endif
+
+		newContext.m_fExpirationTime = duration;
+
+		m_ResponseContexts.AddToTail( newContext );
+	}
+}
 
 //-----------------------------------------------------------------------------
 // Purpose: 
@@ -8976,6 +9045,11 @@ void CBaseEntity::InputChangeVariable( inputdata_t &inputdata )
 //-----------------------------------------------------------------------------
 void CBaseEntity::DispatchResponse( const char *conceptName )
 {
+#ifdef NEW_RESPONSE_SYSTEM
+	#undef IResponseSystem
+	using namespace ResponseRules;
+#endif
+
 	IResponseSystem *rs = GetResponseSystem();
 	if ( !rs )
 		return;
@@ -9006,6 +9080,61 @@ void CBaseEntity::DispatchResponse( const char *conceptName )
 	// Handle the response here...
 	char response[ 256 ];
 	result.GetResponse( response, sizeof( response ) );
+#ifdef NEW_RESPONSE_SYSTEM
+	switch (result.GetType())
+	{
+	case ResponseRules::RESPONSE_SPEAK:
+	{
+		EmitSound(response);
+	}
+	break;
+	case ResponseRules::RESPONSE_SENTENCE:
+	{
+		int sentenceIndex = SENTENCEG_Lookup(response);
+		if (sentenceIndex == -1)
+		{
+			// sentence not found
+			break;
+		}
+
+		// FIXME:  Get pitch from npc?
+		CPASAttenuationFilter filter(this);
+		CBaseEntity::EmitSentenceByIndex(filter, entindex(), CHAN_VOICE, sentenceIndex, 1, result.GetSoundLevel(), 0, PITCH_NORM);
+	}
+	break;
+	case ResponseRules::RESPONSE_SCENE:
+	{
+		// Try to fire scene w/o an actor
+		InstancedScriptedScene(NULL, response);
+	}
+	break;
+	case ResponseRules::RESPONSE_PRINT:
+	{
+
+	}
+	break;
+	case ResponseRules::RESPONSE_ENTITYIO:
+	{
+		CAI_Expresser::FireEntIOFromResponse(response, this);
+		break;
+	}
+#ifdef MAPBASE_VSCRIPT
+	case ResponseRules::RESPONSE_VSCRIPT:
+	{
+		CAI_Expresser::RunScriptResponse( this, response, &set, false );
+		break;
+	}
+	case ResponseRules::RESPONSE_VSCRIPT_FILE:
+	{
+		CAI_Expresser::RunScriptResponse( this, response, &set, true );
+		break;
+	}
+#endif
+	default:
+		// Don't know how to handle .vcds!!!
+		break;
+	}
+#else
 #ifdef MAPBASE
 	if (response[0] == '$')
 	{
@@ -9100,6 +9229,7 @@ void CBaseEntity::DispatchResponse( const char *conceptName )
 		// Don't know how to handle .vcds!!!
 		break;
 	}
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -9426,6 +9556,7 @@ void CBaseEntity::RemoveRecipientsIfNotCloseCaptioning( CRecipientFilter& filter
 	}
 }
 
+#ifndef MAPBASE // Moved to SoundEmitterSystem.cpp
 //-----------------------------------------------------------------------------
 // Purpose: Wrapper to emit a sentence and also a close caption token for the sentence as appropriate.
 // Input  : filter - 
@@ -9448,6 +9579,7 @@ void CBaseEntity::EmitSentenceByIndex( IRecipientFilter& filter, int iEntIndex, 
 	enginesound->EmitSentenceByIndex( filter, iEntIndex, iChannel, iSentenceIndex, 
 		flVolume, iSoundlevel, iFlags, iPitch, 0, pOrigin, pDirection, &dummy, bUpdatePositions, soundtime );
 }
+#endif
 
 
 void CBaseEntity::SetRefEHandle( const CBaseHandle &handle )
