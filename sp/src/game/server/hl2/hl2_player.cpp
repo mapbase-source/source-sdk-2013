@@ -228,6 +228,9 @@ public:
 	COutputInt m_RequestedPlayerHealth;
 
 #ifdef MAPBASE
+
+	COutputEvent m_IsNotSubmerged;
+	COutputEvent m_IsSubmerged;
 	COutputInt m_OnGetAmmo;
 	COutputEvent m_PlayerDamaged;
 	COutputEvent m_OnSquadMemberKilled;
@@ -1133,6 +1136,18 @@ void CHL2_Player::PreThink(void)
 			m_nButtons &= ~(IN_ATTACK|IN_ATTACK2);
 		}
 	}
+#ifdef MAPBASE
+	if (m_nLastWaterLevel == 3 && GetWaterLevel() != 3)
+	{
+		FirePlayerProxyOutput("IsNotSubmerged", variant_t(), this, this);
+	}
+
+	if (m_nLastWaterLevel != 3 && GetWaterLevel() == 3)
+	{
+		FirePlayerProxyOutput("IsSubmerged", variant_t(), this, this);
+	}
+	m_nLastWaterLevel = GetWaterLevel();
+#endif
 }
 
 void CHL2_Player::PostThink( void )
@@ -4590,6 +4605,8 @@ BEGIN_DATADESC( CLogicPlayerProxy )
 	DEFINE_OUTPUT( m_PlayerDied,	"PlayerDied" ),
 	DEFINE_OUTPUT( m_PlayerMissedAR2AltFire, "PlayerMissedAR2AltFire" ),
 #ifdef MAPBASE
+	DEFINE_OUTPUT( m_IsNotSubmerged, "IsNotSubmerged"),
+	DEFINE_OUTPUT( m_IsSubmerged, "IsSubmerged"),
 	DEFINE_OUTPUT( m_PlayerDamaged, "PlayerDamaged" ),
 	DEFINE_OUTPUT( m_OnSquadMemberKilled, "OnSquadMemberKilled" ),
 	DEFINE_OUTPUT( m_OnGetAmmo, "OnGetAmmo" ),
