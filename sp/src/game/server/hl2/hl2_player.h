@@ -270,6 +270,7 @@ public:
 
 #ifdef MAPBASE
 	virtual bool		CanAutoSwitchToNextBestWeapon( CBaseCombatWeapon *pWeapon );
+	int					m_nLastWaterLevel;
 #endif
 
 	virtual int			GiveAmmo( int nCount, int nAmmoIndex, bool bSuppressSound);
