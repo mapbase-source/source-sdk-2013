@@ -5,7 +5,6 @@
 // $NoKeywords: $
 //=============================================================================//
 
-
 #include "cbase.h"
 #include <ctype.h>
 #include "sentence.h"
@@ -39,7 +38,7 @@ ConVar closecaption( "closecaption", "0", FCVAR_ARCHIVE | FCVAR_ARCHIVE_XBOX | F
 extern ConVar cc_lang;
 static ConVar cc_linger_time( "cc_linger_time", "1.0", FCVAR_ARCHIVE, "Close caption linger time." );
 static ConVar cc_predisplay_time( "cc_predisplay_time", "0.25", FCVAR_ARCHIVE, "Close caption delay before showing caption." );
-static ConVar cc_captiontrace( "cc_captiontrace", "1", 0, "Show missing closecaptions (0 = no, 1 = devconsole, 2 = show in hud)" );
+static ConVar cc_captiontrace( "cc_captiontrace", "0", 0, "Show missing closecaptions (0 = no, 1 = devconsole, 2 = show in hud)" );
 #ifdef MAPBASE
 static ConVar cc_subtitles( "cc_subtitles", "1", FCVAR_ARCHIVE | FCVAR_ARCHIVE_XBOX, "If set, don't show sound effect captions, just voice overs (i.e., won't help hearing impaired players)." );
 #else
@@ -443,124 +442,125 @@ struct VisibleStreamItem
 	CCloseCaptionItem	*item;
 };
 
+#ifndef MAPBASE
 //-----------------------------------------------------------------------------
 // Purpose: The only resource manager parameter we currently care about is the name 
 //  of the .vcd to cache into memory
 //-----------------------------------------------------------------------------
-//struct asynccaptionparams_t
-//{
-//	const char *dbfile;
-//	int			fileindex;
-//	int			blocktoload;
-//	int			blockoffset;
-//	int			blocksize;
-//};
+struct asynccaptionparams_t
+{
+	const char *dbfile;
+	int			fileindex;
+	int			blocktoload;
+	int			blockoffset;
+	int			blocksize;
+};
 
 // 16K of cache for close caption data
-//#define MAX_ASYNCCAPTION_MEMORY_CACHE (int)( 64.0 * 1024.0f )
+#define MAX_ASYNCCAPTION_MEMORY_CACHE (int)( 64.0 * 1024.0f )
 
-//void CaptionAsyncLoaderCallback( const FileAsyncRequest_t &request, int numReadBytes, FSAsyncStatus_t asyncStatus );
+void CaptionAsyncLoaderCallback( const FileAsyncRequest_t &request, int numReadBytes, FSAsyncStatus_t asyncStatus );
 
-//struct AsyncCaptionData_t
-//{
-//	int					m_nBlockNum;
-//	byte				*m_pBlockData;
-//	int					m_nFileIndex;
-//	int					m_nBlockSize;
-//	
-//	bool				m_bLoadPending : 1;
-//	bool				m_bLoadCompleted : 1;
-//
-//	FSAsyncControl_t	m_hAsyncControl;
-//
-//	AsyncCaptionData_t() :
-//		m_nBlockNum( -1 ),
-//		m_pBlockData( 0 ),
-//		m_nFileIndex( -1 ),
-//		m_nBlockSize( 0 ),
-//		m_bLoadPending( false ),
-//		m_bLoadCompleted( false ),
-//		m_hAsyncControl( NULL )
-//	{
-//	}
-//
-//	// APIS required by CDataManager
-//	void DestroyResource()
-//	{
-//		if ( m_bLoadPending && !m_bLoadCompleted )
-//		{
-//			filesystem->AsyncFinish( m_hAsyncControl, true );
-//		}
-//		filesystem->AsyncRelease( m_hAsyncControl );
-//
-//		WipeData();
-//		delete this;
-//	}
-//
-//	void ReleaseData()
-//	{
-//		filesystem->AsyncRelease( m_hAsyncControl );
-//		m_hAsyncControl = 0;
-//		WipeData();
-//		m_bLoadCompleted = false;
-//		Assert( !m_bLoadPending );
-//	}
-//
-//	void WipeData()
-//	{
-//		delete[] m_pBlockData;
-//		m_pBlockData = NULL;
-//	}
-//
-//	AsyncCaptionData_t		*GetData()
-//	{ 
-//		return this; 
-//	}
-//	unsigned int	Size()
-//	{ 
-//		return sizeof( *this ) + m_nBlockSize; 
-//	}
-//
-//	void AsyncLoad( const char *fileName, int blockOffset )
-//	{
-//		// Already pending
-//		Assert ( !m_hAsyncControl );
-//
-//		// async load the file	
-//		FileAsyncRequest_t fileRequest;
-//		fileRequest.pContext    = (void *)this;
-//		fileRequest.pfnCallback = ::CaptionAsyncLoaderCallback;
-//		fileRequest.pData       = m_pBlockData;
-//		fileRequest.pszFilename = fileName;
-//		fileRequest.nOffset     = blockOffset;
-//		fileRequest.flags       = 0;
-//		fileRequest.nBytes      = m_nBlockSize;
-//		fileRequest.priority    = -1;
-//		fileRequest.pszPathID   = "GAME";
-//		
-//		// queue for async load
-//		MEM_ALLOC_CREDIT();
-//		filesystem->AsyncRead( fileRequest, &m_hAsyncControl );
-//	}
-//
-//	// you must implement these static functions for the ResourceManager
-//	// -----------------------------------------------------------
-//	static AsyncCaptionData_t *CreateResource( const asynccaptionparams_t &params )
-//	{
-//		AsyncCaptionData_t *data = new AsyncCaptionData_t;
-//		data->m_nBlockNum = params.blocktoload;
-//		data->m_nFileIndex = params.fileindex;
-//		data->m_nBlockSize = params.blocksize;
-//		data->m_pBlockData = new byte[ data->m_nBlockSize ];
-//		return data;
-//	}
-//
-//	static unsigned int EstimatedSize( const asynccaptionparams_t &params )
-//	{
-//		// The block size is assumed to be 4K
-//		return ( sizeof( AsyncCaptionData_t ) + params.blocksize );
-//	}
-//};
+struct AsyncCaptionData_t
+{
+	int					m_nBlockNum;
+	byte				*m_pBlockData;
+	int					m_nFileIndex;
+	int					m_nBlockSize;
+	
+	bool				m_bLoadPending : 1;
+	bool				m_bLoadCompleted : 1;
+
+	FSAsyncControl_t	m_hAsyncControl;
+
+	AsyncCaptionData_t() :
+		m_nBlockNum( -1 ),
+		m_pBlockData( 0 ),
+		m_nFileIndex( -1 ),
+		m_nBlockSize( 0 ),
+		m_bLoadPending( false ),
+		m_bLoadCompleted( false ),
+		m_hAsyncControl( NULL )
+	{
+	}
+
+	// APIS required by CDataManager
+	void DestroyResource()
+	{
+		if ( m_bLoadPending && !m_bLoadCompleted )
+		{
+			filesystem->AsyncFinish( m_hAsyncControl, true );
+		}
+		filesystem->AsyncRelease( m_hAsyncControl );
+
+		WipeData();
+		delete this;
+	}
+
+	void ReleaseData()
+	{
+		filesystem->AsyncRelease( m_hAsyncControl );
+		m_hAsyncControl = 0;
+		WipeData();
+		m_bLoadCompleted = false;
+		Assert( !m_bLoadPending );
+	}
+
+	void WipeData()
+	{
+		delete[] m_pBlockData;
+		m_pBlockData = NULL;
+	}
+
+	AsyncCaptionData_t		*GetData()
+	{ 
+		return this; 
+	}
+	unsigned int	Size()
+	{ 
+		return sizeof( *this ) + m_nBlockSize; 
+	}
+
+	void AsyncLoad( const char *fileName, int blockOffset )
+	{
+		// Already pending
+		Assert ( !m_hAsyncControl );
+
+		// async load the file	
+		FileAsyncRequest_t fileRequest;
+		fileRequest.pContext    = (void *)this;
+		fileRequest.pfnCallback = ::CaptionAsyncLoaderCallback;
+		fileRequest.pData       = m_pBlockData;
+		fileRequest.pszFilename = fileName;
+		fileRequest.nOffset     = blockOffset;
+		fileRequest.flags       = 0;
+		fileRequest.nBytes      = m_nBlockSize;
+		fileRequest.priority    = -1;
+		fileRequest.pszPathID   = "GAME";
+		
+		// queue for async load
+		MEM_ALLOC_CREDIT();
+		filesystem->AsyncRead( fileRequest, &m_hAsyncControl );
+	}
+
+	// you must implement these static functions for the ResourceManager
+	// -----------------------------------------------------------
+	static AsyncCaptionData_t *CreateResource( const asynccaptionparams_t &params )
+	{
+		AsyncCaptionData_t *data = new AsyncCaptionData_t;
+		data->m_nBlockNum = params.blocktoload;
+		data->m_nFileIndex = params.fileindex;
+		data->m_nBlockSize = params.blocksize;
+		data->m_pBlockData = new byte[ data->m_nBlockSize ];
+		return data;
+	}
+
+	static unsigned int EstimatedSize( const asynccaptionparams_t &params )
+	{
+		// The block size is assumed to be 4K
+		return ( sizeof( AsyncCaptionData_t ) + params.blocksize );
+	}
+};
 
 //-----------------------------------------------------------------------------
 // Purpose: This manages the instanced scene memory handles.  We essentially grow a handle list by scene filename where
@@ -568,251 +568,252 @@ struct VisibleStreamItem
 //  .vcd from disk.  Precaching a .vcd calls into FindOrAddBlock which moves the .vcd to the head of the LRU if it's in memory
 //  or it reloads it from disk otherwise.
 //-----------------------------------------------------------------------------
-//class CAsyncCaptionResourceManager : public CAutoGameSystem, public CManagedDataCacheClient< AsyncCaptionData_t, asynccaptionparams_t >
-//{
-//public:
-//	CAsyncCaptionResourceManager() : CAutoGameSystem( "CAsyncCaptionResourceManager" )
-//	{
-//	}
-//
-//	void		SetDbInfo( const CUtlVector< AsyncCaption_t > & info )
-//	{
-//		m_Db = info;
-//	}
-//
-//	virtual bool Init()
-//	{
-//		CCacheClientBaseClass::Init( datacache, "Captions", MAX_ASYNCCAPTION_MEMORY_CACHE );
-//		return true;
-//	}
-//	virtual void Shutdown()
-//	{
-//		Clear();
-//		CCacheClientBaseClass::Shutdown();
-//	}
-//
-//	//-----------------------------------------------------------------------------
-//	// Purpose: Spew a cache summary to the console
-//	//-----------------------------------------------------------------------------
-//	void SpewMemoryUsage()
-//	{
-//		GetCacheSection()->OutputReport();
-//
-//		DataCacheStatus_t status;
-//		DataCacheLimits_t limits;
-//		GetCacheSection()->GetStatus( &status, &limits );
-//		int bytesUsed = status.nBytes;
-//		int bytesTotal = limits.nMaxBytes;
-//
-//		float percent = 100.0f * (float)bytesUsed / (float)bytesTotal;
-//
-//		int count = 0;
-//		for ( int i = 0; i < m_Db.Count(); ++i )
-//		{
-//			count += m_Db[ i ].m_RequestedBlocks.Count();
-//		}
-//
-//		DevMsg( "CAsyncCaptionResourceManager:  %i blocks total %s, %.2f %% of capacity\n", count, Q_pretifymem( bytesUsed, 2 ), percent );
-//	}
-//
-//	virtual void LevelInitPostEntity()
-//	{
-//	}
-//
-//	void CaptionAsyncLoaderCallback( const FileAsyncRequest_t &request, int numReadBytes, FSAsyncStatus_t asyncStatus )
-//	{	
-//		// get our preserved data
-//		AsyncCaptionData_t *pData = ( AsyncCaptionData_t * )request.pContext;
-//
-//		Assert( pData );
-//
-//		// mark as completed in single atomic operation
-//		pData->m_bLoadCompleted = true;
-//	}
-//
-//	int ComputeBlockOffset( int fileIndex, int blockNum )
-//	{
-//		return m_Db[ fileIndex ].m_Header.dataoffset + blockNum * m_Db[ fileIndex ].m_Header.blocksize;
-//	}
-//
-//	void GetBlockInfo( int fileIndex, int blockNum, bool& entry, bool& pending, bool& loaded )
-//	{
-//		pending = false;
-//		loaded = false;
-//		AsyncCaption_t::BlockInfo_t search;
-//		search.fileindex = fileIndex;
-//		search.blocknum = blockNum;
-//
-//		CUtlRBTree< AsyncCaption_t::BlockInfo_t, unsigned short >& requested = m_Db[ fileIndex ].m_RequestedBlocks;
-//
-//		int idx = requested.Find( search );
-//		if ( idx == requested.InvalidIndex() )
-//		{
-//			entry = false;
-//			return;
-//		}
-//		entry = true;
-//
-//		DataCacheHandle_t handle = requested[ idx ].handle;
-//		AsyncCaptionData_t	*pCaptionData = CacheLock( handle );
-//		if ( pCaptionData )
-//		{
-//			if ( pCaptionData->m_bLoadPending )
-//			{
-//				pending = true;
-//			}
-//			else if ( pCaptionData->m_bLoadCompleted )
-//			{
-//				loaded = true;
-//			}
-//			CacheUnlock( handle );
-//		}
-//	}
-//
-//	// Either commences async loading or polls for async loading once per frame to wait for it to complete...
-//	void PollForAsyncLoading( CHudCloseCaption *hudCloseCaption, int dbFileIndex, int blockNum )
-//	{
-//		const char *dbname = m_Db[ dbFileIndex ].m_DataBaseFile.String();
-//
-//		CUtlRBTree< AsyncCaption_t::BlockInfo_t, unsigned short >& requested = m_Db[ dbFileIndex ].m_RequestedBlocks;
-//
-//		int idx = FindOrAddBlock( dbFileIndex, blockNum );
-//		if ( idx == requested.InvalidIndex() )
-//		{
-//			Assert( 0 );
-//			return;
-//		}
-//
-//		DataCacheHandle_t handle = requested[ idx ].handle;
-//
-//		AsyncCaptionData_t	*pCaptionData = CacheLock( handle );
-//		if ( !pCaptionData )
-//		{
-//			// Try and reload it
-//			char fn[ 256 ];
-//			Q_strncpy( fn, dbname, sizeof( fn ) );
-//			Q_FixSlashes( fn );
-//
-//			asynccaptionparams_t params;
-//			params.dbfile		= fn;
-//			params.blocktoload	= blockNum;
-//			params.blocksize	= m_Db[ dbFileIndex ].m_Header.blocksize;
-//			params.blockoffset	= ComputeBlockOffset( dbFileIndex, blockNum );
-//			params.fileindex    = dbFileIndex;
-//
-//			handle = requested[ idx ].handle = CacheCreate( params );
-//			pCaptionData = CacheLock( handle );
-//			if ( !pCaptionData )
-//			{
-//				Assert( pCaptionData );
-//				return;
-//			}
-//		}
-//
-//		if ( pCaptionData->m_bLoadCompleted )
-//		{
-//			pCaptionData->m_bLoadPending = false;
-//			// Copy in data at this point
-//			Assert( hudCloseCaption );
-//			if ( hudCloseCaption )
-//			{
-//				hudCloseCaption->OnFinishAsyncLoad( requested[ idx ].fileindex, requested[ idx ].blocknum, pCaptionData );
-//			}
-//
-//			// This finalizes the load (unlocks the handle)
-//			GetCacheSection()->BreakLock( handle );
-//			return;
-//		}
-//
-//		if ( pCaptionData->m_bLoadPending )
-//		{
-//			CacheUnlock( handle );
-//			return;
-//		}
-//
-//		// Commence load (locks handle for entire async load) (unlocked above)
-//		pCaptionData->m_bLoadPending = true;
-//		pCaptionData->AsyncLoad( dbname, ComputeBlockOffset( dbFileIndex, blockNum ) );
-//	}
-//	
-//	//-----------------------------------------------------------------------------
-//	// Purpose: Touch the cache or load the scene into the cache for the first time
-//	// Input  : *filename - 
-//	//-----------------------------------------------------------------------------
-//	int FindOrAddBlock( int dbFileIndex, int blockNum )
-//	{
-//		const char *dbname = m_Db[ dbFileIndex ].m_DataBaseFile.String();
-//
-//		CUtlRBTree< AsyncCaption_t::BlockInfo_t, unsigned short >& requested = m_Db[ dbFileIndex ].m_RequestedBlocks;
-//
-//		AsyncCaption_t::BlockInfo_t search;
-//		search.blocknum = blockNum;
-//		search.fileindex = dbFileIndex;
-//
-//		int idx = requested.Find( search );
-//		if ( idx != requested.InvalidIndex() )
-//		{
-//			// Move it to head of LRU
-//			CacheTouch( requested[ idx ].handle );
-//			return idx;
-//		}
-//
-//		char fn[ 256 ];
-//		Q_strncpy( fn, dbname, sizeof( fn ) );
-//		Q_FixSlashes( fn );
-//
-//		asynccaptionparams_t params;
-//		params.dbfile		= fn;
-//		params.blocktoload	= blockNum;
-//		params.blockoffset	= ComputeBlockOffset( dbFileIndex, blockNum );
-//		params.blocksize	= m_Db[ dbFileIndex ].m_Header.blocksize;
-//		params.fileindex    = dbFileIndex;
-//
-//		memhandle_t handle = CacheCreate( params );
-//
-//		AsyncCaption_t::BlockInfo_t info;
-//		info.fileindex = dbFileIndex;
-//		info.blocknum = blockNum;
-//		info.handle = handle;
-//        
-//		// Add scene filename to dictionary
-//		idx = requested.Insert( info );
-//		return idx;
-//	}
-//
-//	void Flush()
-//	{
-//		CacheFlush();
-//	}
-//
-//	void Clear()
-//	{
-//		for ( int file = 0; file < m_Db.Count(); ++file )
-//		{
-//			CUtlRBTree< AsyncCaption_t::BlockInfo_t, unsigned short >& requested = m_Db[ file ].m_RequestedBlocks;
-//
-//			int c = requested.Count();
-//			for ( int i = 0; i  < c; ++i )
-//			{
-//				memhandle_t dat = requested[ i ].handle;
-//				CacheRemove( dat );
-//			}
-//
-//			requested.RemoveAll();
-//		}
-//	}
-//
-//private:
-//	
-//	CUtlVector< AsyncCaption_t >				m_Db;
-//};
+class CAsyncCaptionResourceManager : public CAutoGameSystem, public CManagedDataCacheClient< AsyncCaptionData_t, asynccaptionparams_t >
+{
+public:
+	CAsyncCaptionResourceManager() : CAutoGameSystem( "CAsyncCaptionResourceManager" )
+	{
+	}
 
-//CAsyncCaptionResourceManager g_AsyncCaptionResourceManager;
-//
-//void CaptionAsyncLoaderCallback( const FileAsyncRequest_t &request, int numReadBytes, FSAsyncStatus_t asyncStatus )
-//{
-//	g_AsyncCaptionResourceManager.CaptionAsyncLoaderCallback( request, numReadBytes, asyncStatus );
-//}
+	void		SetDbInfo( const CUtlVector< AsyncCaption_t > & info )
+	{
+		m_Db = info;
+	}
+
+	virtual bool Init()
+	{
+		CCacheClientBaseClass::Init( datacache, "Captions", MAX_ASYNCCAPTION_MEMORY_CACHE );
+		return true;
+	}
+	virtual void Shutdown()
+	{
+		Clear();
+		CCacheClientBaseClass::Shutdown();
+	}
+
+	//-----------------------------------------------------------------------------
+	// Purpose: Spew a cache summary to the console
+	//-----------------------------------------------------------------------------
+	void SpewMemoryUsage()
+	{
+		GetCacheSection()->OutputReport();
+
+		DataCacheStatus_t status;
+		DataCacheLimits_t limits;
+		GetCacheSection()->GetStatus( &status, &limits );
+		int bytesUsed = status.nBytes;
+		int bytesTotal = limits.nMaxBytes;
+
+		float percent = 100.0f * (float)bytesUsed / (float)bytesTotal;
+
+		int count = 0;
+		for ( int i = 0; i < m_Db.Count(); ++i )
+		{
+			count += m_Db[ i ].m_RequestedBlocks.Count();
+		}
+
+		DevMsg( "CAsyncCaptionResourceManager:  %i blocks total %s, %.2f %% of capacity\n", count, Q_pretifymem( bytesUsed, 2 ), percent );
+	}
+
+	virtual void LevelInitPostEntity()
+	{
+	}
+
+	void CaptionAsyncLoaderCallback( const FileAsyncRequest_t &request, int numReadBytes, FSAsyncStatus_t asyncStatus )
+	{	
+		// get our preserved data
+		AsyncCaptionData_t *pData = ( AsyncCaptionData_t * )request.pContext;
+
+		Assert( pData );
+
+		// mark as completed in single atomic operation
+		pData->m_bLoadCompleted = true;
+	}
+
+	int ComputeBlockOffset( int fileIndex, int blockNum )
+	{
+		return m_Db[ fileIndex ].m_Header.dataoffset + blockNum * m_Db[ fileIndex ].m_Header.blocksize;
+	}
+
+	void GetBlockInfo( int fileIndex, int blockNum, bool& entry, bool& pending, bool& loaded )
+	{
+		pending = false;
+		loaded = false;
+		AsyncCaption_t::BlockInfo_t search;
+		search.fileindex = fileIndex;
+		search.blocknum = blockNum;
+
+		CUtlRBTree< AsyncCaption_t::BlockInfo_t, unsigned short >& requested = m_Db[ fileIndex ].m_RequestedBlocks;
+
+		int idx = requested.Find( search );
+		if ( idx == requested.InvalidIndex() )
+		{
+			entry = false;
+			return;
+		}
+		entry = true;
+
+		DataCacheHandle_t handle = requested[ idx ].handle;
+		AsyncCaptionData_t	*pCaptionData = CacheLock( handle );
+		if ( pCaptionData )
+		{
+			if ( pCaptionData->m_bLoadPending )
+			{
+				pending = true;
+			}
+			else if ( pCaptionData->m_bLoadCompleted )
+			{
+				loaded = true;
+			}
+			CacheUnlock( handle );
+		}
+	}
+
+	// Either commences async loading or polls for async loading once per frame to wait for it to complete...
+	void PollForAsyncLoading( CHudCloseCaption *hudCloseCaption, int dbFileIndex, int blockNum )
+	{
+		const char *dbname = m_Db[ dbFileIndex ].m_DataBaseFile.String();
+
+		CUtlRBTree< AsyncCaption_t::BlockInfo_t, unsigned short >& requested = m_Db[ dbFileIndex ].m_RequestedBlocks;
+
+		int idx = FindOrAddBlock( dbFileIndex, blockNum );
+		if ( idx == requested.InvalidIndex() )
+		{
+			Assert( 0 );
+			return;
+		}
+
+		DataCacheHandle_t handle = requested[ idx ].handle;
+
+		AsyncCaptionData_t	*pCaptionData = CacheLock( handle );
+		if ( !pCaptionData )
+		{
+			// Try and reload it
+			char fn[ 256 ];
+			Q_strncpy( fn, dbname, sizeof( fn ) );
+			Q_FixSlashes( fn );
+
+			asynccaptionparams_t params;
+			params.dbfile		= fn;
+			params.blocktoload	= blockNum;
+			params.blocksize	= m_Db[ dbFileIndex ].m_Header.blocksize;
+			params.blockoffset	= ComputeBlockOffset( dbFileIndex, blockNum );
+			params.fileindex    = dbFileIndex;
+
+			handle = requested[ idx ].handle = CacheCreate( params );
+			pCaptionData = CacheLock( handle );
+			if ( !pCaptionData )
+			{
+				Assert( pCaptionData );
+				return;
+			}
+		}
+
+		if ( pCaptionData->m_bLoadCompleted )
+		{
+			pCaptionData->m_bLoadPending = false;
+			// Copy in data at this point
+			Assert( hudCloseCaption );
+			if ( hudCloseCaption )
+			{
+				hudCloseCaption->OnFinishAsyncLoad( requested[ idx ].fileindex, requested[ idx ].blocknum, pCaptionData );
+			}
+
+			// This finalizes the load (unlocks the handle)
+			GetCacheSection()->BreakLock( handle );
+			return;
+		}
+
+		if ( pCaptionData->m_bLoadPending )
+		{
+			CacheUnlock( handle );
+			return;
+		}
+
+		// Commence load (locks handle for entire async load) (unlocked above)
+		pCaptionData->m_bLoadPending = true;
+		pCaptionData->AsyncLoad( dbname, ComputeBlockOffset( dbFileIndex, blockNum ) );
+	}
+	
+	//-----------------------------------------------------------------------------
+	// Purpose: Touch the cache or load the scene into the cache for the first time
+	// Input  : *filename - 
+	//-----------------------------------------------------------------------------
+	int FindOrAddBlock( int dbFileIndex, int blockNum )
+	{
+		const char *dbname = m_Db[ dbFileIndex ].m_DataBaseFile.String();
+
+		CUtlRBTree< AsyncCaption_t::BlockInfo_t, unsigned short >& requested = m_Db[ dbFileIndex ].m_RequestedBlocks;
+
+		AsyncCaption_t::BlockInfo_t search;
+		search.blocknum = blockNum;
+		search.fileindex = dbFileIndex;
+
+		int idx = requested.Find( search );
+		if ( idx != requested.InvalidIndex() )
+		{
+			// Move it to head of LRU
+			CacheTouch( requested[ idx ].handle );
+			return idx;
+		}
+
+		char fn[ 256 ];
+		Q_strncpy( fn, dbname, sizeof( fn ) );
+		Q_FixSlashes( fn );
+
+		asynccaptionparams_t params;
+		params.dbfile		= fn;
+		params.blocktoload	= blockNum;
+		params.blockoffset	= ComputeBlockOffset( dbFileIndex, blockNum );
+		params.blocksize	= m_Db[ dbFileIndex ].m_Header.blocksize;
+		params.fileindex    = dbFileIndex;
+
+		memhandle_t handle = CacheCreate( params );
+
+		AsyncCaption_t::BlockInfo_t info;
+		info.fileindex = dbFileIndex;
+		info.blocknum = blockNum;
+		info.handle = handle;
+        
+		// Add scene filename to dictionary
+		idx = requested.Insert( info );
+		return idx;
+	}
+
+	void Flush()
+	{
+		CacheFlush();
+	}
+
+	void Clear()
+	{
+		for ( int file = 0; file < m_Db.Count(); ++file )
+		{
+			CUtlRBTree< AsyncCaption_t::BlockInfo_t, unsigned short >& requested = m_Db[ file ].m_RequestedBlocks;
+
+			int c = requested.Count();
+			for ( int i = 0; i  < c; ++i )
+			{
+				memhandle_t dat = requested[ i ].handle;
+				CacheRemove( dat );
+			}
+
+			requested.RemoveAll();
+		}
+	}
+
+private:
+	
+	CUtlVector< AsyncCaption_t >				m_Db;
+};
+
+CAsyncCaptionResourceManager g_AsyncCaptionResourceManager;
+
+void CaptionAsyncLoaderCallback( const FileAsyncRequest_t &request, int numReadBytes, FSAsyncStatus_t asyncStatus )
+{
+	g_AsyncCaptionResourceManager.CaptionAsyncLoaderCallback( request, numReadBytes, asyncStatus );
+}
+#endif
 
 DECLARE_HUDELEMENT( CHudCloseCaption );
 
@@ -861,9 +862,11 @@ CHudCloseCaption::CHudCloseCaption( const char *pElementName )
 		english.SetValue( 0 );
 	}
 
-	/*char dbfile [ 512 ];
+#ifndef MAPBASE
+	char dbfile [ 512 ];
 	Q_snprintf( dbfile, sizeof( dbfile ), "resource/closecaption_%s.dat", uilanguage );
-	InitCaptionDictionary( dbfile );*/
+	InitCaptionDictionary( dbfile );
+#endif // !MAPBASE
 }
 
 //-----------------------------------------------------------------------------
@@ -873,7 +876,11 @@ CHudCloseCaption::~CHudCloseCaption()
 {
 	m_CloseCaptionRepeats.RemoveAll();
 
-	//ClearAsyncWork();
+#ifndef MAPBASE
+	ClearAsyncWork();
+#endif // !MAPBASE
+
+	
 }
 
 //-----------------------------------------------------------------------------
@@ -886,8 +893,12 @@ void CHudCloseCaption::LevelInit( void )
 	// Reset repeat counters per level
 	m_CloseCaptionRepeats.RemoveAll();
 
+#ifndef MAPBASE
 	// Wipe any stale pending work items...
-	//ClearAsyncWork();
+	ClearAsyncWork();
+#endif // !MAPBASE
+
+	
 }
 
 static ConVar cc_minvisibleitems( "cc_minvisibleitems", "1", 0, "Minimum number of caption items to show." );
@@ -905,55 +916,56 @@ void CHudCloseCaption::Paint( void )
 	int w, h;
 	GetSize( w, h );
 
-	//if ( m_bPaintDebugInfo )
-	//{
-	//	int blockWide = 350;
-	//	int startx = 50;
-	//	
-	//	int y = 0;
-	//	int size = 8;
-	//	int sizewithgap = size + 1;
+#ifndef MAPBASE
+	if ( m_bPaintDebugInfo )
+	{
+		int blockWide = 350;
+		int startx = 50;
+		
+		int y = 0;
+		int size = 8;
+		int sizewithgap = size + 1;
 
-	//	/*for ( int a = 0; a < m_Items.Count(); ++a )
-	//	{
-	//		int x = startx;
+		for ( int a = 0; a < m_Items.Count(); ++a )
+		{
+			int x = startx;
 
-	//		int c = m_AsyncCaptions[ a ].m_Header.numblocks;
-	//		for ( int i = 0 ; i < c; ++i )
-	//		{
-	//			bool entry, pending, loaded;
-	//			g_AsyncCaptionResourceManager.GetBlockInfo( a, i, entry, pending, loaded );
+			int c = m_AsyncCaptions[ a ].m_Header.numblocks;
+			for ( int i = 0 ; i < c; ++i )
+			{
+				bool entry, pending, loaded;
+				g_AsyncCaptionResourceManager.GetBlockInfo( a, i, entry, pending, loaded );
 
-	//			if ( !entry )
-	//			{
-	//				vgui::surface()->DrawSetColor( Color( 0, 0, 0, 127 ) );
-	//			}
-	//			else if ( pending )
-	//			{
-	//				vgui::surface()->DrawSetColor( Color( 0, 0, 255, 127 ) );
-	//			}
-	//			else if ( loaded )
-	//			{
-	//				vgui::surface()->DrawSetColor( Color( 0, 255, 0, 127 ) );
-	//			}
-	//			else
-	//			{
-	//				vgui::surface()->DrawSetColor( Color( 255, 255, 0, 127 ) );
-	//			}
+				if ( !entry )
+				{
+					vgui::surface()->DrawSetColor( Color( 0, 0, 0, 127 ) );
+				}
+				else if ( pending )
+				{
+					vgui::surface()->DrawSetColor( Color( 0, 0, 255, 127 ) );
+				}
+				else if ( loaded )
+				{
+					vgui::surface()->DrawSetColor( Color( 0, 255, 0, 127 ) );
+				}
+				else
+				{
+					vgui::surface()->DrawSetColor( Color( 255, 255, 0, 127 ) );
+				}
 
-	//			vgui::surface()->DrawFilledRect( x, y, x + size, y + size );
-	//			x += sizewithgap;
-	//			if ( x >= startx + blockWide )
-	//			{
-	//				x = startx;
-	//				y += sizewithgap;
-	//			}
-	//		}
+				vgui::surface()->DrawFilledRect( x, y, x + size, y + size );
+				x += sizewithgap;
+				if ( x >= startx + blockWide )
+				{
+					x = startx;
+					y += sizewithgap;
+				}
+			}
 
-	//		y += sizewithgap;
-	//	}*/
-	//}
-
+			y += sizewithgap;
+		}
+	}
+#endif
 	wrect_t rcOutput;
 	rcOutput.left = 0;
 	rcOutput.right = w;
@@ -1206,32 +1218,34 @@ void CHudCloseCaption::Paint( void )
 
 void CHudCloseCaption::OnTick( void )
 {
+#ifndef MAPBASE
 	// See if any async work has completed
-	//ProcessAsyncWork();
-
+	ProcessAsyncWork();
+#endif
 	SetVisible(closecaption.GetBool());
 
 	float dt = gpGlobals->frametime;
 
 	int c = m_Items.Count();
 	int i;
-
-	//if ( m_bVisibleDueToDirect )
-	//{
-	//	SetVisible( true );
-	//	if ( !c )
-	//	{
-	//		// Don't clear our force visible if we're waiting for the caption to load
-	//		if ( m_AsyncWork.Count() == 0 )
-	//		{
-	//			m_bVisibleDueToDirect = false;
-	//		}
-	//	}
-	//}
-	//else
-	//{
-	
-	//}
+#ifndef MAPBASE
+	if ( m_bVisibleDueToDirect )
+	{
+		SetVisible( true );
+		if ( !c )
+		{
+			// Don't clear our force visible if we're waiting for the caption to load
+			if ( m_AsyncWork.Count() == 0 )
+			{
+				m_bVisibleDueToDirect = false;
+			}
+		}
+	}
+	else
+	{
+		SetVisible(closecaption.GetBool());
+	}
+#endif
 
 	// Pass one decay all timers
 	for ( i = 0 ; i < c ; ++i )
@@ -1297,7 +1311,9 @@ void CHudCloseCaption::Reset( void )
 		m_Items.Remove( 0 );
 	}
 
-	//ClearAsyncWork();
+#ifndef MAPBASE
+	ClearAsyncWork();
+#endif
 	Unlock();
 }
 
@@ -1435,48 +1451,48 @@ bool CHudCloseCaption::StreamHasCommand( const wchar_t *stream, const wchar_t *s
 
 void CHudCloseCaption::Process( const wchar_t *stream, float duration, const char *tokenstream, bool fromplayer, bool direct )
 {
-	if ( !direct )
+	if (!direct)
 	{
-		if ( !closecaption.GetBool() )
+		if (!closecaption.GetBool())
 		{
 			Reset();
 			return;
 		}
 
 		// If we're locked, ignore all closecaption commands
-		if ( m_bLocked )
+		if (m_bLocked)
 			return;
 	}
 
 	// Nothing to do...
-	if ( IsAllSpaces( stream) )
+	if (IsAllSpaces(stream))
 	{
 		return;
 	}
 
 	// If subtitling, don't show sfx captions at all
-	if ( cc_subtitles.GetBool() && StreamHasCommand( stream, L"sfx" ) )
+	if (cc_subtitles.GetBool() && StreamHasCommand(stream, L"sfx"))
 	{
 		return;
 	}
 
 	bool valid = true;
-	if ( !wcsncmp( stream, L"!!!", wcslen( L"!!!" ) ) )
+	if (!wcsncmp(stream, L"!!!", wcslen(L"!!!")))
 	{
 		// It's in the text file, but hasn't been translated...
 		valid = false;
 	}
 
-	if ( !wcsncmp( stream, L"-->", wcslen( L"-->" ) ) )
+	if (!wcsncmp(stream, L"-->", wcslen(L"-->")))
 	{
 		// It's in the text file, but hasn't been translated...
 		valid = false;
 
-		if ( cc_captiontrace.GetInt() < 2 )
+		if (cc_captiontrace.GetInt() < 2)
 		{
-			if ( cc_captiontrace.GetInt() == 1 )
+			if (cc_captiontrace.GetInt() == 1)
 			{
-				Msg( "Missing caption for '%s'\n", tokenstream );
+				Msg("Missing caption for '%s'\n", tokenstream);
 			}
 
 			return;
@@ -1484,57 +1500,57 @@ void CHudCloseCaption::Process( const wchar_t *stream, float duration, const cha
 	}
 
 	float lifespan = duration + cc_linger_time.GetFloat();
-	
+
 	float addedlife = 0.0f;
 
-	if ( m_Items.Count() > 0 )
+	if (m_Items.Count() > 0)
 	{
 		// Get the remaining life span of the last item
-		CCloseCaptionItem *final = m_Items[ m_Items.Count() - 1 ];
+		CCloseCaptionItem* final = m_Items[m_Items.Count() - 1];
 		float prevlife = final->GetTimeToLive();
 
-		if ( prevlife > lifespan )
+		if (prevlife > lifespan)
 		{
 			addedlife = prevlife - lifespan;
 		}
 
-		lifespan = MAX( lifespan, prevlife );
+		lifespan = MAX(lifespan, prevlife);
 	}
-	
+
 	float delay = 0.0f;
 	float override_duration = 0.0f;
 
-	wchar_t phrase[ MAX_CAPTION_CHARACTERS ];
-	wchar_t *out = phrase;
+	wchar_t phrase[MAX_CAPTION_CHARACTERS];
+	wchar_t* out = phrase;
 
-	for ( const wchar_t *curpos = stream; curpos && *curpos != L'\0'; ++curpos )
+	for (const wchar_t* curpos = stream; curpos && *curpos != L'\0'; ++curpos)
 	{
-		wchar_t cmd[ 256 ];
-		wchar_t args[ 256 ];
+		wchar_t cmd[256];
+		wchar_t args[256];
 
-		const wchar_t *prevpos = curpos;
+		const wchar_t* prevpos = curpos;
 
-		if ( SplitCommand( &curpos, cmd, args ) )
+		if (SplitCommand(&curpos, cmd, args))
 		{
-			if ( !wcscmp( cmd, L"delay" ) )
+			if (!wcscmp(cmd, L"delay"))
 			{
 
 				// End current phrase
 				*out = L'\0';
 
-				if ( wcslen( phrase ) > 0 )
+				if (wcslen(phrase) > 0)
 				{
-					CCloseCaptionItem *item = new CCloseCaptionItem( phrase, lifespan, addedlife, delay, valid, fromplayer );
-					m_Items.AddToTail( item );
-					if ( StreamHasCommand( phrase, L"sfx" ) )
+					CCloseCaptionItem* item = new CCloseCaptionItem(phrase, lifespan, addedlife, delay, valid, fromplayer);
+					m_Items.AddToTail(item);
+					if (StreamHasCommand(phrase, L"sfx"))
 					{
 						// SFX show up instantly.
-						item->SetPreDisplayTime( 0.0f );
+						item->SetPreDisplayTime(0.0f);
 					}
-					
-					if ( GetFloatCommandValue( phrase, L"len", override_duration ) )
+
+					if (GetFloatCommandValue(phrase, L"len", override_duration))
 					{
-						item->SetTimeToLive( override_duration );
+						item->SetTimeToLive(override_duration);
 					}
 				}
 
@@ -1542,13 +1558,13 @@ void CHudCloseCaption::Process( const wchar_t *stream, float duration, const cha
 				out = phrase;
 
 				// Delay must be positive
-				delay = MAX( 0.0f, (float)wcstod( args, NULL ) );
+				delay = MAX(0.0f, (float)wcstod(args, NULL));
 
 				continue;
 			}
 
 			int copychars = curpos - prevpos;
-			while ( --copychars >= 0 )
+			while (--copychars >= 0)
 			{
 				*out++ = *prevpos++;
 			}
@@ -1559,21 +1575,21 @@ void CHudCloseCaption::Process( const wchar_t *stream, float duration, const cha
 
 	// End final phrase, if any
 	*out = L'\0';
-	if ( wcslen( phrase ) > 0 )
+	if (wcslen(phrase) > 0)
 	{
-		CCloseCaptionItem *item = new CCloseCaptionItem( phrase, lifespan, addedlife, delay, valid, fromplayer );
-		m_Items.AddToTail( item );
+		CCloseCaptionItem* item = new CCloseCaptionItem(phrase, lifespan, addedlife, delay, valid, fromplayer);
+		m_Items.AddToTail(item);
 
-		if ( StreamHasCommand( phrase, L"sfx" ) )
+		if (StreamHasCommand(phrase, L"sfx"))
 		{
 			// SFX show up instantly.
-			item->SetPreDisplayTime( 0.0f );
+			item->SetPreDisplayTime(0.0f);
 		}
 
-		if ( GetFloatCommandValue( phrase, L"len", override_duration ) )
+		if (GetFloatCommandValue(phrase, L"len", override_duration))
 		{
-			item->SetTimeToLive( override_duration );
-			item->SetInitialLifeSpan( override_duration );
+			item->SetTimeToLive(override_duration);
+			item->SetInitialLifeSpan(override_duration);
 		}
 	}
 }
@@ -1852,7 +1868,7 @@ void CHudCloseCaption::ComputeStreamWork( int available_width, CCloseCaptionItem
 	// DumpWork( item );
 }
 
-void CHudCloseCaption::	DumpWork( CCloseCaptionItem *item )
+void CHudCloseCaption::DumpWork( CCloseCaptionItem *item )
 {
 	int c = item->GetNumWorkUnits();
 	for ( int i = 0 ; i < c; ++i )
@@ -1983,337 +1999,339 @@ int CRCString( const char *str )
 	return ( int )crc;
 }
 
-//class CAsyncCaption
-//{
-//public:
-//	CAsyncCaption() : 
-//		m_flDuration( 0.0f ),
-//		m_bIsStream( false ),
-//		m_bFromPlayer( false )
-//	{
-//	}
-//
-//	~CAsyncCaption()
-//	{
-//		int c = m_Tokens.Count();
-//		for ( int i = 0; i < c; ++i )
-//		{
-//			delete m_Tokens[ i ];
-//		}
-//		m_Tokens.Purge();
-//	}
-//
-//	void StartRequesting( CHudCloseCaption *hudCloseCaption, CUtlVector< AsyncCaption_t >& directories )
-//	{
-//		// Issue pending async requests for each token in string
-//		int c = m_Tokens.Count();
-//		for ( int i = 0; i < c; ++i )
-//		{
-//			caption_t *caption = m_Tokens[ i ];
-//			Assert( !caption->stream );
-//			Assert( caption->dirindex >= 0 );
-//
-//			CaptionLookup_t& entry = directories[ caption->fileindex ].m_CaptionDirectory[ caption->dirindex ];
-//
-//			// Request this block, and if it's there, it'll call OnDataLoaded immediately
-//			g_AsyncCaptionResourceManager.PollForAsyncLoading( hudCloseCaption, caption->fileindex, entry.blockNum );
-//		}
-//	}
-//
-//	void OnDataArrived( CUtlVector< AsyncCaption_t >& directories, int nFileIndex, int nBlockNum, AsyncCaptionData_t *pData )
-//	{
-//		int c = m_Tokens.Count();
-//		for ( int i = 0; i < c; ++i )
-//		{
-//			caption_t *caption = m_Tokens[ i ];
-//			if ( caption->stream != NULL )
-//				continue;
-//
-//			// Lookup the data
-//			//CaptionLookup_t &entry = directories[ nFileIndex ].m_CaptionDirectory[ caption->dirindex ];
-//		/*	if ( entry.blockNum != nBlockNum )
-//				continue;*/
-//
-//#ifdef WIN32
-//		/*	const wchar_t *pIn = ( const wchar_t *)&pData->m_pBlockData[ entry.offset ];
-//			caption->stream = new wchar_t[ entry.length >> 1 ];
-//			memcpy( (void *)caption->stream, pIn, entry.length );*/
-//#else
-//			// we persist to disk as ucs2 so convert back to real unicode here
-//			caption->stream = new wchar_t[ entry.length ];
-//			V_UCS2ToUnicode( (ucs2 *)&pData->m_pBlockData[ entry.offset ], caption->stream, entry.length*sizeof(wchar_t) );	
-//#endif
-//		}
-//	}
-//
-//	void ProcessAsyncWork( CHudCloseCaption *hudCloseCaption, CUtlVector< AsyncCaption_t >& directories )
-//	{
-//		int c = m_Tokens.Count();
-//		for ( int i = 0; i < c; ++i )
-//		{
-//			caption_t *caption = m_Tokens[ i ];
-//			if ( caption->stream != NULL )
-//				continue;
-//
-//			//CaptionLookup_t& entry = directories[ caption->fileindex];
-//
-//			// Request this block, and if it's there, it'll call OnDataLoaded immediately
-//			//g_AsyncCaptionResourceManager.PollForAsyncLoading( hudCloseCaption, caption->fileindex, entry.blockNum );
-//		}
-//	}
-//
-//	bool GetStream( OUT_Z_BYTECAP(bufSizeInBytes) wchar_t *buf, int bufSizeInBytes )
-//	{
-//		Assert( bufSizeInBytes >= sizeof(buf[0]) );
-//		buf[ 0 ] = L'\0';
-//
-//		int c = m_Tokens.Count();
-//		for ( int i = 0; i < c; ++i )
-//		{
-//			caption_t *caption = m_Tokens[ i ];
-//			if ( caption->stream == NULL )
-//			{
-//				return false;
-//			}
-//		}
-//
-//		unsigned int curlen = 0;
-//		unsigned int maxlen = bufSizeInBytes / sizeof( wchar_t );
-//
-//		// Compose full stream from tokens
-//		for ( int i = 0; i < c; ++i )
-//		{
-//			caption_t *caption = m_Tokens[ i ];
-//			int len = wcslen( caption->stream ) + 1;
-//			if ( curlen + len >= maxlen )
-//				break;
-//
-//			wcscat( buf, caption->stream );
-//			if ( i < c - 1 ) 
-//			{
-//				wcscat( buf, L" " );
-//			}
-//
-//			curlen += len;
-//		}
-//
-//		return true;
-//	}
-//
-//	bool					IsStream() const
-//	{
-//		return m_bIsStream;
-//	}
-//
-//	void					SetIsStream( bool state )
-//	{
-//		m_bIsStream = state;
-//	}
-//
-//	void	AddRandomToken( CUtlVector< AsyncCaption_t >& directories )
-//	{
-//		int dc = directories.Count();
-//		int fileindex = RandomInt( 0, dc - 1 );
-//
-//		//int c = directories[ fileindex ].m_CaptionDirectory.Count();
-//		//int idx = RandomInt( 0, c - 1 );
-//
-//		caption_t *caption = new caption_t;
-//		char foo[ 32 ];
-//		Q_snprintf( foo, sizeof( foo ), "%d", idx );
-//		caption->token = strdup( foo );
-//		caption->dirindex = idx;
-//		caption->stream = NULL;
-//		caption->fileindex = fileindex;
-//
-//		m_Tokens.AddToTail( caption );
-//	}
-//
-//	bool AddToken
-//	( 
-//		CUtlVector< AsyncCaption_t >& directories, 
-//		const char *token 
-//	)
-//	{
-//		CaptionLookup_t search;
-//		search.SetHash( token );
-//
-//		int idx = -1;
-//		int i;
-//		int dc = directories.Count();
-//		/*for ( i = 0; i < dc; ++i )
-//		{
-//            idx = directories[ i ].m_CaptionDirectory.Find( search );
-//			if ( idx == directories[ i ].m_CaptionDirectory.InvalidIndex() )
-//				continue;
-//
-//			break;
-//		}*/
-//
-//		if ( i >= dc || idx == -1 )
-//			return false;
-//
-//		caption_t *caption = new caption_t;
-//		caption->token = strdup( token );
-//		caption->dirindex = idx;
-//		caption->stream = NULL;
-//		caption->fileindex = i;
-//
-//		m_Tokens.AddToTail( caption );
-//		return true;
-//	}
-//
-//	int						Count() const
-//	{
-//		return m_Tokens.Count();
-//	}
-//
-//	const char				*GetToken( int index )
-//	{
-//		return m_Tokens[ index ]->token;
-//	}
-//
-//	void					GetOriginalStream( char *buf, size_t bufsize )
-//	{
-//		buf[ 0 ] = 0;
-//		int c = Count();
-//		for ( int i = 0 ; i < c; ++i )
-//		{
-//			Q_strncat( buf, GetToken( i ), bufsize, COPY_ALL_CHARACTERS );
-//			if ( i != c - 1 )
-//			{
-//				Q_strncat( buf, " ", bufsize, COPY_ALL_CHARACTERS );
-//			}
-//		}
-//	}
-//
-//	void					SetDuration( float t )
-//	{
-//		m_flDuration = t;
-//	}
-//
-//	float					GetDuration()
-//	{
-//		return m_flDuration;
-//	}
-//
-//	bool					IsFromPlayer()
-//	{
-//		return m_bFromPlayer;
-//	}
-//
-//	void					SetFromPlayer( bool state )
-//	{
-//		m_bFromPlayer = state;
-//	}
-//
-//	bool					IsDirect()
-//	{
-//		return m_bDirect;
-//	}
-//
-//	void					SetDirect( bool state )
-//	{
-//		m_bDirect = state;
-//	}
-//private:
-//	float					m_flDuration;
-//	bool					m_bIsStream : 1;
-//	bool					m_bFromPlayer : 1;
-//	bool					m_bDirect : 1;
-//
-//	struct caption_t
-//	{
-//		caption_t() :
-//			token( 0 ),
-//			dirindex( -1 ),
-//			fileindex( -1 ),
-//			stream( 0 )
-//		{
-//		}
-//
-//		~caption_t()
-//		{
-//			free( token );
-//			delete[] stream;
-//		}
-//
-//		void		SetStream( const wchar_t *in )
-//		{
-//			delete[] stream;
-//			stream = 0;
-//			if ( !in )
-//				return;
-//
-//			int len = wcslen( in );
-//			stream = new wchar_t[ len + 1 ];
-//			wcsncpy( stream, in, len + 1 );
-//		}
-//			
-//		char		*token;
-//		int			dirindex;
-//		int			fileindex;
-//		wchar_t		*stream;
-//	};
-//
-//	CUtlVector< caption_t * > m_Tokens;
-//};
+#ifndef MAPBASE
+class CAsyncCaption
+{
+public:
+	CAsyncCaption() : 
+		m_flDuration( 0.0f ),
+		m_bIsStream( false ),
+		m_bFromPlayer( false )
+	{
+	}
 
-//void CHudCloseCaption::ProcessAsyncWork()
-//{
-//	int i;
-//	for( i = m_AsyncWork.Head(); i != m_AsyncWork.InvalidIndex(); i = m_AsyncWork.Next( i ) )
-//	{
-//		// check for data arrival
-//		CAsyncCaption *item = m_AsyncWork[ i ];
-//		item->ProcessAsyncWork( this, m_AsyncCaptions );
-//	}
-//	// Now operate on any new data which arrived
-//	for( i = m_AsyncWork.Head(); i != m_AsyncWork.InvalidIndex();  )
-//	{
-//		int n = m_AsyncWork.Next( i );
-//
-//		CAsyncCaption *item = m_AsyncWork[ i ];
-//		wchar_t stream[ MAX_CAPTION_CHARACTERS ];
-//
-//		// If we get to the first item with pending async work, stop processing
-//		if ( !item->GetStream( stream, sizeof( stream ) ) )
-//		{
-//			break;
-//		}
-//
-//		if ( stream[ 0 ] != L'\0' )
-//		{
-//			char original[ 512 ];
-//			item->GetOriginalStream( original, sizeof( original ) );
-//
-//			// Process it now
-//			if ( item->IsStream() )
-//			{
-//				_ProcessSentenceCaptionStream( item->Count(), original, stream );
-//			}
-//			else
-//			{
-//				_ProcessCaption( stream, original, item->GetDuration(), item->IsFromPlayer(), item->IsDirect() );
-//			}
-//		}
-//
-//		m_AsyncWork.Remove( i );
-//		delete item;
-//
-//		i = n;
-//	}
-//}
+	~CAsyncCaption()
+	{
+		int c = m_Tokens.Count();
+		for ( int i = 0; i < c; ++i )
+		{
+			delete m_Tokens[ i ];
+		}
+		m_Tokens.Purge();
+	}
 
-//void CHudCloseCaption::ClearAsyncWork()
-//{
-//	for ( int i = m_AsyncWork.Head(); i != m_AsyncWork.InvalidIndex(); i = m_AsyncWork.Next( i ) )
-//	{
-//        CAsyncCaption *item = m_AsyncWork[ i ];
-//		delete item;
-//	}
-//	m_AsyncWork.Purge();
-//}
+	void StartRequesting( CHudCloseCaption *hudCloseCaption, CUtlVector< AsyncCaption_t >& directories )
+	{
+		// Issue pending async requests for each token in string
+		int c = m_Tokens.Count();
+		for ( int i = 0; i < c; ++i )
+		{
+			caption_t *caption = m_Tokens[ i ];
+			Assert( !caption->stream );
+			Assert( caption->dirindex >= 0 );
+
+			CaptionLookup_t& entry = directories[ caption->fileindex ].m_CaptionDirectory[ caption->dirindex ];
+
+			// Request this block, and if it's there, it'll call OnDataLoaded immediately
+			g_AsyncCaptionResourceManager.PollForAsyncLoading( hudCloseCaption, caption->fileindex, entry.blockNum );
+		}
+	}
+
+	void OnDataArrived( CUtlVector< AsyncCaption_t >& directories, int nFileIndex, int nBlockNum, AsyncCaptionData_t *pData )
+	{
+		int c = m_Tokens.Count();
+		for ( int i = 0; i < c; ++i )
+		{
+			caption_t *caption = m_Tokens[ i ];
+			if ( caption->stream != NULL )
+				continue;
+
+			// Lookup the data
+			CaptionLookup_t &entry = directories[ nFileIndex ].m_CaptionDirectory[ caption->dirindex ];
+		    if ( entry.blockNum != nBlockNum )
+				continue;
+
+#ifdef WIN32
+			const wchar_t *pIn = ( const wchar_t *)&pData->m_pBlockData[ entry.offset ];
+			caption->stream = new wchar_t[ entry.length >> 1 ];
+			memcpy( (void *)caption->stream, pIn, entry.length );
+#else
+			// we persist to disk as ucs2 so convert back to real unicode here
+			caption->stream = new wchar_t[ entry.length ];
+			V_UCS2ToUnicode( (ucs2 *)&pData->m_pBlockData[ entry.offset ], caption->stream, entry.length*sizeof(wchar_t) );	
+#endif
+		}
+	}
+
+	void ProcessAsyncWork( CHudCloseCaption *hudCloseCaption, CUtlVector< AsyncCaption_t >& directories )
+	{
+		int c = m_Tokens.Count();
+		for ( int i = 0; i < c; ++i )
+		{
+			caption_t *caption = m_Tokens[ i ];
+			if ( caption->stream != NULL )
+				continue;
+
+			CaptionLookup_t& entry = directories[ caption->fileindex].m_CaptionDirectory[caption->dirindex];
+
+			// Request this block, and if it's there, it'll call OnDataLoaded immediately
+			g_AsyncCaptionResourceManager.PollForAsyncLoading( hudCloseCaption, caption->fileindex, entry.blockNum );
+		}
+	}
+
+	bool GetStream( OUT_Z_BYTECAP(bufSizeInBytes) wchar_t *buf, int bufSizeInBytes )
+	{
+		Assert( bufSizeInBytes >= sizeof(buf[0]) );
+		buf[ 0 ] = L'\0';
+
+		int c = m_Tokens.Count();
+		for ( int i = 0; i < c; ++i )
+		{
+			caption_t *caption = m_Tokens[ i ];
+			if ( caption->stream == NULL )
+			{
+				return false;
+			}
+		}
+
+		unsigned int curlen = 0;
+		unsigned int maxlen = bufSizeInBytes / sizeof( wchar_t );
+
+		// Compose full stream from tokens
+		for ( int i = 0; i < c; ++i )
+		{
+			caption_t *caption = m_Tokens[ i ];
+			int len = wcslen( caption->stream ) + 1;
+			if ( curlen + len >= maxlen )
+				break;
+
+			wcscat( buf, caption->stream );
+			if ( i < c - 1 ) 
+			{
+				wcscat( buf, L" " );
+			}
+
+			curlen += len;
+		}
+
+		return true;
+	}
+
+	bool					IsStream() const
+	{
+		return m_bIsStream;
+	}
+
+	void					SetIsStream( bool state )
+	{
+		m_bIsStream = state;
+	}
+
+	void	AddRandomToken( CUtlVector< AsyncCaption_t >& directories )
+	{
+		int dc = directories.Count();
+		int fileindex = RandomInt( 0, dc - 1 );
+
+		int c = directories[ fileindex ].m_CaptionDirectory.Count();
+		int idx = RandomInt( 0, c - 1 );
+
+		caption_t *caption = new caption_t;
+		char foo[ 32 ];
+		Q_snprintf( foo, sizeof( foo ), "%d", idx );
+		caption->token = strdup( foo );
+		caption->dirindex = idx;
+		caption->stream = NULL;
+		caption->fileindex = fileindex;
+
+		m_Tokens.AddToTail( caption );
+	}
+
+	bool AddToken
+	( 
+		CUtlVector< AsyncCaption_t >& directories, 
+		const char *token 
+	)
+	{
+		CaptionLookup_t search;
+		search.SetHash( token );
+
+		int idx = -1;
+		int i;
+		int dc = directories.Count();
+		for ( i = 0; i < dc; ++i )
+		{
+            idx = directories[ i ].m_CaptionDirectory.Find( search );
+			if ( idx == directories[ i ].m_CaptionDirectory.InvalidIndex() )
+				continue;
+
+			break;
+		}
+
+		if ( i >= dc || idx == -1 )
+			return false;
+
+		caption_t *caption = new caption_t;
+		caption->token = strdup( token );
+		caption->dirindex = idx;
+		caption->stream = NULL;
+		caption->fileindex = i;
+
+		m_Tokens.AddToTail( caption );
+		return true;
+	}
+
+	int						Count() const
+	{
+		return m_Tokens.Count();
+	}
+
+	const char				*GetToken( int index )
+	{
+		return m_Tokens[ index ]->token;
+	}
+
+	void					GetOriginalStream( char *buf, size_t bufsize )
+	{
+		buf[ 0 ] = 0;
+		int c = Count();
+		for ( int i = 0 ; i < c; ++i )
+		{
+			Q_strncat( buf, GetToken( i ), bufsize, COPY_ALL_CHARACTERS );
+			if ( i != c - 1 )
+			{
+				Q_strncat( buf, " ", bufsize, COPY_ALL_CHARACTERS );
+			}
+		}
+	}
+
+	void					SetDuration( float t )
+	{
+		m_flDuration = t;
+	}
+
+	float					GetDuration()
+	{
+		return m_flDuration;
+	}
+
+	bool					IsFromPlayer()
+	{
+		return m_bFromPlayer;
+	}
+
+	void					SetFromPlayer( bool state )
+	{
+		m_bFromPlayer = state;
+	}
+
+	bool					IsDirect()
+	{
+		return m_bDirect;
+	}
+
+	void					SetDirect( bool state )
+	{
+		m_bDirect = state;
+	}
+private:
+	float					m_flDuration;
+	bool					m_bIsStream : 1;
+	bool					m_bFromPlayer : 1;
+	bool					m_bDirect : 1;
+
+	struct caption_t
+	{
+		caption_t() :
+			token( 0 ),
+			dirindex( -1 ),
+			fileindex( -1 ),
+			stream( 0 )
+		{
+		}
+
+		~caption_t()
+		{
+			free( token );
+			delete[] stream;
+		}
+
+		void		SetStream( const wchar_t *in )
+		{
+			delete[] stream;
+			stream = 0;
+			if ( !in )
+				return;
+
+			int len = wcslen( in );
+			stream = new wchar_t[ len + 1 ];
+			wcsncpy( stream, in, len + 1 );
+		}
+			
+		char		*token;
+		int			dirindex;
+		int			fileindex;
+		wchar_t		*stream;
+	};
+
+	CUtlVector< caption_t * > m_Tokens;
+};
+
+void CHudCloseCaption::ProcessAsyncWork()
+{
+	int i;
+	for( i = m_AsyncWork.Head(); i != m_AsyncWork.InvalidIndex(); i = m_AsyncWork.Next( i ) )
+	{
+		// check for data arrival
+		CAsyncCaption *item = m_AsyncWork[ i ];
+		item->ProcessAsyncWork( this, m_AsyncCaptions );
+	}
+	// Now operate on any new data which arrived
+	for( i = m_AsyncWork.Head(); i != m_AsyncWork.InvalidIndex();  )
+	{
+		int n = m_AsyncWork.Next( i );
+
+		CAsyncCaption *item = m_AsyncWork[ i ];
+		wchar_t stream[ MAX_CAPTION_CHARACTERS ];
+
+		// If we get to the first item with pending async work, stop processing
+		if ( !item->GetStream( stream, sizeof( stream ) ) )
+		{
+			break;
+		}
+
+		if ( stream[ 0 ] != L'\0' )
+		{
+			char original[ 512 ];
+			item->GetOriginalStream( original, sizeof( original ) );
+
+			// Process it now
+			if ( item->IsStream() )
+			{
+				_ProcessSentenceCaptionStream( item->Count(), original, stream );
+			}
+			else
+			{
+				_ProcessCaption( stream, original, item->GetDuration(), item->IsFromPlayer(), item->IsDirect() );
+			}
+		}
+
+		m_AsyncWork.Remove( i );
+		delete item;
+
+		i = n;
+	}
+}
+
+void CHudCloseCaption::ClearAsyncWork()
+{
+	for ( int i = m_AsyncWork.Head(); i != m_AsyncWork.InvalidIndex(); i = m_AsyncWork.Next( i ) )
+	{
+        CAsyncCaption *item = m_AsyncWork[ i ];
+		delete item;
+	}
+	m_AsyncWork.Purge();
+}
+#endif
 
 extern void Hack_FixEscapeChars( char *str );
 
@@ -2331,63 +2349,65 @@ void CHudCloseCaption::ProcessCaptionDirect( const char *tokenname, float durati
 	ProcessCaption( token, duration, fromplayer, true );
 }
 
-//void CHudCloseCaption::PlayRandomCaption()
-//{
-//	CAsyncCaption *async = new CAsyncCaption;
-//	async->SetIsStream( false );
-//	async->AddRandomToken( m_AsyncCaptions );
-//	async->SetDuration( RandomFloat( 1.0f, 3.0f ) );
-//	async->SetFromPlayer( RandomInt( 0, 1 ) == 0 ? true : false );
-//	async->StartRequesting( this, m_AsyncCaptions );
-//	m_AsyncWork.AddToTail( async );
-//}
+#ifndef MAPBASE
+void CHudCloseCaption::PlayRandomCaption()
+{
+	CAsyncCaption *async = new CAsyncCaption;
+	async->SetIsStream( false );
+	async->AddRandomToken( m_AsyncCaptions );
+	async->SetDuration( RandomFloat( 1.0f, 3.0f ) );
+	async->SetFromPlayer( RandomInt( 0, 1 ) == 0 ? true : false );
+	async->StartRequesting( this, m_AsyncCaptions );
+	m_AsyncWork.AddToTail( async );
+}
 
-//bool CHudCloseCaption::AddAsyncWork( const char *tokenstream, bool bIsStream, float duration, bool fromplayer, bool direct /* = false */ )
-//{
-//	bool bret = true;
-//
-//	CAsyncCaption *async = new CAsyncCaption();
-//	async->SetIsStream( bIsStream );
-//	async->SetDirect( direct );
-//	if ( !bIsStream )
-//	{
-//		bret = async->AddToken
-//		( 
-//			m_AsyncCaptions, 
-//			tokenstream 
-//		);
-//	}
-//	else
-//	{
-//		// The first token from the stream is the name of the sentence
-//		char tokenname[ 512 ];
-//		tokenname[ 0 ] = 0;
-//		const char *p = tokenstream;
-//		p = nexttoken( tokenname, p, ' ' , sizeof(tokenname) );
-//		// p points to reset of sentence tokens, build up a unicode string from them...
-//		while ( p && Q_strlen( tokenname ) > 0 )
-//		{
-//			p = nexttoken( tokenname, p, ' ' , sizeof(tokenname) );
-//
-//			if ( Q_strlen( tokenname ) == 0 )
-//				break;
-//
-//			async->AddToken
-//			( 
-//					m_AsyncCaptions, 
-//					tokenname 
-//			);
-//		}
-//	}
-//
-//	m_AsyncWork.AddToTail( async );
-//
-//	async->SetDuration( duration );
-//	async->SetFromPlayer( fromplayer );
-//	// Do this last as the block might be resident already and this will finish immediately...
-//	async->StartRequesting( this, m_AsyncCaptions );
-//	return bret;
-//}
+bool CHudCloseCaption::AddAsyncWork( const char *tokenstream, bool bIsStream, float duration, bool fromplayer, bool direct /* = false */ )
+{
+	bool bret = true;
+
+	CAsyncCaption *async = new CAsyncCaption();
+	async->SetIsStream( bIsStream );
+	async->SetDirect( direct );
+	if ( !bIsStream )
+	{
+		bret = async->AddToken
+		( 
+			m_AsyncCaptions, 
+			tokenstream 
+		);
+	}
+	else
+	{
+		// The first token from the stream is the name of the sentence
+		char tokenname[ 512 ];
+		tokenname[ 0 ] = 0;
+		const char *p = tokenstream;
+		p = nexttoken( tokenname, p, ' ' , sizeof(tokenname) );
+		// p points to reset of sentence tokens, build up a unicode string from them...
+		while ( p && Q_strlen( tokenname ) > 0 )
+		{
+			p = nexttoken( tokenname, p, ' ' , sizeof(tokenname) );
+
+			if ( Q_strlen( tokenname ) == 0 )
+				break;
+
+			async->AddToken
+			( 
+					m_AsyncCaptions, 
+					tokenname 
+			);
+		}
+	}
+
+	m_AsyncWork.AddToTail( async );
+
+	async->SetDuration( duration );
+	async->SetFromPlayer( fromplayer );
+	// Do this last as the block might be resident already and this will finish immediately...
+	async->StartRequesting( this, m_AsyncCaptions );
+	return bret;
+}
+#endif
 
 bool CHudCloseCaption::LookupUnicodeText(char const* token, wchar_t* outbuf, size_t count)
 {
@@ -2416,7 +2436,7 @@ void CHudCloseCaption::ProcessSentenceCaptionStream( const char *tokenstream )
 	const char *p = tokenstream;
 
 	p = nexttoken( tokenname, p, ' ' , sizeof(tokenname) );
-
+#ifdef MAPBASE
 	if ( Q_strlen( tokenname ) > 0 )
 	{
 		//  Use it to check for "norepeat" rules
@@ -2487,32 +2507,58 @@ void CHudCloseCaption::ProcessSentenceCaptionStream( const char *tokenstream )
 		caption_full[wcslen(caption_full) - 1] = L'\0';
 	}
 
-
-	/*
-	char foo[ 2048 ];
-	vgui::localize()->ConvertUnicodeToANSI( caption_full, foo, sizeof( foo ) );
-	Msg( "'%s'\n", foo );
-	*/
-
 	// ( words + 1 ) * 3/4 second for estimated cc duration
 	if (curlen >= 1)
 	{
 		Process(caption_full, (wordCount + 1) * 0.75f, tokenstream, false /*never from player!*/);
 	}
-	//AddAsyncWork( tokenstream, true, 0.0f, false );
+
+#else
+
+	if (Q_strlen(tokenname) > 0)
+	{
+		//  Use it to check for "norepeat" rules
+		CaptionRepeat entry;
+		entry.m_nTokenIndex = CRCString(tokenname);
+
+		int idx = m_CloseCaptionRepeats.Find(entry);
+		if (m_CloseCaptionRepeats.InvalidIndex() == idx)
+		{
+			entry.m_flLastEmitTime = gpGlobals->curtime;
+			entry.m_nLastEmitTick = gpGlobals->tickcount;
+			entry.m_flInterval = interval;
+			m_CloseCaptionRepeats.Insert(entry);
+		}
+		else
+		{
+			CaptionRepeat& entry = m_CloseCaptionRepeats[idx];
+			if (gpGlobals->curtime < (entry.m_flLastEmitTime + entry.m_flInterval))
+			{
+				return;
+			}
+
+			entry.m_flLastEmitTime = gpGlobals->curtime;
+			entry.m_nLastEmitTick = gpGlobals->tickcount;
+		}
+	}
+
+	AddAsyncWork(tokenstream, true, 0.0f, false);
+#endif
 }
 
-//void CHudCloseCaption::_ProcessSentenceCaptionStream( int wordCount, const char *tokenstream, const wchar_t *caption_full )
-//{
-//	if ( wcslen( caption_full ) > 0 )
-//	{
-//		Process( caption_full, ( wordCount + 1 ) * 0.75f, tokenstream, false /*never from player!*/ );
-//	}
-//}
+#ifndef MAPBASE
+void CHudCloseCaption::_ProcessSentenceCaptionStream( int wordCount, const char *tokenstream, const wchar_t *caption_full )
+{
+	if ( wcslen( caption_full ) > 0 )
+	{
+		Process( caption_full, ( wordCount + 1 ) * 0.75f, tokenstream, false /*never from player!*/ );
+	}
+}
+#endif
 
+#ifdef MAPBASE
 void CHudCloseCaption::ProcessCaption( const char *tokenname, float duration, bool fromplayer /* = false */, bool direct /* = false */ )
 {
-
 	wchar_t caption[MAX_CAPTION_CHARACTERS];
 	if (!LookupUnicodeText(tokenname, caption, sizeof(caption) / sizeof(wchar_t)))
 	{
@@ -2564,51 +2610,59 @@ void CHudCloseCaption::ProcessCaption( const char *tokenname, float duration, bo
 	}
 
 	Process(caption, duration, tokenname, fromplayer);
+#else
+bool CHudCloseCaption::ProcessCaption(const char* tokenname, float duration, bool fromplayer /* = false */, bool direct /* = false */)
+{
+	return AddAsyncWork(tokenname, false, duration, fromplayer, direct);
+#endif
 }
 
-//void CHudCloseCaption::_ProcessCaption( const wchar_t *caption, const char *tokenname, float duration, bool fromplayer, bool direct )
-//{
-//	// Get the string for the token
-//	float interval = 0.0f;
-//	bool hasnorepeat = GetNoRepeatValue( caption, interval );
-//
-//	CaptionRepeat entry;
-//	entry.m_nTokenIndex = CRCString( tokenname );
-//
-//	int idx = m_CloseCaptionRepeats.Find( entry );
-//	if ( m_CloseCaptionRepeats.InvalidIndex() == idx )
-//	{
-//		entry.m_flLastEmitTime = gpGlobals->curtime;
-//		entry.m_nLastEmitTick = gpGlobals->tickcount;
-//		entry.m_flInterval = interval;
-//		m_CloseCaptionRepeats.Insert( entry );
-//	}
-//	else
-//	{
-//		CaptionRepeat &entry = m_CloseCaptionRepeats[ idx ];
-//
-//		// Interval of 0.0 means just don't double emit on same tick #
-//		if ( entry.m_flInterval <= 0.0f )
-//		{
-//			if ( gpGlobals->tickcount <= entry.m_nLastEmitTick )
-//			{
-//				return;
-//			}
-//		}
-//		else if ( hasnorepeat )
-//		{
-//			if ( gpGlobals->curtime < ( entry.m_flLastEmitTime + entry.m_flInterval ) )
-//			{
-//				return;
-//			}
-//		}
-//
-//		entry.m_flLastEmitTime = gpGlobals->curtime;
-//		entry.m_nLastEmitTick = gpGlobals->tickcount;
-//	}
-//
-//	Process( caption, duration, tokenname, fromplayer, direct );
-//}
+
+#ifndef MAPBASE
+void CHudCloseCaption::_ProcessCaption( const wchar_t *caption, const char *tokenname, float duration, bool fromplayer, bool direct )
+{
+	// Get the string for the token
+	float interval = 0.0f;
+	bool hasnorepeat = GetNoRepeatValue( caption, interval );
+
+	CaptionRepeat entry;
+	entry.m_nTokenIndex = CRCString( tokenname );
+
+	int idx = m_CloseCaptionRepeats.Find( entry );
+	if ( m_CloseCaptionRepeats.InvalidIndex() == idx )
+	{
+		entry.m_flLastEmitTime = gpGlobals->curtime;
+		entry.m_nLastEmitTick = gpGlobals->tickcount;
+		entry.m_flInterval = interval;
+		m_CloseCaptionRepeats.Insert( entry );
+	}
+	else
+	{
+		CaptionRepeat &entry = m_CloseCaptionRepeats[ idx ];
+
+		// Interval of 0.0 means just don't double emit on same tick #
+		if ( entry.m_flInterval <= 0.0f )
+		{
+			if ( gpGlobals->tickcount <= entry.m_nLastEmitTick )
+			{
+				return;
+			}
+		}
+		else if ( hasnorepeat )
+		{
+			if ( gpGlobals->curtime < ( entry.m_flLastEmitTime + entry.m_flInterval ) )
+			{
+				return;
+			}
+		}
+
+		entry.m_flLastEmitTime = gpGlobals->curtime;
+		entry.m_nLastEmitTick = gpGlobals->tickcount;
+	}
+
+	Process( caption, duration, tokenname, fromplayer, direct );
+}
+#endif
 
 //-----------------------------------------------------------------------------
 // Purpose: 
@@ -2626,10 +2680,8 @@ void CHudCloseCaption::MsgFunc_CloseCaption(bf_read &msg)
 	bool fromplayer = flagbyte & CLOSE_CAPTION_FROMPLAYER ? true : false;
 	bool bIsMale = flagbyte & CLOSE_CAPTION_GENDER_MALE ? true : false;
 	bool bIsFemale = flagbyte & CLOSE_CAPTION_GENDER_FEMALE ? true : false;
-	//bool bIsNonBinary = flagbyte & CLOSE_CAPTION_NO_GENGER ? true : false;
-	//bool bIsGenderfluid = flagbyte & CLOSE_CAPTION_GENDERFLUID ? true : false;
 
-	if ( warnonmissing && !IsX360() )
+	if ( warnonmissing )
 	{
 		wchar_t *pcheck = g_pVGuiLocalize->Find( tokenname );
 		if ( !pcheck )
@@ -2642,8 +2694,11 @@ void CHudCloseCaption::MsgFunc_CloseCaption(bf_read &msg)
 	if ( bIsMale || bIsFemale )
 	{
 		Q_snprintf( szTestName, sizeof( szTestName ), "%s_%s", tokenname, bIsMale ? "male" : "female" );
-		// If the gender-ified version exists, use it, otherwise fall through and pass the non-gender string to the cc system for processing
-		//if ProcessCaption( szTestName , duration, fromplayer ) )
+#ifndef MAPBASE// If the gender-ified version exists, use it, otherwise fall through and pass the non-gender string to the cc system for processing
+		if (ProcessCaption( szTestName , duration, fromplayer ) ) return;
+#else
+		ProcessCaption(szTestName, duration, fromplayer);
+#endif
 	}
 
 	ProcessCaption( tokenname, duration, fromplayer );	
@@ -2672,90 +2727,92 @@ int CHudCloseCaption::GetFontNumber( bool bold, bool italic )
 	return CHudCloseCaption::CCFONT_NORMAL;
 }
 
-//void CHudCloseCaption::Flush()
-//{
-//	g_AsyncCaptionResourceManager.Flush();
-//}
+#ifndef MAPBASE
+void CHudCloseCaption::Flush()
+{
+	g_AsyncCaptionResourceManager.Flush();
+}
 
-//void CHudCloseCaption::InitCaptionDictionary( const char *dbfile )
-//{
-//	if ( m_CurrentLanguage.IsValid() && !Q_stricmp( m_CurrentLanguage.String(), dbfile ) )
-//		return;
-//
-//	m_CurrentLanguage = dbfile;
-//
-//	m_AsyncCaptions.Purge();
-//
-//	g_AsyncCaptionResourceManager.Clear();
-//
-//	char searchPaths[4096];
-//	filesystem->GetSearchPath( "GAME", true, searchPaths, sizeof( searchPaths ) );
-//
-//	for ( char *path = strtok( searchPaths, ";" ); path; path = strtok( NULL, ";" ) )
-//	{
-//		if ( IsX360() && ( filesystem->GetDVDMode() == DVDMODE_STRICT ) && !V_stristr( path, ".zip" ) )
-//		{
-//			// only want zip paths
-//			continue;
-//		} 
-//
-//		char fullpath[MAX_PATH];
-//		Q_snprintf( fullpath, sizeof( fullpath ), "%s%s", path, dbfile );
-//		Q_FixSlashes( fullpath );
-//
-//		if ( IsX360() )
-//		{
-//			char fullpath360[MAX_PATH];
-//			UpdateOrCreateCaptionFile( fullpath, fullpath360, sizeof( fullpath360 ) );
-//			Q_strncpy( fullpath, fullpath360, sizeof( fullpath ) );
-//		}
-//
-//        FileHandle_t fh = filesystem->Open( fullpath, "rb" );
-//		if ( FILESYSTEM_INVALID_HANDLE != fh )
-//		{
-//			MEM_ALLOC_CREDIT();
-//
-//			CUtlBuffer dirbuffer;
-//
-//			AsyncCaption_t& entry = m_AsyncCaptions[ m_AsyncCaptions.AddToTail() ];
-//
-//			// Read the header
-//			filesystem->Read( &entry.m_Header, sizeof( entry.m_Header ), fh );
-//			if ( entry.m_Header.magic != COMPILED_CAPTION_FILEID )
-//				Error( "Invalid file id for %s\n", fullpath );
-//			if ( entry.m_Header.version != COMPILED_CAPTION_VERSION )
-//				Error( "Invalid file version for %s\n", fullpath );
-//			if ( entry.m_Header.directorysize < 0 || entry.m_Header.directorysize > 64 * 1024 )
-//				Error( "Invalid directory size %d for %s\n", entry.m_Header.directorysize, fullpath );
-//			//if ( entry.m_Header.blocksize != MAX_BLOCK_SIZE )
-//			//	Error( "Invalid block size %d, expecting %d for %s\n", entry.m_Header.blocksize, MAX_BLOCK_SIZE, fullpath );
-//
-//			int directoryBytes = entry.m_Header.directorysize * sizeof( CaptionLookup_t );
-//			entry.m_CaptionDirectory.EnsureCapacity( entry.m_Header.directorysize );
-//			dirbuffer.EnsureCapacity( directoryBytes );
-//			
-//			filesystem->Read( dirbuffer.Base(), directoryBytes, fh );
-//			filesystem->Close( fh );
-//
-//			entry.m_CaptionDirectory.CopyArray( (const CaptionLookup_t *)dirbuffer.PeekGet(), entry.m_Header.directorysize );
-//			entry.m_CaptionDirectory.RedoSort( true );
-//
-//			entry.m_DataBaseFile = fullpath;
-//		}
-//	}
-//
-//	g_AsyncCaptionResourceManager.SetDbInfo( m_AsyncCaptions );
-//}
+void CHudCloseCaption::InitCaptionDictionary( const char *dbfile )
+{
+	if ( m_CurrentLanguage.IsValid() && !Q_stricmp( m_CurrentLanguage.String(), dbfile ) )
+		return;
 
-//void CHudCloseCaption::OnFinishAsyncLoad( int nFileIndex, int nBlockNum, AsyncCaptionData_t *pData )
-//{
-//	// Fill in data for all users of pData->m_nBlockNum
-//	FOR_EACH_LL( m_AsyncWork, i )
-//	{
-//		CAsyncCaption *item = m_AsyncWork[ i ];
-//		item->OnDataArrived( m_AsyncCaptions, nFileIndex, nBlockNum, pData );
-//	}
-//}
+	m_CurrentLanguage = dbfile;
+
+	m_AsyncCaptions.Purge();
+
+	g_AsyncCaptionResourceManager.Clear();
+
+	char searchPaths[4096];
+	filesystem->GetSearchPath( "GAME", true, searchPaths, sizeof( searchPaths ) );
+
+	for ( char *path = strtok( searchPaths, ";" ); path; path = strtok( NULL, ";" ) )
+	{
+		if ( IsX360() && ( filesystem->GetDVDMode() == DVDMODE_STRICT ) && !V_stristr( path, ".zip" ) )
+		{
+			// only want zip paths
+			continue;
+		} 
+
+		char fullpath[MAX_PATH];
+		Q_snprintf( fullpath, sizeof( fullpath ), "%s%s", path, dbfile );
+		Q_FixSlashes( fullpath );
+
+		if ( IsX360() )
+		{
+			char fullpath360[MAX_PATH];
+			UpdateOrCreateCaptionFile( fullpath, fullpath360, sizeof( fullpath360 ) );
+			Q_strncpy( fullpath, fullpath360, sizeof( fullpath ) );
+		}
+
+        FileHandle_t fh = filesystem->Open( fullpath, "rb" );
+		if ( FILESYSTEM_INVALID_HANDLE != fh )
+		{
+			MEM_ALLOC_CREDIT();
+
+			CUtlBuffer dirbuffer;
+
+			AsyncCaption_t& entry = m_AsyncCaptions[ m_AsyncCaptions.AddToTail() ];
+
+			// Read the header
+			filesystem->Read( &entry.m_Header, sizeof( entry.m_Header ), fh );
+			if ( entry.m_Header.magic != COMPILED_CAPTION_FILEID )
+				Error( "Invalid file id for %s\n", fullpath );
+			if ( entry.m_Header.version != COMPILED_CAPTION_VERSION )
+				Error( "Invalid file version for %s\n", fullpath );
+			if ( entry.m_Header.directorysize < 0 || entry.m_Header.directorysize > 64 * 1024 )
+				Error( "Invalid directory size %d for %s\n", entry.m_Header.directorysize, fullpath );
+			if ( entry.m_Header.blocksize != MAX_BLOCK_SIZE )
+				Error( "Invalid block size %d, expecting %d for %s\n", entry.m_Header.blocksize, MAX_BLOCK_SIZE, fullpath );
+
+			int directoryBytes = entry.m_Header.directorysize * sizeof( CaptionLookup_t );
+			entry.m_CaptionDirectory.EnsureCapacity( entry.m_Header.directorysize );
+			dirbuffer.EnsureCapacity( directoryBytes );
+			
+			filesystem->Read( dirbuffer.Base(), directoryBytes, fh );
+			filesystem->Close( fh );
+
+			entry.m_CaptionDirectory.CopyArray( (const CaptionLookup_t *)dirbuffer.PeekGet(), entry.m_Header.directorysize );
+			entry.m_CaptionDirectory.RedoSort( true );
+
+			entry.m_DataBaseFile = fullpath;
+		}
+	}
+
+	g_AsyncCaptionResourceManager.SetDbInfo( m_AsyncCaptions );
+}
+
+void CHudCloseCaption::OnFinishAsyncLoad( int nFileIndex, int nBlockNum, AsyncCaptionData_t *pData )
+{
+	// Fill in data for all users of pData->m_nBlockNum
+	FOR_EACH_LL( m_AsyncWork, i )
+	{
+		CAsyncCaption *item = m_AsyncWork[ i ];
+		item->OnDataArrived( m_AsyncCaptions, nFileIndex, nBlockNum, pData );
+	}
+}
+#endif
 
 //-----------------------------------------------------------------------------
 // Purpose: 
@@ -2829,32 +2886,34 @@ CON_COMMAND_F_COMPLETION( cc_emit, "Emits a closed caption", 0, EmitCaptionCompl
 	}
 }
 
-//CON_COMMAND( cc_random, "Emits a random caption" )
-//{
-//	int count = 1;
-//	if ( args.ArgC() == 2 )
-//	{
-//		count = MAX( 1, atoi( args[ 1 ] ) );
-//	}
-//	CHudCloseCaption *hudCloseCaption = GET_HUDELEMENT( CHudCloseCaption );
-//	if ( hudCloseCaption )
-//	{
-//		for ( int i = 0; i < count; ++i )
-//		{
-//			hudCloseCaption->PlayRandomCaption();
-//		}
-//	}
-//}
+#ifndef MAPBASE
+CON_COMMAND( cc_random, "Emits a random caption" )
+{
+	int count = 1;
+	if ( args.ArgC() == 2 )
+	{
+		count = MAX( 1, atoi( args[ 1 ] ) );
+	}
+	CHudCloseCaption *hudCloseCaption = GET_HUDELEMENT( CHudCloseCaption );
+	if ( hudCloseCaption )
+	{
+		for ( int i = 0; i < count; ++i )
+		{
+			hudCloseCaption->PlayRandomCaption();
+		}
+	}
+}
 
 
-//CON_COMMAND( cc_flush, "Flushes async'd captions." )
-//{
-//	CHudCloseCaption *hudCloseCaption = GET_HUDELEMENT( CHudCloseCaption );
-//	if ( hudCloseCaption )
-//	{
-//		hudCloseCaption->Flush();
-//	}
-//}
+CON_COMMAND( cc_flush, "Flushes async'd captions." )
+{
+	CHudCloseCaption *hudCloseCaption = GET_HUDELEMENT( CHudCloseCaption );
+	if ( hudCloseCaption )
+	{
+		hudCloseCaption->Flush();
+	}
+}
+#endif
 
 CON_COMMAND( cc_showblocks, "Toggles showing which blocks are pending/loaded async." )
 {
@@ -2884,8 +2943,9 @@ void OnCaptionLanguageChanged( IConVar *pConVar, const char *pOldString, float f
 	char uilanguage[ 64 ];
 	engine->GetUILanguage( uilanguage, sizeof( uilanguage ) );
 
-	//CHudCloseCaption *hudCloseCaption = GET_HUDELEMENT( CHudCloseCaption );
-
+#ifndef MAPBASE
+	CHudCloseCaption *hudCloseCaption = GET_HUDELEMENT( CHudCloseCaption );
+#endif
 	// If it's not the default, load the language on top of the user's default language
 	if ( Q_strlen( var.GetString() ) > 0 && Q_stricmp( var.GetString(), uilanguage ) )
 	{
@@ -2904,137 +2964,140 @@ void OnCaptionLanguageChanged( IConVar *pConVar, const char *pOldString, float f
 				Msg( "%s will be used\n", fallback );
 			}
 		}
-		/*
+#ifndef MAPBASE
 		if ( hudCloseCaption )
 		{
 			char dbfile [ 512 ];
 			Q_snprintf( dbfile, sizeof( dbfile ), "resource/closecaption_%s.dat", var.GetString() );
 			hudCloseCaption->InitCaptionDictionary( dbfile );
-		}*/
+		}
+#endif
 	}
-	//else
-	//{
-	//	/*if ( hudCloseCaption )
-	//	{
-	//		char dbfile [ 512 ];
-	//		Q_snprintf( dbfile, sizeof( dbfile ), "resource/closecaption_%s.dat", uilanguage );
-	//		hudCloseCaption->InitCaptionDictionary( dbfile );
-	//	}*/
-	//}
+#ifndef MAPBASE
+	else
+	{
+		if ( hudCloseCaption )
+		{
+			char dbfile [ 512 ];
+			Q_snprintf( dbfile, sizeof( dbfile ), "resource/closecaption_%s.dat", uilanguage );
+			hudCloseCaption->InitCaptionDictionary( dbfile );
+		}
+	}
+#endif
 	DevMsg( "cc_lang = %s\n", var.GetString() );
 }
 
-
-
 ConVar cc_lang( "cc_lang", "", FCVAR_ARCHIVE, "Current close caption language (emtpy = use game UI language)", OnCaptionLanguageChanged );
 
-//CON_COMMAND( cc_findsound, "Searches for soundname which emits specified text." )
-//{
-//	if ( args.ArgC() != 2 )
-//	{
-//		Msg( "usage:  cc_findsound 'substring'\n" );
-//		return;
-//	}
-//
-//	CHudCloseCaption *hudCloseCaption = GET_HUDELEMENT( CHudCloseCaption );
-//	if ( hudCloseCaption )
-//	{
-//		hudCloseCaption->FindSound( args.Arg( 1 ) );
-//	}
-//}
+#ifndef MAPBASE
+CON_COMMAND( cc_findsound, "Searches for soundname which emits specified text." )
+{
+	if ( args.ArgC() != 2 )
+	{
+		Msg( "usage:  cc_findsound 'substring'\n" );
+		return;
+	}
 
-//void CHudCloseCaption::FindSound( char const *pchANSI )
-//{
-//	// Now do the searching
-//	ucs2 stream[ 1024 ];
-//	char streamANSI[ 1024 ];
-//
-//	for ( int i = 0 ; i < m_AsyncCaptions.Count(); ++i )
-//	{
-//		AsyncCaption_t &data = m_AsyncCaptions[ i ];
-//
-//		byte *block = new byte[ data.m_Header.blocksize ];
-//
-//		int nLoadedBlock = -1;
-//
-//		Q_memset( block, 0, data.m_Header.blocksize );
-//		CaptionDictionary_t &dict = data.m_CaptionDirectory;
-//		for ( int j = 0; j < dict.Count(); ++j )
-//		{
-//			CaptionLookup_t &lu = dict[ j ];
-//
-//			int blockNum = lu.blockNum;
-//
-//			const char *dbname = data.m_DataBaseFile.String();
-//
-//			// Try and reload it
-//			char fn[ 256 ];
-//			Q_strncpy( fn, dbname, sizeof( fn ) );
-//			Q_FixSlashes( fn );
-//
-//			asynccaptionparams_t params;
-//			params.dbfile		= fn;
-//			params.blocktoload	= blockNum;
-//			params.blocksize	= data.m_Header.blocksize;
-//			params.blockoffset	= data.m_Header.dataoffset + blockNum *data.m_Header.blocksize;
-//			params.fileindex    = i;
-//
-//			if ( blockNum != nLoadedBlock )
-//			{
-//				nLoadedBlock = blockNum;
-//
-//				FileHandle_t fh = filesystem->Open( fn, "rb" );
-//				filesystem->Seek( fh, params.blockoffset, FILESYSTEM_SEEK_CURRENT );
-//				filesystem->Read( block, data.m_Header.blocksize, fh );
-//				filesystem->Close( fh );
-//			}
-//
-//			// Now we have the data
-//			const ucs2 *pIn = ( const ucs2 *)&block[ lu.offset ];
-//			Q_memcpy( (void *)stream, pIn, MIN( lu.length, sizeof( stream ) ) );
-//
-//			// Now search for search text
-//			V_UCS2ToUTF8( stream, streamANSI, sizeof( streamANSI ) );
-//			streamANSI[ sizeof( streamANSI ) - 1 ] = 0;
-//
-//			if ( Q_stristr( streamANSI, pchANSI ) )
-//			{
-//				CaptionLookup_t search;
-//
-//				Msg( "found '%s' in %s\n", streamANSI, fn );
-//
-//				// Now find the sounds that will hash to this
-//				for ( int k = soundemitterbase->First(); k != soundemitterbase->InvalidIndex(); k = soundemitterbase->Next( k ) )
-//				{
-//					char const *pchSoundName = soundemitterbase->GetSoundName( k );
-//
-//					// Hash it
-//					
-//					search.SetHash( pchSoundName );
-//
-//					if ( search.hash == lu.hash )
-//					{
-//						Msg( "    '%s' matches\n", pchSoundName );
-//					}
-//				}
-//
-//				if ( IsPC() )
-//				{
-//					for ( int r = g_pVGuiLocalize->GetFirstStringIndex(); r != INVALID_LOCALIZE_STRING_INDEX; r = g_pVGuiLocalize->GetNextStringIndex( r ) )
-//					{
-//						const char *strName = g_pVGuiLocalize->GetNameByIndex( r );
-//
-//						search.SetHash( strName );
-//
-//						if ( search.hash == lu.hash )
-//						{
-//							Msg( "    '%s' localization matches\n", strName );
-//						}
-//					}
-//				}
-//			}
-//		}
-//
-//		delete[] block;
-//	}
-//}
+	CHudCloseCaption *hudCloseCaption = GET_HUDELEMENT( CHudCloseCaption );
+	if ( hudCloseCaption )
+	{
+		hudCloseCaption->FindSound( args.Arg( 1 ) );
+	}
+}
+
+void CHudCloseCaption::FindSound( char const *pchANSI )
+{
+	// Now do the searching
+	ucs2 stream[ 1024 ];
+	char streamANSI[ 1024 ];
+
+	for ( int i = 0 ; i < m_AsyncCaptions.Count(); ++i )
+	{
+		AsyncCaption_t &data = m_AsyncCaptions[ i ];
+
+		byte *block = new byte[ data.m_Header.blocksize ];
+
+		int nLoadedBlock = -1;
+
+		Q_memset( block, 0, data.m_Header.blocksize );
+		CaptionDictionary_t &dict = data.m_CaptionDirectory;
+		for ( int j = 0; j < dict.Count(); ++j )
+		{
+			CaptionLookup_t &lu = dict[ j ];
+
+			int blockNum = lu.blockNum;
+
+			const char *dbname = data.m_DataBaseFile.String();
+
+			// Try and reload it
+			char fn[ 256 ];
+			Q_strncpy( fn, dbname, sizeof( fn ) );
+			Q_FixSlashes( fn );
+
+			asynccaptionparams_t params;
+			params.dbfile		= fn;
+			params.blocktoload	= blockNum;
+			params.blocksize	= data.m_Header.blocksize;
+			params.blockoffset	= data.m_Header.dataoffset + blockNum *data.m_Header.blocksize;
+			params.fileindex    = i;
+
+			if ( blockNum != nLoadedBlock )
+			{
+				nLoadedBlock = blockNum;
+
+				FileHandle_t fh = filesystem->Open( fn, "rb" );
+				filesystem->Seek( fh, params.blockoffset, FILESYSTEM_SEEK_CURRENT );
+				filesystem->Read( block, data.m_Header.blocksize, fh );
+				filesystem->Close( fh );
+			}
+
+			// Now we have the data
+			const ucs2 *pIn = ( const ucs2 *)&block[ lu.offset ];
+			Q_memcpy( (void *)stream, pIn, MIN( lu.length, sizeof( stream ) ) );
+
+			// Now search for search text
+			V_UCS2ToUTF8( stream, streamANSI, sizeof( streamANSI ) );
+			streamANSI[ sizeof( streamANSI ) - 1 ] = 0;
+
+			if ( Q_stristr( streamANSI, pchANSI ) )
+			{
+				CaptionLookup_t search;
+
+				Msg( "found '%s' in %s\n", streamANSI, fn );
+
+				// Now find the sounds that will hash to this
+				for ( int k = soundemitterbase->First(); k != soundemitterbase->InvalidIndex(); k = soundemitterbase->Next( k ) )
+				{
+					char const *pchSoundName = soundemitterbase->GetSoundName( k );
+
+					// Hash it
+					
+					search.SetHash( pchSoundName );
+
+					if ( search.hash == lu.hash )
+					{
+						Msg( "    '%s' matches\n", pchSoundName );
+					}
+				}
+
+				if ( IsPC() )
+				{
+					for ( int r = g_pVGuiLocalize->GetFirstStringIndex(); r != INVALID_LOCALIZE_STRING_INDEX; r = g_pVGuiLocalize->GetNextStringIndex( r ) )
+					{
+						const char *strName = g_pVGuiLocalize->GetNameByIndex( r );
+
+						search.SetHash( strName );
+
+						if ( search.hash == lu.hash )
+						{
+							Msg( "    '%s' localization matches\n", strName );
+						}
+					}
+				}
+			}
+		}
+
+		delete[] block;
+	}
+}
+#endif
