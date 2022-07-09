@@ -70,6 +70,8 @@
 #include "vote_controller.h"
 #include "ai_speech.h"
 
+#include "point_keypad.h"
+
 #if defined USES_ECON_ITEMS
 #include "econ_wearable.h"
 #endif
@@ -6636,6 +6638,60 @@ bool CBasePlayer::ClientCommand( const CCommand &args )
 	{
 		return true;
 	}
+	//Storybook - Keypad - Begin
+	else if (stricmp(cmd, "keypad_codematch"))
+	{
+
+		CBaseEntity *pEntity = NULL;
+
+		//while ((pEntity = gEntList.FindEntityByClassnameWithin(pEntity, "player", GetLocalOrigin(), 512)) != NULL)
+		//	CBasePlayer *pPlayer = ToBasePlayer(pEntity);
+
+
+		while ((pEntity = gEntList.FindEntityInSphere(pEntity, GetLocalOrigin(), 512)) != NULL)//512 
+		{
+			if (FClassnameIs(pEntity, "point_keypad"))
+			{
+				edict_t *pFind;
+				pFind = pEntity->edict();
+
+				CBaseEntity *pEnt = CBaseEntity::Instance(pFind);
+				CPointKeypad *pKeypadSettings = (CPointKeypad *)pEnt;
+
+				//DevMsg("code_match - firing FireTarget\n");
+
+				pKeypadSettings->FireTarget();
+
+				return true;
+			}
+		}
+	}
+	else if (stricmp(cmd, "keypad_codedismatch"))
+	{
+		CBaseEntity *pEntity = NULL;
+
+		//	while ((pEntity = gEntList.FindEntityByClassnameWithin(pEntity, "player", GetLocalOrigin(), 512)) != NULL)
+		//	CBasePlayer *pPlayer = ToBasePlayer(pEntity);
+
+		//same as above, but calls a different function
+		while ((pEntity = gEntList.FindEntityInSphere(pEntity, GetLocalOrigin(), 512)) != NULL)//512
+		{
+			if (FClassnameIs(pEntity, "point_keypad"))
+			{
+				edict_t *pFind;
+				pFind = pEntity->edict();
+				CBaseEntity *pEnt = CBaseEntity::Instance(pFind);
+				CPointKeypad *pKeypadSettings = (CPointKeypad *)pEnt;
+
+				//DevMsg("code_dismatch - firing WrongCode\n");
+
+				pKeypadSettings->WrongCode();
+
+				return true;
+			}
+		}
+	}
+	//Storybook - Keypad - End
 	else if ( stricmp( cmd, "spectate" ) == 0 ) // join spectator team & start observer mode
 	{
 		if ( GetTeamNumber() == TEAM_SPECTATOR )
