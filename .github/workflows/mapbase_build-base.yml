@@ -45,7 +45,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-      with:
+      env:
         configuration: ${{ inputs.configuration }}
         branch: ${{ inputs.branch }}
         project-group: ${{ inputs.project-group }}
@@ -156,13 +156,13 @@ jobs:
           ${{env.branch}}/game/bin/vrad_dll.dll
         if-no-files-found: error
 		
-  build_linux:
+  build_ubuntu:
     name: Build Ubuntu
     runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v2
-      with:
+      env:
         configuration: ${{ inputs.configuration }}
         branch: ${{ inputs.branch }}
         project-group: ${{ inputs.project-group }}
