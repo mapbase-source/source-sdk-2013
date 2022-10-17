@@ -1,0 +1,71 @@
+name: Mapbase MSBuild
+
+on:
+  push:
+    paths:
+      - .github/workflows/mapbase_msbuild.yml
+      - sp/src/**
+
+env:
+  # Configuration type to build.
+  # You can convert this to a build matrix if you need coverage of multiple configuration types.
+  # https://docs.github.com/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
+  BUILD_CONFIGURATION: Release
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Add MSBuild to PATH
+      uses: microsoft/setup-msbuild@v1.1
+
+    - name: Enable VS2019
+      working-directory: sp/src/vpc_scripts
+      shell: bash
+      run: sed -i 's/^\($Conditional[ 	]\+VS2019[ 	]\+\).*/\1"1"/' default.vgc
+
+    - name: Create projectfiles
+      working-directory: sp/src
+      shell: cmd
+      # https://github.com/ValveSoftware/source-sdk-2013/issues/72
+      run: |
+        reg add "HKLM\SOFTWARE\WOW6432Node\Microsoft\VisualStudio\10.0\Projects\{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" /v DefaultProjectExtension /t REG_SZ /d vcproj /f
+        creategameprojects.bat
+
+    - name: Build
+      working-directory: sp/src
+      # Add additional options to the MSBuild command line here (like platform or verbosity level).
+      # See https://docs.microsoft.com/visualstudio/msbuild/msbuild-command-line-reference
+      shell: cmd
+      run: |
+        msbuild -m -p:Configuration=${{env.BUILD_CONFIGURATION}} mathlib\mathlib.vcxproj
+        msbuild -m -p:Configuration=${{env.BUILD_CONFIGURATION}} raytrace\raytrace.vcxproj
+        msbuild -m -p:Configuration=${{env.BUILD_CONFIGURATION}} responserules\runtime\responserules.vcxproj
+        msbuild -m -p:Configuration=${{env.BUILD_CONFIGURATION}} tier1\tier1.vcxproj
+        msbuild -m -p:Configuration=${{env.BUILD_CONFIGURATION}} vgui2\vgui_controls\vgui_controls.vcxproj
+        msbuild -m -p:Configuration=${{env.BUILD_CONFIGURATION}} vscript\vscript.vcxproj
+        msbuild -m -p:Configuration=${{env.BUILD_CONFIGURATION}} game\client\client_episodic.vcxproj
+        msbuild -m -p:Configuration=${{env.BUILD_CONFIGURATION}} game\client\client_hl2.vcxproj
+        msbuild -m -p:Configuration=${{env.BUILD_CONFIGURATION}} game\server\server_episodic.vcxproj
+        msbuild -m -p:Configuration=${{env.BUILD_CONFIGURATION}} game\server\server_hl2.vcxproj
+
+    - name: Publish Windows game DLLs (HL2 Episodic)
+      uses: actions/upload-artifact@v2
+      with:
+        name: DLLs
+        path: |
+          sp/game/mod_episodic/bin/client.dll
+          sp/game/mod_episodic/bin/server.dll
+        if-no-files-found: error
+
+    - name: Publish Windows game PDBs (HL2 Episodic)
+      uses: actions/upload-artifact@v2
+      with:
+        name: PDBs
+        path: |
+          sp/game/mod_episodic/bin/client.pdb
+          sp/game/mod_episodic/bin/server.pdb
+        if-no-files-found: error
