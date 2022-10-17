@@ -12,6 +12,9 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    
+    - name: Install GCC/G++ multilib
+      run: sudo apt-get install gcc-multilib g++-multilib
 
     - name: Create projectfiles
       working-directory: sp/src
