@@ -1,42 +1,6 @@
 name: Mapbase - Build Projects
 
 on:
-  workflow_dispatch:
-    inputs:
-      configuration:
-        description: 'Which configuration to build with'
-        default: 'Release'
-        required: true
-        type: choice
-        options:
-        - Release
-        - Debug
-      branch:
-        description: 'Which Source 2013 engine branch to compile for'
-        default: 'sp'
-        required: true
-        type: choice
-        options:
-        - sp
-        - mp
-      project-group:
-        description: 'Which group of projects to compile'
-        required: true
-        type: choice
-        options:
-        - all
-        - game
-        - shaders
-        - maptools
-      solution-name:
-        description: 'The name of the solution/makefile'
-        required: true
-        type: choice
-        options:
-        - everything
-        - games
-        - shaders
-        - maptools
   workflow_call:
     inputs:
       configuration:
@@ -65,27 +29,22 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-      env:
-        configuration: ${{ inputs.configuration }}
-        branch: ${{ inputs.branch }}
-        project-group: ${{ inputs.project-group }}
-        solution-name: ${{ inputs.solution-name }}
 
     - name: Add MSBuild to PATH
       uses: microsoft/setup-msbuild@v1.1
 
     - name: Enable VS2022
-      working-directory: '${{env.branch}}/src/vpc_scripts'
+      working-directory: '${{inputs.branch}}/src/vpc_scripts'
       shell: bash
       run: sed -i 's/^\($Conditional[ 	]\+VS2022[ 	]\+\).*/\1"1"/' newer_vs_toolsets.vpc
 
     - name: Create project files
-      working-directory: '${{env.branch}}/src'
+      working-directory: '${{inputs.branch}}/src'
       shell: cmd
       # https://github.com/ValveSoftware/source-sdk-2013/issues/72
       run: |
         reg add "HKLM\SOFTWARE\WOW6432Node\Microsoft\VisualStudio\10.0\Projects\{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" /v DefaultProjectExtension /t REG_SZ /d vcproj /f
-        create${{env.project-group}}projects.bat
+        create${{inputs.project-group}}projects.bat
 
       # --------------------------------------------------------------------
 
@@ -94,86 +53,86 @@ jobs:
 
     - name: Build mathlib
       #if: steps.filter.outputs.game == 'true'
-      working-directory: '${{env.branch}}/src'
+      working-directory: '${{inputs.branch}}/src'
       shell: cmd
       run: |
-        msbuild -m -p:Configuration=${{env.configuration}} mathlib\mathlib.vcxproj
+        msbuild -m -p:Configuration=${{inputs.configuration}} mathlib\mathlib.vcxproj
 
     - name: Build Base Libraries
-      if: env.project-group == 'all' || env.project-group == 'game' || env.project-group == 'maptools'
-      working-directory: '${{env.branch}}/src'
+      if: inputs.project-group == 'all' || inputs.project-group == 'game' || inputs.project-group == 'maptools'
+      working-directory: '${{inputs.branch}}/src'
       shell: cmd
       run: |
-        msbuild -m -p:Configuration=${{env.configuration}} raytrace\raytrace.vcxproj
-        msbuild -m -p:Configuration=${{env.configuration}} tier1\tier1.vcxproj
-        msbuild -m -p:Configuration=${{env.configuration}} vgui2\vgui_controls\vgui_controls.vcxproj
-        msbuild -m -p:Configuration=${{env.configuration}} vscript\vscript.vcxproj
+        msbuild -m -p:Configuration=${{inputs.configuration}} raytrace\raytrace.vcxproj
+        msbuild -m -p:Configuration=${{inputs.configuration}} tier1\tier1.vcxproj
+        msbuild -m -p:Configuration=${{inputs.configuration}} vgui2\vgui_controls\vgui_controls.vcxproj
+        msbuild -m -p:Configuration=${{inputs.configuration}} vscript\vscript.vcxproj
 
     - name: Build Map Tools
-      if: env.project-group == 'all' || env.project-group == 'maptools'
-      working-directory: '${{env.branch}}/src'
+      if: inputs.project-group == 'all' || inputs.project-group == 'maptools'
+      working-directory: '${{inputs.branch}}/src'
       shell: cmd
       run: |
-        msbuild -m -p:Configuration=${{env.configuration}} utils\vbsp\vbsp.vcxproj
-        msbuild -m -p:Configuration=${{env.configuration}} utils\vvis\vvis.vcxproj
-        msbuild -m -p:Configuration=${{env.configuration}} utils\vvis_launcher\vvis_launcher.vcxproj
-        msbuild -m -p:Configuration=${{env.configuration}} utils\vrad\vrad.vcxproj
-        msbuild -m -p:Configuration=${{env.configuration}} utils\vrad_launcher\vrad_launcher.vcxproj
+        msbuild -m -p:Configuration=${{inputs.configuration}} utils\vbsp\vbsp.vcxproj
+        msbuild -m -p:Configuration=${{inputs.configuration}} utils\vvis\vvis.vcxproj
+        msbuild -m -p:Configuration=${{inputs.configuration}} utils\vvis_launcher\vvis_launcher.vcxproj
+        msbuild -m -p:Configuration=${{inputs.configuration}} utils\vrad\vrad.vcxproj
+        msbuild -m -p:Configuration=${{inputs.configuration}} utils\vrad_launcher\vrad_launcher.vcxproj
 
     - name: Build Shaders
-      if: env.project-group == 'all' || env.project-group == 'shaders'
-      working-directory: '${{env.branch}}/src'
+      if: inputs.project-group == 'all' || inputs.project-group == 'shaders'
+      working-directory: '${{inputs.branch}}/src'
       shell: cmd
       run: |
-        msbuild -m -p:Configuration=${{env.configuration}} materialsystem\stdshaders\game_shader_dx9_episodic.vcxproj
-        msbuild -m -p:Configuration=${{env.configuration}} materialsystem\stdshaders\game_shader_dx9_hl2.vcxproj
+        msbuild -m -p:Configuration=${{inputs.configuration}} materialsystem\stdshaders\game_shader_dx9_episodic.vcxproj
+        msbuild -m -p:Configuration=${{inputs.configuration}} materialsystem\stdshaders\game_shader_dx9_hl2.vcxproj
 
     - name: Build Game
-      if: env.project-group == 'all' || env.project-group == 'game'
-      working-directory: '${{env.branch}}/src'
+      if: inputs.project-group == 'all' || inputs.project-group == 'game'
+      working-directory: '${{inputs.branch}}/src'
       shell: cmd
       run: |
-        msbuild -m -p:Configuration=${{env.configuration}} responserules\runtime\responserules.vcxproj
-        msbuild -m -p:Configuration=${{env.configuration}} game\client\client_episodic.vcxproj
-        msbuild -m -p:Configuration=${{env.configuration}} game\client\client_hl2.vcxproj
-        msbuild -m -p:Configuration=${{env.configuration}} game\server\server_episodic.vcxproj
-        msbuild -m -p:Configuration=${{env.configuration}} game\server\server_hl2.vcxproj
+        msbuild -m -p:Configuration=${{inputs.configuration}} responserules\runtime\responserules.vcxproj
+        msbuild -m -p:Configuration=${{inputs.configuration}} game\client\client_episodic.vcxproj
+        msbuild -m -p:Configuration=${{inputs.configuration}} game\client\client_hl2.vcxproj
+        msbuild -m -p:Configuration=${{inputs.configuration}} game\server\server_episodic.vcxproj
+        msbuild -m -p:Configuration=${{inputs.configuration}} game\server\server_hl2.vcxproj
 
       # --------------------------------------------------------------------
 
     - name: Publish Windows game DLLs (HL2 Episodic)
-      if: env.project-group == 'all' || env.project-group == 'game'
+      if: inputs.project-group == 'all' || inputs.project-group == 'game'
       uses: actions/upload-artifact@v2
       with:
         name: Game DLLs
         path: |
-          ${{env.branch}}/game/mod_episodic/bin/client.dll
-          ${{env.branch}}/game/mod_episodic/bin/client.pdb
-          ${{env.branch}}/game/mod_episodic/bin/server.dll
-          ${{env.branch}}/game/mod_episodic/bin/server.pdb
+          ${{inputs.branch}}/game/mod_episodic/bin/client.dll
+          ${{inputs.branch}}/game/mod_episodic/bin/client.pdb
+          ${{inputs.branch}}/game/mod_episodic/bin/server.dll
+          ${{inputs.branch}}/game/mod_episodic/bin/server.pdb
         if-no-files-found: error
 
     - name: Publish Windows shader DLL (HL2 Episodic)
-      if: env.project-group == 'all' || env.project-group == 'shaders'
+      if: inputs.project-group == 'all' || inputs.project-group == 'shaders'
       uses: actions/upload-artifact@v2
       with:
         name: Shader DLL
         path: |
-          ${{env.branch}}/game/mod_episodic/bin/game_shader_dx9.dll
-          ${{env.branch}}/game/mod_episodic/bin/game_shader_dx9.pdb
+          ${{inputs.branch}}/game/mod_episodic/bin/game_shader_dx9.dll
+          ${{inputs.branch}}/game/mod_episodic/bin/game_shader_dx9.pdb
         if-no-files-found: error
 
     - name: Publish Windows map tools (HL2 Episodic)
-      if: env.project-group == 'all' || env.project-group == 'maptools'
+      if: inputs.project-group == 'all' || inputs.project-group == 'maptools'
       uses: actions/upload-artifact@v2
       with:
         name: Map Tools (Windows)
         path: |
-          ${{env.branch}}/game/bin/vbsp.exe
-          ${{env.branch}}/game/bin/vvis.exe
-          ${{env.branch}}/game/bin/vvis_dll.dll
-          ${{env.branch}}/game/bin/vrad.exe
-          ${{env.branch}}/game/bin/vrad_dll.dll
+          ${{inputs.branch}}/game/bin/vbsp.exe
+          ${{inputs.branch}}/game/bin/vvis.exe
+          ${{inputs.branch}}/game/bin/vvis_dll.dll
+          ${{inputs.branch}}/game/bin/vrad.exe
+          ${{inputs.branch}}/game/bin/vrad_dll.dll
         if-no-files-found: error
 
   build_ubuntu:
@@ -182,45 +141,40 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-      env:
-        configuration: ${{ inputs.configuration }}
-        branch: ${{ inputs.branch }}
-        project-group: ${{ inputs.project-group }}
-        solution-name: ${{ inputs.solution-name }}
     
     - name: Install GCC/G++ multilib
       run: sudo apt-get install gcc-multilib g++-multilib
 
     - name: Create game projects
-      working-directory: '${{env.branch}}/src'
-      run: ./create${{env.project-group}}projects
+      working-directory: '${{inputs.branch}}/src'
+      run: ./create${{inputs.project-group}}projects
 
       # --------------------------------------------------------------------
 
     - name: Build
-      working-directory: '${{env.branch}}/src'
-      run: make -f ${{env.solution-name}}.mak
+      working-directory: '${{inputs.branch}}/src'
+      run: make -f ${{inputs.solution-name}}.mak
 
       # --------------------------------------------------------------------
       
     - name: Publish Linux game SOs (HL2 Episodic)
-      if: env.project-group == 'all' || env.project-group == 'game'
+      if: inputs.project-group == 'all' || inputs.project-group == 'game'
       uses: actions/upload-artifact@v2
       with:
         name: Game SOs
         path: |
-          ${{env.branch}}/game/mod_episodic/bin/client.so
-          ${{env.branch}}/game/mod_episodic/bin/client.so.dbg
-          ${{env.branch}}/game/mod_episodic/bin/server.so
-          ${{env.branch}}/game/mod_episodic/bin/server.so.dbg
+          ${{inputs.branch}}/game/mod_episodic/bin/client.so
+          ${{inputs.branch}}/game/mod_episodic/bin/client.so.dbg
+          ${{inputs.branch}}/game/mod_episodic/bin/server.so
+          ${{inputs.branch}}/game/mod_episodic/bin/server.so.dbg
         if-no-files-found: error
       
     - name: Publish Linux shader SO
-      if: env.project-group == 'all' || env.project-group == 'shaders'
+      if: inputs.project-group == 'all' || inputs.project-group == 'shaders'
       uses: actions/upload-artifact@v2
       with:
         name: Game SOs
         path: |
-          ${{env.branch}}/game/mod_episodic/bin/game_shader_dx9.so
-          ${{env.branch}}/game/mod_episodic/bin/game_shader_dx9.so.dbg
+          ${{inputs.branch}}/game/mod_episodic/bin/game_shader_dx9.so
+          ${{inputs.branch}}/game/mod_episodic/bin/game_shader_dx9.so.dbg
         if-no-files-found: error
