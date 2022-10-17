@@ -1,0 +1,49 @@
+name: Mapbase - Build Projects (Manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      configuration:
+        description: 'Which configuration to build with'
+        default: 'Release'
+        required: true
+        type: choice
+        options:
+        - Release
+        - Debug
+      branch:
+        description: 'Which Source 2013 engine branch to compile for'
+        default: 'sp'
+        required: true
+        type: choice
+        options:
+        - sp
+        - mp
+      project-group:
+        description: 'Which group of projects to compile'
+        required: true
+        type: choice
+        options:
+        - all
+        - game
+        - shaders
+        - maptools
+      solution-name:
+        description: 'The name of the solution/makefile'
+        required: true
+        type: choice
+        options:
+        - everything
+        - games
+        - shaders
+        - maptools
+
+jobs:
+  build_shaders:
+    name: Build Map Tools Projects (SP Release)
+    uses: mapbase-source/source-sdk-2013/.github/workflows/mapbase_build-base.yml@feature/github-workflows
+    with:
+      configuration: '${{ github.event.inputs.configuration }}'
+      branch: '${{ github.event.inputs.branch }}'
+      project-group: '${{ github.event.inputs.project-group }}'
+      solution-name: '${{ github.event.inputs.solution-name }}'

@@ -1,7 +1,6 @@
-name: Mapbase - Build Projects (SP Release)
+name: Mapbase - Build Shader Projects (SP Release)
 
 on:
-  push:
   pull_request:
     branches:
       - develop
@@ -12,7 +11,6 @@ on:
 
 jobs:
   build_shaders:
-    name: Build Shader Projects (SP Release)
     uses: mapbase-source/source-sdk-2013/.github/workflows/mapbase_build-base.yml@feature/github-workflows
     with:
       configuration: 'Release'

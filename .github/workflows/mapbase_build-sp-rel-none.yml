@@ -1,10 +1,7 @@
-name: Mapbase - Build Projects (SP Release)
+name: Mapbase - Build Blank SP Projects
 
 on:
-  push:
   pull_request:
-    branches:
-      - develop
     paths-ignore:
       - '.github/workflows/mapbase_build-sp-rel-games.yml'
       - '.github/workflows/mapbase_build-sp-rel-shaders.yml'

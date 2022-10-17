@@ -1,7 +1,6 @@
-name: Mapbase - Build Projects (SP Release)
+name: Mapbase - Build Map Tool Projects (SP Release)
 
 on:
-  push:
   pull_request:
     branches:
       - develop
@@ -19,7 +18,6 @@ on:
 
 jobs:
   build_shaders:
-    name: Build Map Tools Projects (SP Release)
     uses: mapbase-source/source-sdk-2013/.github/workflows/mapbase_build-base.yml@feature/github-workflows
     with:
       configuration: 'Release'
