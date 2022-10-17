@@ -1,0 +1,21 @@
+name: Mapbase - Build Projects (SP Release)
+
+on:
+  push:
+  pull_request:
+    branches:
+      - develop
+    paths:
+      - '.github/workflows/mapbase_build-sp-rel-shaders.yml'
+      - 'sp/src/materialsystem/**'
+      - 'sp/src/mathlib/**'
+
+jobs:
+  build_shaders:
+    name: Build Shader Projects (SP Release)
+    uses: mapbase-source/source-sdk-2013/.github/workflows/mapbase_build-base.yml@develop
+    with:
+      configuration: 'Release'
+      branch: 'sp'
+      project-group: 'shaders'
+      solution-name: 'shaders'

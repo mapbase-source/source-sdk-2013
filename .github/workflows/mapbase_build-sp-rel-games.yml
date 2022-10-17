@@ -1,0 +1,25 @@
+name: Mapbase - Build Projects (SP Release)
+
+on:
+  push:
+  pull_request:
+    branches:
+      - develop
+    paths:
+      - '.github/workflows/mapbase_build-sp-rel-games.yml'
+      - 'sp/src/game/**'
+      - 'sp/src/mathlib/**'
+      - 'sp/src/responserules/runtime/**'
+      - 'sp/src/tier1/**'
+      - 'sp/src/vgui2/vgui_controls/**'
+      - 'sp/src/vscript/**'
+
+jobs:
+  build_games:
+    name: Build Game Projects (SP Release)
+    uses: mapbase-source/source-sdk-2013/.github/workflows/mapbase_build-base.yml@develop
+    with:
+      configuration: 'Release'
+      branch: 'sp'
+      project-group: 'game'
+      solution-name: 'games'
