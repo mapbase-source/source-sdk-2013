@@ -118,7 +118,7 @@ jobs:
         msbuild -m -p:Configuration=${{env.configuration}} game\client\client_hl2.vcxproj
         msbuild -m -p:Configuration=${{env.configuration}} game\server\server_episodic.vcxproj
         msbuild -m -p:Configuration=${{env.configuration}} game\server\server_hl2.vcxproj
-		
+
       # --------------------------------------------------------------------
 
     - name: Publish Windows game DLLs (HL2 Episodic)
@@ -155,7 +155,7 @@ jobs:
           ${{env.branch}}/game/bin/vrad.exe
           ${{env.branch}}/game/bin/vrad_dll.dll
         if-no-files-found: error
-		
+
   build_ubuntu:
     name: Build Ubuntu
     runs-on: ubuntu-latest
@@ -174,13 +174,13 @@ jobs:
     - name: Create game projects
       working-directory: ${{env.branch}}/src
       run: ./create${{env.project-group}}projects
-		
+
       # --------------------------------------------------------------------
 
     - name: Build
       working-directory: ${{env.branch}}/src
       run: make -f ${{env.solution-name}}.mak
-		
+
       # --------------------------------------------------------------------
       
     - name: Publish Linux game SOs (HL2 Episodic)
