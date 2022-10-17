@@ -66,9 +66,9 @@ jobs:
       run: |
         reg add "HKLM\SOFTWARE\WOW6432Node\Microsoft\VisualStudio\10.0\Projects\{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" /v DefaultProjectExtension /t REG_SZ /d vcproj /f
         create${{env.project-group}}projects.bat
-		
+
       # --------------------------------------------------------------------
-	  
+
       # "I'm invoking msbuild for each project individually, which looks a bit odd considering there is a solution file which should be able to invoke the builds in their proper order automatically, but passing the solution to msbuild doesn't seem to work."
       # https://github.com/mapbase-source/source-sdk-2013/pull/162
 
