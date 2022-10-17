@@ -1,7 +1,7 @@
 name: Mapbase - Build Projects
 
 on:
-  workflow_call:
+  workflow_dispatch:
     inputs:
       configuration:
         description: 'Which configuration to build with'
@@ -37,6 +37,26 @@ on:
         - games
         - shaders
         - maptools
+  workflow_call:
+    inputs:
+      configuration:
+        description: 'Which configuration to build with'
+        default: 'Release'
+        required: true
+        type: string
+      branch:
+        description: 'Which Source 2013 engine branch to compile for'
+        default: 'sp'
+        required: true
+        type: string
+      project-group:
+        description: 'Which group of projects to compile'
+        required: true
+        type: string
+      solution-name:
+        description: 'The name of the solution/makefile'
+        required: true
+        type: string
 
 jobs:
   build_windows:
