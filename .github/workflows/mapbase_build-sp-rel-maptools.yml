@@ -20,7 +20,7 @@ on:
 jobs:
   build_shaders:
     name: Build Map Tools Projects (SP Release)
-    uses: mapbase-source/source-sdk-2013/.github/workflows/mapbase_build-base.yml@develop
+    uses: mapbase-source/source-sdk-2013/.github/workflows/mapbase_build-base.yml@feature/github-workflows
     with:
       configuration: 'Release'
       branch: 'sp'
