@@ -75,12 +75,12 @@ jobs:
       uses: microsoft/setup-msbuild@v1.1
 
     - name: Enable VS2022
-      working-directory: ${{env.branch}}/src/vpc_scripts
+      working-directory: '${{env.branch}}/src/vpc_scripts'
       shell: bash
       run: sed -i 's/^\($Conditional[ 	]\+VS2022[ 	]\+\).*/\1"1"/' newer_vs_toolsets.vpc
 
     - name: Create project files
-      working-directory: ${{env.branch}}/src
+      working-directory: '${{env.branch}}/src'
       shell: cmd
       # https://github.com/ValveSoftware/source-sdk-2013/issues/72
       run: |
@@ -94,14 +94,14 @@ jobs:
 
     - name: Build mathlib
       #if: steps.filter.outputs.game == 'true'
-      working-directory: ${{env.branch}}/src
+      working-directory: '${{env.branch}}/src'
       shell: cmd
       run: |
         msbuild -m -p:Configuration=${{env.configuration}} mathlib\mathlib.vcxproj
 
     - name: Build Base Libraries
       if: env.project-group == 'all' || env.project-group == 'game' || env.project-group == 'maptools'
-      working-directory: ${{env.branch}}/src
+      working-directory: '${{env.branch}}/src'
       shell: cmd
       run: |
         msbuild -m -p:Configuration=${{env.configuration}} raytrace\raytrace.vcxproj
@@ -111,7 +111,7 @@ jobs:
 
     - name: Build Map Tools
       if: env.project-group == 'all' || env.project-group == 'maptools'
-      working-directory: ${{env.branch}}/src
+      working-directory: '${{env.branch}}/src'
       shell: cmd
       run: |
         msbuild -m -p:Configuration=${{env.configuration}} utils\vbsp\vbsp.vcxproj
@@ -122,7 +122,7 @@ jobs:
 
     - name: Build Shaders
       if: env.project-group == 'all' || env.project-group == 'shaders'
-      working-directory: ${{env.branch}}/src
+      working-directory: '${{env.branch}}/src'
       shell: cmd
       run: |
         msbuild -m -p:Configuration=${{env.configuration}} materialsystem\stdshaders\game_shader_dx9_episodic.vcxproj
@@ -130,7 +130,7 @@ jobs:
 
     - name: Build Game
       if: env.project-group == 'all' || env.project-group == 'game'
-      working-directory: ${{env.branch}}/src
+      working-directory: '${{env.branch}}/src'
       shell: cmd
       run: |
         msbuild -m -p:Configuration=${{env.configuration}} responserules\runtime\responserules.vcxproj
@@ -192,13 +192,13 @@ jobs:
       run: sudo apt-get install gcc-multilib g++-multilib
 
     - name: Create game projects
-      working-directory: ${{env.branch}}/src
+      working-directory: '${{env.branch}}/src'
       run: ./create${{env.project-group}}projects
 
       # --------------------------------------------------------------------
 
     - name: Build
-      working-directory: ${{env.branch}}/src
+      working-directory: '${{env.branch}}/src'
       run: make -f ${{env.solution-name}}.mak
 
       # --------------------------------------------------------------------
