@@ -1,0 +1,40 @@
+name: Mapbase C/C++ CI
+
+on:
+  push:
+    paths:
+      - .github/workflows/mapbase_c-cpp.yml
+      - sp/src/**
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Create projectfiles
+      working-directory: sp/src
+      run: ./creategameprojects
+
+    - name: Build
+      working-directory: sp/src
+      run: make -f games.mak
+      
+    - name: Publish Linux game SOs (HL2 Episodic)
+      uses: actions/upload-artifact@v2
+      with:
+        name: SOs
+        path: |
+          sp/game/mod_episodic/bin/client.so
+          sp/game/mod_episodic/bin/server.so
+        if-no-files-found: error
+
+    - name: Publish Linux game DBGs (HL2 Episodic)
+      uses: actions/upload-artifact@v2
+      with:
+        name: DBGs
+        path: |
+          sp/game/mod_episodic/bin/client.so.dbg
+          sp/game/mod_episodic/bin/server.so.dbg
+        if-no-files-found: error
