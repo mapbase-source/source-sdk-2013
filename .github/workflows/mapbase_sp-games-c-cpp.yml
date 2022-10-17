@@ -1,10 +1,18 @@
-name: Mapbase C/C++ CI
+name: Mapbase GCC/G++ (SP games.sln)
 
 on:
   push:
+  pull_request:
+    branches:
+      - develop
     paths:
-      - .github/workflows/mapbase_c-cpp.yml
-      - sp/src/**
+      - .github/workflows/mapbase_sp-games-c-cpp.yml
+      - sp/src/game/**
+      - sp/src/mathlib/**
+      - sp/src/responserules/runtime/**
+      - sp/src/tier1/**
+      - sp/src/vgui2/vgui_controls/**
+      - sp/src/vscript/**
 
 jobs:
   build:
@@ -16,7 +24,7 @@ jobs:
     - name: Install GCC/G++ multilib
       run: sudo apt-get install gcc-multilib g++-multilib
 
-    - name: Create projectfiles
+    - name: Create game projects
       working-directory: sp/src
       run: ./creategameprojects
 
@@ -27,7 +35,7 @@ jobs:
     - name: Publish Linux game SOs (HL2 Episodic)
       uses: actions/upload-artifact@v2
       with:
-        name: SOs
+        name: Game SOs
         path: |
           sp/game/mod_episodic/bin/client.so
           sp/game/mod_episodic/bin/server.so
@@ -36,7 +44,7 @@ jobs:
     - name: Publish Linux game DBGs (HL2 Episodic)
       uses: actions/upload-artifact@v2
       with:
-        name: DBGs
+        name: Game DBGs
         path: |
           sp/game/mod_episodic/bin/client.so.dbg
           sp/game/mod_episodic/bin/server.so.dbg

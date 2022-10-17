@@ -1,10 +1,18 @@
-name: Mapbase MSBuild
+name: Mapbase VS2022 (SP games.sln)
 
 on:
   push:
+  pull_request:
+    branches:
+      - develop
     paths:
-      - .github/workflows/mapbase_msbuild.yml
-      - sp/src/**
+      - .github/workflows/mapbase_games-msbuild.yml
+      - sp/src/game/**
+      - sp/src/mathlib/**
+      - sp/src/responserules/runtime/**
+      - sp/src/tier1/**
+      - sp/src/vgui2/vgui_controls/**
+      - sp/src/vscript/**
 
 env:
   # Configuration type to build.
@@ -55,7 +63,7 @@ jobs:
     - name: Publish Windows game DLLs (HL2 Episodic)
       uses: actions/upload-artifact@v2
       with:
-        name: DLLs
+        name: Game DLLs
         path: |
           sp/game/mod_episodic/bin/client.dll
           sp/game/mod_episodic/bin/server.dll
@@ -64,7 +72,7 @@ jobs:
     - name: Publish Windows game PDBs (HL2 Episodic)
       uses: actions/upload-artifact@v2
       with:
-        name: PDBs
+        name: Game PDBs
         path: |
           sp/game/mod_episodic/bin/client.pdb
           sp/game/mod_episodic/bin/server.pdb
