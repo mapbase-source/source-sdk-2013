@@ -6,7 +6,7 @@ on:
     branches:
       - develop
     paths:
-      - .github/workflows/mapbase_games-msbuild.yml
+      - .github/workflows/mapbase_sp-games-msbuild.yml
       - sp/src/game/**
       - sp/src/mathlib/**
       - sp/src/responserules/runtime/**
