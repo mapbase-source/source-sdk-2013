@@ -22,10 +22,10 @@ jobs:
     - name: Add MSBuild to PATH
       uses: microsoft/setup-msbuild@v1.1
 
-    - name: Enable VS2019
+    - name: Enable VS2022
       working-directory: sp/src/vpc_scripts
       shell: bash
-      run: sed -i 's/^\($Conditional[ 	]\+VS2019[ 	]\+\).*/\1"1"/' default.vgc
+      run: sed -i 's/^\($Conditional[ 	]\+VS2022[ 	]\+\).*/\1"1"/' newer_vs_toolsets.vpc
 
     - name: Create projectfiles
       working-directory: sp/src
