@@ -126,14 +126,12 @@ jobs:
       with:
         name: Map Tools (Windows)
         path: |
-          ${{inputs.branch}}/game/bin
-        if-no-files-found: error # Temporary
-
-        #${{inputs.branch}}/game/bin/vbsp.exe
-        #${{inputs.branch}}/game/bin/vvis.exe
-        #${{inputs.branch}}/game/bin/vvis_dll.dll
-        #${{inputs.branch}}/game/bin/vrad.exe
-        #${{inputs.branch}}/game/bin/vrad_dll.dll
+          ${{inputs.branch}}/game/bin/vbsp.exe
+          ${{inputs.branch}}/game/bin/vvis.exe
+          ${{inputs.branch}}/game/bin/vvis_dll.dll
+          ${{inputs.branch}}/game/bin/vrad.exe
+          ${{inputs.branch}}/game/bin/vrad_dll.dll
+        if-no-files-found: error
 
     - name: Publish everything (Windows)
       if: inputs.project-group == 'all'
@@ -193,12 +191,14 @@ jobs:
       with:
         name: Map Tools (Linux)
         path: |
-          ${{inputs.branch}}/game/bin/vbsp
-          ${{inputs.branch}}/game/bin/vvis
-          ${{inputs.branch}}/game/bin/vvis_dll.so
-          ${{inputs.branch}}/game/bin/vrad
-          ${{inputs.branch}}/game/bin/vrad_dll.so
-        if-no-files-found: error
+          ${{inputs.branch}}/game/bin
+        if-no-files-found: error # Temporary
+
+          #${{inputs.branch}}/game/bin/vbsp
+          #${{inputs.branch}}/game/bin/vvis
+          #${{inputs.branch}}/game/bin/vvis_dll.so
+          #${{inputs.branch}}/game/bin/vrad
+          #${{inputs.branch}}/game/bin/vrad_dll.so
 
     - name: Publish everything (Linux)
       if: inputs.project-group == 'all'
