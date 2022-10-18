@@ -73,6 +73,7 @@ jobs:
       working-directory: '${{inputs.branch}}/src'
       shell: cmd
       run: |
+        msbuild -m -p:Configuration=${{inputs.configuration}} fgdlib\fgdlib.vcxproj
         msbuild -m -p:Configuration=${{inputs.configuration}} utils\vbsp\vbsp.vcxproj
         msbuild -m -p:Configuration=${{inputs.configuration}} utils\vvis\vvis.vcxproj
         msbuild -m -p:Configuration=${{inputs.configuration}} utils\vvis_launcher\vvis_launcher.vcxproj
@@ -117,19 +118,6 @@ jobs:
         name: Shader DLL
         path: |
           ${{inputs.branch}}/game/mod_episodic/bin/game_shader_dx9.dll
-        if-no-files-found: error
-
-    - name: Publish Windows map tools
-      if: inputs.project-group == 'maptools'
-      uses: actions/upload-artifact@v2
-      with:
-        name: Map Tools (Windows)
-        path: |
-          ${{inputs.branch}}/game/bin/vbsp.exe
-          ${{inputs.branch}}/game/bin/vvis.exe
-          ${{inputs.branch}}/game/bin/vvis_dll.dll
-          ${{inputs.branch}}/game/bin/vrad.exe
-          ${{inputs.branch}}/game/bin/vrad_dll.dll
         if-no-files-found: error
 
     - name: Publish Windows map tools

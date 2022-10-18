@@ -1,6 +1,7 @@
 name: Mapbase - Build Projects (Manual)
 
 on:
+  push:
   workflow_dispatch:
     inputs:
       configuration:
@@ -39,8 +40,7 @@ on:
         - maptools
 
 jobs:
-  build_shaders:
-    name: Build Map Tools Projects (SP Release)
+  build_manual:
     uses: mapbase-source/source-sdk-2013/.github/workflows/mapbase_build-base.yml@feature/github-workflows
     with:
       configuration: '${{ github.event.inputs.configuration }}'
