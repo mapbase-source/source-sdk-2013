@@ -16,7 +16,7 @@ on:
 
 jobs:
   build_games:
-    uses: mapbase-source/source-sdk-2013/.github/workflows/mapbase_build-base.yml@feature/github-workflows
+    uses: ./.github/workflows/mapbase_build-base.yml
     with:
       configuration: 'Release'
       branch: 'sp'

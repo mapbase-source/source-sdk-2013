@@ -155,7 +155,7 @@ jobs:
     - name: Install GCC/G++ multilib
       run: sudo apt-get install gcc-multilib g++-multilib
 
-    - name: Create game projects
+    - name: Create project files
       working-directory: '${{inputs.branch}}/src'
       run: sudo ./create${{inputs.project-group}}projects
 
