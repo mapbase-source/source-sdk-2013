@@ -75,9 +75,9 @@ jobs:
       run: |
         msbuild -m -p:Configuration=${{inputs.configuration}} fgdlib\fgdlib.vcxproj
         msbuild -m -p:Configuration=${{inputs.configuration}} utils\vbsp\vbsp.vcxproj
-        msbuild -m -p:Configuration=${{inputs.configuration}} utils\vvis\vvis.vcxproj
+        msbuild -m -p:Configuration=${{inputs.configuration}} utils\vvis\vvis_dll.vcxproj
         msbuild -m -p:Configuration=${{inputs.configuration}} utils\vvis_launcher\vvis_launcher.vcxproj
-        msbuild -m -p:Configuration=${{inputs.configuration}} utils\vrad\vrad.vcxproj
+        msbuild -m -p:Configuration=${{inputs.configuration}} utils\vrad\vrad_dll.vcxproj
         msbuild -m -p:Configuration=${{inputs.configuration}} utils\vrad_launcher\vrad_launcher.vcxproj
 
     - name: Build Shaders
@@ -156,7 +156,7 @@ jobs:
 
     - name: Create game projects
       working-directory: '${{inputs.branch}}/src'
-      run: ./create${{inputs.project-group}}projects
+      run: sudo ./create${{inputs.project-group}}projects
 
       # --------------------------------------------------------------------
 

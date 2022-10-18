@@ -1,7 +1,6 @@
 name: Mapbase - Build Projects (Manual)
 
 on:
-  push:
   workflow_dispatch:
     inputs:
       configuration:

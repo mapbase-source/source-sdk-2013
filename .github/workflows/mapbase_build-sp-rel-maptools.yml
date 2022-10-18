@@ -17,7 +17,7 @@ on:
       - 'sp/src/vscript/**'
 
 jobs:
-  build_shaders:
+  build_maptools:
     uses: mapbase-source/source-sdk-2013/.github/workflows/mapbase_build-base.yml@feature/github-workflows
     with:
       configuration: 'Release'
