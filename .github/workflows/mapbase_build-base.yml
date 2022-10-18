@@ -105,7 +105,7 @@ jobs:
       if: inputs.project-group == 'all' || inputs.project-group == 'game'
       uses: actions/upload-artifact@v2
       with:
-        name: Game DLLs
+        name: Game DLLs (server/client.dll)
         path: |
           ${{inputs.branch}}/game/mod_episodic/bin/client.dll
           ${{inputs.branch}}/game/mod_episodic/bin/server.dll
@@ -115,7 +115,7 @@ jobs:
       if: inputs.project-group == 'shaders'
       uses: actions/upload-artifact@v2
       with:
-        name: Shader DLL
+        name: Shader DLL (game_shader_dx9.dll)
         path: |
           ${{inputs.branch}}/game/mod_episodic/bin/game_shader_dx9.dll
         if-no-files-found: error
@@ -126,12 +126,14 @@ jobs:
       with:
         name: Map Tools (Windows)
         path: |
-          ${{inputs.branch}}/game/bin/vbsp.exe
-          ${{inputs.branch}}/game/bin/vvis.exe
-          ${{inputs.branch}}/game/bin/vvis_dll.dll
-          ${{inputs.branch}}/game/bin/vrad.exe
-          ${{inputs.branch}}/game/bin/vrad_dll.dll
-        if-no-files-found: error
+          ${{inputs.branch}}/game/bin
+        if-no-files-found: error # Temporary
+
+        #${{inputs.branch}}/game/bin/vbsp.exe
+        #${{inputs.branch}}/game/bin/vvis.exe
+        #${{inputs.branch}}/game/bin/vvis_dll.dll
+        #${{inputs.branch}}/game/bin/vrad.exe
+        #${{inputs.branch}}/game/bin/vrad_dll.dll
 
     - name: Publish everything (Windows)
       if: inputs.project-group == 'all'
@@ -145,7 +147,7 @@ jobs:
         if-no-files-found: error
 
   build_ubuntu:
-    name: Build Ubuntu (GCC/G++ 9)
+    name: Build Ubuntu (GCC/G++)
     runs-on: ubuntu-latest
 
     steps:
@@ -170,7 +172,7 @@ jobs:
       if: inputs.project-group == 'game'
       uses: actions/upload-artifact@v2
       with:
-        name: Game SOs
+        name: Game SOs (server/client.so)
         path: |
           ${{inputs.branch}}/game/mod_episodic/bin/client.so
           ${{inputs.branch}}/game/mod_episodic/bin/server.so
@@ -180,7 +182,7 @@ jobs:
       if: inputs.project-group == 'shaders'
       uses: actions/upload-artifact@v2
       with:
-        name: Shader SOs
+        name: Shader SO (game_shader_dx9.dll)
         path: |
           ${{inputs.branch}}/game/mod_episodic/bin/game_shader_dx9.so
         if-no-files-found: error
@@ -191,10 +193,10 @@ jobs:
       with:
         name: Map Tools (Linux)
         path: |
-          ${{inputs.branch}}/game/bin/vbsp.exe
-          ${{inputs.branch}}/game/bin/vvis.exe
+          ${{inputs.branch}}/game/bin/vbsp
+          ${{inputs.branch}}/game/bin/vvis
           ${{inputs.branch}}/game/bin/vvis_dll.so
-          ${{inputs.branch}}/game/bin/vrad.exe
+          ${{inputs.branch}}/game/bin/vrad
           ${{inputs.branch}}/game/bin/vrad_dll.so
         if-no-files-found: error
 

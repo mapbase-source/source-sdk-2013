@@ -1,4 +1,4 @@
-name: Mapbase - Build Map Tool Projects (SP Release)
+name: Mapbase - Build Map Tool Projects #(SP Release)
 
 on:
   pull_request:

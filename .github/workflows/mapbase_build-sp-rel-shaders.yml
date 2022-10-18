@@ -1,4 +1,4 @@
-name: Mapbase - Build Shader Projects (SP Release)
+name: Mapbase - Build Shader Projects #(SP Release)
 
 on:
   pull_request:

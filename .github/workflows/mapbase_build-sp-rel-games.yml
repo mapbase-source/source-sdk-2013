@@ -1,4 +1,4 @@
-name: Mapbase - Build Game Projects (SP Release)
+name: Mapbase - Build Game Projects #(SP Release)
 
 on:
   pull_request:
