@@ -145,6 +145,7 @@ jobs:
         if-no-files-found: error
 
   build_ubuntu:
+    if: inputs.project-group != 'maptools' # No Linux map tools for now
     name: Build Ubuntu (GCC/G++)
     runs-on: ubuntu-latest
 
@@ -185,20 +186,18 @@ jobs:
           ${{inputs.branch}}/game/mod_episodic/bin/game_shader_dx9.so
         if-no-files-found: error
 
-    - name: Publish Linux map tools
-      if: inputs.project-group == 'maptools'
-      uses: actions/upload-artifact@v2
-      with:
-        name: Map Tools (Linux)
-        path: |
-          ${{inputs.branch}}/game/bin
-        if-no-files-found: error # Temporary
-
-          #${{inputs.branch}}/game/bin/vbsp
-          #${{inputs.branch}}/game/bin/vvis
-          #${{inputs.branch}}/game/bin/vvis_dll.so
-          #${{inputs.branch}}/game/bin/vrad
-          #${{inputs.branch}}/game/bin/vrad_dll.so
+    #- name: Publish Linux map tools
+    #  if: inputs.project-group == 'maptools'
+    #  uses: actions/upload-artifact@v2
+    #  with:
+    #    name: Map Tools (Linux)
+    #    path: |
+    #      ${{inputs.branch}}/game/bin/vbsp
+    #      ${{inputs.branch}}/game/bin/vvis
+    #      ${{inputs.branch}}/game/bin/vvis_dll.so
+    #      ${{inputs.branch}}/game/bin/vrad
+    #      ${{inputs.branch}}/game/bin/vrad_dll.so
+    #    if-no-files-found: error # Temporary
 
     - name: Publish everything (Linux)
       if: inputs.project-group == 'all'
