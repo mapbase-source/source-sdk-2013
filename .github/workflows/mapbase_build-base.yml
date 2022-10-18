@@ -105,7 +105,7 @@ jobs:
       if: inputs.project-group == 'all' || inputs.project-group == 'game'
       uses: actions/upload-artifact@v2
       with:
-        name: Game DLLs (server/client.dll)
+        name: 'Game DLLs (server/client.dll)'
         path: |
           ${{inputs.branch}}/game/mod_episodic/bin/client.dll
           ${{inputs.branch}}/game/mod_episodic/bin/server.dll
@@ -115,7 +115,7 @@ jobs:
       if: inputs.project-group == 'shaders'
       uses: actions/upload-artifact@v2
       with:
-        name: Shader DLL (game_shader_dx9.dll)
+        name: 'Shader DLL (game_shader_dx9.dll)'
         path: |
           ${{inputs.branch}}/game/mod_episodic/bin/game_shader_dx9.dll
         if-no-files-found: error
@@ -124,7 +124,7 @@ jobs:
       if: inputs.project-group == 'maptools'
       uses: actions/upload-artifact@v2
       with:
-        name: Map Tools (Windows)
+        name: 'Map Tools (Windows)'
         path: |
           ${{inputs.branch}}/game/bin/vbsp.exe
           ${{inputs.branch}}/game/bin/vvis.exe
@@ -137,7 +137,7 @@ jobs:
       if: inputs.project-group == 'all'
       uses: actions/upload-artifact@v2
       with:
-        name: Everything (Windows)
+        name: 'Everything (Windows)'
         path: |
           ${{inputs.branch}}/game/bin
           ${{inputs.branch}}/game/mod_episodic/bin
@@ -171,7 +171,7 @@ jobs:
       if: inputs.project-group == 'game'
       uses: actions/upload-artifact@v2
       with:
-        name: Game SOs (server/client.so)
+        name: 'Game SOs (server/client.so)'
         path: |
           ${{inputs.branch}}/game/mod_episodic/bin/client.so
           ${{inputs.branch}}/game/mod_episodic/bin/server.so
@@ -181,7 +181,7 @@ jobs:
       if: inputs.project-group == 'shaders'
       uses: actions/upload-artifact@v2
       with:
-        name: Shader SO (game_shader_dx9.dll)
+        name: 'Shader SO (game_shader_dx9.dll)'
         path: |
           ${{inputs.branch}}/game/mod_episodic/bin/game_shader_dx9.so
         if-no-files-found: error
@@ -190,7 +190,7 @@ jobs:
     #  if: inputs.project-group == 'maptools'
     #  uses: actions/upload-artifact@v2
     #  with:
-    #    name: Map Tools (Linux)
+    #    name: 'Map Tools (Linux)'
     #    path: |
     #      ${{inputs.branch}}/game/bin/vbsp
     #      ${{inputs.branch}}/game/bin/vvis
@@ -203,7 +203,7 @@ jobs:
       if: inputs.project-group == 'all'
       uses: actions/upload-artifact@v2
       with:
-        name: Everything (Linux)
+        name: 'Everything (Linux)'
         path: |
           ${{inputs.branch}}/game/bin
           ${{inputs.branch}}/game/mod_episodic/bin
