@@ -180,9 +180,22 @@ jobs:
       if: inputs.project-group == 'shaders'
       uses: actions/upload-artifact@v2
       with:
-        name: Game SOs
+        name: Shader SOs
         path: |
           ${{inputs.branch}}/game/mod_episodic/bin/game_shader_dx9.so
+        if-no-files-found: error
+
+    - name: Publish Linux map tools
+      if: inputs.project-group == 'maptools'
+      uses: actions/upload-artifact@v2
+      with:
+        name: Map Tools (Linux)
+        path: |
+          ${{inputs.branch}}/game/bin/vbsp.exe
+          ${{inputs.branch}}/game/bin/vvis.exe
+          ${{inputs.branch}}/game/bin/vvis_dll.so
+          ${{inputs.branch}}/game/bin/vrad.exe
+          ${{inputs.branch}}/game/bin/vrad_dll.so
         if-no-files-found: error
 
     - name: Publish everything (Linux)
