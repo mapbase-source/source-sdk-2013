@@ -1,4 +1,4 @@
-name: Mapbase - Build Projects
+name: Build Projects
 
 on:
   workflow_call:
@@ -105,7 +105,7 @@ jobs:
       if: inputs.project-group == 'all' || inputs.project-group == 'game'
       uses: actions/upload-artifact@v2
       with:
-        name: 'Game DLLs (server/client.dll)'
+        name: 'Game DLLs (server & client.dll)'
         path: |
           ${{inputs.branch}}/game/mod_episodic/bin/client.dll
           ${{inputs.branch}}/game/mod_episodic/bin/server.dll
@@ -171,7 +171,7 @@ jobs:
       if: inputs.project-group == 'game'
       uses: actions/upload-artifact@v2
       with:
-        name: 'Game SOs (server/client.so)'
+        name: 'Game SOs (server & client.so)'
         path: |
           ${{inputs.branch}}/game/mod_episodic/bin/client.so
           ${{inputs.branch}}/game/mod_episodic/bin/server.so

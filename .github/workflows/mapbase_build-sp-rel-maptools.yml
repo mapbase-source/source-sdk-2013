@@ -1,4 +1,4 @@
-name: Mapbase - Build Map Tool Projects #(SP Release)
+name: Build Map Tool Projects #(SP Release)
 
 on:
   pull_request:
@@ -6,6 +6,7 @@ on:
       - develop
     paths:
       - '.github/workflows/mapbase_build-sp-rel-maptools.yml'
+      - 'sp/src/vpc_scripts/**'
       - 'sp/src/utils/vbsp/**'
       - 'sp/src/utils/vvis/**'
       - 'sp/src/utils/vvis_launcher/**'

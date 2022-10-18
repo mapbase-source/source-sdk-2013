@@ -1,4 +1,4 @@
-name: Mapbase - Build Shader Projects #(SP Release)
+name: Build Shader Projects #(SP Release)
 
 on:
   pull_request:
@@ -6,6 +6,7 @@ on:
       - develop
     paths:
       - '.github/workflows/mapbase_build-sp-rel-shaders.yml'
+      - 'sp/src/vpc_scripts/**'
       - 'sp/src/materialsystem/**'
       - 'sp/src/mathlib/**'
 

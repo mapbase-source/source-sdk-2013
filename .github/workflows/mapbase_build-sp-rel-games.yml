@@ -1,4 +1,4 @@
-name: Mapbase - Build Game Projects #(SP Release)
+name: Build Game Projects #(SP Release)
 
 on:
   pull_request:
@@ -6,6 +6,7 @@ on:
       - develop
     paths:
       - '.github/workflows/mapbase_build-sp-rel-games.yml'
+      - 'sp/src/vpc_scripts/**'
       - 'sp/src/game/**'
       - 'sp/src/mathlib/**'
       - 'sp/src/responserules/runtime/**'

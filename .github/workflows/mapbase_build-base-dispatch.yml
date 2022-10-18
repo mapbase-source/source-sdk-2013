@@ -1,4 +1,4 @@
-name: Mapbase - Build Projects (Manual)
+name: Build Projects (Manual)
 
 on:
   workflow_dispatch:
