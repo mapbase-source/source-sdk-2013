@@ -145,7 +145,7 @@ jobs:
       if: inputs.project-group == 'all' || inputs.project-group == 'game'
       uses: actions/upload-artifact@v2
       with:
-        name: 'Game DLLs (server & client.dll)'
+        name: 'Windows Game DLLs (server & client.dll)'
         path: |
           ${{inputs.branch}}/game/mod_${{inputs.game}}/bin/client.dll
           ${{inputs.branch}}/game/mod_${{inputs.game}}/bin/server.dll
@@ -155,7 +155,7 @@ jobs:
       if: inputs.project-group == 'shaders'
       uses: actions/upload-artifact@v2
       with:
-        name: 'Shader DLL (game_shader_dx9.dll)'
+        name: 'Windows Shader DLL (game_shader_dx9.dll)'
         path: |
           ${{inputs.branch}}/game/mod_${{inputs.game}}/bin/game_shader_dx9.dll
         if-no-files-found: error
@@ -164,7 +164,7 @@ jobs:
       if: inputs.project-group == 'maptools'
       uses: actions/upload-artifact@v2
       with:
-        name: 'Map Tools (Windows)'
+        name: 'Windows Map Tools'
         path: |
           ${{inputs.branch}}/game/bin/vbsp.exe
           ${{inputs.branch}}/game/bin/vvis.exe
@@ -216,7 +216,7 @@ jobs:
       if: inputs.project-group == 'game'
       uses: actions/upload-artifact@v2
       with:
-        name: 'Game SOs (server & client.so)'
+        name: 'Linux Game SOs (server & client.so)'
         path: |
           ${{inputs.branch}}/game/mod_${{inputs.game}}/bin/client.so
           ${{inputs.branch}}/game/mod_${{inputs.game}}/bin/server.so
@@ -226,7 +226,7 @@ jobs:
       if: inputs.project-group == 'shaders'
       uses: actions/upload-artifact@v2
       with:
-        name: 'Shader SO (game_shader_dx9.dll)'
+        name: 'Linux Shader SO (game_shader_dx9.so)'
         path: |
           ${{inputs.branch}}/game/mod_${{inputs.game}}/bin/game_shader_dx9.so
         if-no-files-found: error
@@ -235,7 +235,7 @@ jobs:
     #  if: inputs.project-group == 'maptools'
     #  uses: actions/upload-artifact@v2
     #  with:
-    #    name: 'Map Tools (Linux)'
+    #    name: 'Linux Map Tools'
     #    path: |
     #      ${{inputs.branch}}/game/bin/vbsp
     #      ${{inputs.branch}}/game/bin/vvis
