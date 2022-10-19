@@ -151,6 +151,8 @@ jobs:
     if: inputs.project-group != 'maptools' # No Linux map tools for now
     name: Build Ubuntu (GCC/G++)
     runs-on: ubuntu-latest
+    env:
+      BUILDCACHE_DEBUG: 2
 
     steps:
     - uses: actions/checkout@v2
