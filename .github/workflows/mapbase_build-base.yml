@@ -47,7 +47,7 @@ jobs:
         create${{inputs.project-group}}projects.bat
 
       # --------------------------------------------------------------------
-	  
+
     - name: Cache objects
       if: inputs.project-group == 'all' || inputs.project-group == 'game'
       uses: actions/cache@v3
@@ -64,7 +64,7 @@ jobs:
            #${{inputs.branch}}/src/tier1/${{inputs.configuration}}/*.obj
            #${{inputs.branch}}/src/vgui2/vgui_controls/${{inputs.configuration}}/*.obj
            #${{inputs.branch}}/src/vscript/${{inputs.configuration}}/*.obj
-	  
+
       # --------------------------------------------------------------------
 
       # "I'm invoking msbuild for each project individually, which looks a bit odd considering there is a solution file which should be able to invoke the builds in their proper order automatically, but passing the solution to msbuild doesn't seem to work."
@@ -179,7 +179,7 @@ jobs:
       run: sudo ./create${{inputs.project-group}}projects
 
       # --------------------------------------------------------------------
-	  
+
     - name: Cache objects
       if: inputs.project-group == 'all' || inputs.project-group == 'game'
       uses: actions/cache@v3
