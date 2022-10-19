@@ -29,6 +29,9 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    - uses: mikehardy/buildcache-action@v1
+      with:
+        cache_key: 'windows-latest'
 
     - name: Add MSBuild to PATH
       uses: microsoft/setup-msbuild@v1.1
@@ -151,6 +154,9 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    - uses: mikehardy/buildcache-action@v1
+      with:
+        cache_key: 'ubuntu-latest'
 
     - name: Install GCC/G++ multilib
       run: sudo apt-get install gcc-multilib g++-multilib
