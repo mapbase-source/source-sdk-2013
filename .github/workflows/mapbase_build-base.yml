@@ -13,6 +13,11 @@ on:
         default: 'sp'
         required: true
         type: string
+      game:
+        description: 'The name of the game to build (if building game)'
+        default: 'episodic'
+        required: false
+        type: string
       project-group:
         description: 'Which group of projects to compile'
         required: true
@@ -38,6 +43,12 @@ jobs:
       shell: bash
       run: sed -i 's/^\($Conditional[ 	]\+VS2022[ 	]\+\).*/\1"1"/' newer_vs_toolsets.vpc
 
+    - name: Pick game
+      if: inputs.project-group == 'game'
+      working-directory: '${{inputs.branch}}/src'
+      shell: bash
+      run: sed -i 's/\/hl2 \/episodic/\/${{inputs.game}}/' creategameprojects.bat
+
     - name: Create project files
       working-directory: '${{inputs.branch}}/src'
       shell: cmd
@@ -45,25 +56,6 @@ jobs:
       run: |
         reg add "HKLM\SOFTWARE\WOW6432Node\Microsoft\VisualStudio\10.0\Projects\{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" /v DefaultProjectExtension /t REG_SZ /d vcproj /f
         create${{inputs.project-group}}projects.bat
-
-      # --------------------------------------------------------------------
-
-    - name: Cache objects
-      if: inputs.project-group == 'all' || inputs.project-group == 'game'
-      uses: actions/cache@v3
-      with:
-        key: '${{runner.os}}-${{inputs.branch}}-${{inputs.configuration}}'
-        path: |
-           ${{inputs.branch}}/src/game/client/${{inputs.configuration}}_mod_episodic
-           ${{inputs.branch}}/src/game/client/${{inputs.configuration}}_mod_hl2
-           ${{inputs.branch}}/src/game/server/${{inputs.configuration}}_mod_episodic
-           ${{inputs.branch}}/src/game/server/${{inputs.configuration}}_mod_hl2
-
-           #${{inputs.branch}}/src/mathlib/${{inputs.configuration}}/*.obj
-           #${{inputs.branch}}/src/raytrace/${{inputs.configuration}}/*.obj
-           #${{inputs.branch}}/src/tier1/${{inputs.configuration}}/*.obj
-           #${{inputs.branch}}/src/vgui2/vgui_controls/${{inputs.configuration}}/*.obj
-           #${{inputs.branch}}/src/vscript/${{inputs.configuration}}/*.obj
 
       # --------------------------------------------------------------------
 
@@ -99,6 +91,7 @@ jobs:
         msbuild -m -p:Configuration=${{inputs.configuration}} utils\vrad\vrad_dll.vcxproj
         msbuild -m -p:Configuration=${{inputs.configuration}} utils\vrad_launcher\vrad_launcher.vcxproj
 
+    # TODO: Hook to game naming?
     - name: Build Shaders
       if: inputs.project-group == 'all' || inputs.project-group == 'shaders'
       working-directory: '${{inputs.branch}}/src'
@@ -108,7 +101,17 @@ jobs:
         msbuild -m -p:Configuration=${{inputs.configuration}} materialsystem\stdshaders\game_shader_dx9_hl2.vcxproj
 
     - name: Build Game
-      if: inputs.project-group == 'all' || inputs.project-group == 'game'
+      if: inputs.project-group == 'game'
+      working-directory: '${{inputs.branch}}/src'
+      shell: cmd
+      run: |
+        msbuild -m -p:Configuration=${{inputs.configuration}} responserules\runtime\responserules.vcxproj
+        msbuild -m -p:Configuration=${{inputs.configuration}} game\client\client_${{inputs.game}}.vcxproj
+        msbuild -m -p:Configuration=${{inputs.configuration}} game\server\server_${{inputs.game}}.vcxproj
+
+    # TODO: Hook to game naming?
+    - name: Build everything
+      if: inputs.project-group == 'all'
       working-directory: '${{inputs.branch}}/src'
       shell: cmd
       run: |
@@ -120,14 +123,14 @@ jobs:
 
       # --------------------------------------------------------------------
 
-    - name: Publish Windows game DLLs (HL2 Episodic)
+    - name: Publish Windows game DLLs
       if: inputs.project-group == 'all' || inputs.project-group == 'game'
       uses: actions/upload-artifact@v2
       with:
         name: 'Game DLLs (server & client.dll)'
         path: |
-          ${{inputs.branch}}/game/mod_episodic/bin/client.dll
-          ${{inputs.branch}}/game/mod_episodic/bin/server.dll
+          ${{inputs.branch}}/game/mod_${{inputs.game}}/bin/client.dll
+          ${{inputs.branch}}/game/mod_${{inputs.game}}/bin/server.dll
         if-no-files-found: error
 
     - name: Publish Windows shader DLL (HL2 Episodic)
@@ -136,7 +139,7 @@ jobs:
       with:
         name: 'Shader DLL (game_shader_dx9.dll)'
         path: |
-          ${{inputs.branch}}/game/mod_episodic/bin/game_shader_dx9.dll
+          ${{inputs.branch}}/game/mod_${{inputs.game}}/bin/game_shader_dx9.dll
         if-no-files-found: error
 
     - name: Publish Windows map tools
@@ -174,26 +177,15 @@ jobs:
     - name: Install GCC/G++ multilib
       run: sudo apt-get install gcc-multilib g++-multilib
 
+    - name: Pick game
+      if: inputs.project-group == 'game'
+      working-directory: '${{inputs.branch}}/src'
+      shell: bash
+      run: sed -i 's/\/hl2 \/episodic/\/${{inputs.game}}/' creategameprojects
+
     - name: Create project files
       working-directory: '${{inputs.branch}}/src'
       run: sudo ./create${{inputs.project-group}}projects
-
-      # --------------------------------------------------------------------
-
-    - name: Cache objects
-      if: inputs.project-group == 'all' || inputs.project-group == 'shaders'
-      uses: actions/cache@v3
-      with:
-        key: '${{runner.os}}-${{inputs.branch}}-${{inputs.configuration}}'
-        path: |
-           ${{inputs.branch}}/src/materialsystem/stdshaders/obj_shaders_episodic_linux32
-           ${{inputs.branch}}/src/materialsystem/stdshaders/obj_shaders_hl2_linux32
-
-           #${{inputs.branch}}/src/mathlib/${{inputs.configuration}}/*.obj
-           #${{inputs.branch}}/src/raytrace/${{inputs.configuration}}/*.obj
-           #${{inputs.branch}}/src/tier1/${{inputs.configuration}}/*.obj
-           #${{inputs.branch}}/src/vgui2/vgui_controls/${{inputs.configuration}}/*.obj
-           #${{inputs.branch}}/src/vscript/${{inputs.configuration}}/*.obj
 
       # --------------------------------------------------------------------
 
@@ -203,23 +195,23 @@ jobs:
 
       # --------------------------------------------------------------------
 
-    - name: Publish Linux game SOs (HL2 Episodic)
+    - name: Publish Linux game SOs
       if: inputs.project-group == 'game'
       uses: actions/upload-artifact@v2
       with:
         name: 'Game SOs (server & client.so)'
         path: |
-          ${{inputs.branch}}/game/mod_episodic/bin/client.so
-          ${{inputs.branch}}/game/mod_episodic/bin/server.so
+          ${{inputs.branch}}/game/mod_${{inputs.game}}/bin/client.so
+          ${{inputs.branch}}/game/mod_${{inputs.game}}/bin/server.so
         if-no-files-found: error
 
-    - name: Publish Linux shader SO (HL2 Episodic)
+    - name: Publish Linux shader SO
       if: inputs.project-group == 'shaders'
       uses: actions/upload-artifact@v2
       with:
         name: 'Shader SO (game_shader_dx9.dll)'
         path: |
-          ${{inputs.branch}}/game/mod_episodic/bin/game_shader_dx9.so
+          ${{inputs.branch}}/game/mod_${{inputs.game}}/bin/game_shader_dx9.so
         if-no-files-found: error
 
     #- name: Publish Linux map tools

@@ -19,6 +19,14 @@ on:
         options:
         - sp
         - mp
+      game:
+        description: 'The name of the game to build (if building game)'
+        default: 'episodic'
+        required: false
+        type: choice
+        options:
+        - episodic
+        - hl2
       project-group:
         description: 'Which group of projects to compile'
         required: true
