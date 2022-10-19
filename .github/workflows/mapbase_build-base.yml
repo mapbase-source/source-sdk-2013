@@ -54,10 +54,10 @@ jobs:
       with:
         key: '${{runner.os}}-${{inputs.branch}}-${{inputs.configuration}}'
         path: |
-           ${{inputs.branch}}/src/game/client/${{inputs.configuration}}_mod_episodic/*.obj
-           ${{inputs.branch}}/src/game/client/${{inputs.configuration}}_mod_hl2/*.obj
-           ${{inputs.branch}}/src/game/server/${{inputs.configuration}}_mod_episodic/*.obj
-           ${{inputs.branch}}/src/game/server/${{inputs.configuration}}_mod_hl2/*.obj
+           ${{inputs.branch}}/src/game/client/${{inputs.configuration}}_mod_episodic
+           ${{inputs.branch}}/src/game/client/${{inputs.configuration}}_mod_hl2
+           ${{inputs.branch}}/src/game/server/${{inputs.configuration}}_mod_episodic
+           ${{inputs.branch}}/src/game/server/${{inputs.configuration}}_mod_hl2
 
            #${{inputs.branch}}/src/mathlib/${{inputs.configuration}}/*.obj
            #${{inputs.branch}}/src/raytrace/${{inputs.configuration}}/*.obj
@@ -181,7 +181,7 @@ jobs:
       # --------------------------------------------------------------------
 
     - name: Cache objects
-      if: inputs.project-group == 'all' || inputs.project-group == 'game'
+      if: inputs.project-group == 'all' || inputs.project-group == 'shaders'
       uses: actions/cache@v3
       with:
         key: '${{runner.os}}-${{inputs.branch}}-${{inputs.configuration}}'
