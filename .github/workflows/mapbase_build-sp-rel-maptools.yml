@@ -1,3 +1,11 @@
+#
+# MAPBASE SOURCE 2013 CI
+#
+# Builds map tool projects every time a pull request which modifies the map tool code is opened.
+# If you're using a fork of Mapbase, feel free to configure this to meet your repository's needs.
+#
+# See mapbase_build-base.yml for more information on how this works.
+
 name: Build Map Tool Projects #(SP Release)
 
 on:

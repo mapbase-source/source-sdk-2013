@@ -1,3 +1,16 @@
+#
+# MAPBASE SOURCE 2013 CI
+#
+# This workflow script automatically builds the Source SDK 2013 codebase on Windows and Linux using GitHub Actions.
+#
+# This is useful in a number of ways:
+#
+#     1. It ensures pull requests compile correctly on multiple platforms and provides binaries that can be used to test them.
+#     2. It can be used to compile code for releases without having to pull and prepare a local development environment.
+#     3. It opens potential for scripts that can employ more principles of CI/CD. (e.g. automatically publishing a release)
+#
+# This is based on a workflow originally created by z33ky.
+
 name: Build Projects
 
 on:
@@ -14,7 +27,7 @@ on:
         required: true
         type: string
       game:
-        description: 'The name of the game to build (if building game)'
+        description: 'The name of the game to build (if relevant)'
         default: 'episodic'
         required: false
         type: string
@@ -26,6 +39,11 @@ on:
         description: 'The name of the solution/makefile'
         required: true
         type: string
+      build-on-linux:
+        description: 'Build on Ubuntu/Linux?'
+        default: true
+        required: false
+        type: boolean
 
 jobs:
   build_windows:
@@ -44,10 +62,10 @@ jobs:
       run: sed -i 's/^\($Conditional[ 	]\+VS2022[ 	]\+\).*/\1"1"/' newer_vs_toolsets.vpc
 
     - name: Pick game
-      if: inputs.project-group == 'game'
+      if: inputs.project-group == 'game' || inputs.project-group == 'shaders'
       working-directory: '${{inputs.branch}}/src'
       shell: bash
-      run: sed -i 's/\/hl2 \/episodic/\/${{inputs.game}}/' creategameprojects.bat
+      run: sed -i 's/\/hl2 \/episodic/\/${{inputs.game}}/' create${{inputs.project-group}}projects.bat
 
     - name: Create project files
       working-directory: '${{inputs.branch}}/src'
@@ -91,14 +109,12 @@ jobs:
         msbuild -m -p:Configuration=${{inputs.configuration}} utils\vrad\vrad_dll.vcxproj
         msbuild -m -p:Configuration=${{inputs.configuration}} utils\vrad_launcher\vrad_launcher.vcxproj
 
-    # TODO: Hook to game naming?
     - name: Build Shaders
-      if: inputs.project-group == 'all' || inputs.project-group == 'shaders'
+      if: inputs.project-group == 'shaders'
       working-directory: '${{inputs.branch}}/src'
       shell: cmd
       run: |
-        msbuild -m -p:Configuration=${{inputs.configuration}} materialsystem\stdshaders\game_shader_dx9_episodic.vcxproj
-        msbuild -m -p:Configuration=${{inputs.configuration}} materialsystem\stdshaders\game_shader_dx9_hl2.vcxproj
+        msbuild -m -p:Configuration=${{inputs.configuration}} materialsystem\stdshaders\game_shader_dx9_${{inputs.game}}.vcxproj
 
     - name: Build Game
       if: inputs.project-group == 'game'
@@ -116,6 +132,8 @@ jobs:
       shell: cmd
       run: |
         msbuild -m -p:Configuration=${{inputs.configuration}} responserules\runtime\responserules.vcxproj
+        msbuild -m -p:Configuration=${{inputs.configuration}} materialsystem\stdshaders\game_shader_dx9_episodic.vcxproj
+        msbuild -m -p:Configuration=${{inputs.configuration}} materialsystem\stdshaders\game_shader_dx9_hl2.vcxproj
         msbuild -m -p:Configuration=${{inputs.configuration}} game\client\client_episodic.vcxproj
         msbuild -m -p:Configuration=${{inputs.configuration}} game\client\client_hl2.vcxproj
         msbuild -m -p:Configuration=${{inputs.configuration}} game\server\server_episodic.vcxproj
@@ -133,7 +151,7 @@ jobs:
           ${{inputs.branch}}/game/mod_${{inputs.game}}/bin/server.dll
         if-no-files-found: error
 
-    - name: Publish Windows shader DLL (HL2 Episodic)
+    - name: Publish Windows shader DLL
       if: inputs.project-group == 'shaders'
       uses: actions/upload-artifact@v2
       with:
@@ -162,12 +180,11 @@ jobs:
         name: 'Everything (Windows)'
         path: |
           ${{inputs.branch}}/game/bin
-          ${{inputs.branch}}/game/mod_episodic/bin
-          ${{inputs.branch}}/game/mod_hl2/bin
+          ${{inputs.branch}}/game/mod_*/bin
         if-no-files-found: error
 
   build_ubuntu:
-    if: inputs.project-group != 'maptools' # No Linux map tools for now
+    if: inputs.build-on-linux == true && inputs.project-group != 'maptools' # No Linux map tools for now
     name: Build Ubuntu (GCC/G++)
     runs-on: ubuntu-latest
 
@@ -178,10 +195,10 @@ jobs:
       run: sudo apt-get install gcc-multilib g++-multilib
 
     - name: Pick game
-      if: inputs.project-group == 'game'
+      if: inputs.project-group == 'game' || inputs.project-group == 'shaders'
       working-directory: '${{inputs.branch}}/src'
       shell: bash
-      run: sed -i 's/\/hl2 \/episodic/\/${{inputs.game}}/' creategameprojects
+      run: sed -i 's/\/hl2 \/episodic/\/${{inputs.game}}/' create${{inputs.project-group}}projects.bat
 
     - name: Create project files
       working-directory: '${{inputs.branch}}/src'
@@ -234,6 +251,5 @@ jobs:
         name: 'Everything (Linux)'
         path: |
           ${{inputs.branch}}/game/bin
-          ${{inputs.branch}}/game/mod_episodic/bin
-          ${{inputs.branch}}/game/mod_hl2/bin
+          ${{inputs.branch}}/game/mod_*/bin
         if-no-files-found: error
