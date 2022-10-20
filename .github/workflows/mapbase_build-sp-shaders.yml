@@ -20,9 +20,12 @@ on:
 
 jobs:
   build_shaders:
+    strategy:
+      matrix:
+        configuration: [Release, Debug]
     uses: ./.github/workflows/mapbase_build-base.yml
     with:
-      configuration: 'Release'
+      configuration: ${{ matrix.configuration }}
       branch: 'sp'
       game: 'episodic' # Change this if your mod is not using HL2/Episodic game projects
       project-group: 'shaders'

@@ -27,9 +27,12 @@ on:
 
 jobs:
   build_maptools:
+    strategy:
+      matrix:
+        configuration: [Release, Debug]
     uses: ./.github/workflows/mapbase_build-base.yml
     with:
-      configuration: 'Release'
+      configuration: ${{ matrix.configuration }}
       branch: 'sp'
       project-group: 'maptools'
       solution-name: 'maptools'
