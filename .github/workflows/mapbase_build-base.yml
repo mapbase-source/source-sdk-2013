@@ -203,8 +203,8 @@ jobs:
     - name: Set configuration
       shell: bash
       run: |
-        CFG=${{ inputs.configuration }}
-        echo ${CFG,,}
+        config=${{ inputs.configuration }}
+        export CFG=${config,,}
 
     - name: Create project files
       working-directory: '${{inputs.branch}}/src'
