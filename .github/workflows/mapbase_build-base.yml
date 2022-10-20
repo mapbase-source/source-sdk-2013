@@ -187,8 +187,6 @@ jobs:
     if: inputs.build-on-linux == true && inputs.project-group != 'maptools' # No Linux map tools for now
     name: Ubuntu (GCC/G++)
     runs-on: ubuntu-latest
-    env:
-      cfg: ${{ inputs.configuration }}
 
     steps:
     - uses: actions/checkout@v3
@@ -201,6 +199,12 @@ jobs:
       working-directory: '${{inputs.branch}}/src'
       shell: bash
       run: sed -i 's/\/hl2 \/episodic/\/${{inputs.game}}/' create${{inputs.project-group}}projects
+
+    - name: Set configuration
+      shell: bash
+      run: |
+        CFG=${{ inputs.configuration }}
+        echo ${CFG,,}
 
     - name: Create project files
       working-directory: '${{inputs.branch}}/src'
