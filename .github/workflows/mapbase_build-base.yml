@@ -187,6 +187,8 @@ jobs:
     if: inputs.build-on-linux == true && inputs.project-group != 'maptools' # No Linux map tools for now
     name: Ubuntu (GCC/G++)
     runs-on: ubuntu-latest
+    env:
+      config: ${{ inputs.configuration }}
 
     steps:
     - uses: actions/checkout@v3
@@ -204,9 +206,9 @@ jobs:
       working-directory: '${{inputs.branch}}/src'
       shell: bash
       run: |
-        config=${{ inputs.configuration }}
+        config=${{inputs.configuration}}
         export CFG=${config,,}
-        echo ${CFG}
+        echo "${CFG}" >> $config
 
     - name: Create project files
       working-directory: '${{inputs.branch}}/src'
@@ -216,7 +218,7 @@ jobs:
 
     - name: Build
       working-directory: '${{inputs.branch}}/src'
-      run: make CFG=${CFG} -f ${{inputs.solution-name}}.mak
+      run: make CFG=${{env.config}} -f ${{inputs.solution-name}}.mak
 
       # --------------------------------------------------------------------
 
