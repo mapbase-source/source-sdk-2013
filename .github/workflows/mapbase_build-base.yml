@@ -208,7 +208,7 @@ jobs:
       run: |
         config=${{inputs.configuration}}
         export CFG=${config,,}
-        echo "CFG=${CFG}" >> $GITHUB_ENV
+        echo "config=${CFG}" >> $GITHUB_ENV
 
     - name: Create project files
       working-directory: '${{inputs.branch}}/src'
