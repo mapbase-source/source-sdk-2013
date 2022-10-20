@@ -201,10 +201,12 @@ jobs:
       run: sed -i 's/\/hl2 \/episodic/\/${{inputs.game}}/' create${{inputs.project-group}}projects
 
     - name: Set configuration
+      working-directory: '${{inputs.branch}}/src'
       shell: bash
       run: |
         config=${{ inputs.configuration }}
         export CFG=${config,,}
+        echo ${CFG}
 
     - name: Create project files
       working-directory: '${{inputs.branch}}/src'
@@ -214,7 +216,7 @@ jobs:
 
     - name: Build
       working-directory: '${{inputs.branch}}/src'
-      run: make -f ${{inputs.solution-name}}.mak
+      run: make CFG=${CFG} -f ${{inputs.solution-name}}.mak
 
       # --------------------------------------------------------------------
 
