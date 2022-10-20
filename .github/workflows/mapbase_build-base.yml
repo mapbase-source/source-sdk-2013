@@ -47,11 +47,11 @@ on:
 
 jobs:
   build_windows:
-    name: Build Windows (VS2022)
+    name: Windows (VS2022)
     runs-on: windows-latest
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - name: Add MSBuild to PATH
       uses: microsoft/setup-msbuild@v1.1
@@ -143,7 +143,7 @@ jobs:
 
     - name: Publish Windows game DLLs
       if: inputs.project-group == 'all' || inputs.project-group == 'game'
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: 'Windows Game DLLs (server & client.dll) [${{ inputs.configuration }}]'
         path: |
@@ -153,7 +153,7 @@ jobs:
 
     - name: Publish Windows shader DLL
       if: inputs.project-group == 'shaders'
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: 'Windows Shader DLL (game_shader_dx9.dll) [${{ inputs.configuration }}]'
         path: |
@@ -162,7 +162,7 @@ jobs:
 
     - name: Publish Windows map tools
       if: inputs.project-group == 'maptools'
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: 'Windows Map Tools [${{ inputs.configuration }}]'
         path: |
@@ -175,7 +175,7 @@ jobs:
 
     - name: Publish everything (Windows)
       if: inputs.project-group == 'all'
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: 'Everything (Windows) [${{ inputs.configuration }}]'
         path: |
@@ -185,11 +185,13 @@ jobs:
 
   build_ubuntu:
     if: inputs.build-on-linux == true && inputs.project-group != 'maptools' # No Linux map tools for now
-    name: Build Ubuntu (GCC/G++)
+    name: Ubuntu (GCC/G++)
     runs-on: ubuntu-latest
+    env:
+      cfg: ${{ inputs.configuration }}
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - name: Install GCC/G++ multilib
       run: sudo apt-get install gcc-multilib g++-multilib
@@ -208,13 +210,13 @@ jobs:
 
     - name: Build
       working-directory: '${{inputs.branch}}/src'
-      run: make cfg=${{ inputs.configuration }} -f ${{inputs.solution-name}}.mak
+      run: make -f ${{inputs.solution-name}}.mak
 
       # --------------------------------------------------------------------
 
     - name: Publish Linux game SOs
       if: inputs.project-group == 'game'
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: 'Linux Game SOs (server & client.so) [${{ inputs.configuration }}]'
         path: |
@@ -224,7 +226,7 @@ jobs:
 
     - name: Publish Linux shader SO
       if: inputs.project-group == 'shaders'
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: 'Linux Shader SO (game_shader_dx9.so) [${{ inputs.configuration }}]'
         path: |
@@ -233,7 +235,7 @@ jobs:
 
     #- name: Publish Linux map tools
     #  if: inputs.project-group == 'maptools'
-    #  uses: actions/upload-artifact@v2
+    #  uses: actions/upload-artifact@v3
     #  with:
     #    name: 'Linux Map Tools [${{ inputs.configuration }}]'
     #    path: |
@@ -246,7 +248,7 @@ jobs:
 
     - name: Publish everything (Linux)
       if: inputs.project-group == 'all'
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: 'Everything (Linux) [${{ inputs.configuration }}]'
         path: |

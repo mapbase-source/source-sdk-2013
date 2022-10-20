@@ -19,7 +19,7 @@ on:
       - 'sp/src/mathlib/**'
 
 jobs:
-  build_shaders:
+  shaders:
     strategy:
       matrix:
         configuration: [Release, Debug]

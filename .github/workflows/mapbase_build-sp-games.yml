@@ -23,7 +23,7 @@ on:
       - 'sp/src/vscript/**'
 
 jobs:
-  build_games:
+  games:
     strategy:
       matrix:
         configuration: [Release, Debug]

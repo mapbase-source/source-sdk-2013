@@ -26,7 +26,7 @@ on:
       - 'sp/src/vscript/**'
 
 jobs:
-  build_maptools:
+  maptools:
     strategy:
       matrix:
         configuration: [Release, Debug]
