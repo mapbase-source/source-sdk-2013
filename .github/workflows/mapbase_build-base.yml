@@ -145,7 +145,7 @@ jobs:
       if: inputs.project-group == 'all' || inputs.project-group == 'game'
       uses: actions/upload-artifact@v2
       with:
-        name: 'Windows Game DLLs (server & client.dll)' [${{ inputs.configuration }}]
+        name: 'Windows Game DLLs (server & client.dll) [${{ inputs.configuration }}]'
         path: |
           ${{inputs.branch}}/game/mod_${{inputs.game}}/bin/client.dll
           ${{inputs.branch}}/game/mod_${{inputs.game}}/bin/server.dll
@@ -155,7 +155,7 @@ jobs:
       if: inputs.project-group == 'shaders'
       uses: actions/upload-artifact@v2
       with:
-        name: 'Windows Shader DLL (game_shader_dx9.dll)' [${{ inputs.configuration }}]
+        name: 'Windows Shader DLL (game_shader_dx9.dll) [${{ inputs.configuration }}]'
         path: |
           ${{inputs.branch}}/game/mod_${{inputs.game}}/bin/game_shader_dx9.dll
         if-no-files-found: error
@@ -164,7 +164,7 @@ jobs:
       if: inputs.project-group == 'maptools'
       uses: actions/upload-artifact@v2
       with:
-        name: 'Windows Map Tools' [${{ inputs.configuration }}]
+        name: 'Windows Map Tools [${{ inputs.configuration }}]'
         path: |
           ${{inputs.branch}}/game/bin/vbsp.exe
           ${{inputs.branch}}/game/bin/vvis.exe
@@ -177,7 +177,7 @@ jobs:
       if: inputs.project-group == 'all'
       uses: actions/upload-artifact@v2
       with:
-        name: 'Everything (Windows)' [${{ inputs.configuration }}]
+        name: 'Everything (Windows) [${{ inputs.configuration }}]'
         path: |
           ${{inputs.branch}}/game/bin
           ${{inputs.branch}}/game/mod_*/bin
@@ -216,7 +216,7 @@ jobs:
       if: inputs.project-group == 'game'
       uses: actions/upload-artifact@v2
       with:
-        name: 'Linux Game SOs (server & client.so)' [${{ inputs.configuration }}]
+        name: 'Linux Game SOs (server & client.so) [${{ inputs.configuration }}]'
         path: |
           ${{inputs.branch}}/game/mod_${{inputs.game}}/bin/client.so
           ${{inputs.branch}}/game/mod_${{inputs.game}}/bin/server.so
@@ -226,7 +226,7 @@ jobs:
       if: inputs.project-group == 'shaders'
       uses: actions/upload-artifact@v2
       with:
-        name: 'Linux Shader SO (game_shader_dx9.so)' [${{ inputs.configuration }}]
+        name: 'Linux Shader SO (game_shader_dx9.so) [${{ inputs.configuration }}]'
         path: |
           ${{inputs.branch}}/game/mod_${{inputs.game}}/bin/game_shader_dx9.so
         if-no-files-found: error
@@ -235,7 +235,7 @@ jobs:
     #  if: inputs.project-group == 'maptools'
     #  uses: actions/upload-artifact@v2
     #  with:
-    #    name: 'Linux Map Tools' [${{ inputs.configuration }}]
+    #    name: 'Linux Map Tools [${{ inputs.configuration }}]'
     #    path: |
     #      ${{inputs.branch}}/game/bin/vbsp
     #      ${{inputs.branch}}/game/bin/vvis
@@ -248,7 +248,7 @@ jobs:
       if: inputs.project-group == 'all'
       uses: actions/upload-artifact@v2
       with:
-        name: 'Everything (Linux)' [${{ inputs.configuration }}]
+        name: 'Everything (Linux) [${{ inputs.configuration }}]'
         path: |
           ${{inputs.branch}}/game/bin
           ${{inputs.branch}}/game/mod_*/bin
