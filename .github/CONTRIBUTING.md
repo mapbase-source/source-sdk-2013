@@ -47,10 +47,12 @@ which seriously violates the rules above can lead to being blocked from contribu
 ---
 
 Mapbase uses GitHub Actions to help manage issues and pull requests. Some of these workflows build the code of incoming
-contributions to make sure they compile properly. This will compile it for both Visual Studio 2022 and GCC/G++ 9 (Linux).
+contributions to make sure they compile properly. The code is compiled separately for Visual Studio 2022 and GCC/G++ 9 (Linux)
+and on both Debug and Release configurations.
+
 If these workflows fail, don't freak out! Accidents can happen frequently due to compiler syntax differences and conflicts
-from other contributions. You can look at a failed workflow's log by clicking "Details" and find the compiler error(s).
-These errors must be resolved by you and/or by any code reviewer(s) before a pull request can be merged.
+from other contributions. You can look at a failed workflow's log by clicking "Details", which will include the build's output.
+Any errors must be resolved by you and/or by code reviewers before a pull request can be merged.
 
 If your contribution is accepted, you may be listed in Mapbase's credits and the README's external content list:
 	https://github.com/mapbase-source/source-sdk-2013/wiki/Mapbase-Credits#Contributors
