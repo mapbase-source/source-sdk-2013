@@ -72,72 +72,23 @@ jobs:
       shell: cmd
       # https://github.com/ValveSoftware/source-sdk-2013/issues/72
       run: |
-        reg add "HKLM\SOFTWARE\WOW6432Node\Microsoft\VisualStudio\10.0\Projects\{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" /v DefaultProjectExtension /t REG_SZ /d vcproj /f
+        reg add "HKLM\SOFTWARE\WOW6432Node\Microsoft\VisualStudio\10.0\Projects\{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" /v DefaultProjectExtension /t REG_SZ /d vcxproj /f
         create${{inputs.project-group}}projects.bat
 
       # --------------------------------------------------------------------
-
-      # "I'm invoking msbuild for each project individually, which looks a bit odd considering there is a solution file which should be able to invoke the builds in their proper order automatically, but passing the solution to msbuild doesn't seem to work."
-      # https://github.com/mapbase-source/source-sdk-2013/pull/162
-
-    - name: Build mathlib
-      #if: steps.filter.outputs.game == 'true'
+	  
+    - name: Fix sln
       working-directory: '${{inputs.branch}}/src'
+      shell: bash
+      run: ../../.github/workflows/fix_sln.sh ${{inputs.solution-name}}.sln >>${{inputs.solution-name}}.sln
+
+    - name: Build
+      working-directory: '${{inputs.branch}}/src'
+      # Add additional options to the MSBuild command line here (like platform or verbosity level).
+      # See https://docs.microsoft.com/visualstudio/msbuild/msbuild-command-line-reference
       shell: cmd
       run: |
-        msbuild -m -p:Configuration=${{inputs.configuration}} mathlib\mathlib.vcxproj
-
-    - name: Build Base Libraries
-      if: inputs.project-group == 'all' || inputs.project-group == 'game' || inputs.project-group == 'maptools'
-      working-directory: '${{inputs.branch}}/src'
-      shell: cmd
-      run: |
-        msbuild -m -p:Configuration=${{inputs.configuration}} raytrace\raytrace.vcxproj
-        msbuild -m -p:Configuration=${{inputs.configuration}} tier1\tier1.vcxproj
-        msbuild -m -p:Configuration=${{inputs.configuration}} vgui2\vgui_controls\vgui_controls.vcxproj
-        msbuild -m -p:Configuration=${{inputs.configuration}} vscript\vscript.vcxproj
-
-    - name: Build Map Tools
-      if: inputs.project-group == 'all' || inputs.project-group == 'maptools'
-      working-directory: '${{inputs.branch}}/src'
-      shell: cmd
-      run: |
-        msbuild -m -p:Configuration=${{inputs.configuration}} fgdlib\fgdlib.vcxproj
-        msbuild -m -p:Configuration=${{inputs.configuration}} utils\vbsp\vbsp.vcxproj
-        msbuild -m -p:Configuration=${{inputs.configuration}} utils\vvis\vvis_dll.vcxproj
-        msbuild -m -p:Configuration=${{inputs.configuration}} utils\vvis_launcher\vvis_launcher.vcxproj
-        msbuild -m -p:Configuration=${{inputs.configuration}} utils\vrad\vrad_dll.vcxproj
-        msbuild -m -p:Configuration=${{inputs.configuration}} utils\vrad_launcher\vrad_launcher.vcxproj
-
-    - name: Build Shaders
-      if: inputs.project-group == 'shaders'
-      working-directory: '${{inputs.branch}}/src'
-      shell: cmd
-      run: |
-        msbuild -m -p:Configuration=${{inputs.configuration}} materialsystem\stdshaders\game_shader_dx9_${{inputs.game}}.vcxproj
-
-    - name: Build Game
-      if: inputs.project-group == 'game'
-      working-directory: '${{inputs.branch}}/src'
-      shell: cmd
-      run: |
-        msbuild -m -p:Configuration=${{inputs.configuration}} responserules\runtime\responserules.vcxproj
-        msbuild -m -p:Configuration=${{inputs.configuration}} game\client\client_${{inputs.game}}.vcxproj
-        msbuild -m -p:Configuration=${{inputs.configuration}} game\server\server_${{inputs.game}}.vcxproj
-
-    # TODO: Hook to game naming?
-    - name: Build everything
-      if: inputs.project-group == 'all'
-      working-directory: '${{inputs.branch}}/src'
-      shell: cmd
-      run: |
-        msbuild -m -p:Configuration=${{inputs.configuration}} responserules\runtime\responserules.vcxproj
-        msbuild -m -p:Configuration=${{inputs.configuration}} materialsystem\stdshaders\game_shader_dx9_episodic.vcxproj
-        msbuild -m -p:Configuration=${{inputs.configuration}} materialsystem\stdshaders\game_shader_dx9_hl2.vcxproj
-        msbuild -m -p:Configuration=${{inputs.configuration}} game\client\client_episodic.vcxproj
-        msbuild -m -p:Configuration=${{inputs.configuration}} game\client\client_hl2.vcxproj
-        msbuild -m -p:Configuration=${{inputs.configuration}} game\server\server_episodic.vcxproj
-        msbuild -m -p:Configuration=${{inputs.configuration}} game\server\server_hl2.vcxproj
+        msbuild -m -p:Configuration=${{inputs.configuration}} -t:rebuild ${{inputs.solution-name}}.sln
 
       # --------------------------------------------------------------------
 
