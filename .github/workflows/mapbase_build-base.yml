@@ -76,7 +76,7 @@ jobs:
         create${{inputs.project-group}}projects.bat
 
       # --------------------------------------------------------------------
-	  
+
     - name: Fix sln
       working-directory: '${{inputs.branch}}/src'
       shell: bash
