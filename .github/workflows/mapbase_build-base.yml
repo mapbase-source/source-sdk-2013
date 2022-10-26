@@ -80,7 +80,7 @@ jobs:
     - name: Fix sln
       working-directory: '${{inputs.branch}}/src'
       shell: bash
-      run: ../../.github/workflows/fix_sln.sh ${{inputs.solution-name}}.sln >>${{inputs.solution-name}}.sln
+      run: cat ${{inputs.solution-name}}.sln
 
     - name: Build
       working-directory: '${{inputs.branch}}/src'
