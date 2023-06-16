@@ -210,13 +210,7 @@ void CWeaponPistol::PrimaryAttack( void )
 void CWeaponPistol::SecondaryAttack( void )
 {
 	CBasePlayer *pOwner = ToBasePlayer( GetOwner() );
-	if ((m_nModeSwitches > 0 && (pOwner->m_afButtonPressed & IN_ATTACK2 || pOwner->m_afButtonPressed & IN_ATTACK)))
-	{
-		m_nModeSwitches = 0;
-	}
-	else if (m_nModeSwitches == 0)
-	{
-		// change fire modes.
+
 		switch (m_iFireMode)
 		{
 		case FIREMODE_FULLAUTO:
@@ -233,15 +227,13 @@ void CWeaponPistol::SecondaryAttack( void )
 			WeaponSound(SPECIAL2);
 			break;
 		}
-		m_nModeSwitches++;
 
-		m_flNextSecondaryAttack = gpGlobals->curtime + 0.3;
+	m_flNextSecondaryAttack = gpGlobals->curtime + 0.3;
 
-		if (pOwner)
-		{
-			m_iSecondaryAttacks++;
-			gamestats->Event_WeaponFired(pOwner, false, GetClassname());
-		}
+	if (pOwner)
+	{
+		m_iSecondaryAttacks++;
+		gamestats->Event_WeaponFired(pOwner, false, GetClassname());
 	}
 }
 
