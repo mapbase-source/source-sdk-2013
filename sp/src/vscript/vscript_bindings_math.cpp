@@ -102,7 +102,6 @@ void ScriptMatrixSetColumn( const Vector& vecset, int column, HSCRIPT hMat1 )
 
 	matrix3x4_t *pMat1 = ToMatrix3x4( hMat1 );
 
-	static Vector outvec;
 	MatrixSetColumn( vecset, column, *pMat1 );
 }
 
@@ -156,6 +155,49 @@ void ScriptSetScaleMatrix( float x, float y, float z, HSCRIPT hMat1 )
 	SetScaleMatrix( x, y, z, *pMat1 );
 }
 
+void ScriptMatrixScaleBy( float flScale, HSCRIPT hMat1 )
+{
+	if (!hMat1)
+		return;
+
+	matrix3x4_t *pMat1 = ToMatrix3x4( hMat1 );
+
+	MatrixScaleBy( flScale, *pMat1 );
+}
+
+void ScriptMatrixScaleByZero( HSCRIPT hMat1 )
+{
+	if (!hMat1)
+		return;
+
+	matrix3x4_t *pMat1 = ToMatrix3x4( hMat1 );
+
+	MatrixScaleByZero( *pMat1 );
+}
+
+const Vector& ScriptMatrixGetTranslation( HSCRIPT hMat1 )
+{
+	static Vector outvec;
+	outvec.Zero();
+	if (!hMat1)
+		return outvec;
+
+	matrix3x4_t *pMat1 = ToMatrix3x4( hMat1 );
+
+	MatrixGetTranslation( *pMat1, outvec );
+	return outvec;
+}
+
+void ScriptMatrixSetTranslation( const Vector& vecset, HSCRIPT hMat1 )
+{
+	if (!hMat1)
+		return;
+
+	matrix3x4_t *pMat1 = ToMatrix3x4( hMat1 );
+
+	MatrixSetTranslation( vecset, *pMat1 );
+}
+
 //=============================================================================
 //
 // Quaternion
@@ -181,7 +223,7 @@ END_SCRIPTDESC();
 bool CScriptQuaternionInstanceHelper::ToString( void *p, char *pBuf, int bufSize )
 {
 	Quaternion *pQuat = ((Quaternion *)p);
-	V_snprintf( pBuf, bufSize, "(quaternion: (%f, %f, %f, %f))", pQuat->x, pQuat->y, pQuat->z, pQuat->w );
+	V_snprintf( pBuf, bufSize, "(Quaternion %p [%f %f %f %f])", (void*)pQuat, pQuat->x, pQuat->y, pQuat->z, pQuat->w );
 	return true; 
 }
 
@@ -390,6 +432,11 @@ float ScriptCalcDistanceToLineSegment( const Vector &point, const Vector &vLineA
 	return CalcDistanceToLineSegment( point, vLineA, vLineB );
 }
 
+inline float ScriptExponentialDecay( float decayTo, float decayTime, float dt )
+{
+	return ExponentialDecay( decayTo, decayTime, dt );
+}
+
 void RegisterMathBaseBindings( IScriptVM *pVM )
 {
 	ScriptRegisterConstantNamed( pVM, ((float)(180.f / M_PI_F)), "RAD2DEG", "" );
@@ -422,7 +469,11 @@ void RegisterMathBaseBindings( IScriptVM *pVM )
 	ScriptRegisterFunctionNamed( pVM, ScriptAngleMatrix, "AngleMatrix", "Sets the angles and position of a matrix." );
 	ScriptRegisterFunctionNamed( pVM, ScriptAngleIMatrix, "AngleIMatrix", "Sets the inverted angles and position of a matrix." );
 	ScriptRegisterFunctionNamed( pVM, ScriptSetIdentityMatrix, "SetIdentityMatrix", "Turns a matrix into an identity matrix." );
-	ScriptRegisterFunctionNamed( pVM, ScriptSetScaleMatrix, "SetScaleMatrix", "Scales a matrix." );
+	ScriptRegisterFunctionNamed( pVM, ScriptSetScaleMatrix, "SetScaleMatrix", "Builds a scale matrix." );
+	ScriptRegisterFunctionNamed( pVM, ScriptMatrixScaleBy, "MatrixScaleBy", "Scales a matrix." );
+	ScriptRegisterFunctionNamed( pVM, ScriptMatrixScaleByZero, "MatrixScaleByZero", "Scales a matrix by zero." );
+	ScriptRegisterFunctionNamed( pVM, ScriptMatrixGetTranslation, "MatrixGetTranslation", "Gets a matrix's translation." );
+	ScriptRegisterFunctionNamed( pVM, ScriptMatrixSetTranslation, "MatrixSetTranslation", "Sets a matrix's translation." );
 
 	// 
 	// Quaternion
@@ -453,4 +504,12 @@ void RegisterMathBaseBindings( IScriptVM *pVM )
 	ScriptRegisterFunctionNamed( pVM, ScriptCalcClosestPointOnLine, "CalcClosestPointOnLine", "Returns the closest point on a line." );
 	ScriptRegisterFunctionNamed( pVM, ScriptCalcDistanceToLineSegment, "CalcDistanceToLineSegment", "Returns the distance to a line segment." );
 	ScriptRegisterFunctionNamed( pVM, ScriptCalcClosestPointOnLineSegment, "CalcClosestPointOnLineSegment", "Returns the closest point on a line segment." );
+
+	ScriptRegisterFunction( pVM, SimpleSplineRemapVal, "remaps a value in [startInterval, startInterval+rangeInterval] from linear to spline using SimpleSpline" );
+	ScriptRegisterFunction( pVM, SimpleSplineRemapValClamped, "remaps a value in [startInterval, startInterval+rangeInterval] from linear to spline using SimpleSpline" );
+	ScriptRegisterFunction( pVM, Bias, "The curve is biased towards 0 or 1 based on biasAmt, which is between 0 and 1." );
+	ScriptRegisterFunction( pVM, Gain, "Gain is similar to Bias, but biasAmt biases towards or away from 0.5." );
+	ScriptRegisterFunction( pVM, SmoothCurve, "SmoothCurve maps a 0-1 value into another 0-1 value based on a cosine wave" );
+	ScriptRegisterFunction( pVM, SmoothCurve_Tweak, "SmoothCurve peaks at flPeakPos, flPeakSharpness controls the sharpness of the peak" );
+	ScriptRegisterFunctionNamed( pVM, ScriptExponentialDecay, "ExponentialDecay", "decayTo is factor the value should decay to in decayTime" );
 }

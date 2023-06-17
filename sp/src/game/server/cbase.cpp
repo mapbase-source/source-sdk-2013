@@ -850,7 +850,7 @@ void CEventQueue::Dump( void )
 // Purpose: adds the action into the correct spot in the priority queue, targeting entity via string name
 //-----------------------------------------------------------------------------
 #ifdef MAPBASE_VSCRIPT
-intptr_t
+int
 #else
 void
 #endif
@@ -874,6 +874,7 @@ CEventQueue::AddEvent( const char *target, const char *targetInput, variant_t Va
 	AddEvent( newEvent );
 
 #ifdef MAPBASE_VSCRIPT
+	Assert( sizeof(EventQueuePrioritizedEvent_t*) == sizeof(int) );
 	return reinterpret_cast<intptr_t>(newEvent);  // POINTER_TO_INT
 #endif
 }
@@ -882,7 +883,7 @@ CEventQueue::AddEvent( const char *target, const char *targetInput, variant_t Va
 // Purpose: adds the action into the correct spot in the priority queue, targeting entity via pointer
 //-----------------------------------------------------------------------------
 #ifdef MAPBASE_VSCRIPT
-intptr_t
+int
 #else
 void
 #endif
@@ -906,7 +907,8 @@ CEventQueue::AddEvent( CBaseEntity *target, const char *targetInput, variant_t V
 	AddEvent( newEvent );
 
 #ifdef MAPBASE_VSCRIPT
-	return reinterpret_cast<intptr_t>(newEvent);
+	Assert( sizeof(EventQueuePrioritizedEvent_t*) == sizeof(int) );
+	return reinterpret_cast<intptr_t>(newEvent); // POINTER_TO_INT
 #endif
 }
 
@@ -985,83 +987,31 @@ void CEventQueue::ServiceEvents( void )
 			// In the context the event, the searching entity is also the caller
 			CBaseEntity *pSearchingEntity = pe->m_pCaller;
 #ifdef MAPBASE
-			//===============================================================
-			// 
-			// This is the code that the I/O system uses to look for its targets.
-			// 
-			// I wanted a good way to access a COutputEHANDLE's handle parameter.
-			// Sure, you could do it through logic_register_activator, but what if that's not good enough?
-			// 
-			// Basic gEntList searches, which this originally used, would require extra implementation for another entity pointer to be passed.
-			// Without changing the way entity searching works, I just created a custom version of it here.
-			// 
-			// Yes, all of this for mere "!output" support.
-			// 
-			// I don't think there's much harm in this anyway. It's functionally identical and might even run a few nanoseconds faster
-			// since we don't need to check for filters or call the same loop over and over again.
-			// 
-			//===============================================================
-			const char *szName = STRING(pe->m_iTarget);
-			if ( szName[0] == '!' )
+			// This is a hack to access the entity from a FIELD_EHANDLE input
+			if ( FStrEq( STRING( pe->m_iTarget ), "!output" ) )
 			{
-				CBaseEntity *target = gEntList.FindEntityProcedural( szName, pSearchingEntity, pe->m_pActivator, pe->m_pCaller );
+				pe->m_VariantValue.Convert( FIELD_EHANDLE );
+				CBaseEntity *target = pe->m_VariantValue.Entity();
 
-				if (!target)
+				// pump the action into the target
+				target->AcceptInput( STRING( pe->m_iTargetInput ), pe->m_pActivator, pe->m_pCaller, pe->m_VariantValue, pe->m_iOutputID );
+				targetFound = true;
+			}
+			else
+#endif
+			{
+				CBaseEntity *target = NULL;
+				while ( 1 )
 				{
-					// Here's the !output I was talking about.
-					// It only checks for it if we're looking for a procedural entity ('!' confirmed)
-					// and we didn't find one from FindEntityProcedural.
-					if (FStrEq(szName, "!output"))
-					{
-						pe->m_VariantValue.Convert( FIELD_EHANDLE );
-						target = pe->m_VariantValue.Entity();
-					}
-				}
+					target = gEntList.FindEntityByName( target, pe->m_iTarget, pSearchingEntity, pe->m_pActivator, pe->m_pCaller );
+					if ( !target )
+						break;
 
-				if (target)
-				{
 					// pump the action into the target
 					target->AcceptInput( STRING(pe->m_iTargetInput), pe->m_pActivator, pe->m_pCaller, pe->m_VariantValue, pe->m_iOutputID );
 					targetFound = true;
 				}
 			}
-			else
-			{
-				const CEntInfo *pInfo = gEntList.FirstEntInfo();
-
-				for ( ;pInfo; pInfo = pInfo->m_pNext )
-				{
-					CBaseEntity *ent = (CBaseEntity *)pInfo->m_pEntity;
-					if ( !ent )
-					{
-						DevWarning( "NULL entity in global entity list!\n" );
-						continue;
-					}
-
-					if ( !ent->GetEntityName() )
-						continue;
-
-					if ( ent->NameMatches( szName ) )
-					{
-						// pump the action into the target
-						ent->AcceptInput( STRING(pe->m_iTargetInput), pe->m_pActivator, pe->m_pCaller, pe->m_VariantValue, pe->m_iOutputID );
-						targetFound = true;
-					}
-				}
-			}
-#else
-			CBaseEntity *target = NULL;
-			while ( 1 )
-			{
-				target = gEntList.FindEntityByName( target, pe->m_iTarget, pSearchingEntity, pe->m_pActivator, pe->m_pCaller );
-				if ( !target )
-					break;
-
-				// pump the action into the target
-				target->AcceptInput( STRING(pe->m_iTargetInput), pe->m_pActivator, pe->m_pCaller, pe->m_VariantValue, pe->m_iOutputID );
-				targetFound = true;
-			}
-#endif
 		}
 
 		// direct pointer
@@ -1257,7 +1207,10 @@ void ServiceEventQueue( void )
 
 #ifdef MAPBASE_VSCRIPT
 //-----------------------------------------------------------------------------
-// Remove events on entity by input.
+// Remove pending events on entity by input.
+//
+// Also removes events that were targeted with their debug name (classname when unnamed).
+// E.g. CancelEventsByInput( pRelay, "Trigger" ) removes all pending logic_relay "Trigger" events.
 //-----------------------------------------------------------------------------
 void CEventQueue::CancelEventsByInput( CBaseEntity *pTarget, const char *szInput )
 {
@@ -1290,11 +1243,8 @@ void CEventQueue::CancelEventsByInput( CBaseEntity *pTarget, const char *szInput
 	}
 }
 
-bool CEventQueue::RemoveEvent( intptr_t event )
+bool CEventQueue::RemoveEvent( int event )
 {
-	if ( !event )
-		return false;
-
 	EventQueuePrioritizedEvent_t *pe = reinterpret_cast<EventQueuePrioritizedEvent_t*>(event); // INT_TO_POINTER
 
 	for ( EventQueuePrioritizedEvent_t *pCur = m_Events.m_pNext; pCur; pCur = pCur->m_pNext )
@@ -1310,11 +1260,8 @@ bool CEventQueue::RemoveEvent( intptr_t event )
 	return false;
 }
 
-float CEventQueue::GetTimeLeft( intptr_t event )
+float CEventQueue::GetTimeLeft( int event )
 {
-	if ( !event )
-		return 0.f;
-
 	EventQueuePrioritizedEvent_t *pe = reinterpret_cast<EventQueuePrioritizedEvent_t*>(event); // INT_TO_POINTER
 
 	for ( EventQueuePrioritizedEvent_t *pCur = m_Events.m_pNext; pCur; pCur = pCur->m_pNext )

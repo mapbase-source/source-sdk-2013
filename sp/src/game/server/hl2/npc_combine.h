@@ -59,7 +59,7 @@ public:
 	// Create components
 	virtual bool	CreateComponents();
 
-#ifndef MAPBASE
+#ifndef MAPBASE // CAI_GrenadeUser
 	bool			CanThrowGrenade( const Vector &vecTarget );
 	bool			CheckCanThrowGrenade( const Vector &vecTarget );
 #endif
@@ -118,7 +118,7 @@ public:
 	const char*		GetGrenadeAttachment() { return "lefthand"; }
 #else
 #endif
-#ifndef MAPBASE
+#ifndef MAPBASE // CAI_GrenadeUser
 	void			DelayAltFireAttack( float flDelay );
 	void			DelaySquadAltFireAttack( float flDelay );
 #endif
@@ -131,7 +131,7 @@ public:
 	Vector			EyeOffset( Activity nActivity );
 	Vector			EyePosition( void );
 	Vector			BodyTarget( const Vector &posSrc, bool bNoisy = true );
-#ifndef MAPBASE
+#ifndef MAPBASE // CAI_GrenadeUser
 	Vector			GetAltFireTarget();
 #endif
 
@@ -319,7 +319,7 @@ private:
 
 private:
 	int				m_nKickDamage;
-#ifndef MAPBASE
+#ifndef MAPBASE // CAI_GrenadeUser
 	Vector			m_vecTossVelocity;
 	EHANDLE			m_hForcedGrenadeTarget;
 #else
@@ -333,12 +333,12 @@ private:
 	// Time Variables
 	float			m_flNextPainSoundTime;
 	float			m_flNextAlertSoundTime;
-#ifndef MAPBASE
+#ifndef MAPBASE // CAI_GrenadeUser
 	float			m_flNextGrenadeCheck;	
 #endif
 	float			m_flNextLostSoundTime;
 	float			m_flAlertPatrolTime;		// When to stop doing alert patrol
-#ifndef MAPBASE
+#ifndef MAPBASE // CAI_GrenadeUser
 	float			m_flNextAltFireTime;		// Elites only. Next time to begin considering alt-fire attack.
 #endif
 
@@ -350,7 +350,7 @@ private:
 	CAI_Sentence< CNPC_Combine > m_Sentences;
 #endif
 
-#ifndef MAPBASE
+#ifndef MAPBASE // CAI_GrenadeUser
 	int			m_iNumGrenades;
 #endif
 	CAI_AssaultBehavior			m_AssaultBehavior;
@@ -364,9 +364,11 @@ private:
 #endif
 
 public:
+#ifndef MAPBASE // CAI_GrenadeUser
 	int				m_iLastAnimEventHandled;
+#endif
 	bool			m_fIsElite;
-#ifndef MAPBASE
+#ifndef MAPBASE // CAI_GrenadeUser
 	Vector			m_vecAltFireTarget;
 #endif
 

@@ -11,6 +11,7 @@
 #include "vbsp.h"
 #include "map.h"
 #include "fgdlib/fgdlib.h"
+#include "convar.h"
 
 #include "vscript_vbsp.h"
 #include "vscript_vbsp.nut"
@@ -41,6 +42,9 @@ extern ScriptClassDesc_t * GetScriptDesc( CBaseEntity * );
 // This is to ensure a dependency exists between the vscript library and the game DLLs
 extern int vscript_token;
 int vscript_token_hack = vscript_token;
+
+// HACKHACK: VScript library relies on developer convar existing
+ConVar developer( "developer", "1", 0, "Set developer message level." ); // developer mode
 
 HSCRIPT VScriptCompileScript( const char *pszScriptName, bool bWarnMissing )
 {
@@ -165,6 +169,8 @@ bool VScriptRunScript( const char *pszScriptName, HSCRIPT hScope, bool bWarnMiss
 	return bSuccess;
 }
 
+ScriptHook_t	CMapFile::g_Hook_OnMapLoaded;
+
 BEGIN_SCRIPTDESC_ROOT( CMapFile, "Map file" )
 
 	DEFINE_SCRIPTFUNC( GetMins, "Get the map's mins." )
@@ -181,7 +187,34 @@ BEGIN_SCRIPTDESC_ROOT( CMapFile, "Map file" )
 
 	DEFINE_SCRIPTFUNC( GetNumEntities, "Get the number of entities in the map." )
 
+	// 
+	// Hooks
+	// 
+	DEFINE_SIMPLE_SCRIPTHOOK( CMapFile::g_Hook_OnMapLoaded, "OnMapLoaded", FIELD_VOID, "Called when the NPC is deciding whether to hear a CSound or not." )
+
 END_SCRIPTDESC();
+
+
+static float cvar_getf( const char* sz )
+{
+	ConVarRef cvar(sz);
+	if ( cvar.IsFlagSet( FCVAR_SERVER_CANNOT_QUERY ) )
+		return NULL;
+	return cvar.GetFloat();
+}
+
+static bool cvar_setf( const char* sz, float val )
+{
+	ConVarRef cvar(sz);
+	if ( !cvar.IsValid() )
+		return false;
+
+	if ( cvar.IsFlagSet( FCVAR_SERVER_CANNOT_QUERY ) )
+		return false;
+
+	cvar.SetValue(val);
+	return true;
+}
 
 static const char *GetSource()
 {
@@ -243,6 +276,9 @@ bool VScriptVBSPInit()
 		if( g_pScriptVM )
 		{
 			Log( "VSCRIPT VBSP: Started VScript virtual machine using script language '%s'\n", g_pScriptVM->GetLanguageName() );
+
+			ScriptRegisterFunction( g_pScriptVM, cvar_getf, "Gets the value of the given cvar, as a float." );
+			ScriptRegisterFunction( g_pScriptVM, cvar_setf, "Sets the value of the given cvar, as a float." );
 
 			ScriptRegisterFunction( g_pScriptVM, GetSource, "Gets the base directory of the first map loaded." );
 			ScriptRegisterFunction( g_pScriptVM, GetMapBase, "Gets the base name of the first map loaded." );

@@ -908,7 +908,7 @@ bool CZombie::IsSquashed( const CTakeDamageInfo &info )
 		return false;
 	}
 
-	if( info.GetDamageType() & DMG_CRUSH )
+	if( info.GetDamageType() & DMG_CRUSH && info.GetInflictor() ) // Mapbase - Fixes a crash with inflictor-less crush damage
 	{
 		IPhysicsObject *pCrusher = info.GetInflictor()->VPhysicsGetObject();
 		if( pCrusher && pCrusher->GetMass() >= ZOMBIE_SQUASH_MASS && info.GetInflictor()->WorldSpaceCenter().z > EyePosition().z )
@@ -1210,16 +1210,28 @@ const char *CZombieCustom::GetMoanSound( int nSound )
 	// We could probably do this through the response system alone now, but whatever.
 	modifiers.AppendCriteria( "moansound", UTIL_VarArgs("%i", nSound & 4) );
 
+#ifdef NEW_RESPONSE_SYSTEM
+	AI_Response response;
+	CAI_Concept concept = "TLK_ZOMBIE_MOAN";
+	concept.SetSpeaker( this );
+	if (!FindResponse( response, concept, &modifiers ))
+		return "NPC_BaseZombie.Moan1";
+#else
 	AI_Response *response = SpeakFindResponse(TLK_ZOMBIE_MOAN, modifiers);
 
 	if ( !response )
 		return "NPC_BaseZombie.Moan1";
+#endif
 
 	// Must be static so it could be returned
 	static char szSound[128];
+#ifdef NEW_RESPONSE_SYSTEM
+	response.GetName(szSound, sizeof(szSound));
+#else
 	response->GetName(szSound, sizeof(szSound));
-
 	delete response;
+#endif
+
 	return szSound;
 }
 
@@ -1251,7 +1263,8 @@ void CZombieCustom::AttackSound( void )
 //-----------------------------------------------------------------------------
 void CZombieCustom::SpeakIfAllowed(const char *concept, AI_CriteriaSet *modifiers)
 {
-	Speak( concept, modifiers ? *modifiers : AI_CriteriaSet() );
+	AI_CriteriaSet empty;
+	Speak( concept, modifiers ? *modifiers : empty );
 }
 
 //-----------------------------------------------------------------------------

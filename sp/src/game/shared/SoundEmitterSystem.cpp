@@ -132,6 +132,21 @@ void Hack_FixEscapeChars( char *str )
 
 #ifdef MAPBASE
 static const ConVar *pHostTimescale;
+static ConVar host_pitchscale( "host_pitchscale", "-1", FCVAR_REPLICATED, "If greater than 0, controls the pitch scale of sounds instead of host_timescale." );
+
+static float GetSoundPitchScale()
+{
+	static ConVarRef sv_cheats( "sv_cheats" );
+	if (sv_cheats.GetBool())
+	{
+		if (host_pitchscale.GetFloat() > 0.0f)
+			return host_pitchscale.GetFloat();
+		else
+			return pHostTimescale->GetFloat();
+	}
+
+	return 1.0f;
+}
 #endif
 
 //-----------------------------------------------------------------------------
@@ -543,7 +558,7 @@ public:
 			(soundlevel_t)params.soundlevel,
 			ep.m_nFlags,
 #ifdef MAPBASE
-			pHostTimescale->GetFloat() != 0.0f ? params.pitch * pHostTimescale->GetFloat() : params.pitch,
+			params.pitch * GetSoundPitchScale(),
 #else
 			params.pitch,
 #endif
@@ -626,7 +641,7 @@ public:
 				ep.m_SoundLevel, 
 				ep.m_nFlags, 
 #ifdef MAPBASE
-				pHostTimescale->GetFloat() != 0.0f ? ep.m_nPitch * pHostTimescale->GetFloat() : ep.m_nPitch,
+				ep.m_nPitch * GetSoundPitchScale(),
 #else
 				ep.m_nPitch, 
 #endif
@@ -852,10 +867,7 @@ public:
 		}
 
 #ifdef MAPBASE
-		if ( pHostTimescale->GetFloat() != 0.0f )
-		{
-			params.pitch *= pHostTimescale->GetFloat();
-		}
+		params.pitch *= GetSoundPitchScale();
 #endif
 
 #if defined( CLIENT_DLL )
@@ -987,10 +999,7 @@ public:
 		if ( pSample && ( Q_stristr( pSample, ".wav" ) || Q_stristr( pSample, ".mp3" )) )
 		{
 #ifdef MAPBASE
-			if ( pHostTimescale->GetFloat() != 0.0f )
-			{
-				pitch *= pHostTimescale->GetFloat();
-			}
+			pitch *= GetSoundPitchScale();
 #endif
 
 #if defined( CLIENT_DLL )
@@ -1229,6 +1238,11 @@ void CBaseEntity::ScriptEmitSound( const char *soundname )
 	EmitSound( soundname );
 }
 
+void CBaseEntity::ScriptStopSound( const char *soundname )
+{
+	StopSound( soundname );
+}
+
 float CBaseEntity::ScriptSoundDuration( const char *soundname, const char *actormodel )
 {
 	float duration = CBaseEntity::GetSoundDuration( soundname, actormodel );
@@ -1412,6 +1426,52 @@ void CBaseEntity::EmitAmbientSound( int entindex, const Vector& origin, const ch
 int SENTENCEG_Lookup(const char *sample)
 {
 	return engine->SentenceIndexFromName( sample + 1 );
+}
+#endif
+
+#if defined(MAPBASE) && defined(GAME_DLL)
+//-----------------------------------------------------------------------------
+// Purpose: Wrapper to emit a sentence and also a close caption token for the sentence as appropriate.
+// Input  : filter - 
+//			iEntIndex - 
+//			iChannel - 
+//			iSentenceIndex - 
+//			flVolume - 
+//			iSoundlevel - 
+//			iFlags - 
+//			iPitch - 
+//			bUpdatePositions - 
+//			soundtime - 
+//-----------------------------------------------------------------------------
+void CBaseEntity::EmitSentenceByIndex( IRecipientFilter& filter, int iEntIndex, int iChannel, int iSentenceIndex, 
+	float flVolume, soundlevel_t iSoundlevel, int iFlags /*= 0*/, int iPitch /*=PITCH_NORM*/,
+	const Vector *pOrigin /*=NULL*/, const Vector *pDirection /*=NULL*/, 
+	bool bUpdatePositions /*=true*/, float soundtime /*=0.0f*/, int iSpecialDSP /*= 0*/, int iSpeakerIndex /*= 0*/ )
+{
+	CUtlVector< Vector > soundOrigins;
+
+	bool bSwallowed = CEnvMicrophone::OnSentencePlayed( 
+		iEntIndex, 
+		iSentenceIndex, 
+		iSoundlevel, 
+		flVolume, 
+		iFlags, 
+		iPitch, 
+		pOrigin, 
+		soundtime,
+		soundOrigins );
+	if ( bSwallowed )
+		return;
+	
+	CBaseEntity *pEntity = UTIL_EntityByIndex( iEntIndex );
+	if ( pEntity )
+	{
+		pEntity->ModifySentenceParams( iSentenceIndex, iChannel, flVolume, iSoundlevel, iFlags, iPitch,
+			&pOrigin, &pDirection, bUpdatePositions, soundtime, iSpecialDSP, iSpeakerIndex );
+	}
+
+	enginesound->EmitSentenceByIndex( filter, iEntIndex, iChannel, iSentenceIndex, 
+		flVolume, iSoundlevel, iFlags, iPitch * GetSoundPitchScale(), iSpecialDSP, pOrigin, pDirection, &soundOrigins, bUpdatePositions, soundtime, iSpeakerIndex );
 }
 #endif
 

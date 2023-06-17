@@ -266,7 +266,7 @@ void CNPC_Barnacle::Spawn()
 {
 	Precache( );
 
-	SetModel( "models/barnacle.mdl" );
+	SetModel( DefaultOrCustomModel( "models/barnacle.mdl" ) );
 	UTIL_SetSize( this, Vector(-16, -16, -40), Vector(16, 16, 0) );
 
 	SetSolid( SOLID_BBOX );
@@ -688,6 +688,12 @@ bool CNPC_Barnacle::CanPickup( CBaseCombatCharacter *pBCC )
 	// Don't pickup turrets
 	if( FClassnameIs( pBCC, "npc_turret_floor" ) )
 		return false;
+
+#ifdef MAPBASE
+	// Don't pickup rollermines
+	if( FClassnameIs( pBCC, "npc_rollermine" ) )
+		return false;
+#endif
 
 	// Don't pick up a dead player or NPC
 	if( !pBCC->IsAlive() )
@@ -2375,7 +2381,7 @@ const impactdamagetable_t &CNPC_Barnacle::GetPhysicsImpactDamageTable( void )
 //=========================================================
 void CNPC_Barnacle::Precache()
 {
-	PrecacheModel("models/barnacle.mdl");
+	PrecacheModel( DefaultOrCustomModel( "models/barnacle.mdl" ) );
 
 	// Precache all gibs
 	for ( int i=0; i < ARRAYSIZE(m_szGibNames); i++ )

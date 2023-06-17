@@ -5,13 +5,15 @@ static char g_Script_vscript_server[] = R"vscript(
 //
 //=============================================================================
 
+local DoEntFire = DoEntFire
+local DoEntFireByInstanceHandle = DoEntFireByInstanceHandle
+local DoDispatchParticleEffect = DoDispatchParticleEffect
+local DoUniqueString = DoUniqueString
+
 function UniqueString( string = "" )
 {
-	return ::DoUniqueString( string.tostring() );
+	return DoUniqueString( "" + string );
 }
-
-local DoEntFire = ::DoEntFire
-local DoEntFireByInstanceHandle = ::DoEntFireByInstanceHandle
 
 function EntFire( target, action, value = null, delay = 0.0, activator = null, caller = null )
 {
@@ -33,7 +35,7 @@ function EntFire( target, action, value = null, delay = 0.0, activator = null, c
 		}
 	}
 
-	return DoEntFire( target.tostring(), action.tostring(), value.tostring(), delay, activator, caller );
+	return DoEntFire( "" + target, "" + action, "" + value, delay, activator, caller );
 }
 
 function EntFireByHandle( target, action, value = null, delay = 0.0, activator = null, caller = null )
@@ -56,21 +58,31 @@ function EntFireByHandle( target, action, value = null, delay = 0.0, activator =
 		}
 	}
 
-	return DoEntFireByInstanceHandle( target, action.tostring(), value.tostring(), delay, activator, caller );
+	return DoEntFireByInstanceHandle( target, "" + action, "" + value, delay, activator, caller );
 }
 
 function DispatchParticleEffect( particleName, origin, angles, entity = null )
 {
-	DoDispatchParticleEffect( particleName, origin, angles, entity );
+	return DoDispatchParticleEffect( particleName, origin, angles, entity );
 }
 
-// CConvars is declared within the library
-function CConvars::GetClientConvarValue(cvar,idx)
+function ImpulseScale( flTargetMass, flDesiredSpeed )
 {
-	return ::ScriptGetClientConvarValue(cvar,idx);
+	return flTargetMass * flDesiredSpeed;
+}
+__Documentation.RegisterHelp( "ImpulseScale", "float ImpulseScale(float, float)", "Returns an impulse scale required to push an object." );
+
+local PrecacheModel = PrecacheModel
+function PrecacheModel( a, b = true )
+{
+    return PrecacheModel( a, b )
 }
 
-RegisterHelp( "CConvars::GetClientConvarValue", "CConvars::GetClientConvarValue(string, int)", "Returns the convar value for the entindex as a string. Only works with client convars with the FCVAR_USERINFO flag." );
+local PrecacheOther = PrecacheOther
+function PrecacheOther( a, b = "" )
+{
+    PrecacheOther( a, b )
+}
 
 function __ReplaceClosures( script, scope )
 {
@@ -81,7 +93,7 @@ function __ReplaceClosures( script, scope )
 
 	local tempParent = { getroottable = function() { return null; } };
 	local temp = { runscript = script };
-	temp.set_delegate(tempParent);
+	temp.setdelegate(tempParent);
 
 	temp.runscript()
 	foreach( key,val in temp )

@@ -450,6 +450,11 @@ protected:
 
 	bool m_bSolidBsp;				// Brush is SOLID_BSP
 
+#ifdef MAPBASE
+	int		m_iMinPitch = 30; // FANPITCHMIN
+	int		m_iMaxPitch = 100; // FANPITCHMAX
+#endif
+
 public:
 	Vector m_vecClientOrigin;
 	QAngle m_vecClientAngles;
@@ -472,6 +477,10 @@ BEGIN_DATADESC( CFuncRotating )
 	DEFINE_FIELD( m_angStart, FIELD_VECTOR ),
 	DEFINE_FIELD( m_bStopAtStartPos, FIELD_BOOLEAN ),
 	DEFINE_KEYFIELD( m_bSolidBsp, FIELD_BOOLEAN, "solidbsp" ),
+#ifdef MAPBASE
+	DEFINE_KEYFIELD( m_iMinPitch, FIELD_INTEGER, "minpitch" ),
+	DEFINE_KEYFIELD( m_iMaxPitch, FIELD_INTEGER, "maxpitch" ),
+#endif
 
 	// Function Pointers
 	DEFINE_FUNCTION( SpinUpMove ),
@@ -823,8 +832,14 @@ void CFuncRotating::HurtTouch ( CBaseEntity *pOther )
 }
 
 
+#ifdef MAPBASE
+// In Mapbase, use the keyvalues instead
+#define FANPITCHMIN		m_iMinPitch
+#define FANPITCHMAX		m_iMaxPitch
+#else
 #define FANPITCHMIN		30
 #define FANPITCHMAX		100
+#endif
 
 
 //-----------------------------------------------------------------------------
@@ -960,18 +975,6 @@ void CFuncRotating::UpdateSpeed( float flNewSpeed )
 		RampPitchVol();
 	}
 
-#ifdef MAPBASE
-	QAngle angNormalizedAngles = GetLocalAngles();
-	if (m_vecMoveAng.x)
-		angNormalizedAngles.x = AngleNormalize( angNormalizedAngles.x );
-	if (m_vecMoveAng.y)
-		angNormalizedAngles.y = AngleNormalize( angNormalizedAngles.y );
-	if (m_vecMoveAng.z)
-		angNormalizedAngles.z = AngleNormalize( angNormalizedAngles.z );
-
-	SetLocalAngles(angNormalizedAngles);
-#endif
-
 	SetLocalAngularVelocity( m_vecMoveAng * m_flSpeed );
 }
 
@@ -1101,6 +1104,18 @@ void CFuncRotating::ReverseMove( void )
 void CFuncRotating::RotateMove( void )
 {
 	SetMoveDoneTime( 10 );
+
+#ifdef MAPBASE
+	QAngle angNormalizedAngles = GetLocalAngles();
+	if (m_vecMoveAng.x)
+		angNormalizedAngles.x = AngleNormalize( angNormalizedAngles.x );
+	if (m_vecMoveAng.y)
+		angNormalizedAngles.y = AngleNormalize( angNormalizedAngles.y );
+	if (m_vecMoveAng.z)
+		angNormalizedAngles.z = AngleNormalize( angNormalizedAngles.z );
+
+	SetLocalAngles(angNormalizedAngles);
+#endif
 
 	if ( m_bStopAtStartPos )
 	{

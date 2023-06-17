@@ -76,6 +76,7 @@
 
 #ifdef MAPBASE
 #include "mapbase/c_func_fake_worldportal.h"
+#include "colorcorrectionmgr.h"
 #endif
 
 // Projective textures
@@ -407,10 +408,6 @@ protected:
 
 	void			Enable3dSkyboxFog( void );
 	void			DrawInternal( view_id_t iSkyBoxViewID, bool bInvokePreAndPostRender, ITexture *pRenderTarget, ITexture *pDepthTarget );
-
-#ifdef MAPBASE
-	void			CalculateSkyAngles( const QAngle &angAngles );
-#endif
 
 	sky3dparams_t *	PreRender3dSkyboxWorld( SkyboxVisibility_t nSkyboxVisible );
 
@@ -1218,6 +1215,73 @@ IMaterial *CViewRender::GetScreenOverlayMaterial( )
 }
 
 
+#ifdef MAPBASE
+//-----------------------------------------------------------------------------
+// Purpose: Sets the screen space effect material (can't be done during rendering)
+//-----------------------------------------------------------------------------
+void CViewRender::SetIndexedScreenOverlayMaterial( int i, IMaterial *pMaterial )
+{
+	if (i < 0 || i >= MAX_SCREEN_OVERLAYS)
+		return;
+
+	m_IndexedScreenOverlayMaterials[i].Init( pMaterial );
+
+	if (pMaterial == NULL)
+	{
+		// Check if we should set to false
+		int i;
+		for (i = 0; i < MAX_SCREEN_OVERLAYS; i++)
+		{
+			if (m_IndexedScreenOverlayMaterials[i] != NULL)
+				break;
+		}
+
+		if (i == MAX_SCREEN_OVERLAYS)
+			m_bUsingIndexedScreenOverlays = false;
+	}
+	else
+	{
+		m_bUsingIndexedScreenOverlays = true;
+	}
+}
+
+
+//-----------------------------------------------------------------------------
+// 
+//-----------------------------------------------------------------------------
+IMaterial *CViewRender::GetIndexedScreenOverlayMaterial( int i )
+{
+	if (i < 0 || i >= MAX_SCREEN_OVERLAYS)
+		return NULL;
+
+	return m_IndexedScreenOverlayMaterials[i];
+}
+
+
+//-----------------------------------------------------------------------------
+// 
+//-----------------------------------------------------------------------------
+void CViewRender::ResetIndexedScreenOverlays()
+{
+	for (int i = 0; i < MAX_SCREEN_OVERLAYS; i++)
+	{
+		m_IndexedScreenOverlayMaterials[i].Init( NULL );
+	}
+
+	m_bUsingIndexedScreenOverlays = false;
+}
+
+
+//-----------------------------------------------------------------------------
+// 
+//-----------------------------------------------------------------------------
+int CViewRender::GetMaxIndexedScreenOverlays( ) const
+{
+	return MAX_SCREEN_OVERLAYS;
+}
+#endif
+
+
 //-----------------------------------------------------------------------------
 // Purpose: Performs screen space effects, if any
 //-----------------------------------------------------------------------------
@@ -1254,6 +1318,44 @@ void CViewRender::PerformScreenOverlay( int x, int y, int w, int h )
 			render->ViewDrawFade( color, m_ScreenOverlayMaterial );
 		}
 	}
+
+#ifdef MAPBASE
+	if (m_bUsingIndexedScreenOverlays)
+	{
+		for (int i = 0; i < MAX_SCREEN_OVERLAYS; i++)
+		{
+			if (!m_IndexedScreenOverlayMaterials[i])
+				continue;
+
+			tmZone( TELEMETRY_LEVEL0, TMZF_NONE, "%s", __FUNCTION__ );
+
+			if ( m_IndexedScreenOverlayMaterials[i]->NeedsFullFrameBufferTexture() )
+			{
+				// FIXME: check with multi/sub-rect renders. Should this be 0,0,w,h instead?
+				DrawScreenEffectMaterial( m_IndexedScreenOverlayMaterials[i], x, y, w, h );
+			}
+			else if ( m_IndexedScreenOverlayMaterials[i]->NeedsPowerOfTwoFrameBufferTexture() )
+			{
+				// First copy the FB off to the offscreen texture
+				UpdateRefractTexture( x, y, w, h, true );
+
+				// Now draw the entire screen using the material...
+				CMatRenderContextPtr pRenderContext( materials );
+				ITexture *pTexture = GetPowerOfTwoFrameBufferTexture( );
+				int sw = pTexture->GetActualWidth();
+				int sh = pTexture->GetActualHeight();
+				// Note - don't offset by x,y - already done by the viewport.
+				pRenderContext->DrawScreenSpaceRectangle( m_IndexedScreenOverlayMaterials[i], 0, 0, w, h,
+													 0, 0, sw-1, sh-1, sw, sh );
+			}
+			else
+			{
+				byte color[4] = { 255, 255, 255, 255 };
+				render->ViewDrawFade( color, m_IndexedScreenOverlayMaterials[i] );
+			}
+		}
+	}
+#endif
 }
 
 void CViewRender::DrawUnderwaterOverlay( void )
@@ -2004,19 +2106,18 @@ void CViewRender::RenderView( const CViewSetup &view, int nClearFlags, int whatT
 			Frustum_t frustum;
 			GeneratePerspectiveFrustum( view.origin, view.angles, view.zNear, view.zFar, view.fov, view.m_flAspectRatio, frustum );
 
-			cplane_t portalPlane;
-			//C_FuncFakeWorldPortal *pPortalEnt = IsFakeWorldPortalInView( view, portalPlane );
-			//if ( pPortalEnt )
-			C_FuncFakeWorldPortal *pPortalEnt = NextFakeWorldPortal( NULL, view, portalPlane, frustum );
+			Vector vecAbsPlaneNormal;
+			float flLocalPlaneDist;
+			C_FuncFakeWorldPortal *pPortalEnt = NextFakeWorldPortal( NULL, view, vecAbsPlaneNormal, flLocalPlaneDist, frustum );
 			while ( pPortalEnt != NULL )
 			{
 				ITexture *pCameraTarget = pPortalEnt->RenderTarget();
 				int width = pCameraTarget->GetActualWidth();
 				int height = pCameraTarget->GetActualHeight();
 
-				DrawFakeWorldPortal( pCameraTarget, pPortalEnt, viewMiddle, C_BasePlayer::GetLocalPlayer(), 0, 0, width, height, view, portalPlane );
+				DrawFakeWorldPortal( pCameraTarget, pPortalEnt, viewMiddle, C_BasePlayer::GetLocalPlayer(), 0, 0, width, height, view, vecAbsPlaneNormal, flLocalPlaneDist );
 
-				pPortalEnt = NextFakeWorldPortal( pPortalEnt, view, portalPlane, frustum );
+				pPortalEnt = NextFakeWorldPortal( pPortalEnt, view, vecAbsPlaneNormal, flLocalPlaneDist, frustum );
 			}
 #endif
 		}
@@ -2026,6 +2127,10 @@ void CViewRender::RenderView( const CViewSetup &view, int nClearFlags, int whatT
 
 		// Must be first 
 		render->SceneBegin();
+
+#ifdef MAPBASE // From Alien Swarm SDK
+		g_pColorCorrectionMgr->UpdateColorCorrection();
+#endif
 
 		pRenderContext.GetFrom( materials );
 		pRenderContext->TurnOnToneMapping();
@@ -3430,12 +3535,9 @@ bool CViewRender::DrawOneMonitor( ITexture *pRenderTarget, int cameraNum, C_Poin
 }
 
 #ifdef MAPBASE
-ConVar r_fakeworldportal_debug("r_fakeworldportal_debug", "0");
-
 //-----------------------------------------------------------------------------
 // Purpose: Sets up scene and renders WIP fake world portal view.
-//			Based on code from monitors, mirrors, and 3D skyboxes.
-//			It's also terrible right now.
+//			Based on code from monitors, mirrors, and logic_measure_movement.
 //			
 // Input  : cameraNum - 
 //			&cameraView
@@ -3449,7 +3551,7 @@ ConVar r_fakeworldportal_debug("r_fakeworldportal_debug", "0");
 //-----------------------------------------------------------------------------
 bool CViewRender::DrawFakeWorldPortal( ITexture *pRenderTarget, C_FuncFakeWorldPortal *pCameraEnt, const CViewSetup &cameraView, C_BasePlayer *localPlayer, 
 						int x, int y, int width, int height,
-						const CViewSetup &mainView, cplane_t &ourPlane )
+						const CViewSetup &mainView, const Vector &vecAbsPlaneNormal, float flLocalPlaneDist )
 {
 #ifdef USE_MONITORS
 	VPROF_INCREMENT_COUNTER( "cameras rendered", 1 );
@@ -3480,105 +3582,64 @@ bool CViewRender::DrawFakeWorldPortal( ITexture *pRenderTarget, C_FuncFakeWorldP
 		}
 	}
 
-	monitorView.width = width;
-	monitorView.height = height;
 	monitorView.x = x;
 	monitorView.y = y;
-
-	monitorView.origin = mainView.origin;
-	monitorView.angles = mainView.angles;
-
-	// Temporary debug stuff
-	static float flLastDebugTime = 0.0f;
-	bool bDebug = r_fakeworldportal_debug.GetBool() && gpGlobals->curtime > flLastDebugTime;
-
-	QAngle angTargetAngles = pCameraEnt->m_hTargetPlane->GetAbsAngles() + pCameraEnt->m_PlaneAngles;
-
-	// RED - First origin
-	if (bDebug)
-		debugoverlay->AddBoxOverlay( monitorView.origin, Vector(-32,-32,-32), Vector(32,32,32), monitorView.angles, 255, 0, 0, 128, 10.0f );
-
-	// Make sure the origin and angles are relative to the target plane
-	monitorView.origin -= pCameraEnt->GetAbsOrigin();
-
-	// scale origin by sky scale
-	if ( pCameraEnt->m_flScale > 0 )
-	{
-		float scale = 1.0f / pCameraEnt->m_flScale;
-		VectorScale( monitorView.origin, scale, monitorView.origin );
-	}
-
-	// YELLOW - Main origin
-	if (bDebug)
-		debugoverlay->AddBoxOverlay( pCameraEnt->GetAbsOrigin(), Vector(-32,-32,-32), Vector(32,32,32), monitorView.angles, 255, 224, 0, 128, 10.0f );
-
-	// Make sure our angles are relative to the main plane, just like the origin
-	QAngle angOurAngles;
-	VectorAngles( ourPlane.normal * -1, angOurAngles );
-	//angles -= angOurAngles;
-
-	// First, create a matrix for the sky's angles.
-	matrix3x4_t matSkyAngles;
-	AngleMatrix( angTargetAngles - angOurAngles, matSkyAngles );
-
-	Vector vecSkyForward, vecSkyRight, vecSkyUp;
-
-	// Get vectors from our original angles.
-	Vector vPlayerForward, vPlayerRight, vPlayerUp;
-	AngleVectors( monitorView.angles, &vPlayerForward, &vPlayerRight, &vPlayerUp );
-
-	VectorTransform( vPlayerForward, matSkyAngles, vecSkyForward );
-	VectorTransform( vPlayerRight, matSkyAngles, vecSkyRight );
-	VectorTransform( vPlayerUp, matSkyAngles, vecSkyUp );
-
-	// Normalize them.
-	VectorNormalize( vecSkyForward );
-	VectorNormalize( vecSkyRight );
-	VectorNormalize( vecSkyUp );
-
-	Quaternion quat;
-	BasisToQuaternion( vecSkyForward, vecSkyRight, vecSkyUp, quat );
-	QuaternionAngles( quat, monitorView.angles );
-
-	// End of code mostly lifted from projected texture screenspace stuff
-	// ----------------------------------------------------------------------
-
-	// Now just rotate our origin with that matrix.
-	// We create a copy of the origin since VectorRotate doesn't want in1 to be the same variable as the destination.
-	VectorRotate(Vector(monitorView.origin), matSkyAngles, monitorView.origin);
-
-	// BLUE - Target origin
-	if (bDebug)
-		debugoverlay->AddBoxOverlay( pCameraEnt->m_hTargetPlane->GetAbsOrigin(), Vector(-32,-32,-32), Vector(32,32,32), monitorView.angles, 0, 0, 255, 128, 10.0f );
-
-	monitorView.origin += pCameraEnt->m_hTargetPlane->GetAbsOrigin();
-
-	// GREEN - Final origin
-	if (bDebug)
-	{
-		debugoverlay->AddBoxOverlay( monitorView.origin, Vector(-32,-32,-32), Vector(32,32,32), monitorView.angles, 0, 255, 0, 128, 10.0f );
-
-		flLastDebugTime = gpGlobals->curtime + 5.0f;
-	}
-
-
+	monitorView.width = width;
+	monitorView.height = height;
+	monitorView.m_bOrtho = mainView.m_bOrtho;
 	monitorView.fov = mainView.fov;
-	monitorView.m_bOrtho = false;
-	monitorView.m_flAspectRatio = 0.0f;
+	monitorView.m_flAspectRatio = mainView.m_flAspectRatio;
 	monitorView.m_bViewToProjectionOverride = false;
+
+	matrix3x4_t worldToView;
+	AngleIMatrix( mainView.angles, mainView.origin, worldToView );
+
+	matrix3x4_t targetToWorld;
+	{
+		// NOTE: m_PlaneAngles is angle offset
+		QAngle targetAngles = pCameraEnt->m_hTargetPlane->GetAbsAngles() - pCameraEnt->m_PlaneAngles;
+		AngleMatrix( targetAngles, pCameraEnt->m_hTargetPlane->GetAbsOrigin(), targetToWorld );
+	}
+
+	matrix3x4_t portalToWorld;
+	{
+		Vector left, up;
+		VectorVectors( vecAbsPlaneNormal, left, up );
+		VectorNegate( left );
+		portalToWorld.Init( vecAbsPlaneNormal, left, up, pCameraEnt->GetAbsOrigin() );
+	}
+
+	matrix3x4_t portalToView;
+	ConcatTransforms( worldToView, portalToWorld, portalToView );
+
+	if ( pCameraEnt->m_flScale > 0.0f )
+	{
+		portalToView[0][3] /= pCameraEnt->m_flScale;
+		portalToView[1][3] /= pCameraEnt->m_flScale;
+		portalToView[2][3] /= pCameraEnt->m_flScale;
+	}
+
+	matrix3x4_t viewToPortal;
+	MatrixInvert( portalToView, viewToPortal );
+
+	matrix3x4_t newViewToWorld;
+	ConcatTransforms( targetToWorld, viewToPortal, newViewToWorld );
+
+	MatrixAngles( newViewToWorld, monitorView.angles, monitorView.origin );
+
 
 	// @MULTICORE (toml 8/11/2006): this should be a renderer....
 	int nClearFlags = (VIEW_CLEAR_DEPTH | VIEW_CLEAR_COLOR | VIEW_CLEAR_OBEY_STENCIL);
 	bool bDrew3dSkybox = false;
-	SkyboxVisibility_t nSkyMode = pCameraEnt->SkyMode();
 
 	Frustum frustum;
 	render->Push3DView( monitorView, nClearFlags, pRenderTarget, (VPlane *)frustum );
 
 	// 
-	// Monitor sky handling
+	// Sky handling
 	// 
-	if ( pCameraEnt->SkyMode() == SKYBOX_3DSKYBOX_VISIBLE )
+	SkyboxVisibility_t nSkyMode = pCameraEnt->SkyMode();
+	if ( nSkyMode == SKYBOX_3DSKYBOX_VISIBLE )
 	{
 		// if the 3d skybox world is drawn, then don't draw the normal skybox
 		CSkyboxView *pSkyView = new CSkyboxView( this );
@@ -3591,14 +3652,15 @@ bool CViewRender::DrawFakeWorldPortal( ITexture *pRenderTarget, C_FuncFakeWorldP
 
 	Vector4D plane;
 
-	// Combine the target angles and the plane angles
-	Vector vecAnglesNormal( angTargetAngles.x, angTargetAngles.y, angTargetAngles.z );
-	VectorNormalize( vecAnglesNormal );
-	VectorCopy( vecAnglesNormal, plane.AsVector3D() );
+	// target direction
+	MatrixGetColumn( targetToWorld, 0, plane.AsVector3D() );
+	VectorNormalize( plane.AsVector3D() );
+	VectorNegate( plane.AsVector3D() );
 
-	// TODO: How do we get a good value for this!?!?
-	//plane.w = m_OurPlane.dist + 0.1f;
-	plane.w = -32.0f + 0.1f;
+	plane.w =
+		MatrixColumnDotProduct( targetToWorld, 3, plane.AsVector3D() ) // target clip plane distance
+		- flLocalPlaneDist // portal plane distance on the brush. This distance needs to be accounted for while placing the exit target
+		- 0.1;
 
 	CMatRenderContextPtr pRenderContext( materials );
 	pRenderContext->PushCustomClipPlane( plane.Base() );
@@ -5293,10 +5355,16 @@ void CSkyboxView::DrawInternal( view_id_t iSkyBoxViewID, bool bInvokePreAndPostR
 		// Re-use the x coordinate to determine if we shuld do this with angles
 		if (m_pSky3dParams->angles.GetX() != 0)
 		{
-			CalculateSkyAngles( m_pSky3dParams->skycamera->GetAbsAngles() );
+			const matrix3x4_t &matSky = m_pSky3dParams->skycamera->EntityToWorldTransform();
+			matrix3x4_t matView;
+			AngleMatrix( angles, origin, matView );
+			ConcatTransforms( matSky, matView, matView );
+			MatrixAngles( matView, angles, origin );
 		}
-
-		VectorAdd( origin, m_pSky3dParams->skycamera->GetAbsOrigin(), origin );
+		else
+		{
+			VectorAdd( origin, m_pSky3dParams->skycamera->GetAbsOrigin(), origin );
+		}
 	}
 	else
 	{
@@ -5304,10 +5372,16 @@ void CSkyboxView::DrawInternal( view_id_t iSkyBoxViewID, bool bInvokePreAndPostR
 			m_pSky3dParams->angles.GetY() != 0 ||
 			m_pSky3dParams->angles.GetZ() != 0)
 		{
-			CalculateSkyAngles( m_pSky3dParams->angles.Get() );
+			matrix3x4_t matSky, matView;
+			AngleMatrix( m_pSky3dParams->angles, m_pSky3dParams->origin, matSky );
+			AngleMatrix( angles, origin, matView );
+			ConcatTransforms( matSky, matView, matView );
+			MatrixAngles( matView, angles, origin );
 		}
-
-		VectorAdd( origin, m_pSky3dParams->origin, origin );
+		else
+		{
+			VectorAdd( origin, m_pSky3dParams->origin, origin );
+		}
 	}
 #else
 	VectorAdd( origin, m_pSky3dParams->origin, origin );
@@ -5423,55 +5497,6 @@ void CSkyboxView::DrawInternal( view_id_t iSkyBoxViewID, bool bInvokePreAndPostR
 	pRenderContext->PopVertexShaderGPRAllocation();
 #endif
 }
-
-#ifdef MAPBASE
-//-----------------------------------------------------------------------------
-// 
-//-----------------------------------------------------------------------------
-void CSkyboxView::CalculateSkyAngles( const QAngle &angAngles )
-{
-	// Unfortunately, it's not as simple as "angles += m_pSky3dParams->angles".
-	// This stuff took a long time to figure out. I'm glad I got it working.
-
-	// First, create a matrix for the sky's angles.
-	matrix3x4_t matSkyAngles;
-	AngleMatrix( angAngles, matSkyAngles );
-
-	// The code in between the lines below was mostly lifted from projected texture screenspace code and was a huge lifesaver.
-	// The comments are my attempt at explaining the little I understand of what's going on here.
-	// ----------------------------------------------------------------------
-
-	// These are the vectors that would eventually become our final angle directions.
-	Vector vecSkyForward, vecSkyRight, vecSkyUp;
-
-	// Get vectors from our original angles.
-	Vector vPlayerForward, vPlayerRight, vPlayerUp;
-	AngleVectors( angles, &vPlayerForward, &vPlayerRight, &vPlayerUp );
-
-	// Transform them from our sky angles matrix and put the results in those vectors we declared earlier.
-	VectorTransform( vPlayerForward, matSkyAngles, vecSkyForward );
-	VectorTransform( vPlayerRight, matSkyAngles, vecSkyRight );
-	VectorTransform( vPlayerUp, matSkyAngles, vecSkyUp );
-
-	// Normalize them.
-	VectorNormalize( vecSkyForward );
-	VectorNormalize( vecSkyRight );
-	VectorNormalize( vecSkyUp );
-
-	// Now do a bit of quaternion magic and apply that to our original angles.
-	// This works perfectly, so I'm not gonna touch it.
-	Quaternion quat;
-	BasisToQuaternion( vecSkyForward, vecSkyRight, vecSkyUp, quat );
-	QuaternionAngles( quat, angles );
-
-	// End of code mostly lifted from projected texture screenspace stuff
-	// ----------------------------------------------------------------------
-
-	// Now just rotate our origin with that matrix.
-	// We create a copy of the origin since VectorRotate doesn't want in1 to be the same variable as the destination.
-	VectorRotate(Vector(origin), matSkyAngles, origin);
-}
-#endif
 
 //-----------------------------------------------------------------------------
 // 

@@ -23,11 +23,18 @@ $Group "game"
 	"tier1"
 	"vgui_controls"
 	"vscript"
+	"responserules"
+}
+
+$Group "shaderdlls"
+{
+	"game_shader_dx9"
 }
 
 $Group "shaders"
 {
 	"game_shader_dx9"
+	"mathlib"
 }
 
 $Group "everything"
@@ -41,6 +48,7 @@ $Group "everything"
 	"mathlib"
 	"motionmapper"
 	"phonemeextractor"
+	"responserules"
 	"qc_eyes"
 	"raytrace"
 	"server"
@@ -64,5 +72,19 @@ $Group "dedicated"
 	"mathlib"
 	"server"
 	"tier1"
+}
+
+$Group "maptools"
+{
+	"vbsp"
+	"vrad_dll"
+	"vrad_launcher"
+	"vvis_dll"
+	"vvis_launcher"
+	"fgdlib"
+	"mathlib"
+	"raytrace"
+	"tier1"
+	"vscript"
 }
 

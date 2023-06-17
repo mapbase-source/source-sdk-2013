@@ -3212,7 +3212,11 @@ float CServerGameClients::ProcessUsercmds( edict_t *player, bf_read *buf, int nu
 	for ( i = totalcmds - 1; i >= 0; i-- )
 	{
 		to = &cmds[ i ];
+#if defined( MAPBASE_VSCRIPT )
+		ReadUsercmd( buf, to, from, pPlayer ); // Tell whose UserCmd it is
+#else
 		ReadUsercmd( buf, to, from );
+#endif
 		from = to;
 	}
 

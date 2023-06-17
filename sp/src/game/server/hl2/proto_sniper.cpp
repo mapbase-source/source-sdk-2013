@@ -250,6 +250,10 @@ public:
 	virtual int SelectSchedule( void );
 	virtual int TranslateSchedule( int scheduleType );
 
+#ifdef MAPBASE
+	Activity	NPC_TranslateActivity( Activity eNewActivity );
+#endif
+
 	bool KeyValue( const char *szKeyName, const char *szValue );
 
 	void PrescheduleThink( void );
@@ -334,6 +338,10 @@ private:
 
 	bool IsPlayerAllySniper();
 
+#ifdef MAPBASE
+	const Vector &GetPaintCursor() { return m_vecPaintCursor; }
+#endif
+
 private:
 
 	/// This is the variable from which m_flPaintTime gets set.
@@ -403,6 +411,9 @@ private:
 	DEFINE_CUSTOM_AI;
 
 	DECLARE_DATADESC();
+#ifdef MAPBASE_VSCRIPT
+	DECLARE_ENT_SCRIPTDESC();
+#endif
 };
 
 
@@ -499,6 +510,26 @@ BEGIN_DATADESC( CProtoSniper )
 	DEFINE_OUTPUT( m_OnShotFired, "OnShotFired" ),
 	
 END_DATADESC()
+
+#ifdef MAPBASE_VSCRIPT
+BEGIN_ENT_SCRIPTDESC( CProtoSniper, CAI_BaseNPC, "Combine sniper NPC." )
+
+	DEFINE_SCRIPTFUNC( GetBulletSpeed, "" )
+	DEFINE_SCRIPTFUNC( GetBulletOrigin, "" )
+	DEFINE_SCRIPTFUNC( ScopeGlint, "" )
+
+	DEFINE_SCRIPTFUNC( GetPositionParameter, "" )
+	DEFINE_SCRIPTFUNC( IsSweepingRandomly, "" )
+	DEFINE_SCRIPTFUNC( FindFrustratedShot, "" )
+
+	DEFINE_SCRIPTFUNC( IsLaserOn, "" )
+	DEFINE_SCRIPTFUNC( LaserOn, "" )
+	DEFINE_SCRIPTFUNC( LaserOff, "" )
+
+	DEFINE_SCRIPTFUNC( GetPaintCursor, "Get the point the sniper is currently aiming at." )
+
+END_SCRIPTDESC()
+#endif
 
 
 
@@ -908,6 +939,14 @@ void CProtoSniper::InputSetDecoyRadius( inputdata_t &inputdata )
 void CProtoSniper::OnScheduleChange( void )
 {
 	LaserOff();
+
+#ifdef MAPBASE
+	if ( m_bKilledPlayer && HasCondition( COND_SEE_PLAYER ) )
+	{
+		// IMPOSSIBLE! (possible when SP respawn is enabled)
+		m_bKilledPlayer = false;
+	}
+#endif
 
 	BaseClass::OnScheduleChange();
 }
@@ -1492,6 +1531,8 @@ void CProtoSniper::Event_Killed( const CTakeDamageInfo &info )
 void CProtoSniper::Event_KilledOther( CBaseEntity *pVictim, const CTakeDamageInfo &info )
 {
 #ifdef MAPBASE
+	BaseClass::Event_KilledOther( pVictim, info );
+
 	if (pVictim == GetEnemy())
 		SetCondition(COND_SNIPER_KILLED_ENEMY);
 #endif
@@ -2006,6 +2047,23 @@ int CProtoSniper::TranslateSchedule( int scheduleType )
 	}
 	return BaseClass::TranslateSchedule( scheduleType );
 }
+
+#ifdef MAPBASE
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+Activity CProtoSniper::NPC_TranslateActivity( Activity eNewActivity )
+{
+	// ACT_IDLE is now just the soldier's unarmed idle animation.
+	// Use a gun-holding animation like what unhidden snipers were using before.
+	if (!HasSpawnFlags( SF_SNIPER_HIDDEN ) && eNewActivity == ACT_IDLE)
+	{
+		eNewActivity = ACT_IDLE_SMG1;
+	}
+
+	return BaseClass::NPC_TranslateActivity( eNewActivity );
+}
+#endif
 
 //---------------------------------------------------------
 //---------------------------------------------------------
@@ -2587,6 +2645,19 @@ Vector CProtoSniper::DesiredBodyTarget( CBaseEntity *pTarget )
 {
 	// By default, aim for the center
 	Vector vecTarget = pTarget->WorldSpaceCenter();
+
+#ifdef MAPBASE_VSCRIPT
+	if (m_ScriptScope.IsInitialized() && g_Hook_GetActualShootPosition.CanRunInScope(m_ScriptScope))
+	{
+		ScriptVariant_t functionReturn;
+		ScriptVariant_t args[] = { GetBulletOrigin(), ToHScript( pTarget ) };
+		if (g_Hook_GetActualShootPosition.Call( m_ScriptScope, &functionReturn, args ))
+		{
+			if (functionReturn.m_type == FIELD_VECTOR && functionReturn.m_pVector->LengthSqr() != 0.0f)
+				return *functionReturn.m_pVector;
+		}
+	}
+#endif
 
 	float flTimeSinceLastMiss = gpGlobals->curtime - m_flTimeLastShotMissed;
 
@@ -3376,6 +3447,18 @@ AI_BEGIN_CUSTOM_NPC( proto_sniper, CProtoSniper )
 
 	//=========================================================
 	//=========================================================
+#ifdef MAPBASE
+	DEFINE_SCHEDULE
+	(
+	SCHED_PSNIPER_PLAYER_DEAD,
+
+	"	Tasks"
+	"		TASK_SNIPER_PLAYER_DEAD		0"
+	"	"
+	"	Interrupts"
+	"		COND_SEE_PLAYER"
+	)
+#else
 	DEFINE_SCHEDULE
 	(
 	SCHED_PSNIPER_PLAYER_DEAD,
@@ -3385,6 +3468,7 @@ AI_BEGIN_CUSTOM_NPC( proto_sniper, CProtoSniper )
 	"	"
 	"	Interrupts"
 	)
+#endif
 
 AI_END_CUSTOM_NPC()
 

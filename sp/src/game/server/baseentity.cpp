@@ -66,6 +66,9 @@
 #include "mapbase/matchers.h"
 #include "mapbase/datadesc_mod.h"
 #endif
+#ifdef NEW_RESPONSE_SYSTEM
+#include "ai_speech.h"
+#endif
 
 #if defined( TF_DLL )
 #include "tf_gamerules.h"
@@ -102,6 +105,10 @@ bool CBaseEntity::s_bAbsQueriesValid = true;
 ConVar sv_netvisdist( "sv_netvisdist", "10000", FCVAR_CHEAT | FCVAR_DEVELOPMENTONLY, "Test networking visibility distance" );
 
 ConVar sv_script_think_interval("sv_script_think_interval", "0.1");
+
+#ifdef MAPBASE_VSCRIPT
+ConVar ent_text_allow_script( "ent_text_allow_script", "1" );
+#endif
 
 
 // This table encodes edict data.
@@ -284,6 +291,7 @@ IMPLEMENT_SERVERCLASS_ST_NOBASE( CBaseEntity, DT_BaseEntity )
 #ifdef MAPBASE
 	// Keep consistent with VIEW_ID_COUNT in viewrender.h
 	SendPropInt		(SENDINFO(m_iViewHideFlags),	9, SPROP_UNSIGNED ),
+	SendPropBool	(SENDINFO(m_bDisableFlashlight) ),
 #endif
 	SendPropInt		(SENDINFO(m_iTeamNum),		TEAMNUM_NUM_BITS, 0),
 	SendPropInt		(SENDINFO(m_CollisionGroup), 5, SPROP_UNSIGNED),
@@ -450,6 +458,17 @@ extern bool g_bDisableEhandleAccess;
 //-----------------------------------------------------------------------------
 CBaseEntity::~CBaseEntity( )
 {
+#ifdef MAPBASE_VSCRIPT
+	// HACKHACK: This is needed to fix a crash when an entity removes itself with Destroy() during its own think function.
+	// (see https://github.com/mapbase-source/source-sdk-2013/issues/138)
+	FOR_EACH_VEC( m_ScriptThinkFuncs, i )
+	{
+		HSCRIPT h = m_ScriptThinkFuncs[i]->m_hfnThink;
+		if ( h ) g_pScriptVM->ReleaseScript( h );
+	}
+	m_ScriptThinkFuncs.PurgeAndDeleteElements();
+#endif // MAPBASE_VSCRIPT
+
 	// FIXME: This can't be called from UpdateOnRemove! There's at least one
 	// case where friction sounds are added between the call to UpdateOnRemove + ~CBaseEntity
 	PhysCleanupFrictionSounds( this );
@@ -622,18 +641,6 @@ CBaseEntity *CBaseEntity::GetFollowedEntity()
 		return NULL;
 	return GetMoveParent();
 }
-
-#ifdef MAPBASE_VSCRIPT
-void CBaseEntity::ScriptFollowEntity( HSCRIPT hBaseEntity, bool bBoneMerge )
-{
-	FollowEntity( ToEnt( hBaseEntity ), bBoneMerge );
-}
-
-HSCRIPT CBaseEntity::ScriptGetFollowedEntity()
-{
-	return ToHScript( GetFollowedEntity() );
-}
-#endif
 
 void CBaseEntity::SetClassname( const char *className )
 {
@@ -1068,6 +1075,28 @@ int CBaseEntity::DrawDebugTextOverlays(void)
 			offset++;
 		}
 #endif
+
+#ifdef MAPBASE_VSCRIPT
+		// 'OnEntText' hook inspired by later source games
+		if (m_ScriptScope.IsInitialized() && g_Hook_OnEntText.CanRunInScope( m_ScriptScope ))
+		{
+			if (ent_text_allow_script.GetBool())
+			{
+				ScriptVariant_t functionReturn;
+				if ( g_Hook_OnEntText.Call( m_ScriptScope, &functionReturn, NULL ) && functionReturn.m_type == FIELD_CSTRING )
+				{
+					CUtlStringList outStrings;
+					V_SplitString( functionReturn.m_pszString, "\n", outStrings );
+
+					FOR_EACH_VEC( outStrings, i )
+					{
+						EntityText( offset, outStrings[i], 0, 224, 240, 255 );
+						offset++;
+					}
+				}
+			}
+		}
+#endif
 	}
 
 	if (m_debugOverlays & OVERLAY_VIEWOFFSET)
@@ -1357,10 +1386,10 @@ float CBaseEntity::GetMaxOutputDelay( const char *pszOutput )
 	return 0;
 }
 
-void CBaseEntity::CancelEventsByInput( const char *szInput )
-{
-	g_EventQueue.CancelEventsByInput( this, szInput );
-}
+//void CBaseEntity::CancelEventsByInput( const char *szInput )
+//{
+//	g_EventQueue.CancelEventsByInput( this, szInput );
+//}
 #endif // MAPBASE_VSCRIPT
 
 CBaseEntityOutput *CBaseEntity::FindNamedOutput( const char *pszOutput )
@@ -1727,22 +1756,9 @@ int CBaseEntity::VPhysicsTakeDamage( const CTakeDamageInfo &info )
 void CBaseEntity::Event_Killed( const CTakeDamageInfo &info )
 {
 #ifdef MAPBASE_VSCRIPT
-	if (m_ScriptScope.IsInitialized() && g_Hook_OnDeath.CanRunInScope( m_ScriptScope ))
-	{
-		HSCRIPT hInfo = g_pScriptVM->RegisterInstance( const_cast<CTakeDamageInfo*>(&info) );
-
-		// info
-		ScriptVariant_t functionReturn;
-		ScriptVariant_t args[] = { ScriptVariant_t( hInfo ) };
-		if ( g_Hook_OnDeath.Call( m_ScriptScope, &functionReturn, args ) && (functionReturn.m_type == FIELD_BOOLEAN && functionReturn.m_bool == false) )
-		{
-			// Make this entity cheat death
-			g_pScriptVM->RemoveInstance( hInfo );
-			return;
-		}
-
-		g_pScriptVM->RemoveInstance( hInfo );
-	}
+	// False = Cheat death
+	if (ScriptDeathHook( const_cast<CTakeDamageInfo*>(&info) ) == false)
+		return;
 #endif
 
 	if( info.GetAttacker() )
@@ -1777,6 +1793,22 @@ void CBaseEntity::SendOnKilledGameEvent( const CTakeDamageInfo &info )
 		event->SetInt( "damagebits", info.GetDamageType() );
 		gameeventmanager->FireEvent( event );
 	}
+}
+
+void CBaseEntity::Event_KilledOther( CBaseEntity *pVictim, const CTakeDamageInfo &info )
+{
+#ifdef MAPBASE_VSCRIPT
+	if (m_ScriptScope.IsInitialized() && g_Hook_OnKilledOther.CanRunInScope( m_ScriptScope ))
+	{
+		HSCRIPT hInfo = g_pScriptVM->RegisterInstance( const_cast<CTakeDamageInfo*>(&info) );
+
+		// victim, info
+		ScriptVariant_t args[] = { ScriptVariant_t( pVictim->GetScriptInstance() ), ScriptVariant_t( hInfo ) };
+		g_Hook_OnKilledOther.Call( m_ScriptScope, NULL, args );
+
+		g_pScriptVM->RemoveInstance( hInfo );
+	}
+#endif
 }
 
 
@@ -1927,6 +1959,7 @@ BEGIN_DATADESC_NO_BASE( CBaseEntity )
 	DEFINE_GLOBAL_KEYFIELD( m_nModelIndex, FIELD_SHORT, "modelindex" ),
 #ifdef MAPBASE
 	DEFINE_KEYFIELD( m_iViewHideFlags, FIELD_INTEGER, "viewhideflags" ),
+	DEFINE_KEYFIELD( m_bDisableFlashlight, FIELD_BOOLEAN, "disableflashlight" ),
 #endif
 #if !defined( NO_ENTITY_PREDICTION )
 	// DEFINE_FIELD( m_PredictableID, CPredictableId ),
@@ -2160,6 +2193,8 @@ BEGIN_DATADESC_NO_BASE( CBaseEntity )
 	DEFINE_INPUTFUNC( FIELD_INTEGER, "RemoveEffects", InputRemoveEffects ),
 	DEFINE_INPUTFUNC( FIELD_VOID, "EnableDraw", InputDrawEntity ),
 	DEFINE_INPUTFUNC( FIELD_VOID, "DisableDraw", InputUndrawEntity ),
+	DEFINE_INPUTFUNC( FIELD_VOID, "EnableReceivingFlashlight", InputEnableReceivingFlashlight ),
+	DEFINE_INPUTFUNC( FIELD_VOID, "DisableReceivingFlashlight", InputDisableReceivingFlashlight ),
 	DEFINE_INPUTFUNC( FIELD_INTEGER, "AddEFlags", InputAddEFlags ),
 	DEFINE_INPUTFUNC( FIELD_INTEGER, "RemoveEFlags", InputRemoveEFlags ),
 	DEFINE_INPUTFUNC( FIELD_INTEGER, "AddSolidFlags", InputAddSolidFlags ),
@@ -2190,7 +2225,7 @@ BEGIN_DATADESC_NO_BASE( CBaseEntity )
 	DEFINE_THINKFUNC( ShadowCastDistThink ),
 	DEFINE_THINKFUNC( ScriptThink ),
 #ifdef MAPBASE_VSCRIPT
-	DEFINE_THINKFUNC( ScriptThinkH ),
+	DEFINE_THINKFUNC( ScriptContextThink ),
 #endif
 
 #ifdef MAPBASE
@@ -2211,10 +2246,15 @@ END_DATADESC()
 
 #ifdef MAPBASE_VSCRIPT
 ScriptHook_t	CBaseEntity::g_Hook_UpdateOnRemove;
+ScriptHook_t	CBaseEntity::g_Hook_OnEntText;
+
 ScriptHook_t	CBaseEntity::g_Hook_VPhysicsCollision;
 ScriptHook_t	CBaseEntity::g_Hook_FireBullets;
 ScriptHook_t	CBaseEntity::g_Hook_OnDeath;
+ScriptHook_t	CBaseEntity::g_Hook_OnKilledOther;
 ScriptHook_t	CBaseEntity::g_Hook_HandleInteraction;
+ScriptHook_t	CBaseEntity::g_Hook_ModifyEmitSoundParams;
+ScriptHook_t	CBaseEntity::g_Hook_ModifySentenceParams;
 #endif
 
 BEGIN_ENT_SCRIPTDESC_ROOT( CBaseEntity, "Root class of all server-side entities" )
@@ -2230,6 +2270,7 @@ BEGIN_ENT_SCRIPTDESC_ROOT( CBaseEntity, "Root class of all server-side entities"
 	DEFINE_SCRIPTFUNC( SetModel, "" )
 	DEFINE_SCRIPTFUNC_NAMED( ScriptGetModelName, "GetModelName", "Returns the name of the model" )
 	
+	DEFINE_SCRIPTFUNC_NAMED( ScriptStopSound, "StopSound", "Stops a sound from this entity." )
 	DEFINE_SCRIPTFUNC_NAMED( ScriptEmitSound, "EmitSound", "Plays a sound from this entity." )
 	DEFINE_SCRIPTFUNC_NAMED( VScriptPrecacheScriptSound, "PrecacheSoundScript", "Precache a sound for later playing." )
 	DEFINE_SCRIPTFUNC_NAMED( ScriptSoundDuration, "GetSoundDuration", "Returns float duration of the sound. Takes soundname and optional actormodelname.")
@@ -2274,6 +2315,9 @@ BEGIN_ENT_SCRIPTDESC_ROOT( CBaseEntity, "Root class of all server-side entities"
 
 	DEFINE_SCRIPTFUNC( ApplyAbsVelocityImpulse, "" )
 	DEFINE_SCRIPTFUNC( ApplyLocalAngularVelocityImpulse, "" )
+
+	DEFINE_SCRIPTFUNC( BodyTarget, "" )
+	DEFINE_SCRIPTFUNC( HeadTarget, "" )
 #endif
 
 	DEFINE_SCRIPTFUNC_NAMED( GetAbsVelocity, "GetVelocity", ""  )
@@ -2290,11 +2334,11 @@ BEGIN_ENT_SCRIPTDESC_ROOT( CBaseEntity, "Root class of all server-side entities"
 	DEFINE_SCRIPTFUNC_NAMED( ScriptSetAngles, "SetAngles", "Set entity pitch, yaw, roll")
 	DEFINE_SCRIPTFUNC_NAMED( ScriptGetAngles, "GetAngles", "Get entity pitch, yaw, roll as a vector")
 
-	DEFINE_SCRIPTFUNC_NAMED( ScriptSetSize, "SetSize", ""  )
+	DEFINE_SCRIPTFUNC( SetSize, ""  )
 	DEFINE_SCRIPTFUNC_NAMED( ScriptGetBoundingMins, "GetBoundingMins", "Get a vector containing min bounds, centered on object")
 	DEFINE_SCRIPTFUNC_NAMED( ScriptGetBoundingMaxs, "GetBoundingMaxs", "Get a vector containing max bounds, centered on object")
 
-	DEFINE_SCRIPTFUNC_NAMED( ScriptUtilRemove, "Destroy", ""  )
+	DEFINE_SCRIPTFUNC_NAMED( Remove, "Destroy", ""  )
 	DEFINE_SCRIPTFUNC_NAMED( ScriptSetOwner, "SetOwner", ""  )
 	DEFINE_SCRIPTFUNC_NAMED( GetTeamNumber, "GetTeam", ""  )
 	DEFINE_SCRIPTFUNC_NAMED( ChangeTeam, "SetTeam", ""  )
@@ -2315,6 +2359,8 @@ BEGIN_ENT_SCRIPTDESC_ROOT( CBaseEntity, "Root class of all server-side entities"
 	DEFINE_SCRIPTFUNC_NAMED( ScriptGetModelKeyValues, "GetModelKeyValues", "Get a KeyValue class instance on this entity's model")
 
 #ifdef MAPBASE_VSCRIPT
+	DEFINE_SCRIPTFUNC( Activate, "" )
+
 	DEFINE_SCRIPTFUNC_NAMED( ScriptIsVisible, "IsVisible", "Check if the specified position can be visible to this entity." )
 	DEFINE_SCRIPTFUNC_NAMED( ScriptIsEntVisible, "IsEntVisible", "Check if the specified entity can be visible to this entity." )
 	DEFINE_SCRIPTFUNC_NAMED( ScriptIsVisibleWithMask, "IsVisibleWithMask", "Check if the specified position can be visible to this entity with a specific trace mask." )
@@ -2343,7 +2389,7 @@ BEGIN_ENT_SCRIPTDESC_ROOT( CBaseEntity, "Root class of all server-side entities"
 	DEFINE_SCRIPTFUNC_NAMED( ScriptAcceptInput, "AcceptInput", "" )
 	DEFINE_SCRIPTFUNC_NAMED( ScriptFireOutput, "FireOutput", "Fire an entity output" )
 	DEFINE_SCRIPTFUNC( GetMaxOutputDelay, "Get the longest delay for all events attached to an output" )
-	DEFINE_SCRIPTFUNC( CancelEventsByInput, "Cancel all I/O events for this entity, match input" )
+	//DEFINE_SCRIPTFUNC( CancelEventsByInput, "Cancel all I/O events for this entity, match input" ) // Commented out due to unpredictability and unknown risks
 
 	DEFINE_SCRIPTFUNC_NAMED( ScriptAddOutput, "AddOutput", "Add an output" )
 	DEFINE_SCRIPTFUNC_NAMED( ScriptGetKeyValue, "GetKeyValue", "Get a keyvalue" )
@@ -2360,6 +2406,7 @@ BEGIN_ENT_SCRIPTDESC_ROOT( CBaseEntity, "Root class of all server-side entities"
 	DEFINE_SCRIPTFUNC_NAMED( ScriptSetColorB, "SetRenderColorB", "Set the render color's B value" )
 	DEFINE_SCRIPTFUNC_NAMED( ScriptSetAlpha, "SetRenderAlpha", "Set the render color's alpha value" )
 
+	// LEGACY
 	DEFINE_SCRIPTFUNC_NAMED( ScriptGetColorVector, "GetColorVector", SCRIPT_HIDE )
 	DEFINE_SCRIPTFUNC_NAMED( ScriptGetColorR, "GetColorR", SCRIPT_HIDE )
 	DEFINE_SCRIPTFUNC_NAMED( ScriptGetColorG, "GetColorG", SCRIPT_HIDE )
@@ -2370,6 +2417,7 @@ BEGIN_ENT_SCRIPTDESC_ROOT( CBaseEntity, "Root class of all server-side entities"
 	DEFINE_SCRIPTFUNC_NAMED( ScriptSetColorG, "SetColorG", SCRIPT_HIDE )
 	DEFINE_SCRIPTFUNC_NAMED( ScriptSetColorB, "SetColorB", SCRIPT_HIDE )
 	DEFINE_SCRIPTFUNC_NAMED( ScriptSetAlpha, "SetAlpha", SCRIPT_HIDE )
+	// END LEGACY
 
 	DEFINE_SCRIPTFUNC_NAMED( ScriptGetRenderMode, "GetRenderMode", "Get render mode" )
 	DEFINE_SCRIPTFUNC_NAMED( ScriptSetRenderMode, "SetRenderMode", "Set render mode" )
@@ -2410,7 +2458,10 @@ BEGIN_ENT_SCRIPTDESC_ROOT( CBaseEntity, "Root class of all server-side entities"
 	DEFINE_SCRIPTFUNC( SetFriction, "" )
 	DEFINE_SCRIPTFUNC( GetMass, "" )
 	DEFINE_SCRIPTFUNC( SetMass, "" )
-	
+
+	DEFINE_SCRIPTFUNC_NAMED( ScriptGetSolid, "GetSolid", "" )
+	DEFINE_SCRIPTFUNC_NAMED( ScriptSetSolid, "SetSolid", "" )
+
 	DEFINE_SCRIPTFUNC( GetSolidFlags, "Get solid flags" )
 	DEFINE_SCRIPTFUNC( AddSolidFlags, "Add solid flags" )
 	DEFINE_SCRIPTFUNC( RemoveSolidFlags, "Remove solid flags" )
@@ -2442,6 +2493,7 @@ BEGIN_ENT_SCRIPTDESC_ROOT( CBaseEntity, "Root class of all server-side entities"
 #ifdef MAPBASE_VSCRIPT
 	DEFINE_SCRIPTFUNC_NAMED( ScriptSetThinkFunction, "SetThinkFunction", "" )
 	DEFINE_SCRIPTFUNC_NAMED( ScriptStopThinkFunction, "StopThinkFunction", "" )
+	DEFINE_SCRIPTFUNC_NAMED( ScriptSetContextThink, "SetContextThink", "Set a think function on this entity." )
 	DEFINE_SCRIPTFUNC_NAMED( ScriptSetThink, "SetThink", "" )
 	DEFINE_SCRIPTFUNC_NAMED( ScriptStopThink, "StopThink", "" )
 
@@ -2449,6 +2501,7 @@ BEGIN_ENT_SCRIPTDESC_ROOT( CBaseEntity, "Root class of all server-side entities"
 	// Hooks
 	// 
 	DEFINE_SIMPLE_SCRIPTHOOK( CBaseEntity::g_Hook_UpdateOnRemove, "UpdateOnRemove", FIELD_VOID, "Called when the entity is being removed." )
+	DEFINE_SIMPLE_SCRIPTHOOK( CBaseEntity::g_Hook_OnEntText, "OnEntText", FIELD_CSTRING, "Called every frame when ent_text is enabled on the entity. Return a string to be added to the ent_text printout." )
 
 	BEGIN_SCRIPTHOOK( CBaseEntity::g_Hook_VPhysicsCollision, "VPhysicsCollision", FIELD_VOID, "Called for every single VPhysics-related collision experienced by this entity." )
 		DEFINE_SCRIPTHOOK_PARAM( "entity", FIELD_HSCRIPT )
@@ -2468,10 +2521,23 @@ BEGIN_ENT_SCRIPTDESC_ROOT( CBaseEntity, "Root class of all server-side entities"
 		DEFINE_SCRIPTHOOK_PARAM( "info", FIELD_HSCRIPT )
 	END_SCRIPTHOOK()
 
+	BEGIN_SCRIPTHOOK( CBaseEntity::g_Hook_OnKilledOther, "OnKilledOther", FIELD_VOID, "Called when the entity kills another entity." )
+		DEFINE_SCRIPTHOOK_PARAM( "victim", FIELD_HSCRIPT )
+		DEFINE_SCRIPTHOOK_PARAM( "info", FIELD_HSCRIPT )
+	END_SCRIPTHOOK()
+
 	BEGIN_SCRIPTHOOK( CBaseEntity::g_Hook_HandleInteraction, "HandleInteraction", FIELD_BOOLEAN, "Called for internal game interactions. See the g_interaction set of constants for more information. Returning true or false will return that value without falling to any internal handling. Returning nothing will allow the interaction to fall to any internal handling." )
 		DEFINE_SCRIPTHOOK_PARAM( "interaction", FIELD_INTEGER )
 		//DEFINE_SCRIPTHOOK_PARAM( "data", FIELD_VARIANT )
 		DEFINE_SCRIPTHOOK_PARAM( "sourceEnt", FIELD_HSCRIPT )
+	END_SCRIPTHOOK()
+
+	BEGIN_SCRIPTHOOK( CBaseEntity::g_Hook_ModifyEmitSoundParams, "ModifyEmitSoundParams", FIELD_VOID, "Called every time a sound is emitted on this entity, allowing for its parameters to be modified." )
+		DEFINE_SCRIPTHOOK_PARAM( "params", FIELD_HSCRIPT )
+	END_SCRIPTHOOK()
+
+	BEGIN_SCRIPTHOOK( CBaseEntity::g_Hook_ModifySentenceParams, "ModifySentenceParams", FIELD_VOID, "Called every time a sentence is emitted on this entity, allowing for its parameters to be modified." )
+		DEFINE_SCRIPTHOOK_PARAM( "params", FIELD_HSCRIPT )
 	END_SCRIPTHOOK()
 #endif
 END_SCRIPTDESC();
@@ -2580,7 +2646,7 @@ void CBaseEntity::UpdateOnRemove( void )
 	if ( m_hScriptInstance )
 	{
 #ifdef MAPBASE_VSCRIPT
-		if (m_ScriptScope.IsInitialized())
+		if ( m_ScriptScope.IsInitialized() && g_Hook_UpdateOnRemove.CanRunInScope( m_ScriptScope ) )
 		{
 			g_Hook_UpdateOnRemove.Call( m_ScriptScope, NULL, NULL );
 		}
@@ -2588,14 +2654,6 @@ void CBaseEntity::UpdateOnRemove( void )
 
 		g_pScriptVM->RemoveInstance( m_hScriptInstance );
 		m_hScriptInstance = NULL;
-
-#ifdef MAPBASE_VSCRIPT
-		if ( m_hfnThink )
-		{
-			g_pScriptVM->ReleaseScript( m_hfnThink );
-			m_hfnThink = NULL;
-		}
-#endif // MAPBASE_VSCRIPT
 	}
 }
 
@@ -4616,6 +4674,11 @@ bool CBaseEntity::AcceptInput( const char *szInputName, CBaseEntity *pActivator,
 						{
 							(this->*pfnInput)( data );
 						}
+
+						if ( m_ScriptScope.IsInitialized() )
+						{
+							ScriptInputHookClearParams();
+						}
 					}
 					else if ( dmap->dataDesc[i].flags & FTYPEDESC_KEY )
 					{
@@ -4649,6 +4712,8 @@ bool CBaseEntity::AcceptInput( const char *szInputName, CBaseEntity *pActivator,
 			if (functionReturn.m_bool)
 				return true;
 		}
+
+		ScriptInputHookClearParams();
 	}
 #endif
 
@@ -4659,6 +4724,16 @@ bool CBaseEntity::AcceptInput( const char *szInputName, CBaseEntity *pActivator,
 #endif
 	return false;
 }
+
+#ifdef MAPBASE_VSCRIPT
+bool CBaseEntity::ScriptAcceptInput( const char *szInputName, const char *szValue, HSCRIPT hActivator, HSCRIPT hCaller )
+{
+	variant_t value;
+	value.SetString( MAKE_STRING( szValue ) );
+
+	return AcceptInput( szInputName, ToEnt( hActivator ), ToEnt( hCaller ), value, 0 );
+}
+#endif
 
 //-----------------------------------------------------------------------------
 // Purpose: 
@@ -4682,22 +4757,42 @@ bool CBaseEntity::ScriptInputHook( const char *szInputName, CBaseEntity *pActiva
 		bHandled = true;
 	}
 
+	return bHandled;
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+void CBaseEntity::ScriptInputHookClearParams()
+{
 	g_pScriptVM->ClearValue( "activator" );
 	g_pScriptVM->ClearValue( "caller" );
 #ifdef MAPBASE_VSCRIPT
 	g_pScriptVM->ClearValue( "parameter" );
 #endif
-
-	return bHandled;
 }
 
 #ifdef MAPBASE_VSCRIPT
-bool CBaseEntity::ScriptAcceptInput( const char *szInputName, const char *szValue, HSCRIPT hActivator, HSCRIPT hCaller )
+bool CBaseEntity::ScriptDeathHook( CTakeDamageInfo *info )
 {
-	variant_t value;
-	value.SetString( MAKE_STRING(szValue) );
+	if (m_ScriptScope.IsInitialized() && g_Hook_OnDeath.CanRunInScope( m_ScriptScope ))
+	{
+		HSCRIPT hInfo = g_pScriptVM->RegisterInstance( info );
 
-	return AcceptInput( szInputName, ToEnt(hActivator), ToEnt(hCaller), value, 0 );
+		// info
+		ScriptVariant_t functionReturn;
+		ScriptVariant_t args[] = { ScriptVariant_t( hInfo ) };
+		if ( g_Hook_OnDeath.Call( m_ScriptScope, &functionReturn, args ) && (functionReturn.m_type == FIELD_BOOLEAN && functionReturn.m_bool == false) )
+		{
+			// Make this entity cheat death
+			g_pScriptVM->RemoveInstance( hInfo );
+			return false;
+		}
+
+		g_pScriptVM->RemoveInstance( hInfo );
+	}
+
+	return true;
 }
 #endif
 
@@ -7612,7 +7707,7 @@ bool CBaseEntity::HasContext( const char *name, const char *value ) const
 			if (value == NULL)
 				return true;
 			else
-				return Matcher_Match(STRING(m_ResponseContexts[i].m_iszValue), value);
+				return Matcher_Match( value, STRING(m_ResponseContexts[i].m_iszValue) );
 		}
 	}
 
@@ -7657,7 +7752,11 @@ bool CBaseEntity::HasContext( const char *nameandvalue ) const
 	const char *p = nameandvalue;
 	while ( p )
 	{
+#ifdef NEW_RESPONSE_SYSTEM
+		p = SplitContext( p, key, sizeof( key ), value, sizeof( value ), NULL, nameandvalue );
+#else
 		p = SplitContext( p, key, sizeof( key ), value, sizeof( value ), NULL );
+#endif
 		
 		return HasContext( key, value );
 	}
@@ -7704,7 +7803,11 @@ void CBaseEntity::RemoveContext( const char *contextName )
 	while ( p )
 	{
 		duration = 0.0f;
+#ifdef NEW_RESPONSE_SYSTEM
+		p = SplitContext( p, key, sizeof( key ), value, sizeof( value ), &duration, contextName );
+#else
 		p = SplitContext( p, key, sizeof( key ), value, sizeof( value ), &duration );
+#endif
 		if ( duration )
 		{
 			duration += gpGlobals->curtime;
@@ -8273,6 +8376,22 @@ void CBaseEntity::InputUndrawEntity( inputdata_t& inputdata )
 }
 
 //-----------------------------------------------------------------------------
+// Purpose: Inspired by the Portal 2 input of the same name.
+//-----------------------------------------------------------------------------
+void CBaseEntity::InputEnableReceivingFlashlight( inputdata_t& inputdata )
+{
+	m_bDisableFlashlight = false;
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: Inspired by the Portal 2 input of the same name.
+//-----------------------------------------------------------------------------
+void CBaseEntity::InputDisableReceivingFlashlight( inputdata_t& inputdata )
+{
+	m_bDisableFlashlight = true;
+}
+
+//-----------------------------------------------------------------------------
 // Purpose: Adds eflags.
 //-----------------------------------------------------------------------------
 void CBaseEntity::InputAddEFlags( inputdata_t& inputdata )
@@ -8652,61 +8771,6 @@ void CBaseEntity::ScriptStopThinkFunction()
 	m_iszScriptThinkFunction = NULL_STRING;
 	SetContextThink( NULL, TICK_NEVER_THINK, "ScriptThink" );
 }
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-void CBaseEntity::ScriptThinkH()
-{
-	ScriptVariant_t varThinkRetVal;
-	if ( g_pScriptVM->ExecuteFunction(m_hfnThink, NULL, 0, &varThinkRetVal, NULL, true) == SCRIPT_ERROR )
-	{
-		DevWarning("%s FAILED to call script think function (invalid closure)!\n", GetDebugName());
-		ScriptStopThink();
-		return;
-	}
-
-	float flThinkFrequency = 0.f;
-	if ( !varThinkRetVal.AssignTo(&flThinkFrequency) )
-	{
-		// no return value stops thinking
-		ScriptStopThink();
-		return;
-	}
-
-	SetNextThink( gpGlobals->curtime + flThinkFrequency, "ScriptThinkH" );
-}
-
-void CBaseEntity::ScriptSetThink( HSCRIPT hFunc, float flTime )
-{
-	if ( hFunc )
-	{
-		if ( m_hfnThink )
-		{
-			// release old func
-			ScriptStopThink();
-		}
-
-		// no type check here, print error on call instead
-		m_hfnThink = hFunc;
-
-		flTime = max( 0, flTime );
-		SetContextThink( &CBaseEntity::ScriptThinkH, gpGlobals->curtime + flTime, "ScriptThinkH" );
-	}
-	else
-	{
-		ScriptStopThink();
-	}
-}
-
-void CBaseEntity::ScriptStopThink()
-{
-	if (m_hfnThink)
-	{
-		g_pScriptVM->ReleaseScript(m_hfnThink);
-		m_hfnThink = NULL;
-	}
-	SetContextThink( NULL, TICK_NEVER_THINK, "ScriptThinkH" );
-}
 #endif // MAPBASE_VSCRIPT
 
 //-----------------------------------------------------------------------------
@@ -8735,51 +8799,6 @@ HSCRIPT CBaseEntity::GetScriptScope()
 	return m_ScriptScope;
 }
 
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-#ifdef MAPBASE_VSCRIPT
-HSCRIPT CBaseEntity::GetOrCreatePrivateScriptScope()
-{
-	ValidateScriptScope();
-	return m_ScriptScope;
-}
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-void CBaseEntity::ScriptSetParent(HSCRIPT hParent, const char *szAttachment)
-{
-	CBaseEntity *pParent = ToEnt(hParent);
-	if ( !pParent )
-	{
-		SetParent(NULL);
-		return;
-	}
-
-	// if an attachment is specified, the parent needs to be CBaseAnimating
-	if ( szAttachment && szAttachment[0] != '\0' )
-	{
-		CBaseAnimating *pAnimating = pParent->GetBaseAnimating();
-		if ( !pAnimating )
-		{
-			Warning("ERROR: Tried to set parent for entity %s (%s), but its parent has no model.\n", GetClassname(), GetDebugName());
-			return;
-		}
-		
-		int iAttachment = pAnimating->LookupAttachment(szAttachment);
-		if ( iAttachment <= 0 )
-		{
-			Warning("ERROR: Tried to set parent for entity %s (%s), but it has no attachment named %s.\n", GetClassname(), GetDebugName(), szAttachment);
-			return;
-		}
-
-		SetParent(pParent, iAttachment);
-		SetMoveType(MOVETYPE_NONE);
-		return;
-	}
-	
-	SetParent(pParent);
-}
-#endif
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 HSCRIPT CBaseEntity::ScriptGetMoveParent(void)
@@ -8859,56 +8878,76 @@ void CBaseEntity::AddContext( const char *contextName )
 {
 	char key[ 128 ];
 	char value[ 128 ];
-	float duration;
+	float duration = 0.0f;
 
 	const char *p = contextName;
 	while ( p )
 	{
 		duration = 0.0f;
+#ifdef NEW_RESPONSE_SYSTEM
+		p = SplitContext( p, key, sizeof( key ), value, sizeof( value ), &duration, contextName );
+#else
 		p = SplitContext( p, key, sizeof( key ), value, sizeof( value ), &duration );
+#endif
 		if ( duration )
 		{
 			duration += gpGlobals->curtime;
 		}
 
-		int iIndex = FindContextByName( key );
-		if ( iIndex != -1 )
-		{
-			// Set the existing context to the new value
-			m_ResponseContexts[iIndex].m_iszValue = AllocPooledString( value );
-			m_ResponseContexts[iIndex].m_fExpirationTime = duration;
-			continue;
-		}
-
-		ResponseContext_t newContext;
-		newContext.m_iszName = AllocPooledString( key );
-		newContext.m_iszValue = AllocPooledString( value );
-		newContext.m_fExpirationTime = duration;
-
-		m_ResponseContexts.AddToTail( newContext );
+		AddContext( key, value, duration );
 	}
 }
 
-#ifdef MAPBASE
 void CBaseEntity::AddContext( const char *name, const char *value, float duration )
 {
 	int iIndex = FindContextByName( name );
 	if ( iIndex != -1 )
 	{
 		// Set the existing context to the new value
+
+#ifdef NEW_RESPONSE_SYSTEM
+		char buf[64];
+		if ( RR::CApplyContextOperator::FindOperator( value )->Apply( 
+			m_ResponseContexts[iIndex].m_iszValue.ToCStr(), value, buf, sizeof(buf) ) )
+		{
+			m_ResponseContexts[iIndex].m_iszValue = AllocPooledString( buf );
+		}
+		else
+		{
+			Warning( "RR: could not apply operator %s to prior value %s\n", 
+				value, m_ResponseContexts[iIndex].m_iszValue.ToCStr() );
+			m_ResponseContexts[iIndex].m_iszValue = AllocPooledString( value );
+		}
+#else
 		m_ResponseContexts[iIndex].m_iszValue = AllocPooledString( value );
-		m_ResponseContexts[iIndex].m_fExpirationTime = duration;
-		return;
-	}
-
-	ResponseContext_t newContext;
-	newContext.m_iszName = AllocPooledString( name );
-	newContext.m_iszValue = AllocPooledString( value );
-	newContext.m_fExpirationTime = duration;
-
-	m_ResponseContexts.AddToTail( newContext );
-}
 #endif
+		m_ResponseContexts[iIndex].m_fExpirationTime = duration;
+	}
+	else
+	{
+		ResponseContext_t newContext;
+		newContext.m_iszName = AllocPooledString( name );
+
+#ifdef NEW_RESPONSE_SYSTEM
+		char buf[64];
+		if ( RR::CApplyContextOperator::FindOperator( value )->Apply( 
+			NULL, value, buf, sizeof(buf) ) )
+		{
+			newContext.m_iszValue = AllocPooledString( buf );
+		}
+		else
+		{
+			newContext.m_iszValue = AllocPooledString( value );
+		}
+#else
+		newContext.m_iszValue = AllocPooledString( value );
+#endif
+
+		newContext.m_fExpirationTime = duration;
+
+		m_ResponseContexts.AddToTail( newContext );
+	}
+}
 
 //-----------------------------------------------------------------------------
 // Purpose: 
@@ -9060,6 +9099,11 @@ void CBaseEntity::InputChangeVariable( inputdata_t &inputdata )
 //-----------------------------------------------------------------------------
 void CBaseEntity::DispatchResponse( const char *conceptName )
 {
+#ifdef NEW_RESPONSE_SYSTEM
+	#undef IResponseSystem
+	using namespace ResponseRules;
+#endif
+
 	IResponseSystem *rs = GetResponseSystem();
 	if ( !rs )
 		return;
@@ -9090,6 +9134,61 @@ void CBaseEntity::DispatchResponse( const char *conceptName )
 	// Handle the response here...
 	char response[ 256 ];
 	result.GetResponse( response, sizeof( response ) );
+#ifdef NEW_RESPONSE_SYSTEM
+	switch (result.GetType())
+	{
+	case ResponseRules::RESPONSE_SPEAK:
+	{
+		EmitSound(response);
+	}
+	break;
+	case ResponseRules::RESPONSE_SENTENCE:
+	{
+		int sentenceIndex = SENTENCEG_Lookup(response);
+		if (sentenceIndex == -1)
+		{
+			// sentence not found
+			break;
+		}
+
+		// FIXME:  Get pitch from npc?
+		CPASAttenuationFilter filter(this);
+		CBaseEntity::EmitSentenceByIndex(filter, entindex(), CHAN_VOICE, sentenceIndex, 1, result.GetSoundLevel(), 0, PITCH_NORM);
+	}
+	break;
+	case ResponseRules::RESPONSE_SCENE:
+	{
+		// Try to fire scene w/o an actor
+		InstancedScriptedScene(NULL, response);
+	}
+	break;
+	case ResponseRules::RESPONSE_PRINT:
+	{
+
+	}
+	break;
+	case ResponseRules::RESPONSE_ENTITYIO:
+	{
+		CAI_Expresser::FireEntIOFromResponse(response, this);
+		break;
+	}
+#ifdef MAPBASE_VSCRIPT
+	case ResponseRules::RESPONSE_VSCRIPT:
+	{
+		CAI_Expresser::RunScriptResponse( this, response, &set, false );
+		break;
+	}
+	case ResponseRules::RESPONSE_VSCRIPT_FILE:
+	{
+		CAI_Expresser::RunScriptResponse( this, response, &set, true );
+		break;
+	}
+#endif
+	default:
+		// Don't know how to handle .vcds!!!
+		break;
+	}
+#else
 #ifdef MAPBASE
 	if (response[0] == '$')
 	{
@@ -9184,6 +9283,7 @@ void CBaseEntity::DispatchResponse( const char *conceptName )
 		// Don't know how to handle .vcds!!!
 		break;
 	}
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -9510,6 +9610,7 @@ void CBaseEntity::RemoveRecipientsIfNotCloseCaptioning( CRecipientFilter& filter
 	}
 }
 
+#ifndef MAPBASE // Moved to SoundEmitterSystem.cpp
 //-----------------------------------------------------------------------------
 // Purpose: Wrapper to emit a sentence and also a close caption token for the sentence as appropriate.
 // Input  : filter - 
@@ -9532,6 +9633,7 @@ void CBaseEntity::EmitSentenceByIndex( IRecipientFilter& filter, int iEntIndex, 
 	enginesound->EmitSentenceByIndex( filter, iEntIndex, iChannel, iSentenceIndex, 
 		flVolume, iSoundlevel, iFlags, iPitch, 0, pOrigin, pDirection, &dummy, bUpdatePositions, soundtime );
 }
+#endif
 
 
 void CBaseEntity::SetRefEHandle( const CBaseHandle &handle )
@@ -10029,6 +10131,7 @@ void CBaseEntity::RunOnPostSpawnScripts(void)
 	}
 }
 
+#ifndef MAPBASE_VSCRIPT // This is shared now
 HSCRIPT	CBaseEntity::GetScriptOwnerEntity()
 {
 	return ToHScript(GetOwnerEntity());
@@ -10038,6 +10141,7 @@ void CBaseEntity::SetScriptOwnerEntity(HSCRIPT pOwner)
 {
 	SetOwnerEntity(ToEnt(pOwner));
 }
+#endif
 
 //-----------------------------------------------------------------------------
 // VScript access to model's key values
@@ -10122,13 +10226,10 @@ const Vector& CBaseEntity::ScriptGetBoundingMaxs(void)
 //-----------------------------------------------------------------------------
 int CBaseEntity::ScriptTakeDamage( HSCRIPT pInfo )
 {
-	if (pInfo)
+	CTakeDamageInfo *info = HScriptToClass< CTakeDamageInfo >( pInfo );
+	if ( info )
 	{
-		CTakeDamageInfo *info = HScriptToClass<CTakeDamageInfo>( pInfo ); //ToDamageInfo( pInfo );
-		if (info)
-		{
-			return OnTakeDamage( *info );
-		}
+		return OnTakeDamage( *info );
 	}
 
 	return 0;
@@ -10138,14 +10239,10 @@ int CBaseEntity::ScriptTakeDamage( HSCRIPT pInfo )
 //-----------------------------------------------------------------------------
 void CBaseEntity::ScriptFireBullets( HSCRIPT pInfo )
 {
-	if (pInfo)
+	FireBulletsInfo_t *info = HScriptToClass< FireBulletsInfo_t >( pInfo );
+	if ( info )
 	{
-		extern FireBulletsInfo_t *GetFireBulletsInfoFromInfo( HSCRIPT hBulletsInfo );
-		FireBulletsInfo_t *info = GetFireBulletsInfoFromInfo( pInfo );
-		if (info)
-		{
-			FireBullets( *info );
-		}
+		FireBullets( *info );
 	}
 }
 
@@ -10202,46 +10299,6 @@ const char *CBaseEntity::ScriptGetKeyValue( const char *pszKeyName )
 	static char szValue[128];
 	GetKeyValue( pszKeyName, szValue, sizeof(szValue) );
 	return szValue;
-}
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-const Vector& CBaseEntity::ScriptGetColorVector()
-{
-	static Vector vecColor;
-	vecColor.Init( m_clrRender.GetR(), m_clrRender.GetG(), m_clrRender.GetB() );
-	return vecColor;
-}
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-void CBaseEntity::ScriptSetColorVector( const Vector& vecColor )
-{
-	SetRenderColor( vecColor.x, vecColor.y, vecColor.z );
-}
-
-void CBaseEntity::ScriptSetColor( int r, int g, int b )
-{
-	SetRenderColor( r, g, b );
-}
-
-//-----------------------------------------------------------------------------
-// Vscript: Gets the entity matrix transform
-//-----------------------------------------------------------------------------
-HSCRIPT CBaseEntity::ScriptEntityToWorldTransform( void )
-{
-	return g_pScriptVM->RegisterInstance( &EntityToWorldTransform() );
-}
-
-//-----------------------------------------------------------------------------
-// Vscript: Gets the entity's physics object if it has one
-//-----------------------------------------------------------------------------
-HSCRIPT CBaseEntity::ScriptGetPhysicsObject( void )
-{
-	if (VPhysicsGetObject())
-		return g_pScriptVM->RegisterInstance( VPhysicsGetObject() );
-	else
-		return NULL;
 }
 
 //-----------------------------------------------------------------------------
