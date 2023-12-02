@@ -447,7 +447,7 @@ void DrawLightmappedGenericFlashlight_DX9_Internal( CBaseVSShader *pShader, IMat
 		if( bBump2 )
 		{
 			// Normalmap2 sampler
-			pShaderShadow->EnableTexture( SHADER_SAMPLER6, true );
+			pShaderShadow->EnableTexture( SHADER_SAMPLER5, true );
 		}
 		if( bDetail )
 		{
@@ -648,7 +648,7 @@ void DrawLightmappedGenericFlashlight_DX9_Internal( CBaseVSShader *pShader, IMat
 
 		if( bBump2 )
 		{
-			pShader->BindTexture( SHADER_SAMPLER6, vars.m_nBumpmap2Var, vars.m_nBumpmap2Frame );
+			pShader->BindTexture( SHADER_SAMPLER5, vars.m_nBumpmap2Var, vars.m_nBumpmap2Frame );
 		}
 
 		if( nPhongMaskVariant == PHONGMASK_STANDALONE )
