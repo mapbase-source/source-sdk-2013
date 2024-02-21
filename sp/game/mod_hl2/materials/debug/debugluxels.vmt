@@ -1,0 +1,6 @@
+SDK_DebugLuxels
+{
+	"$basetexture" "debug/debugluxels"
+	"$translucent" 1
+	"$decal" 1
+}
