@@ -7,9 +7,9 @@
 //===========================================================================//
 
 #include "shaderlib/cshader.h"
-
+#ifndef MAPBASE // This should fix the shader on HDR surfaces. 
 #define USE_NEW_SHADER //Updating assembly shaders to fxc, this is for A/B testing.
-
+#endif
 #ifdef USE_NEW_SHADER
 
 #include "unlitgeneric_vs20.inc"
@@ -18,13 +18,13 @@
 
 #endif
 
-
-
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
-
+#ifdef MAPBASE // This should fix the shader on HDR surfaces. 
+BEGIN_SHADER_FLAGS( SDK_DebugLuxels, "Help for DebugLuxels", SHADER_NOT_EDITABLE )
+#else
 BEGIN_SHADER_FLAGS( DebugLuxels, "Help for DebugLuxels", SHADER_NOT_EDITABLE )
-			  
+#endif			  
 	BEGIN_SHADER_PARAMS
 		SHADER_PARAM( NOSCALE, SHADER_PARAM_TYPE_BOOL, "0", "fixme" )
 	END_SHADER_PARAMS
