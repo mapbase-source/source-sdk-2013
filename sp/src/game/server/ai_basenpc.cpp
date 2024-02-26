@@ -15890,12 +15890,11 @@ bool CAI_BaseNPC::InteractionIsAllowed( CAI_BaseNPC *pOtherNPC, ScriptedNPCInter
 	if (pOtherNPC->Classify() == CLASS_PLAYER_ALLY_VITAL)
 		return false;
 
-	// This convar allows all NPCs to perform Mapbase interactions for both testing and player fun.
-	if (ai_dynint_always_enabled.GetBool() && m_iDynamicInteractionsAllowed != TRS_FALSE)
-		return true;
+	if (m_iDynamicInteractionsAllowed == TRS_FALSE)
+		return false;
 
-	// m_iDynamicInteractionsAllowed == TRS_FALSE case is already handled in CanRunAScriptedNPCInteraction().
-	if (pInteraction->iFlags & SCNPC_FLAG_MAPBASE_ADDITION && m_iDynamicInteractionsAllowed == TRS_NONE)
+	// To maintain existing behavior, Mapbase additions require either explicit TRS_YES or ai_dynint_always_enabled.
+	if (pInteraction->iFlags & SCNPC_FLAG_MAPBASE_ADDITION && m_iDynamicInteractionsAllowed == TRS_NONE && !ai_dynint_always_enabled.GetBool())
 		return false;
 	
 	// Test misc. criteria here since some of it may not have been valid on initial calculation, but could be now
