@@ -417,6 +417,14 @@ IMaterial *CEngineSprite::GetMaterial( RenderMode_t nRenderMode, int nFrame )
 	
 	
 	IMaterial *pMaterial = m_material[nRenderMode];
+#ifdef MAPBASE
+	Assert(pMaterial); // In vanilla code there's no extra checks about the material existing. This makes sprites with missing materials crash the game the moment they come into view!
+	if (!pMaterial)
+	{
+		Warning("Failed CEngineSprite::GetMaterial()!!! You likely have a sprite with a missing material. Returning NULL to safely exit the function.\n");
+		return NULL;
+	}
+#endif
 	IMaterialVar* pFrameVar = pMaterial->FindVarFast( "$frame", &frameCache );
 	if ( pFrameVar )
 	{
