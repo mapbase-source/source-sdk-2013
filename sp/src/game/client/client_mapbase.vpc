@@ -4,15 +4,13 @@
 //	Project Script
 //-----------------------------------------------------------------------------
 
+$Include "$SRCDIR\game\shared\shared_mapbase.vpc"
+
 $Configuration
 {
 	$Compiler
 	{
-		$PreprocessorDefinitions		"$BASE;ASW_PROJECTED_TEXTURES;DYNAMIC_RTT_SHADOWS;GLOWS_ENABLE"
-		
 		$PreprocessorDefinitions		"$BASE;MAPBASE_RPC;DISCORD_RPC;STEAM_RPC"	[$MAPBASE_RPC&&!$LINUXALL]
-		$PreprocessorDefinitions		"$BASE;MAPBASE_VSCRIPT"		[$MAPBASE_VSCRIPT]
-		$PreprocessorDefinitions		"$BASE;NEW_RESPONSE_SYSTEM"		[$NEW_RESPONSE_SYSTEM]
 	}
 }
 
@@ -39,27 +37,6 @@ $Project
 	
 		$Folder	"Mapbase"
 		{
-			$File	"$SRCDIR\game\shared\mapbase\mapbase_shared.cpp"
-			$File	"$SRCDIR\game\shared\mapbase\mapbase_usermessages.cpp"
-			$File	"$SRCDIR\game\shared\mapbase\mapbase_rpc.cpp"
-			$File	"$SRCDIR\game\shared\mapbase\mapbase_game_log.cpp"
-			$File	"$SRCDIR\game\shared\mapbase\MapEdit.cpp"
-			$File	"$SRCDIR\game\shared\mapbase\MapEdit.h"
-			$File	"$SRCDIR\game\shared\mapbase\matchers.cpp"
-			$File	"$SRCDIR\game\shared\mapbase\matchers.h"
-			$File	"$SRCDIR\game\shared\mapbase\singleplayer_animstate.cpp"
-			$File	"$SRCDIR\game\shared\mapbase\singleplayer_animstate.h"
-			$File	"$SRCDIR\game\shared\mapbase\vscript_funcs_shared.cpp" [$MAPBASE_VSCRIPT]
-			$File	"$SRCDIR\game\shared\mapbase\vscript_funcs_shared.h" [$MAPBASE_VSCRIPT]
-			$File	"$SRCDIR\game\shared\mapbase\vscript_singletons.cpp" [$MAPBASE_VSCRIPT]
-			$File	"$SRCDIR\game\shared\mapbase\vscript_singletons.h" [$MAPBASE_VSCRIPT]
-			$File	"$SRCDIR\game\shared\mapbase\vscript_funcs_hl2.cpp" [$MAPBASE_VSCRIPT]
-			$File	"$SRCDIR\game\shared\mapbase\vscript_consts_shared.cpp" [$MAPBASE_VSCRIPT]
-			$File	"$SRCDIR\game\shared\mapbase\vscript_consts_weapons.cpp" [$MAPBASE_VSCRIPT]
-			$File	"$SRCDIR\game\shared\mapbase\weapon_custom_scripted.cpp" [$MAPBASE_VSCRIPT]
-			$File	"$SRCDIR\game\shared\mapbase\weapon_custom_scripted.h" [$MAPBASE_VSCRIPT]
-			$File	"$SRCDIR\game\shared\mapbase\logic_script_client.cpp" [$MAPBASE_VSCRIPT]
-
 			$File   "mapbase\vscript_vgui.cpp" [$MAPBASE_VSCRIPT]
 			$File   "mapbase\vscript_vgui.h" [$MAPBASE_VSCRIPT]
 			$File   "mapbase\vscript_vgui.nut" [$MAPBASE_VSCRIPT]
@@ -72,27 +49,10 @@ $Project
 			$File	"mapbase\c_weapon_custom_hl2.cpp"
 			$File	"mapbase\mapbase_autocubemap.cpp"
 		}
-		
-		$Folder "HL2 DLL"
-		{
-			// Original stunstick files are conditional'd out in the HL2 VPCs
-			$File	"$SRCDIR\game\shared\hl2mp\weapon_stunstick.cpp"
-			$File	"$SRCDIR\game\shared\hl2mp\weapon_stunstick.h"
-		}
-		
-		$Folder	"HL2MP"
-		{
-			$Folder	"Weapons"
-			{
-				$File	"$SRCDIR\game\shared\hl2mp\weapon_slam.cpp"
-				$File	"$SRCDIR\game\shared\hl2mp\weapon_slam.h"
-			}
-		}
 	}
 
 	$Folder	"Link Libraries"
 	{
-		$Lib	"vscript" [$MAPBASE_VSCRIPT]
 		$Lib	"raytrace"
 	}
 }

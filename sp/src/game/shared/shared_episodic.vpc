@@ -1,0 +1,38 @@
+//-----------------------------------------------------------------------------
+//	SHARED_EPISODIC.VPC
+//
+//	Shared Project EPISODIC Script
+//	This project contains files that are both used by client and server
+//-----------------------------------------------------------------------------
+
+$Project
+{
+	$Folder	"Shared Source Files"
+	{
+		$Folder	"HL2 DLL"
+		{
+			$File	"$SRCDIR\game\shared\episodic\achievements_ep1.cpp"
+			$File	"$SRCDIR\game\shared\episodic\achievements_ep2.cpp"
+			$File	"$SRCDIR\game\shared\episodic\achievements_epx.cpp"
+			$File	"$SRCDIR\game\shared\hl2\basehlcombatweapon_shared.cpp"
+			$File	"$SRCDIR\game\shared\hl2\env_headcrabcanister_shared.cpp"
+			$File	"$SRCDIR\game\shared\hl2\hl2_gamerules.cpp"
+			$File	"$SRCDIR\game\shared\hl2\hl2_usermessages.cpp"
+			$File	"$SRCDIR\game\shared\hl2\hl_gamemovement.cpp"
+			$File	"$SRCDIR\game\shared\script_intro_shared.cpp"
+		}
+	}
+	$Folder "Shared Header Files"
+	{
+		$Folder	"HL2 DLL"
+		{
+			$File	"$SRCDIR\game\shared\hl2\citadel_effects_shared.h"
+			$File	"$SRCDIR\game\shared\hl2\env_headcrabcanister_shared.h"
+			$File	"$SRCDIR\game\shared\hl2\hl2_gamerules.h"
+			$File	"$SRCDIR\game\shared\hl2\hl2_shareddefs.h"
+			$File	"$SRCDIR\game\shared\hl2\hl_gamemovement.h"
+			$File	"$SRCDIR\game\shared\episodic\npc_advisor_shared.h"
+		}
+	}
+		
+}
