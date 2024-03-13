@@ -14895,22 +14895,39 @@ void CAI_BaseNPC::ParseScriptedNPCInteractions(void)
 						else if (!Q_strncmp(szName, "their_", 6))
 						{
 							const char *szTheirName = szName + 6;
-							sInteraction.bHasSeparateSequenceNames = true;
 
 							if (!Q_strncmp(szTheirName, "entry_sequence", 14))
+							{
+								sInteraction.bHasSeparateSequenceNames = true;
 								sInteraction.sTheirPhases[SNPCINT_ENTRY].iszSequence = AllocPooledString(szValue);
+							}
 							else if (!Q_strncmp(szTheirName, "entry_activity", 14))
+							{
+								sInteraction.bHasSeparateSequenceNames = true;
 								sInteraction.sTheirPhases[SNPCINT_ENTRY].iActivity = GetOrRegisterActivity(szValue);
+							}
 
 							else if (!Q_strncmp(szTheirName, "sequence", 8))
+							{
+								sInteraction.bHasSeparateSequenceNames = true;
 								sInteraction.sTheirPhases[SNPCINT_SEQUENCE].iszSequence = AllocPooledString(szValue);
+							}
 							else if (!Q_strncmp(szTheirName, "activity", 8))
+							{
+								sInteraction.bHasSeparateSequenceNames = true;
 								sInteraction.sTheirPhases[SNPCINT_SEQUENCE].iActivity = GetOrRegisterActivity(szValue);
+							}
 
 							else if (!Q_strncmp(szTheirName, "exit_sequence", 13))
+							{
+								sInteraction.bHasSeparateSequenceNames = true;
 								sInteraction.sTheirPhases[SNPCINT_EXIT].iszSequence = AllocPooledString(szValue);
+							}
 							else if (!Q_strncmp(szTheirName, "exit_activity", 13))
+							{
+								sInteraction.bHasSeparateSequenceNames = true;
 								sInteraction.sTheirPhases[SNPCINT_EXIT].iActivity = GetOrRegisterActivity(szValue);
+							}
 
 							// Add anything else to our miscellaneous criteria
 							else
