@@ -31,6 +31,8 @@
 #include "squirrel/squirrel/sqvm.h"
 #include "squirrel/squirrel/sqclosure.h"
 
+#include "sqdbg.h"
+
 #include "tier1/utlbuffer.h"
 #include "tier1/mapbase_con_groups.h"
 #include "tier1/convar.h"
@@ -139,7 +141,7 @@ public:
 	virtual bool Init() override;
 	virtual void Shutdown() override;
 
-	virtual bool ConnectDebugger() override;
+	virtual bool ConnectDebugger( int port = 0 ) override;
 	virtual void DisconnectDebugger() override;
 
 	virtual ScriptLanguage_t GetLanguage() override;
@@ -274,6 +276,7 @@ public:
 	HSQOBJECT lastError_;
 	HSQOBJECT vectorClass_;
 	HSQOBJECT regexpClass_;
+	HSQDEBUGSERVER debugger_ = nullptr;
 };
 
 static char TYPETAG_VECTOR[] = "VectorTypeTag";
@@ -2072,15 +2075,37 @@ void SquirrelVM::Shutdown()
 	}
 }
 
-bool SquirrelVM::ConnectDebugger()
+bool VScriptRunScript( const char *pszScriptName, HSCRIPT hScope, bool bWarnMissing );
+
+bool SquirrelVM::ConnectDebugger( int port )
 {
-	// TODO: Debugger support
-	return false;
+	if ( !debugger_ )
+	{
+		debugger_ = sqdbg_attach_debugger( vm_ );
+
+		if ( sqdbg_listen_socket( debugger_, port ) != 0 )
+		{
+			sqdbg_destroy_debugger( vm_ );
+			debugger_ = nullptr;
+			return false;
+		}
+	}
+	else
+	{
+		sqdbg_frame( debugger_ );
+	}
+
+	VScriptRunScript( "sqdbg_definitions.nut", NULL, false );
+	return true;
 }
 
 void SquirrelVM::DisconnectDebugger()
 {
-	// TODO: Debugger support
+	if ( debugger_ )
+	{
+		sqdbg_destroy_debugger( vm_ );
+		debugger_ = nullptr;
+	}
 }
 
 ScriptLanguage_t SquirrelVM::GetLanguage()
@@ -2100,7 +2125,10 @@ void SquirrelVM::AddSearchPath(const char* pszSearchPath)
 
 bool SquirrelVM::Frame(float simTime)
 {
-	// TODO: Frame support
+	if ( debugger_ )
+	{
+		sqdbg_frame( debugger_ );
+	}
 	return false;
 }
 
@@ -2127,12 +2155,24 @@ HSCRIPT SquirrelVM::CompileScript(const char* pszScript, const char* pszId)
 {
 	SquirrelSafeCheck safeCheck(vm_);
 
-	Assert(vm_);
-	if (pszId == nullptr) pszId = "<unnamed>";
-	if (SQ_FAILED(sq_compilebuffer(vm_, pszScript, strlen(pszScript), pszId, SQTrue)))
+	bool bUnnamed = ( pszId == nullptr );
+	if ( bUnnamed )
+	{
+		pszId = "<unnamed>";
+	}
+
+	int nScriptLen = strlen(pszScript);
+
+	if (SQ_FAILED(sq_compilebuffer(vm_, pszScript, nScriptLen, pszId, SQTrue)))
 	{
 		return nullptr;
 	}
+
+	if ( debugger_ && !bUnnamed )
+	{
+		sqdbg_on_script_compile( debugger_, pszScript, nScriptLen, pszId, strlen(pszId) );
+	}
+
 	HSQOBJECT* obj = new HSQOBJECT;
 	sq_resetobject(obj);
 	sq_getstackobj(vm_, -1, obj);

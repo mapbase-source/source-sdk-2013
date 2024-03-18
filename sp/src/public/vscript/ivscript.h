@@ -838,7 +838,11 @@ public:
 	virtual bool Init() = 0;
 	virtual void Shutdown() = 0;
 
+#ifdef MAPBASE_VSCRIPT
+	virtual bool ConnectDebugger( int port = 0 ) = 0;
+#else
 	virtual bool ConnectDebugger() = 0;
+#endif
 	virtual void DisconnectDebugger() = 0;
 
 	virtual ScriptLanguage_t GetLanguage() = 0;

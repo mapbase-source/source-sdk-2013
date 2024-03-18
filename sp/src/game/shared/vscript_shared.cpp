@@ -37,6 +37,7 @@ extern ScriptClassDesc_t * GetScriptDesc( CBaseEntity * );
 #ifdef MAPBASE_VSCRIPT
 // This is to ensure a dependency exists between the vscript library and the game DLLs
 extern int vscript_token;
+extern int vscript_debugger_port;
 int vscript_token_hack = vscript_token;
 #endif
 
@@ -390,12 +391,30 @@ CON_COMMAND_F( script_debug, "Connect the vscript VM to the script debugger", FC
 	if ( !IsCommandIssuedByServerAdmin() )
 		return;
 
+#ifdef MAPBASE_VSCRIPT
+#ifdef GAME_DLL
+	int port = 1212;
+#else
+	int port = 1213;
+#endif
+#endif
+
 	if ( !g_pScriptVM )
 	{
+#ifdef MAPBASE_VSCRIPT
+		vscript_debugger_port = port;
+		CGMsg( 0, CON_GROUP_VSCRIPT, "VScript VM is not running, waiting for it to attach the debugger to port %d...\n", port );
+#else
 		CGWarning( 0, CON_GROUP_VSCRIPT, "Scripting disabled or no server running\n" );
+#endif
 		return;
 	}
+
+#ifdef MAPBASE_VSCRIPT
+	g_pScriptVM->ConnectDebugger( port );
+#else
 	g_pScriptVM->ConnectDebugger();
+#endif
 }
 
 #ifdef CLIENT_DLL

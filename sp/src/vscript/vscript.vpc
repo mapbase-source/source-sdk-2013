@@ -12,7 +12,7 @@ $Configuration
 {
 	$Compiler
 	{
-		$AdditionalIncludeDirectories	"$BASE;.\squirrel\include"
+		$AdditionalIncludeDirectories	"$BASE;.\squirrel\include;.\squirrel\squirrel;.\squirrel\sqstdlib;.\sqdbg\include"
 		$PreprocessorDefinitions		"$BASE;MAPBASE_VSCRIPT"		[$MAPBASE_VSCRIPT]
 	}
 }
@@ -60,6 +60,22 @@ $Project "VScript"
 					{
 						// Squirrel third party library is full of warnings
 						$AdditionalOptions		"$BASE /wd4100 /wd4611 /wd4127 /wd4244 /wd4702 /wd4706 /wd4800"
+						$TreatWarningsAsErrors	"No"
+					}
+				}
+			}
+		}
+
+		$Folder "sqdbg"
+		{
+			$File	".\sqdbg\sqdbg\server.cpp"
+			{
+				$Configuration
+				{
+					$Compiler
+					{
+						$PreprocessorDefinitions		"$BASE;_CRT_SECURE_NO_WARNINGS;_WINSOCK_DEPRECATED_NO_WARNINGS"
+						$AdditionalOptions		"$BASE /wd4127 /wd4146 /wd4201 /wd4244 /wd4267 /wd4456 /wd4706"
 						$TreatWarningsAsErrors	"No"
 					}
 				}
