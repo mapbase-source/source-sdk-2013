@@ -125,6 +125,12 @@ public:
 			//Msg("No maps to cubemap with!\n");
 			//return;
 
+			if (C_BasePlayer::GetLocalPlayer() == NULL)
+			{
+				Msg( "Must be in a level (or have a loaded map list) to begin autocubemap\n" );
+				return;
+			}
+
 			// Just do this map
 			m_AutoCubemapMaps.AddToTail( strdup( g_MapName ) );
 		}
