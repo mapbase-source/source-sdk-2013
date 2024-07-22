@@ -1,15 +1,14 @@
 "GameInfo"
 {
-	game 		"My First Episodic Mod"
-	title 		"HALF-LIFE'"
+	game 		"Source Shader Editor"
+	title 		"Source Shader Editor"
 	title2		""
-	supportsvr	1
 
 	type		singleplayer_only
 
 	FileSystem
 	{
-		SteamAppId				243730		// This sets the app ID in Steam
+		SteamAppId			243730		// This sets the app ID in Steam
 		
 		//
 		// The code that loads this file automatically does a few things here:
