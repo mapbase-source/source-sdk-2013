@@ -1,0 +1,17 @@
+//-----------------------------------------------------------------------------
+//  SHADEREDITOR_PLATFORM.VPC
+//
+//  Project Script
+//-----------------------------------------------------------------------------
+
+// Specify source root of your game.
+$Macro TARGET_SRC_DIRECTORY "<PATH TO YOUR GAMES SOURCE ROOT>" // example: C:\sourcesdk2013\sp\src
+
+// Specify target SDK version. Only enable one of them.
+$Conditional "TARGET_PLATFORM_2013" 1
+
+// Specify game root.
+$Macro TARGET_GAME_DIRECTORY "C:\Program Files (x86)\Steam\steamapps\sourcemods\SourceDEFUN"
+
+// Toggled through macro above, do not touch.
+$Macro TARGET_PLATFORM "2013"    [$TARGET_PLATFORM_2013]
