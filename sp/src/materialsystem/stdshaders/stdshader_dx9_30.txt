@@ -7,6 +7,10 @@
 //	    _vs30.vcs
 //
 
+
+pbr_vs30.fxc
+pbr_ps30.fxc
+
 SDK_skin_ps20b.fxc
 SDK_skin_vs20.fxc
 SDK_vertexlit_and_unlit_generic_bump_ps20b.fxc
