@@ -16,12 +16,12 @@
 
 // Following values should be +16384, -16384, +15/16, -15/16
 // NOTE THAT IF THIS GOES ANY BIGGER THEN DISK NODES/LEAVES CANNOT USE SHORTS TO STORE THE BOUNDS
-#define MAX_COORD_INTEGER			(16384)
+#define MAX_COORD_INTEGER			(32768)
 #define MIN_COORD_INTEGER			(-MAX_COORD_INTEGER)
 #define MAX_COORD_FRACTION			(1.0-(1.0/16.0))
 #define MIN_COORD_FRACTION			(-1.0+(1.0/16.0))
 
-#define MAX_COORD_FLOAT				(16384.0f)
+#define MAX_COORD_FLOAT				(32768.0f)
 #define MIN_COORD_FLOAT				(-MAX_COORD_FLOAT)
 
 // Width of the coord system, which is TOO BIG to send as a client/server coordinate value
