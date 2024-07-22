@@ -10,6 +10,9 @@
 //example_model_ps20b.fxc
 //example_model_vs20.fxc
 
+pbr_vs20b.fxc
+pbr_ps20b.fxc
+
 SDK_Bloom_ps2x.fxc
 SDK_screenspaceeffect_vs20.fxc
 
