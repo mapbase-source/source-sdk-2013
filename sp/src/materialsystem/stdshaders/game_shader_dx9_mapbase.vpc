@@ -17,6 +17,19 @@ $Project
 {
 	$Folder	"Source Files"
 	{
+		
+		$Folder "PBR fxc"
+		{
+			$File	"pbr_ps30.fxc"
+			$File	"pbr_vs30.fxc"
+			$File	"pbr_ps20b.fxc"
+			$File	"pbr_vs20b.fxc"
+		}
+
+		$Folder "PBR Header"
+		{
+			$File	"pbr_common_ps2_3_x.h"
+		}
 		$File	"cloak_blended_pass_helper.cpp"
 		$File	"emissive_scroll_blended_pass_helper.cpp"
 		$File	"flesh_interior_blended_pass_helper.cpp"
@@ -66,6 +79,10 @@ $Project
 		$File	"depthoffield_dx9.cpp"
 		
 		$File	"core_dx9.cpp"
+	}
+	$Folder "PBR Source"
+	{
+		$File	"pbr_dx9.cpp"
 	}
 
 	//$Shaders	"mapbase_dx9_20b.txt"
