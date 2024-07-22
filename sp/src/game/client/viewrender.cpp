@@ -82,6 +82,9 @@
 // Projective textures
 #include "C_Env_Projected_Texture.h"
 
+// Shader Editor
+#include "ShaderEditor/ShaderEditorSystem.h"
+
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
@@ -2148,6 +2151,7 @@ void CViewRender::RenderView( const CViewSetup &view, int nClearFlags, int whatT
 		if ( ( bDrew3dSkybox = pSkyView->Setup( view, &nClearFlags, &nSkyboxVisible ) ) != false )
 		{
 			AddViewToScene( pSkyView );
+			g_ShaderEditorSystem->UpdateSkymask(false, view.x, view.y, view.width, view.height);
 		}
 		SafeRelease( pSkyView );
 #endif
@@ -2178,6 +2182,7 @@ void CViewRender::RenderView( const CViewSetup &view, int nClearFlags, int whatT
 			if ( ( bDrew3dSkybox = pSkyView->Setup( view, &nClearFlags, &nSkyboxVisible ) ) != false )
 			{
 				AddViewToScene( pSkyView );
+				g_ShaderEditorSystem->UpdateSkymask(false, view.x, view.y, view.width, view.height);
 			}
 			SafeRelease( pSkyView );
 #endif
@@ -2242,6 +2247,8 @@ void CViewRender::RenderView( const CViewSetup &view, int nClearFlags, int whatT
 #endif
 		DrawViewModels( view, whatToDraw & RENDERVIEW_DRAWVIEWMODEL );
 
+		g_ShaderEditorSystem->UpdateSkymask( bDrew3dSkybox, view.x, view.y, view.width, view.height);
+
 		DrawUnderwaterOverlay();
 
 		PixelVisibility_EndScene();
@@ -2278,6 +2285,8 @@ void CViewRender::RenderView( const CViewSetup &view, int nClearFlags, int whatT
 			}
 			pRenderContext.SafeRelease();
 		}
+
+		g_ShaderEditorSystem->CustomPostRender();
 
 		// And here are the screen-space effects
 
