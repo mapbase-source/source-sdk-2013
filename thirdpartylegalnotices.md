@@ -1,10 +1,8 @@
 The Source engine and Valve games use Third Party code for certain functions.  The 
 required legal notices for using such code are reproduced below in accordance with 
-Valveís obligations to provide such notices:
+Valve‚Äôs obligations to provide such notices:
 
-************************************************************************************
-Xzip/Xunzip:
-************************************************************************************
+# Xzip/Xunzip
 
 	// This is version 2002-Feb-16 of the Info-ZIP copyright and license. The 
 	// definitive version of this document should be available at 
@@ -62,9 +60,7 @@ Xzip/Xunzip:
 	//
 	///////////////////////////////////////////////////////////////////////////////
 
-************************************************************************************
-JPEG image support:
-************************************************************************************
+# JPEG image support
 
 	The Source engine and SDK also make use of library functions for working with .jpg 
 	files.  Specifically, the Source engine jpeg library is based in part on the work of 
@@ -460,9 +456,7 @@ JPEG image support:
 
 	Please send bug reports, offers of help, etc. to jpeg-info@uunet.uu.net.
 
-************************************************************************************
-Celt Codec:
-************************************************************************************
+# Celt Codec
 
 	Copyright 2001-2009 Jean-Marc Valin, Timothy B. Terriberry,
 	                    CSIRO, and other contributors
@@ -490,10 +484,8 @@ Celt Codec:
 	NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 	SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-************************************************************************************
-SPEEX Codes:
-************************************************************************************
-	SPEEX  © 2002-2003, Jean-Marc Valin/Xiph.Org Foundation
+# SPEEX Codes
+	SPEEX  ¬© 2002-2003, Jean-Marc Valin/Xiph.Org Foundation
 	Redistribution and use in source and binary forms, with or without modification, are permitted 
 	provided that the following conditions are met: 
 	*	Redistributions of source code must retain the above copyright notice, this list of 
@@ -504,7 +496,7 @@ SPEEX Codes:
 	*	Neither the name of the Xiph.org Foundation nor the names of its contributors may be 
 	used to endorse or promote products derived from this software without specific prior 
 	written permission. 
-	This software is provided by the copyright holders and contributors ìas isî and any express or 
+	This software is provided by the copyright holders and contributors ‚Äúas is‚Äù and any express or 
 	implied warranties, including, but not limited to, the implied warranties of merchantability and 
 	fitness for a particular purpose are disclaimed. In no event shall the foundation or contributors be 
 	liable for any direct, indirect, incidental, special, exemplary, or consequential damages (including, 
@@ -513,9 +505,7 @@ SPEEX Codes:
 	liability, or tort (including negligence or otherwise) arising in any way out of the use of this 
 	software, even if advised of the possibility of such damage. 
 
-************************************************************************************
-google-perftools:
-************************************************************************************
+# google-perftools
 
 	http://code.google.com/p/gperftools/ 
 
@@ -576,9 +566,7 @@ google-perftools:
 	OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH 
 	DAMAGE.
 
-************************************************************************************
-CakePHP:
-************************************************************************************
+# CakePHP
 
 	CakePHP(tm) :  Rapid Development Framework <http://www.cakephp.org/>
 	Copyright 2005-2007,	Cake Software Foundation, Inc.
@@ -603,9 +591,7 @@ CakePHP:
 	FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 	DEALINGS IN THE SOFTWARE.
 
-************************************************************************************
-LZMA
-************************************************************************************
+# LZMA
 
 	LZMA SDK 4.40 Copyright (c) 1999-2006 Igor Pavlov (2006-05-01)
 	http://www.7-zip.org/
@@ -621,9 +607,7 @@ LZMA
 	terms of the CPL or GNU LGPL. Any modifications or additions 
 	to this file, however, are subject to the LGPL or CPL terms.
 
-************************************************************************************
-Fast Pow Function
-************************************************************************************
+# Fast Pow Function
 
 	/*
 	 * (c) Ian Stephenson
@@ -665,22 +649,18 @@ Fast Pow Function
 	// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 	// THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-************************************************************************************
-AutodeskÆ FBXÆ:
-************************************************************************************
+# Autodesk¬Æ FBX¬Æ:
 
-	ìThis software contains AutodeskÆ FBXÆ code developed by Autodesk, Inc. Copyright 2012 Autodesk, Inc. 
-	All rights, reserved. Such code is provided ìas isî and Autodesk, Inc. disclaims any and all warranties, 
+	‚ÄúThis software contains Autodesk¬Æ FBX¬Æ code developed by Autodesk, Inc. Copyright 2012 Autodesk, Inc. 
+	All rights, reserved. Such code is provided ‚Äúas is‚Äù and Autodesk, Inc. disclaims any and all warranties, 
 	whether express or implied, including without limitation the implied warranties of merchantability, fitness for a 
 	particular purpose or non-infringement of third party rights. In no event shall Autodesk, Inc. be liable for any 
 	direct, indirect, incidental, special, exemplary, or consequential damages (including, but not limited to, 
 	procurement of substitute goods or services; loss of use, data, or profits; or business interruption) however 
 	caused and on any theory of liability, whether in contract, strict liability, or tort (including negligence or 
-	otherwise) arising in any way out of such code.î
+	otherwise) arising in any way out of such code.‚Äù
 
-************************************************************************************
-OpenSSL:
-************************************************************************************
+# OpenSSL:
 
 	 * This product includes software developed by the OpenSSL Project
 	 * for use in the OpenSSL Toolkit. (http://www.openssl.org/)
@@ -799,9 +779,7 @@ OpenSSL:
 	 * [including the GNU Public Licence.]
 	 */
 
-************************************************************************************
-Google protocol buffers
-************************************************************************************
+# Google protocol buffers
 
 	// Protocol Buffers - Google's data interchange format
 	// Copyright 2008 Google Inc.  All rights reserved.
@@ -837,9 +815,7 @@ Google protocol buffers
 	//  Based on original Protocol Buffers design by
 	//  Sanjay Ghemawat, Jeff Dean, and others.
 
-************************************************************************************
-Google Snappy
-************************************************************************************
+# Google Snappy
 
 	// Copyright 2005 Google Inc. All Rights Reserved.
 	//
@@ -872,14 +848,12 @@ Google Snappy
 ************************************************************************************
 ************************************************************************************
 
-Mapbase integrates a few additional third-party libraries, all of which are from free and/or
+SourceDEFUN integrates a few additional third-party libraries, all of which are from free and/or
 open-source projects operating under MIT licenses. They can be used in any mod or commercial
 product as long as the given notices are present here or elsewhere.
 
-************************************************************************************
-Squirrel programming language (used in VScript)
-************************************************************************************
-
+# Squirrel programming language (used in VScript)
+```
 Copyright (c) 2003-2017 Alberto Demichelis
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -899,3 +873,4 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
+```
