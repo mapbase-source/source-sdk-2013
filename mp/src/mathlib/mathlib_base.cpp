@@ -3597,7 +3597,7 @@ int PolyFromPlane( Vector *outVerts, const Vector& normal, float dist, float fHa
 
 	// find the major axis
 
-	max = -16384; //MAX_COORD_INTEGER
+	max = -32768; //MAX_COORD_INTEGER
 	x = -1;
 	for (i=0 ; i<3; i++)
 	{
