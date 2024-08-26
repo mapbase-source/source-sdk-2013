@@ -9,6 +9,9 @@
 #define MAPBASE_MATCHERS_BASE_H
 #ifdef _WIN32
 #pragma once
+// We need to do this or Linux containers will fail to compile
+#else
+#include <cstdlib>
 #endif
 
 #include <math.h>
