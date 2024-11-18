@@ -98,16 +98,10 @@ class CScriptGameTrace : public CGameTrace
 public:
 	CScriptGameTrace() : m_surfaceAccessor(NULL), m_planeAccessor(NULL)
 	{
-		m_hScriptInstance = g_pScriptVM->RegisterInstance( this );
 	}
 
 	~CScriptGameTrace()
 	{
-		if ( m_hScriptInstance )
-		{
-			g_pScriptVM->RemoveInstance( m_hScriptInstance );
-		}
-
 		if ( m_surfaceAccessor )
 		{
 			g_pScriptVM->RemoveInstance( m_surfaceAccessor );
@@ -128,11 +122,6 @@ public:
 	void RegisterPlane()
 	{
 		m_planeAccessor = g_pScriptVM->RegisterInstance( &plane );
-	}
-
-	HSCRIPT GetScriptInstance() const
-	{
-		return m_hScriptInstance;
 	}
 
 public:
@@ -157,12 +146,11 @@ public:
 	HSCRIPT Surface() const				{ return m_surfaceAccessor; }
 	HSCRIPT Plane() const				{ return m_planeAccessor; }
 
-	void Destroy()						{ delete this; }
+	void Destroy()						{}
 
 private:
 	HSCRIPT m_surfaceAccessor;
 	HSCRIPT m_planeAccessor;
-	HSCRIPT m_hScriptInstance;
 
 	CSurfaceScriptHelper m_surfaceHelper;
 

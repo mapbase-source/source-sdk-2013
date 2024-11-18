@@ -10152,7 +10152,7 @@ void CBaseEntity::SetScriptOwnerEntity(HSCRIPT pOwner)
 //	ScriptFindKey, ScriptGetFirstSubKey, ScriptGetString, 
 //	ScriptGetInt, ScriptGetFloat, ScriptGetNextKey
 //-----------------------------------------------------------------------------
-HSCRIPT CBaseEntity::ScriptGetModelKeyValues( void )
+HSCRIPT_RC CBaseEntity::ScriptGetModelKeyValues( void )
 {
 	KeyValues *pModelKeyValues = new KeyValues("");
 	HSCRIPT hScript = NULL;
@@ -10161,16 +10161,12 @@ HSCRIPT CBaseEntity::ScriptGetModelKeyValues( void )
 
 	if ( pModelKeyValues->LoadFromBuffer( pszModelName, pBuffer ) )
 	{
-		// UNDONE: how does destructor get called on this
 #ifdef MAPBASE_VSCRIPT
-		m_pScriptModelKeyValues = hScript = scriptmanager->CreateScriptKeyValues( g_pScriptVM, pModelKeyValues, true ); // Allow VScript to delete this when the instance is removed.
+		hScript = scriptmanager->CreateScriptKeyValues( g_pScriptVM, pModelKeyValues );
 #else
+		// UNDONE: how does destructor get called on this
 		m_pScriptModelKeyValues = new CScriptKeyValues( pModelKeyValues );
-#endif
-
 		// UNDONE: who calls ReleaseInstance on this??? Does name need to be unique???
-
-#ifndef MAPBASE_VSCRIPT
 		hScript = g_pScriptVM->RegisterInstance( m_pScriptModelKeyValues );
 #endif
 		

@@ -2102,7 +2102,7 @@ public:
 #endif
 
 	const char* ScriptGetModelName(void) const;
-	HSCRIPT ScriptGetModelKeyValues(void);
+	HSCRIPT_RC ScriptGetModelKeyValues(void);
 
 	void ScriptStopSound(const char* soundname);
 	void ScriptEmitSound(const char* soundname);
@@ -2176,9 +2176,7 @@ public:
 	CScriptScope	m_ScriptScope;
 	HSCRIPT			m_hScriptInstance;
 	string_t		m_iszScriptId;
-#ifdef MAPBASE_VSCRIPT
-	HSCRIPT			m_pScriptModelKeyValues;
-#else
+#ifndef MAPBASE_VSCRIPT
 	CScriptKeyValues* m_pScriptModelKeyValues;
 #endif
 };

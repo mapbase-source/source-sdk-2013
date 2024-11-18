@@ -208,7 +208,7 @@ public:
 	int		ScriptSelectHeaviestSequence( int activity ) { return SelectHeaviestSequence( (Activity)activity ); }
 	int		ScriptSelectWeightedSequence( int activity, int curSequence ) { return SelectWeightedSequence( (Activity)activity, curSequence ); }
 
-	HSCRIPT ScriptGetSequenceKeyValues( int iSequence );
+	HSCRIPT_RC ScriptGetSequenceKeyValues( int iSequence );
 
 	// For VScript
 	int		GetSkin() { return m_nSkin; }

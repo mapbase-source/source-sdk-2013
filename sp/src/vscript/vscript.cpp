@@ -60,10 +60,14 @@ public:
 	}
 
 	// Mapbase moves CScriptKeyValues into the library so it could be used elsewhere
-	virtual HSCRIPT CreateScriptKeyValues( IScriptVM *pVM, KeyValues *pKV, bool bAllowDestruct ) override
+
+	// if bBorrow is false, CScriptKeyValues owns pKV memory
+	// Functions returning the result need to return HSCRIPT_RC
+	// see comment on IScriptVM::RegisterInstance()
+	virtual HSCRIPT CreateScriptKeyValues( IScriptVM *pVM, KeyValues *pKV, bool bBorrow ) override
 	{
-		CScriptKeyValues *pSKV = new CScriptKeyValues( pKV );
-		HSCRIPT hSKV = pVM->RegisterInstance( pSKV, bAllowDestruct );
+		CScriptKeyValues *pSKV = new CScriptKeyValues( pKV, bBorrow );
+		HSCRIPT hSKV = pVM->RegisterInstance( pSKV, true );
 		return hSKV;
 	}
 
@@ -72,7 +76,7 @@ public:
 		CScriptKeyValues *pSKV = (hSKV ? (CScriptKeyValues*)pVM->GetInstanceValue( hSKV, GetScriptDesc( (CScriptKeyValues*)NULL ) ) : nullptr);
 		if (pSKV)
 		{
-			return pSKV->m_pKeyValues;
+			return pSKV->GetKeyValues();
 		}
 
 		return nullptr;

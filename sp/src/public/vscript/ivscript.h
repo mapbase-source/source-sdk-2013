@@ -141,6 +141,20 @@ class KeyValues;
 DECLARE_POINTER_HANDLE( HSCRIPT );
 #define INVALID_HSCRIPT ((HSCRIPT)-1)
 
+// Reference counted HSCRIPT return value
+//
+// This is an alias for HSCRIPT that is converted back to HSCRIPT on return
+// from vscript function bindings; it signals the vscript implementation to
+// release its hold and let the script control the lifetime
+// of the registered instance.
+struct HSCRIPT_RC
+{
+	HSCRIPT val;
+	HSCRIPT_RC( HSCRIPT v ) { val = v; }
+	HSCRIPT operator=( HSCRIPT v ) { val = v; return val; }
+	operator HSCRIPT() { return val; }
+};
+
 typedef unsigned int HScriptRaw;
 #endif
 
@@ -162,7 +176,7 @@ public:
 	virtual void DestroyVM( IScriptVM * ) = 0;
 
 #ifdef MAPBASE_VSCRIPT
-	virtual HSCRIPT CreateScriptKeyValues( IScriptVM *pVM, KeyValues *pKV, bool bAllowDestruct ) = 0;
+	virtual HSCRIPT CreateScriptKeyValues( IScriptVM *pVM, KeyValues *pKV, bool bBorrow = false ) = 0;
 	virtual KeyValues *GetKeyValuesFromScriptKV( IScriptVM *pVM, HSCRIPT hSKV ) = 0;
 #endif
 };
@@ -177,6 +191,9 @@ enum ExtendedFieldType
 	FIELD_CSTRING,
 	FIELD_HSCRIPT,
 	FIELD_VARIANT,
+#ifdef MAPBASE_VSCRIPT
+	FIELD_HSCRIPT_RC,
+#endif
 };
 
 typedef int ScriptDataType_t;
@@ -197,6 +214,7 @@ DECLARE_DEDUCE_FIELDTYPE( FIELD_CHARACTER,	char );
 DECLARE_DEDUCE_FIELDTYPE( FIELD_HSCRIPT,	HSCRIPT );
 DECLARE_DEDUCE_FIELDTYPE( FIELD_VARIANT,	ScriptVariant_t );
 #ifdef MAPBASE_VSCRIPT
+DECLARE_DEDUCE_FIELDTYPE( FIELD_HSCRIPT_RC,	HSCRIPT_RC );
 DECLARE_DEDUCE_FIELDTYPE( FIELD_VECTOR,		QAngle );
 DECLARE_DEDUCE_FIELDTYPE( FIELD_VECTOR,		const QAngle& );
 #endif
@@ -298,6 +316,9 @@ struct ScriptMemberDesc_t
 enum ScriptFuncBindingFlags_t
 {
 	SF_MEMBER_FUNC	= 0x01,
+#ifdef MAPBASE_VSCRIPT
+	SF_REFCOUNTED_RET	= 0x02,
+#endif
 };
 
 typedef bool (*ScriptBindingFunc_t)( void *pFunction, void *pContext, ScriptVariant_t *pArguments, int nArguments, ScriptVariant_t *pReturn );
@@ -618,6 +639,15 @@ struct ScriptEnumDesc_t
 #define ScriptInitMemberFunctionBindingNamed( pScriptFunction, class, func, scriptName )	ScriptInitMemberFunctionBinding_( pScriptFunction, class, func, scriptName )
 #define ScriptInitMemberFunctionBinding_( pScriptFunction, class, func, scriptName ) 		do { ScriptInitMemberFuncDescriptor_( (&(pScriptFunction)->m_desc), class, func, scriptName ); (pScriptFunction)->m_pfnBinding = ScriptCreateBinding( ((class *)0), &class::func ); 	(pScriptFunction)->m_pFunction = ScriptConvertFuncPtrToVoid( &class::func ); (pScriptFunction)->m_flags = SF_MEMBER_FUNC;  } while (0)
 
+#ifdef MAPBASE_VSCRIPT
+// Convert HSCRIPT_RC return type into HSCRIPT return with SF_REFCOUNTED_RET binding flag
+#undef ScriptInitFunctionBindingNamed
+#define ScriptInitFunctionBindingNamed( pScriptFunction, func, scriptName )					do { ScriptInitFuncDescriptorNamed( (&(pScriptFunction)->m_desc), func, scriptName ); (pScriptFunction)->m_pfnBinding = ScriptCreateBinding( &func ); (pScriptFunction)->m_pFunction = (void *)&func; if ( (pScriptFunction)->m_desc.m_ReturnType == FIELD_HSCRIPT_RC ) { (pScriptFunction)->m_desc.m_ReturnType = FIELD_HSCRIPT; (pScriptFunction)->m_flags |= SF_REFCOUNTED_RET; } } while (0)
+
+#undef ScriptInitMemberFunctionBinding_
+#define ScriptInitMemberFunctionBinding_( pScriptFunction, class, func, scriptName ) 		do { ScriptInitMemberFuncDescriptor_( (&(pScriptFunction)->m_desc), class, func, scriptName ); (pScriptFunction)->m_pfnBinding = ScriptCreateBinding( ((class *)0), &class::func ); 	(pScriptFunction)->m_pFunction = ScriptConvertFuncPtrToVoid( &class::func ); (pScriptFunction)->m_flags = SF_MEMBER_FUNC; if ( (pScriptFunction)->m_desc.m_ReturnType == FIELD_HSCRIPT_RC ) { (pScriptFunction)->m_desc.m_ReturnType = FIELD_HSCRIPT; (pScriptFunction)->m_flags |= SF_REFCOUNTED_RET; } } while (0)
+#endif
+
 #define ScriptInitClassDesc( pClassDesc, class, pBaseClassDesc )							ScriptInitClassDescNamed( pClassDesc, class, pBaseClassDesc, #class )
 #define ScriptInitClassDescNamed( pClassDesc, class, pBaseClassDesc, scriptName )			ScriptInitClassDescNamed_( pClassDesc, class, pBaseClassDesc, scriptName )
 #define ScriptInitClassDescNoBase( pClassDesc, class )										ScriptInitClassDescNoBaseNamed( pClassDesc, class, #class )
@@ -739,6 +769,10 @@ static inline int ToConstantVariant(int value)
 #define DEFINE_SCRIPT_INSTANCE_HELPER( p )													pDesc->pHelper = (p);
 
 #ifdef MAPBASE_VSCRIPT
+// Allow instance to be deleted but not constructed
+// Not needed if the class has a constructor
+#define DEFINE_SCRIPT_REFCOUNTED_INSTANCE()													do { pDesc->m_pfnDestruct = &CScriptConstructor<_className>::Destruct; } while (0);
+
 // Use this for hooks which have no parameters
 #define DEFINE_SIMPLE_SCRIPTHOOK( hook, hookName, returnType, description ) \
 	if (!hook.m_bDefined) \
@@ -927,14 +961,13 @@ public:
 	//--------------------------------------------------------
 
 #ifdef MAPBASE_VSCRIPT
-	// When a RegisterInstance instance is deleted, VScript normally treats it as a strong reference and only deregisters the instance itself, preserving the registered data
-	// it points to so the game can continue to use it.
-	// bAllowDestruct is supposed to allow VScript to treat it as a weak reference created by the script, destructing the registered data automatically like any other type.
-	// This is useful for classes pretending to be primitive types.
-	virtual HSCRIPT RegisterInstance( ScriptClassDesc_t *pDesc, void *pInstance, bool bAllowDestruct = false ) = 0;
+	// if bRefCounted is true, pInstance memory will be deleted by the script,
+	// returning the result will then behave as if the instance was constructed in script.
+	// Functions that return the result of this need to return HSCRIPT_RC
+	virtual HSCRIPT RegisterInstance( ScriptClassDesc_t *pDesc, void *pInstance, bool bRefCounted = false ) = 0;
 	virtual void SetInstanceUniqeId( HSCRIPT hInstance, const char *pszId ) = 0;
-	template <typename T> HSCRIPT RegisterInstance( T *pInstance, bool bAllowDestruct = false )																	{ return RegisterInstance( GetScriptDesc( pInstance ), pInstance, bAllowDestruct );	}
-	template <typename T> HSCRIPT RegisterInstance( T *pInstance, const char *pszInstance, HSCRIPT hScope = NULL, bool bAllowDestruct = false)					{ HSCRIPT hInstance = RegisterInstance( GetScriptDesc( pInstance ), pInstance, bAllowDestruct ); SetValue( hScope, pszInstance, hInstance ); return hInstance; }
+	template <typename T> HSCRIPT RegisterInstance( T *pInstance, bool bRefCounted = false )																	{ return RegisterInstance( GetScriptDesc( pInstance ), pInstance, bRefCounted );	}
+	template <typename T> HSCRIPT RegisterInstance( T *pInstance, const char *pszInstance, HSCRIPT hScope = NULL, bool bRefCounted = false)					{ HSCRIPT hInstance = RegisterInstance( GetScriptDesc( pInstance ), pInstance, bRefCounted ); SetValue( hScope, pszInstance, hInstance ); return hInstance; }
 #else
 	virtual HSCRIPT RegisterInstance( ScriptClassDesc_t *pDesc, void *pInstance ) = 0;
 	virtual void SetInstanceUniqeId( HSCRIPT hInstance, const char *pszId ) = 0;

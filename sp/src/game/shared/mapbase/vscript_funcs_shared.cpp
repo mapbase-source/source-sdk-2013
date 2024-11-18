@@ -255,11 +255,10 @@ void ScriptDispatchSpawn( HSCRIPT hEntity )
 //-----------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------
-static HSCRIPT CreateDamageInfo( HSCRIPT hInflictor, HSCRIPT hAttacker, const Vector &vecForce, const Vector &vecDamagePos, float flDamage, int iDamageType )
+static HSCRIPT_RC CreateDamageInfo( HSCRIPT hInflictor, HSCRIPT hAttacker, const Vector &vecForce, const Vector &vecDamagePos, float flDamage, int iDamageType )
 {
-	// The script is responsible for deleting this via DestroyDamageInfo().
 	CTakeDamageInfo *damageInfo = new CTakeDamageInfo( ToEnt(hInflictor), ToEnt(hAttacker), flDamage, iDamageType );
-	HSCRIPT hScript = g_pScriptVM->RegisterInstance( damageInfo );
+	HSCRIPT hScript = g_pScriptVM->RegisterInstance( damageInfo, true );
 
 	damageInfo->SetDamagePosition( vecDamagePos );
 	damageInfo->SetDamageForce( vecForce );
@@ -267,14 +266,8 @@ static HSCRIPT CreateDamageInfo( HSCRIPT hInflictor, HSCRIPT hAttacker, const Ve
 	return hScript;
 }
 
-static void DestroyDamageInfo( HSCRIPT hDamageInfo )
+static void DestroyDamageInfo( HSCRIPT )
 {
-	CTakeDamageInfo *pInfo = HScriptToClass< CTakeDamageInfo >( hDamageInfo );
-	if ( pInfo )
-	{
-		g_pScriptVM->RemoveInstance( hDamageInfo );
-		delete pInfo;
-	}
 }
 
 void ScriptCalculateExplosiveDamageForce( HSCRIPT info, const Vector &vecDir, const Vector &vecForceOrigin, float flScale )
@@ -317,6 +310,8 @@ void ScriptGuessDamageForce( HSCRIPT info, const Vector &vecForceDir, const Vect
 //
 //-----------------------------------------------------------------------------
 BEGIN_SCRIPTDESC_ROOT_NAMED( CScriptGameTrace, "CGameTrace", "trace_t" )
+	DEFINE_SCRIPT_REFCOUNTED_INSTANCE()
+
 	DEFINE_SCRIPTFUNC( DidHitWorld, "Returns whether the trace hit the world entity or not." )
 	DEFINE_SCRIPTFUNC( DidHitNonWorldEntity, "Returns whether the trace hit something other than the world entity." )
 	DEFINE_SCRIPTFUNC( GetEntityIndex, "Returns the index of whatever entity this trace hit." )
@@ -347,7 +342,7 @@ BEGIN_SCRIPTDESC_ROOT_NAMED( CScriptGameTrace, "CGameTrace", "trace_t" )
 	DEFINE_SCRIPTFUNC( Surface, "" )
 	DEFINE_SCRIPTFUNC( Plane, "" )
 
-	DEFINE_SCRIPTFUNC( Destroy, "Deletes this instance. Important for preventing memory leaks." )
+	DEFINE_SCRIPTFUNC( Destroy, SCRIPT_HIDE )
 END_SCRIPTDESC();
 
 BEGIN_SCRIPTDESC_ROOT_NAMED( scriptsurfacedata_t, "surfacedata_t", "" )
@@ -380,9 +375,8 @@ BEGIN_SCRIPTDESC_ROOT( cplane_t, "" )
 	DEFINE_SCRIPT_INSTANCE_HELPER( &g_PlaneTInstanceHelper )
 END_SCRIPTDESC();
 
-static HSCRIPT ScriptTraceLineComplex( const Vector &vecStart, const Vector &vecEnd, HSCRIPT entIgnore, int iMask, int iCollisionGroup )
+static HSCRIPT_RC ScriptTraceLineComplex( const Vector &vecStart, const Vector &vecEnd, HSCRIPT entIgnore, int iMask, int iCollisionGroup )
 {
-	// The script is responsible for deleting this via Destroy().
 	CScriptGameTrace *tr = new CScriptGameTrace();
 
 	CBaseEntity *pIgnore = ToEnt( entIgnore );
@@ -391,13 +385,12 @@ static HSCRIPT ScriptTraceLineComplex( const Vector &vecStart, const Vector &vec
 	tr->RegisterSurface();
 	tr->RegisterPlane();
 
-	return tr->GetScriptInstance();
+	return g_pScriptVM->RegisterInstance( tr, true );
 }
 
-static HSCRIPT ScriptTraceHullComplex( const Vector &vecStart, const Vector &vecEnd, const Vector &hullMin, const Vector &hullMax,
+static HSCRIPT_RC ScriptTraceHullComplex( const Vector &vecStart, const Vector &vecEnd, const Vector &hullMin, const Vector &hullMax,
 	HSCRIPT entIgnore, int iMask, int iCollisionGroup )
 {
-	// The script is responsible for deleting this via Destroy().
 	CScriptGameTrace *tr = new CScriptGameTrace();
 
 	CBaseEntity *pIgnore = ToEnt( entIgnore );
@@ -406,7 +399,7 @@ static HSCRIPT ScriptTraceHullComplex( const Vector &vecStart, const Vector &vec
 	tr->RegisterSurface();
 	tr->RegisterPlane();
 
-	return tr->GetScriptInstance();
+	return g_pScriptVM->RegisterInstance( tr, true );
 }
 
 //-----------------------------------------------------------------------------
@@ -477,12 +470,11 @@ void FireBulletsInfo_t::ScriptSetAdditionalIgnoreEnt( HSCRIPT value )
 	m_pAdditionalIgnoreEnt = ToEnt( value );
 }
 
-static HSCRIPT CreateFireBulletsInfo( int cShots, const Vector &vecSrc, const Vector &vecDirShooting,
+static HSCRIPT_RC CreateFireBulletsInfo( int cShots, const Vector &vecSrc, const Vector &vecDirShooting,
 	const Vector &vecSpread, float iDamage, HSCRIPT pAttacker )
 {
-	// The script is responsible for deleting this via DestroyFireBulletsInfo().
 	FireBulletsInfo_t *info = new FireBulletsInfo_t();
-	HSCRIPT hScript = g_pScriptVM->RegisterInstance( info );
+	HSCRIPT hScript = g_pScriptVM->RegisterInstance( info, true );
 
 	info->SetShots( cShots );
 	info->SetSource( vecSrc );
@@ -494,14 +486,8 @@ static HSCRIPT CreateFireBulletsInfo( int cShots, const Vector &vecSrc, const Ve
 	return hScript;
 }
 
-static void DestroyFireBulletsInfo( HSCRIPT hBulletsInfo )
+static void DestroyFireBulletsInfo( HSCRIPT )
 {
-	FireBulletsInfo_t *pInfo = HScriptToClass< FireBulletsInfo_t >( hBulletsInfo );
-	if ( pInfo )
-	{
-		g_pScriptVM->RemoveInstance( hBulletsInfo );
-		delete pInfo;
-	}
 }
 
 //-----------------------------------------------------------------------------
@@ -1026,14 +1012,14 @@ void RegisterSharedScriptFunctions()
 #endif
 
 	ScriptRegisterFunction( g_pScriptVM, CreateDamageInfo, "" );
-	ScriptRegisterFunction( g_pScriptVM, DestroyDamageInfo, "" );
+	ScriptRegisterFunction( g_pScriptVM, DestroyDamageInfo, SCRIPT_HIDE );
 	ScriptRegisterFunctionNamed( g_pScriptVM, ScriptCalculateExplosiveDamageForce, "CalculateExplosiveDamageForce", "Fill out a damage info handle with a damage force for an explosive." );
 	ScriptRegisterFunctionNamed( g_pScriptVM, ScriptCalculateBulletDamageForce, "CalculateBulletDamageForce", "Fill out a damage info handle with a damage force for a bullet impact." );
 	ScriptRegisterFunctionNamed( g_pScriptVM, ScriptCalculateMeleeDamageForce, "CalculateMeleeDamageForce", "Fill out a damage info handle with a damage force for a melee impact." );
 	ScriptRegisterFunctionNamed( g_pScriptVM, ScriptGuessDamageForce, "GuessDamageForce", "Try and guess the physics force to use." );
 
 	ScriptRegisterFunction( g_pScriptVM, CreateFireBulletsInfo, "" );
-	ScriptRegisterFunction( g_pScriptVM, DestroyFireBulletsInfo, "" );
+	ScriptRegisterFunction( g_pScriptVM, DestroyFireBulletsInfo, SCRIPT_HIDE );
 
 	ScriptRegisterFunctionNamed( g_pScriptVM, ScriptTraceLineComplex, "TraceLineComplex", "Complex version of TraceLine which takes 2 points, an ent to ignore, a trace mask, and a collision group. Returns a handle which can access all trace info." );
 	ScriptRegisterFunctionNamed( g_pScriptVM, ScriptTraceHullComplex, "TraceHullComplex", "Takes 2 points, min/max hull bounds, an ent to ignore, a trace mask, and a collision group to trace to a point using a hull. Returns a handle which can access all trace info." );
