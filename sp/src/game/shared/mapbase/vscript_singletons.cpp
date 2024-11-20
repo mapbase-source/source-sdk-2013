@@ -707,7 +707,7 @@ int CScriptGameEventListener::ListenToGameEvent( const char* szEvent, HSCRIPT hF
 	if ( bValid )
 	{
 		m_iContextHash = HashContext( szContext );
-		m_hCallback = hFunc;
+		m_hCallback = g_pScriptVM->CopyObject( hFunc );
 		m_bActive = true;
 
 		s_Listeners.AddToTail( this );
@@ -2396,9 +2396,9 @@ public:
 	CScriptConCommand( const char *name, HSCRIPT fn, const char *helpString, int flags, ConCommand *pLinked = NULL )
 		: BaseClass( name, this, helpString, flags, 0 ),
 		m_pLinked(pLinked),
-		m_hCallback(fn),
 		m_hCompletionCallback(NULL)
 	{
+		m_hCallback = g_pScriptVM->CopyObject( fn );
 		m_nCmdNameLen = V_strlen(name) + 1;
 		Assert( m_nCmdNameLen - 1 <= 128 );
 	}
@@ -2488,7 +2488,7 @@ public:
 
 			BaseClass::m_pCommandCompletionCallback = this;
 			BaseClass::m_bHasCompletionCallback = true;
-			m_hCompletionCallback = fn;
+			m_hCompletionCallback = g_pScriptVM->CopyObject( fn );
 		}
 		else
 		{
@@ -2507,7 +2507,8 @@ public:
 
 			if ( m_hCallback )
 				g_pScriptVM->ReleaseScript( m_hCallback );
-			m_hCallback = fn;
+
+			m_hCallback = g_pScriptVM->CopyObject( fn );
 		}
 		else
 		{
@@ -2568,7 +2569,7 @@ public:
 
 		if (fn)
 		{
-			m_hCallback = fn;
+			m_hCallback = g_pScriptVM->CopyObject( fn );
 			BaseClass::InstallChangeCallback( (FnChangeCallback_t)ScriptConVarCallback );
 		}
 		else

@@ -1016,6 +1016,8 @@ public:
 #ifdef MAPBASE_VSCRIPT
 	virtual void CreateArray(ScriptVariant_t &arr, int size = 0) = 0;
 	virtual bool ArrayAppend(HSCRIPT hArray, const ScriptVariant_t &val) = 0;
+	// To hold strong references to script objects
+	virtual HSCRIPT CopyObject(HSCRIPT obj) = 0;
 #endif
 
 	//----------------------------------------------------------------------------
