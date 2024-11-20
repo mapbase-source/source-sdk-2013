@@ -46,12 +46,14 @@ public:
 class CSurfaceScriptHelper
 {
 public:
-	// This class is owned by CScriptGameTrace, and cannot be accessed without being initialised in CScriptGameTrace::RegisterSurface()
-	//CSurfaceScriptHelper() : m_pSurface(NULL), m_hSurfaceData(NULL) {}
+	CSurfaceScriptHelper() : m_pSurface(NULL), m_hSurfaceData(NULL) {}
 
 	~CSurfaceScriptHelper()
 	{
-		g_pScriptVM->RemoveInstance( m_hSurfaceData );
+		if ( m_hSurfaceData )
+		{
+			g_pScriptVM->RemoveInstance( m_hSurfaceData );
+		}
 	}
 
 	void Init( csurface_t *surf )
@@ -113,17 +115,6 @@ public:
 		}
 	}
 
-	void RegisterSurface()
-	{
-		m_surfaceHelper.Init( &surface );
-		m_surfaceAccessor = g_pScriptVM->RegisterInstance( &m_surfaceHelper );
-	}
-
-	void RegisterPlane()
-	{
-		m_planeAccessor = g_pScriptVM->RegisterInstance( &plane );
-	}
-
 public:
 	float FractionLeftSolid() const		{ return fractionleftsolid; }
 	int HitGroup() const				{ return hitgroup; }
@@ -143,8 +134,24 @@ public:
 	bool AllSolid() const				{ return allsolid; }
 	bool StartSolid() const				{ return startsolid; }
 
-	HSCRIPT Surface() const				{ return m_surfaceAccessor; }
-	HSCRIPT Plane() const				{ return m_planeAccessor; }
+	HSCRIPT Surface()
+	{
+		if ( !m_surfaceAccessor )
+		{
+			m_surfaceHelper.Init( &surface );
+			m_surfaceAccessor = g_pScriptVM->RegisterInstance( &m_surfaceHelper );
+		}
+
+		return m_surfaceAccessor;
+	}
+
+	HSCRIPT Plane()
+	{
+		if ( !m_planeAccessor )
+			m_planeAccessor = g_pScriptVM->RegisterInstance( &plane );
+
+		return m_planeAccessor;
+	}
 
 	void Destroy()						{}
 
