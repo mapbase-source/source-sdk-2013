@@ -170,8 +170,13 @@ private:
 	void		SpeakAssaultSentence( int nSentenceType );
 	void		SpeakStandoffSentence( int nSentenceType );
 
+#ifdef MAPBASE
+	virtual void	LostEnemySound( CBaseEntity *pEnemy );
+	virtual void	FoundEnemySound( CBaseEntity *pEnemy );
+#else
 	virtual void	LostEnemySound( void );
 	virtual void	FoundEnemySound( void );
+#endif
 	virtual void	AlertSound( void );
 	virtual void	PainSound( const CTakeDamageInfo &info );
 	virtual void	DeathSound( const CTakeDamageInfo &info );

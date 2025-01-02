@@ -2938,7 +2938,11 @@ void CNPC_MetroPolice::DeathSound( const CTakeDamageInfo &info )
 // Input  :
 // Output :
 //-----------------------------------------------------------------------------
+#ifdef MAPBASE
+void CNPC_MetroPolice::LostEnemySound( CBaseEntity *pEnemy )
+#else
 void CNPC_MetroPolice::LostEnemySound( void)
+#endif
 {
 	// Don't announce enemies when the player isn't a criminal
 	if ( !PlayerIsCriminal() )
@@ -2948,7 +2952,12 @@ void CNPC_MetroPolice::LostEnemySound( void)
 		return;
 
 #ifdef METROPOLICE_USES_RESPONSE_SYSTEM
-	if (SpeakIfAllowed(TLK_COP_LOSTENEMY))
+	AI_CriteriaSet modifiers;
+	ModifyOrAppendEnemyCriteria( modifiers, pEnemy );
+
+	modifiers.AppendCriteria( "lastseenenemy", gpGlobals->curtime - GetEnemies()->LastTimeSeen( pEnemy ) );
+
+	if (SpeakIfAllowed(TLK_COP_LOSTENEMY, modifiers ))
 	{
 		m_flNextLostSoundTime = gpGlobals->curtime + random->RandomFloat(5.0,15.0);
 	}
@@ -2977,14 +2986,21 @@ void CNPC_MetroPolice::LostEnemySound( void)
 // Input  :
 // Output :
 //-----------------------------------------------------------------------------
+#ifdef MAPBASE
+void CNPC_MetroPolice::FoundEnemySound( CBaseEntity *pEnemy )
+#else
 void CNPC_MetroPolice::FoundEnemySound( void)
+#endif
 {
 	// Don't announce enemies when I'm in arrest behavior
 	if ( HasSpawnFlags( SF_METROPOLICE_ARREST_ENEMY ) )
 		return;
 
 #ifdef METROPOLICE_USES_RESPONSE_SYSTEM
-	SpeakIfAllowed( TLK_COP_REFINDENEMY, SENTENCE_PRIORITY_HIGH );
+	AI_CriteriaSet modifiers;
+	ModifyOrAppendEnemyCriteria( modifiers, pEnemy );
+
+	SpeakIfAllowed( TLK_COP_REFINDENEMY, modifiers, SENTENCE_PRIORITY_HIGH );
 #else
 	m_Sentences.Speak( "METROPOLICE_REFIND_ENEMY", SENTENCE_PRIORITY_HIGH );
 #endif

@@ -6110,7 +6110,11 @@ bool CAI_BaseNPC::UpdateEnemyMemory( CBaseEntity *pEnemy, const Vector &position
 		// If the was eluding me and allow the NPC to play a sound
 		if (GetEnemies()->HasEludedMe(pEnemy))
 		{
+#ifdef MAPBASE
+			FoundEnemySound( pEnemy );
+#else
 			FoundEnemySound();
+#endif
 		}
 		float reactionDelay = ( !pInformer || pInformer == this ) ? GetReactionDelay( pEnemy ) : 0.0;
 		bool result = GetEnemies()->UpdateMemory(GetNavigator()->GetNetwork(), pEnemy, position, reactionDelay, firstHand);
@@ -11731,7 +11735,11 @@ bool CAI_BaseNPC::ChooseEnemy( void )
 			if ( fEnemyEluded )
 			{
 				SetCondition( COND_LOST_ENEMY );
+#ifdef MAPBASE
+				LostEnemySound( pInitialEnemy );
+#else
 				LostEnemySound();
+#endif
 			}
 
 			if ( fEnemyWasPlayer )
