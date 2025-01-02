@@ -2811,6 +2811,14 @@ HSCRIPT CBaseEntity::ScriptGetPhysicsObject( void )
 		return NULL;
 }
 
+//-----------------------------------------------------------------------------
+// Vscript: Gets the entity's physics object if it has one
+//-----------------------------------------------------------------------------
+void CBaseEntity::ScriptPhysicsInitNormal( int nSolidType, int nSolidFlags, bool createAsleep )
+{
+	VPhysicsInitNormal( (SolidType_t)nSolidType, nSolidFlags, createAsleep );
+}
+
 
 #ifdef GAME_DLL
 #define SCRIPT_NEVER_THINK TICK_NEVER_THINK
