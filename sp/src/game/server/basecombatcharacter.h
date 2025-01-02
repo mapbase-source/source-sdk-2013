@@ -532,6 +532,7 @@ public:
 	void				AddGlowEffect( void );
 	void				RemoveGlowEffect( void );
 	bool				IsGlowEffectActive( void );
+	void				SetGlowColor( float red, float green, float blue, float alpha );
 #endif // GLOWS_ENABLE
 
 #ifdef INVASION_DLL
@@ -576,6 +577,8 @@ public:
 #ifdef GLOWS_ENABLE
 protected:
 	CNetworkVar( bool, m_bGlowEnabled );
+	CNetworkVector( m_GlowColor );
+	CNetworkVar( float, m_GlowAlpha );
 #endif // GLOWS_ENABLE
 
 private:

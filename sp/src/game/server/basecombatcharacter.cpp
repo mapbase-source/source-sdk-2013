@@ -195,6 +195,13 @@ BEGIN_ENT_SCRIPTDESC( CBaseCombatCharacter, CBaseFlex, "The base class shared by
 
 	DEFINE_SCRIPTFUNC( LastHitGroup, "Get the last hitgroup." )
 
+#ifdef GLOWS_ENABLE
+	DEFINE_SCRIPTFUNC( AddGlowEffect, "" )
+	DEFINE_SCRIPTFUNC( RemoveGlowEffect, "" )
+	DEFINE_SCRIPTFUNC( IsGlowEffectActive, "" )
+	DEFINE_SCRIPTFUNC( SetGlowColor, "" )
+#endif
+
 	// 
 	// Hooks
 	// 
@@ -293,6 +300,8 @@ END_SEND_TABLE();
 IMPLEMENT_SERVERCLASS_ST(CBaseCombatCharacter, DT_BaseCombatCharacter)
 #ifdef GLOWS_ENABLE
 	SendPropBool( SENDINFO( m_bGlowEnabled ) ),
+	SendPropVector( SENDINFO( m_GlowColor ), 8, 0, 0, 1 ),
+	SendPropFloat( SENDINFO( m_GlowAlpha ) ),
 #endif // GLOWS_ENABLE
 	// Data that only gets sent to the local player.
 	SendPropDataTable( "bcc_localdata", 0, &REFERENCE_SEND_TABLE(DT_BCCLocalPlayerExclusive), SendProxy_SendBaseCombatCharacterLocalDataTable ),
@@ -878,6 +887,8 @@ CBaseCombatCharacter::CBaseCombatCharacter( void )
 
 #ifdef GLOWS_ENABLE
 	m_bGlowEnabled.Set( false );
+	m_GlowColor.GetForModify().Init( 0.76f, 0.76f, 0.76f );
+	m_GlowAlpha.Set(1.0f);
 #endif // GLOWS_ENABLE
 }
 
@@ -4097,6 +4108,12 @@ void CBaseCombatCharacter::RemoveGlowEffect( void )
 bool CBaseCombatCharacter::IsGlowEffectActive( void )
 {
 	return m_bGlowEnabled;
+}
+
+void CBaseCombatCharacter::SetGlowColor( float red, float green, float blue, float alpha )
+{
+	m_GlowColor.GetForModify().Init( red, green, blue );
+	m_GlowAlpha.Set( alpha );
 }
 #endif // GLOWS_ENABLE
 
