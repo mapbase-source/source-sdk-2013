@@ -1338,6 +1338,12 @@ int CBreakableProp::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 //-----------------------------------------------------------------------------
 void CBreakableProp::Event_Killed( const CTakeDamageInfo &info )
 {
+#ifdef MAPBASE_VSCRIPT
+	// False = Cheat death
+	if (ScriptDeathHook( const_cast<CTakeDamageInfo *>(&info) ) == false)
+		return;
+#endif
+
 	IPhysicsObject *pPhysics = VPhysicsGetObject();
 	if ( pPhysics && !pPhysics->IsMoveable() )
 	{

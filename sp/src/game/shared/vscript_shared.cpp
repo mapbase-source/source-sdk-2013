@@ -624,6 +624,9 @@ public:
 				if ( g_pScriptVM->GetValue( STRING(pEnt->m_iszScriptId), &variant ) && variant.m_type == FIELD_HSCRIPT )
 				{
 					pEnt->m_ScriptScope.Init( variant.m_hScript, false );
+#ifdef MAPBASE_VSCRIPT
+					g_pScriptVM->SetValue( pEnt->m_ScriptScope, "self", pEnt->m_hScriptInstance );
+#endif
 #ifndef CLIENT_DLL
 					pEnt->RunPrecacheScripts();
 #endif
