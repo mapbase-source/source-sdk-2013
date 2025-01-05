@@ -184,6 +184,11 @@ CVGuiScreen::~CVGuiScreen()
 
 int CVGuiScreen::Save(ISave& save)
 {
+#if MAPBASE_VER_INT < 8000
+	// HACKHACK: Until v8.0, mark this screen as using the new save system to prevent existing saves with vgui_screen from crashing
+	AddContext( "uses_new_save", "1" );
+#endif
+
 	int status = BaseClass::Save(save);
 	if (!status)
 		return 0;
@@ -208,6 +213,12 @@ int CVGuiScreen::Restore(IRestore& restore)
 	int status = BaseClass::Restore(restore);
 	if (!status)
 		return 0;
+
+#if MAPBASE_VER_INT < 8000
+	// HACKHACK: Until v8.0, mark this screen as using the new save system to prevent existing saves with vgui_screen from crashing
+	if (!HasContext( "uses_new_save", "1" ))
+		return status;
+#endif
 
 	const int iCount = restore.ReadInt();
 	m_PanelOutputs.EnsureCapacity(iCount);
