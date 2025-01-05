@@ -771,6 +771,26 @@ static void AddPhysVelocity( HSCRIPT hPhys, const Vector& vecVelocity, const Vec
 	pPhys->AddVelocity( &vecVelocity, &vecAngVelocity );
 }
 
+static void ScriptPhysEnableEntityCollisions( HSCRIPT hPhys1, HSCRIPT hPhys2 )
+{
+	IPhysicsObject *pPhys1 = HScriptToClass<IPhysicsObject>( hPhys1 );
+	IPhysicsObject *pPhys2 = HScriptToClass<IPhysicsObject>( hPhys2 );
+	if (!pPhys1 || !pPhys2)
+		return;
+
+	PhysEnableEntityCollisions( pPhys1, pPhys2 );
+}
+
+static void ScriptPhysDisableEntityCollisions( HSCRIPT hPhys1, HSCRIPT hPhys2 )
+{
+	IPhysicsObject *pPhys1 = HScriptToClass<IPhysicsObject>( hPhys1 );
+	IPhysicsObject *pPhys2 = HScriptToClass<IPhysicsObject>( hPhys2 );
+	if (!pPhys1 || !pPhys2)
+		return;
+
+	PhysDisableEntityCollisions( pPhys1, pPhys2 );
+}
+
 //=============================================================================
 //=============================================================================
 
@@ -1045,6 +1065,8 @@ void RegisterSharedScriptFunctions()
 	ScriptRegisterFunction( g_pScriptVM, GetPhysAngVelocity, "Gets physics angular velocity for the given VPhysics object" );
 	ScriptRegisterFunction( g_pScriptVM, SetPhysVelocity, "Sets physics velocity for the given VPhysics object" );
 	ScriptRegisterFunction( g_pScriptVM, AddPhysVelocity, "Adds physics velocity for the given VPhysics object" );
+	ScriptRegisterFunctionNamed( g_pScriptVM, ScriptPhysEnableEntityCollisions, "PhysEnableEntityCollisions", "Enables collisions between two VPhysics objects");
+	ScriptRegisterFunctionNamed( g_pScriptVM, ScriptPhysDisableEntityCollisions, "PhysDisableEntityCollisions", "Disables collisions between two VPhysics objects");
 
 	// 
 	// Precaching
