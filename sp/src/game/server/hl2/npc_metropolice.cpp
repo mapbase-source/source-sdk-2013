@@ -534,10 +534,12 @@ void CNPC_MetroPolice::OnScheduleChange()
 {
 	BaseClass::OnScheduleChange();
 
+#ifndef MAPBASE // Moved to Event_KilledOther()
 	if ( GetEnemy() && HasCondition( COND_ENEMY_DEAD ) )
 	{
 		AnnounceEnemyKill( GetEnemy() );
 	}
+#endif
 }
 
 
@@ -3704,6 +3706,21 @@ void CNPC_MetroPolice::Event_Killed( const CTakeDamageInfo &info )
 	}
 
 	BaseClass::Event_Killed( info );
+}
+
+//-----------------------------------------------------------------------------
+// 
+//-----------------------------------------------------------------------------
+void CNPC_MetroPolice::Event_KilledOther( CBaseEntity *pVictim, const CTakeDamageInfo &info )
+{
+	BaseClass::Event_KilledOther( pVictim, info );
+
+#ifdef MAPBASE // Moved from OnScheduleChange()
+	if ( pVictim && (pVictim->IsPlayer() || pVictim->IsNPC()) )
+	{
+		AnnounceEnemyKill( pVictim );
+	}
+#endif
 }
 
 //-----------------------------------------------------------------------------

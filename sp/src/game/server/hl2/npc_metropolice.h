@@ -79,6 +79,8 @@ public:
 
 	virtual void Event_Killed( const CTakeDamageInfo &info );
 
+	virtual void Event_KilledOther( CBaseEntity *pVictim, const CTakeDamageInfo &info );
+
 	virtual void OnScheduleChange();
 
 	float		GetIdealAccel( void ) const;
