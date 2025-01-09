@@ -85,45 +85,45 @@ jobs:
       working-directory: '${{inputs.branch}}/src'
       shell: cmd
       run: |
-        msbuild -m -p:Configuration=${{inputs.configuration}} mathlib\mathlib.vcxproj
+        msbuild -m -p:Configuration=${{inputs.configuration}} mathlib\mathlib.vcxproj || exit /b
 
     - name: Build Base Libraries
       if: inputs.project-group == 'all' || inputs.project-group == 'game' || inputs.project-group == 'maptools'
       working-directory: '${{inputs.branch}}/src'
       shell: cmd
       run: |
-        msbuild -m -p:Configuration=${{inputs.configuration}} raytrace\raytrace.vcxproj
-        msbuild -m -p:Configuration=${{inputs.configuration}} tier1\tier1.vcxproj
-        msbuild -m -p:Configuration=${{inputs.configuration}} vgui2\vgui_controls\vgui_controls.vcxproj
-        msbuild -m -p:Configuration=${{inputs.configuration}} vscript\vscript.vcxproj
+        msbuild -m -p:Configuration=${{inputs.configuration}} raytrace\raytrace.vcxproj || exit /b
+        msbuild -m -p:Configuration=${{inputs.configuration}} tier1\tier1.vcxproj || exit /b
+        msbuild -m -p:Configuration=${{inputs.configuration}} vgui2\vgui_controls\vgui_controls.vcxproj || exit /b
+        msbuild -m -p:Configuration=${{inputs.configuration}} vscript\vscript.vcxproj || exit /b
 
     - name: Build Map Tools
       if: inputs.project-group == 'all' || inputs.project-group == 'maptools'
       working-directory: '${{inputs.branch}}/src'
       shell: cmd
       run: |
-        msbuild -m -p:Configuration=${{inputs.configuration}} fgdlib\fgdlib.vcxproj
-        msbuild -m -p:Configuration=${{inputs.configuration}} utils\vbsp\vbsp.vcxproj
-        msbuild -m -p:Configuration=${{inputs.configuration}} utils\vvis\vvis_dll.vcxproj
-        msbuild -m -p:Configuration=${{inputs.configuration}} utils\vvis_launcher\vvis_launcher.vcxproj
-        msbuild -m -p:Configuration=${{inputs.configuration}} utils\vrad\vrad_dll.vcxproj
-        msbuild -m -p:Configuration=${{inputs.configuration}} utils\vrad_launcher\vrad_launcher.vcxproj
+        msbuild -m -p:Configuration=${{inputs.configuration}} fgdlib\fgdlib.vcxproj || exit /b
+        msbuild -m -p:Configuration=${{inputs.configuration}} utils\vbsp\vbsp.vcxproj || exit /b
+        msbuild -m -p:Configuration=${{inputs.configuration}} utils\vvis\vvis_dll.vcxproj || exit /b
+        msbuild -m -p:Configuration=${{inputs.configuration}} utils\vvis_launcher\vvis_launcher.vcxproj || exit /b
+        msbuild -m -p:Configuration=${{inputs.configuration}} utils\vrad\vrad_dll.vcxproj || exit /b
+        msbuild -m -p:Configuration=${{inputs.configuration}} utils\vrad_launcher\vrad_launcher.vcxproj || exit /b
 
     - name: Build Shaders
       if: inputs.project-group == 'shaders'
       working-directory: '${{inputs.branch}}/src'
       shell: cmd
       run: |
-        msbuild -m -p:Configuration=${{inputs.configuration}} materialsystem\stdshaders\game_shader_dx9_${{inputs.game}}.vcxproj
+        msbuild -m -p:Configuration=${{inputs.configuration}} materialsystem\stdshaders\game_shader_dx9_${{inputs.game}}.vcxproj || exit /b
 
     - name: Build Game
       if: inputs.project-group == 'game'
       working-directory: '${{inputs.branch}}/src'
       shell: cmd
       run: |
-        msbuild -m -p:Configuration=${{inputs.configuration}} responserules\runtime\responserules.vcxproj
-        msbuild -m -p:Configuration=${{inputs.configuration}} game\client\client_${{inputs.game}}.vcxproj
-        msbuild -m -p:Configuration=${{inputs.configuration}} game\server\server_${{inputs.game}}.vcxproj
+        msbuild -m -p:Configuration=${{inputs.configuration}} responserules\runtime\responserules.vcxproj || exit /b
+        msbuild -m -p:Configuration=${{inputs.configuration}} game\client\client_${{inputs.game}}.vcxproj || exit /b
+        msbuild -m -p:Configuration=${{inputs.configuration}} game\server\server_${{inputs.game}}.vcxproj || exit /b
 
     # TODO: Hook to game naming?
     - name: Build everything
@@ -131,13 +131,13 @@ jobs:
       working-directory: '${{inputs.branch}}/src'
       shell: cmd
       run: |
-        msbuild -m -p:Configuration=${{inputs.configuration}} responserules\runtime\responserules.vcxproj
-        msbuild -m -p:Configuration=${{inputs.configuration}} materialsystem\stdshaders\game_shader_dx9_episodic.vcxproj
-        msbuild -m -p:Configuration=${{inputs.configuration}} materialsystem\stdshaders\game_shader_dx9_hl2.vcxproj
-        msbuild -m -p:Configuration=${{inputs.configuration}} game\client\client_episodic.vcxproj
-        msbuild -m -p:Configuration=${{inputs.configuration}} game\client\client_hl2.vcxproj
-        msbuild -m -p:Configuration=${{inputs.configuration}} game\server\server_episodic.vcxproj
-        msbuild -m -p:Configuration=${{inputs.configuration}} game\server\server_hl2.vcxproj
+        msbuild -m -p:Configuration=${{inputs.configuration}} responserules\runtime\responserules.vcxproj || exit /b
+        msbuild -m -p:Configuration=${{inputs.configuration}} materialsystem\stdshaders\game_shader_dx9_episodic.vcxproj || exit /b
+        msbuild -m -p:Configuration=${{inputs.configuration}} materialsystem\stdshaders\game_shader_dx9_hl2.vcxproj || exit /b
+        msbuild -m -p:Configuration=${{inputs.configuration}} game\client\client_episodic.vcxproj || exit /b
+        msbuild -m -p:Configuration=${{inputs.configuration}} game\client\client_hl2.vcxproj || exit /b
+        msbuild -m -p:Configuration=${{inputs.configuration}} game\server\server_episodic.vcxproj || exit /b
+        msbuild -m -p:Configuration=${{inputs.configuration}} game\server\server_hl2.vcxproj || exit /b
 
       # --------------------------------------------------------------------
 
