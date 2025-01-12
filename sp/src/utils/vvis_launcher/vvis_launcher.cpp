@@ -51,7 +51,7 @@ int main(int argc, char* argv[])
 	CSysModule *pModule = Sys_LoadModule( pDLLName );
 	if ( !pModule )
 	{
-		printf( "vvis launcher error: can't load %s\n%s", pDLLName, GetLastErrorString() );
+		printf("vvis launcher error: can't load %s\n%s", pDLLName, GetLastErrorString() );
 		return 1;
 	}
 #else
@@ -75,7 +75,7 @@ int main(int argc, char* argv[])
 
 	if ( !pModule )
 	{
-		printf( "vvis launcher error: can't load %s\n%s", pDLLName, GetLastErrorString() );
+		printf("vvis launcher error: can't load %s\n%s", pDLLName, GetLastErrorString() );
 		return 1;
 	}
 #endif

@@ -292,13 +292,13 @@ void LightDesc_t::SetupNewStyleAttenuation( float fFiftyPercentDistance,
 	if (d0<d50)
 	{
 		// !!warning in lib code???!!!
-		Warning("light has _fifty_percent_distance of %f but no zero_percent_distance\n",d50);
+		Warning("\tlight has _fifty_percent_distance of %f but no zero_percent_distance\n",d50);
 		d0=2.0*d50;
 	}
 	float a=0,b=1,c=0;
 	if (! SolveInverseQuadraticMonotonic(0,1.0,d50,2.0,d0,256.0,a,b,c))
 	{
-		Warning("can't solve quadratic for light %f %f\n",d50,d0);
+		Warning("\tcan't solve quadratic for light %f %f\n",d50,d0);
 	}
 	float v50=c+d50*(b+d50*a);
 	float scale=2.0/v50;

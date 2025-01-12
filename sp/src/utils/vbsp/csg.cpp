@@ -500,7 +500,7 @@ void WriteBrushMap (char *name, bspbrush_t *list)
 	Msg("writing %s\n", name);
 	f = fopen (name, "w");
 	if (!f)
-		Error ("Can't write %s\b", name);
+		Error ("\tCan't write %s\b", name);
 
 	fprintf (f, "{\n\"classname\" \"worldspawn\"\n");
 
@@ -539,7 +539,7 @@ void WriteBrushVMF(char *name, bspbrush_t *list)
 	Msg("writing %s\n", name);
 	f = fopen (name, "w");
 	if (!f)
-		Error ("Can't write %s\b", name);
+		Error ("\tCan't write %s\b", name);
 
 	fprintf (f, "world\n{\n\"classname\" \"worldspawn\"\n");
 

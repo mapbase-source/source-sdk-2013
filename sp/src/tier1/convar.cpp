@@ -405,7 +405,7 @@ bool CCommand::Tokenize( const char *pCommand, characterset_t *pBreakSet )
 	int nLen = Q_strlen( pCommand );
 	if ( nLen >= COMMAND_MAX_LENGTH - 1 )
 	{
-		Warning( "CCommand::Tokenize: Encountered command which overflows the tokenizer buffer.. Skipping!\n" );
+		Warning("\tCCommand::Tokenize: Encountered command which overflows the tokenizer buffer.. Skipping!\n" );
 		return false;
 	}
 
@@ -455,7 +455,7 @@ bool CCommand::Tokenize( const char *pCommand, characterset_t *pBreakSet )
 		m_ppArgv[ m_nArgc++ ] = pArgvBuf;
 		if( m_nArgc >= COMMAND_MAX_ARGC )
 		{
-			Warning( "CCommand::Tokenize: Encountered command which overflows the argument buffer.. Clamped!\n" );
+			Warning("\tCCommand::Tokenize: Encountered command which overflows the argument buffer.. Clamped!\n" );
 		}
 
 		nArgvBufferSize += nSize + 1;
@@ -1102,7 +1102,11 @@ void ConVarRef::Init( const char *pName, bool bIgnoreMissing )
 		{
 			if ( !bIgnoreMissing )
 			{
+#ifdef MAPBASE
+				Warning("\tConVarRef %s doesn't point to an existing ConVar\n", pName );
+#else
 				Warning( "ConVarRef %s doesn't point to an existing ConVar\n", pName );
+#endif
 			}
 			bFirst = false;
 		}

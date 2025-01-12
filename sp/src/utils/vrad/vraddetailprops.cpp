@@ -170,7 +170,7 @@ static void ComputeMaxDirectLighting( DetailObjectLump_t& prop, Vector* maxcolor
 		static bool s_Warned = false;
 		if ( !s_Warned )
 		{
-			Warning("WARNING: Bogus detail props encountered!\n" );
+			Warning("\tWARNING: Bogus detail props encountered!\n" );
 			s_Warned = true;
 		}
 
@@ -758,7 +758,7 @@ static void ComputeAmbientLighting( int iThread, DetailObjectLump_t& prop, Vecto
 		static bool s_Warned = false;
 		if ( !s_Warned )
 		{
-			Warning("WARNING: Bogus detail props encountered!\n" );
+			Warning("\tWARNING: Bogus detail props encountered!\n" );
 			s_Warned = true;
 		}
 

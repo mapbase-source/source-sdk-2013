@@ -755,7 +755,7 @@ bool GameData::RemapKeyValue( const char *pszKey, const char *pszInValue, char *
 				if (value == -1)
 					break;
 
-				//Warning( "	%s %s: Remapped %i to %i", m_InstanceClass->GetName(), KVVar->GetName(), value, value + m_InstanceStartAINodes );
+				//Warning("\t	%s %s: Remapped %i to %i", m_InstanceClass->GetName(), KVVar->GetName(), value, value + m_InstanceStartAINodes );
 
 				value += m_InstanceStartAINodes;
 
@@ -774,7 +774,7 @@ bool GameData::RemapKeyValue( const char *pszKey, const char *pszInValue, char *
 				{
 					int iSide = atoi( sideList[i] );
 
-					//Warning( "	%s %s: Remapped %i to %i", m_InstanceClass->GetName(), KVVar->GetName(), iSide, iSide + m_InstanceStartSide );
+					//Warning("\t	%s %s: Remapped %i to %i", m_InstanceClass->GetName(), KVVar->GetName(), iSide, iSide + m_InstanceStartSide );
 
 					iSide += m_InstanceStartSide;
 
@@ -791,7 +791,7 @@ bool GameData::RemapKeyValue( const char *pszKey, const char *pszInValue, char *
 					sprintf( pszOutValue, "%s %s", pszOutValue, newSideList[i] );
 				}
 
-				//Warning("Old side list: \"%s\", new side list: \"%s\"\n", pszInValue, pszOutValue);
+				//Warning("\tOld side list: \"%s\", new side list: \"%s\"\n", pszInValue, pszOutValue);
 			}
 			break;
 #endif

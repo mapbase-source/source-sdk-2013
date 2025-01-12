@@ -300,12 +300,12 @@ void Disp_BuildVirtualMesh( int contentsMask )
 				Vector v2 = pDispInfo->GetVert( indices[index+2] );
 				if ( v0 == v1 || v1 == v2 || v2 == v0 )
 				{
-					Warning( "Displacement %d has bad geometry near %.2f %.2f %.2f\n", i, v0.x, v0.y, v0.z );
+					Warning("\tDisplacement %d has bad geometry near %.2f %.2f %.2f\n", i, v0.x, v0.y, v0.z );
 					texinfo_t *pTexInfo = &texinfo[pMapDisp->face.texinfo];
 					dtexdata_t *pTexData = GetTexData( pTexInfo->texdata );
 					const char *pMatName = TexDataStringTable_GetString( pTexData->nameStringTableID );
 
-					Error( "Can't compile displacement physics, exiting.  Texture is %s\n", pMatName );
+					Error("\tCan't compile displacement physics, exiting.  Texture is %s\n", pMatName );
 				}
 			}
 

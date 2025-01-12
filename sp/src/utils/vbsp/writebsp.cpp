@@ -16,6 +16,10 @@
 #include "utldict.h"
 #include "map.h"
 
+#ifdef MAPBASE
+#include "../common/StandartColorFormat.h" //this control the color of the console.
+#endif
+
 int		c_nofaces;
 int		c_facenodes;
 
@@ -85,14 +89,14 @@ void EmitMarkFace (dleaf_t *leaf_p, face_t *f)
 		return;	// degenerate face
 
 	if (facenum < 0 || facenum >= numfaces)
-		Error ("Bad leafface");
+		Error ("\tBad leafface");
 	for (i=leaf_p->firstleafface ; i<numleaffaces ; i++)
 		if (dleaffaces[i] == facenum)
 			break;		// merged out face
 	if (i == numleaffaces)
 	{
 		if (numleaffaces >= MAX_MAP_LEAFFACES)
-			Error ("Too many detail brush faces, max = %d\n", MAX_MAP_LEAFFACES);
+			Error ("\tToo many detail brush faces, max = %d\n", MAX_MAP_LEAFFACES);
 
 		dleaffaces[numleaffaces] =  facenum;
 		numleaffaces++;
@@ -119,7 +123,7 @@ void EmitLeaf (node_t *node)
 
 	// emit a leaf
 	if (numleafs >= MAX_MAP_LEAFS)
-		Error ("Too many BSP leaves, max = %d", MAX_MAP_LEAFS);
+		Error ("\tToo many BSP leaves, max = %d", MAX_MAP_LEAFS);
 
 	node->diskId = numleafs;
 	leaf_p = &dleafs[numleafs];
@@ -158,7 +162,7 @@ void EmitLeaf (node_t *node)
 	for (b=node->brushlist ; b ; b=b->next)
 	{
 		if (numleafbrushes >= MAX_MAP_LEAFBRUSHES)
-			Error ("Too many brushes in one leaf, max = %d", MAX_MAP_LEAFBRUSHES);
+			Error ("\tToo many brushes in one leaf, max = %d", MAX_MAP_LEAFBRUSHES);
 
 		brushnum = b->original - g_MainMap->mapbrushes;
 		for (i=leaf_p->firstleafbrush ; i<numleafbrushes ; i++)
@@ -234,7 +238,7 @@ int CreateOrigFace( face_t *f )
     // get the next original face
     //
     if( numorigfaces >= MAX_MAP_FACES )
-		Error( "Too many faces in map, max = %d", MAX_MAP_FACES );
+		Error("\tToo many faces in map, max = %d", MAX_MAP_FACES );
 	of = &dorigfaces[numorigfaces];
     numorigfaces++;
 
@@ -311,7 +315,7 @@ int CreateOrigFace( face_t *f )
                 // get next surface edge
                 //
                 if( numsurfedges >= MAX_MAP_SURFEDGES )
-                    Error( "Too much brush geometry in bsp, numsurfedges == MAX_MAP_SURFEDGES" );                
+                    Error("\tToo much brush geometry in bsp, numsurfedges == MAX_MAP_SURFEDGES" );                
                 dsurfedges[numsurfedges] = -j;
                 numsurfedges++;
                 break;
@@ -329,7 +333,7 @@ int CreateOrigFace( face_t *f )
             // get next surface edge
             //
             if( numsurfedges >= MAX_MAP_SURFEDGES )
-				Error( "Too much brush geometry in bsp, numsurfedges == MAX_MAP_SURFEDGES" );                
+				Error("\tToo much brush geometry in bsp, numsurfedges == MAX_MAP_SURFEDGES" );                
             dsurfedges[numsurfedges] = ( numedges - 1 );
             numsurfedges++;
         }
@@ -437,7 +441,7 @@ void EmitFace( face_t *f, qboolean onNode )
 		// keep NODRAW terrain surfaces though
 		if ( f->dispinfo == -1 )
 			return;
-		Warning("NODRAW on terrain surface!\n");
+		Warning("\tNODRAW on terrain surface!\n");
 	}
 
 	// save output number so leaffaces can use
@@ -447,7 +451,7 @@ void EmitFace( face_t *f, qboolean onNode )
     // get the next available .bsp face slot
     //
 	if (numfaces >= MAX_MAP_FACES)
-		Error( "Too many faces in map, max = %d", MAX_MAP_FACES );
+		Error("\tToo many faces in map, max = %d", MAX_MAP_FACES );
 	df = &dfaces[numfaces];
 
 	// Save the correlation between dfaces and faces -- since dfaces doesnt have worldcraft face id
@@ -508,7 +512,7 @@ void EmitFace( face_t *f, qboolean onNode )
 		e = GetEdge2 (f->vertexnums[i], f->vertexnums[(i+1)%f->numpoints], f);
 
 		if (numsurfedges >= MAX_MAP_SURFEDGES)
-			Error( "Too much brush geometry in bsp, numsurfedges == MAX_MAP_SURFEDGES" );                
+			Error("\tToo much brush geometry in bsp, numsurfedges == MAX_MAP_SURFEDGES" );                
 		dsurfedges[numsurfedges] = e;
 		numsurfedges++;
 	}
@@ -583,7 +587,7 @@ int EmitDrawNode_r (node_t *node)
 
 	// emit a node	
 	if (numnodes == MAX_MAP_NODES)
-		Error ("MAX_MAP_NODES");
+		Error ("\tMAX_MAP_NODES");
 	node->diskId = numnodes;
 
 	n = &dnodes[numnodes];
@@ -593,7 +597,7 @@ int EmitDrawNode_r (node_t *node)
 	VECTOR_COPY (node->maxs, n->maxs);
 
 	if (node->planenum & 1)
-		Error ("WriteDrawNodes_r: odd planenum");
+		Error ("\tWriteDrawNodes_r: odd planenum");
 	n->planenum = node->planenum;
 	n->firstface = numfaces;
 	n->area = node->area;
@@ -767,7 +771,7 @@ void CompactTexdataArray( texdatamap_t *pMap )
 
 void CompactTexinfos()
 {
-	Msg("Compacting texture/material tables...\n");
+	Msg("Compacting texture/material tables...");
 	texinfomap_t *texinfoMap = new texinfomap_t[texinfo.Count()];
 	texdatamap_t *texdataMap = new texdatamap_t[numtexdata];
 	memset( texinfoMap, 0, sizeof(texinfoMap[0])*texinfo.Count() );
@@ -881,9 +885,24 @@ void CompactTexinfos()
 			g_WaterOverlays[i].nTexInfo = texinfoMap[g_WaterOverlays[i].nTexInfo].outputIndex;
 		}
 	}
+#ifdef MAPBASE
+	ColorSpewMessage(SPEW_MESSAGE, &green, " done (0)\n");
+	Msg("  Reduced ");
+	ColorSpewMessage(SPEW_MESSAGE,  &magenta, "[%d]", oldCount);
+	Msg(" texinfos to ");
+	ColorSpewMessage(SPEW_MESSAGE,  &magenta, "[%d]\n",texinfo.Count());
 
-	Msg("Reduced %d texinfos to %d\n", oldCount, texinfo.Count() );
-	Msg("Reduced %d texdatas to %d (%d bytes to %d)\n", oldTexdataCount, numtexdata, oldTexdataString, g_TexDataStringData.Count() );
+	Msg("  Reduced ");
+	ColorSpewMessage(SPEW_MESSAGE,  &magenta, "[%d]", oldTexdataCount);
+	Msg(" texinfos to ");
+	ColorSpewMessage(SPEW_MESSAGE,  &magenta, "[%d] ", numtexdata);
+	ColorSpewMessage(SPEW_MESSAGE,  &magenta, "(%d bytes to %d)\n", oldTexdataString, g_TexDataStringData.Count());
+#else
+	Msg(" done\n");
+
+	Msg("Reduced %d texinfos to %d\n", oldCount, texinfo.Count());
+	Msg("Reduced %d texdatas to %d (%d bytes to %d)\n", oldTexdataCount, numtexdata, oldTexdataString, g_TexDataStringData.Count());
+#endif
 
 	delete[] texinfoMap;
 	delete[] texdataMap;
@@ -1016,7 +1035,7 @@ void SetLightStyles (void)
 		if (j == stylenum)
 		{
 			if (stylenum == MAX_SWITCHED_LIGHTS)
-				Error ("Too many switched lights (error at light %s), max = %d", t, MAX_SWITCHED_LIGHTS);
+				Error ("\tToo many switched lights (error at light %s), max = %d", t, MAX_SWITCHED_LIGHTS);
 			strcpy (lighttargets[j], t);
 			stylenum++;
 		}
@@ -1066,7 +1085,7 @@ void EmitBrushes (void)
 		for (j=0 ; j<b->numsides ; j++)
 		{
 			if (numbrushsides == MAX_MAP_BRUSHSIDES)
-				Error ("MAX_MAP_BRUSHSIDES");
+				Error ("\tMAX_MAP_BRUSHSIDES");
 			cp = &dbrushsides[numbrushsides];
 			numbrushsides++;
 			cp->planenum = b->original_sides[j].planenum;
@@ -1096,7 +1115,7 @@ void EmitBrushes (void)
 				if (i == b->numsides)
 				{
 					if (numbrushsides >= MAX_MAP_BRUSHSIDES)
-						Error ("MAX_MAP_BRUSHSIDES");
+						Error ("\tMAX_MAP_BRUSHSIDES");
 
 					dbrushsides[numbrushsides].planenum = planenum;
 					dbrushsides[numbrushsides].texinfo =
@@ -1216,7 +1235,7 @@ void EnsurePresenceOfWaterLODControlEntity( void )
 	}
 
 	// None found, add one.
-	Warning( "Water found with no water_lod_control entity, creating a default one.\n" );
+	Warning("\tWater found with no water_lod_control entity, creating a default one.\n" );
 
 	entity_t *mapent = &entities[num_entities];
 	num_entities++;
@@ -1286,7 +1305,15 @@ void EndBSPFile (void)
 	
 	char	targetPath[1024];
 	GetPlatformMapPath( source, targetPath, g_nDXLevel, 1024 );
+
+#ifdef MAPBASE
+	Msg("Writing Bsp file: +- ");
+	ColorSpewMessage(SPEW_MESSAGE, &blue, "%s ", targetPath);
+	ColorSpewMessage(SPEW_MESSAGE, &green, "done (0)\n");
+#else
 	Msg ("Writing %s\n", targetPath);
+#endif
+
 	WriteBSPFile (targetPath);
 }
 
@@ -1307,7 +1334,7 @@ void BeginModel (void)
 	Vector		mins, maxs;
 
 	if (nummodels == MAX_MAP_MODELS)
-		Error ("Too many brush models in map, max = %d", MAX_MAP_MODELS);
+		Error ("\tToo many brush models in map, max = %d", MAX_MAP_MODELS);
 	mod = &dmodels[nummodels];
 
 	mod->firstface = numfaces;

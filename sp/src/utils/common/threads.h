@@ -64,8 +64,18 @@ void ThreadUnlock (void);
 
 
 #ifndef NO_THREAD_NAMES
+#ifdef MAPBASE
+#define RunThreadsOn(n,p,f) { if (p) printf("%-20s ", #f " ->"); RunThreadsOn(n,p,f); }
+#else
 #define RunThreadsOn(n,p,f) { if (p) printf("%-20s ", #f ":"); RunThreadsOn(n,p,f); }
-#define RunThreadsOnIndividual(n,p,f) { if (p) printf("%-20s ", #f ":"); RunThreadsOnIndividual(n,p,f); }
+#endif
+
+	#ifdef MAPBASE
+		#define RunThreadsOnIndividual(n,p,f) { if (p) printf("%-20s ", #f " ->"); RunThreadsOnIndividual(n,p,f); }
+	#else
+		#define RunThreadsOnIndividual(n,p,f) { if (p) printf("%-20s ", #f ":"); RunThreadsOnIndividual(n,p,f); }
+	#endif 
+
 #endif
 
 #endif // THREADS_H

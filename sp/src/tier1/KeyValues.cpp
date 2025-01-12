@@ -93,22 +93,22 @@ public:
 	// Hit an error, report it and the parsing stack for context
 	void ReportError( const char *pError )
 	{
-		Warning( "KeyValues Error: %s in file %s\n", pError, m_pFilename );
+		Warning("\tKeyValues Error: %s in file %s\n", pError, m_pFilename );
 		for ( int i = 0; i < m_maxErrorIndex; i++ )
 		{
 			if ( m_errorStack[i] != INVALID_KEY_SYMBOL )
 			{
 				if ( i < m_errorIndex )
 				{
-					Warning( "%s, ", KeyValues::CallGetStringForSymbol(m_errorStack[i]) );
+					Warning("\t%s, ", KeyValues::CallGetStringForSymbol(m_errorStack[i]) );
 				}
 				else
 				{
-					Warning( "(*%s*), ", KeyValues::CallGetStringForSymbol(m_errorStack[i]) );
+					Warning("\t(*%s*), ", KeyValues::CallGetStringForSymbol(m_errorStack[i]) );
 				}
 			}
 		}
-		Warning( "\n" );
+		Warning("\t\n" );
 	}
 
 private:
@@ -600,7 +600,7 @@ const char *KeyValues::ReadToken( CUtlBuffer &buf, bool &wasQuoted, bool &wasCon
 		else if ( !bReportedError )
 		{
 			bReportedError = true;
-			g_KeyValuesErrorStack.ReportError(" ReadToken overflow" );
+			g_KeyValuesErrorStack.ReportError("\t ReadToken overflow" );
 		}
 
 		buf.SeekGet( CUtlBuffer::SEEK_CURRENT, 1 );
@@ -2139,7 +2139,7 @@ bool KeyValues::LoadFromBuffer( char const *resourceName, CUtlBuffer &buf, IBase
 
 			if ( !s || *s == 0 )
 			{
-				g_KeyValuesErrorStack.ReportError("#include is NULL " );
+				g_KeyValuesErrorStack.ReportError("\t#include is NULL " );
 			}
 			else
 			{
@@ -2155,7 +2155,7 @@ bool KeyValues::LoadFromBuffer( char const *resourceName, CUtlBuffer &buf, IBase
 
 			if ( !s || *s == 0 )
 			{
-				g_KeyValuesErrorStack.ReportError("#base is NULL " );
+				g_KeyValuesErrorStack.ReportError("\t#base is NULL " );
 			}
 			else
 			{
@@ -2201,7 +2201,7 @@ bool KeyValues::LoadFromBuffer( char const *resourceName, CUtlBuffer &buf, IBase
 		}
 		else
 		{
-			g_KeyValuesErrorStack.ReportError("LoadFromBuffer: missing {" );
+			g_KeyValuesErrorStack.ReportError("\tLoadFromBuffer: missing {" );
 		}
 
 		if ( !bAccepted )
@@ -2296,13 +2296,13 @@ void KeyValues::RecursiveLoadFromBuffer( char const *resourceName, CUtlBuffer &b
 
 		if ( !name )	// EOF stop reading
 		{
-			g_KeyValuesErrorStack.ReportError("RecursiveLoadFromBuffer:  got EOF instead of keyname" );
+			g_KeyValuesErrorStack.ReportError("\tRecursiveLoadFromBuffer:  got EOF instead of keyname" );
 			break;
 		}
 
 		if ( !*name ) // empty token, maybe "" or EOF
 		{
-			g_KeyValuesErrorStack.ReportError("RecursiveLoadFromBuffer:  got empty keyname" );
+			g_KeyValuesErrorStack.ReportError("\tRecursiveLoadFromBuffer:  got empty keyname" );
 			break;
 		}
 
@@ -2328,13 +2328,13 @@ void KeyValues::RecursiveLoadFromBuffer( char const *resourceName, CUtlBuffer &b
 
 		if ( !value )
 		{
-			g_KeyValuesErrorStack.ReportError("RecursiveLoadFromBuffer:  got NULL key" );
+			g_KeyValuesErrorStack.ReportError("\tRecursiveLoadFromBuffer:  got NULL key" );
 			break;
 		}
 		
 		if ( *value == '}' && !wasQuoted )
 		{
-			g_KeyValuesErrorStack.ReportError("RecursiveLoadFromBuffer:  got } in key" );
+			g_KeyValuesErrorStack.ReportError("\tRecursiveLoadFromBuffer:  got } in key" );
 			break;
 		}
 
@@ -2349,7 +2349,7 @@ void KeyValues::RecursiveLoadFromBuffer( char const *resourceName, CUtlBuffer &b
 		{
 			if ( wasConditional )
 			{
-				g_KeyValuesErrorStack.ReportError("RecursiveLoadFromBuffer:  got conditional between key and value" );
+				g_KeyValuesErrorStack.ReportError("\tRecursiveLoadFromBuffer:  got conditional between key and value" );
 				break;
 			}
 			

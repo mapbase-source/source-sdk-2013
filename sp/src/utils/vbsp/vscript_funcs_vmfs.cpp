@@ -33,7 +33,7 @@ static HSCRIPT VMFKV_CreateBlank()
 
 static bool VMFKV_SaveToFile( const char *szFile, HSCRIPT hKV )
 {
-	Warning( "Getting keyvalues from thing\n" );
+	Warning("\tGetting keyvalues from thing\n" );
 
 	KeyValues *pKV = scriptmanager->GetKeyValuesFromScriptKV( g_pScriptVM, hKV );
 	if (!pKV)
@@ -51,7 +51,7 @@ static bool VMFKV_SaveToFile( const char *szFile, HSCRIPT hKV )
 
 	if ( !V_RemoveDotSlashes( pszFullName, CORRECT_PATH_SEPARATOR, true ) )
 	{
-		Warning( "Invalid file location : %s\n", szFile );
+		Warning("\tInvalid file location : %s\n", szFile );
 		buf.Purge();
 		return false;
 	}
@@ -62,7 +62,7 @@ static bool VMFKV_SaveToFile( const char *szFile, HSCRIPT hKV )
 	V_StripFilename( pszDir );
 
 	//g_pFullFileSystem->RelativePathToFullPath( szFile, NULL, pszFullName, sizeof( pszFullName ) );
-	Warning( "Full path is %s!\n", pszFullName );
+	Warning("\tFull path is %s!\n", pszFullName );
 	g_pFullFileSystem->CreateDirHierarchy( pszDir, NULL );
 	bool res = g_pFullFileSystem->WriteFile( pszFullName, NULL, buf );
 	buf.Purge();

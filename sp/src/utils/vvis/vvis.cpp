@@ -23,6 +23,17 @@
 #include "loadcmdline.h"
 #include "byteswap.h"
 
+#ifdef MAPBASE
+#include "../common/StandartColorFormat.h" //this control the color of the console.
+#endif 
+
+/*
+#ifdef MAPBASE
+	#ifdef _WIN32 //This is for having ANSI colors in the console on Windows.
+	#include <windows.h> 
+	#endif 
+#endif 
+*/
 
 int			g_numportals;
 int			portalclusters;
@@ -58,6 +69,23 @@ bool		g_bLowPriority = false;
 
 //=============================================================================
 
+/*
+//-------------------------------------------
+// Windows stuff for colors in the console
+//-------------------------------------------
+#ifdef MAPBASE
+	#ifdef _WIN32
+	void EnableANSI() {
+		HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+		DWORD dwMode = 0;
+		if (hOut != INVALID_HANDLE_VALUE && GetConsoleMode(hOut, &dwMode)) {
+			SetConsoleMode(hOut, dwMode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
+		}
+	}
+	#endif
+#endif
+*/
+
 void PlaneFromWinding (winding_t *w, plane_t *plane)
 {
 	Vector		v1, v2;
@@ -82,7 +110,7 @@ winding_t *NewWinding (int points)
 	int			size;
 	
 	if (points > MAX_POINTS_ON_WINDING)
-		Error ("NewWinding: %i points, max %d", points, MAX_POINTS_ON_WINDING);
+		Error ("\tNewWinding: %i points, max %d", points, MAX_POINTS_ON_WINDING);
 	
 	size = (int)(&((winding_t *)0)->points[points]);
 	w = (winding_t*)malloc (size);
@@ -212,7 +240,7 @@ void ClusterMerge (int clusternum)
 	{
 		p = leaf->portals[i];
 		if (p->status != stat_done)
-			Error ("portal not done %d %p %p\n", i, p, portals);
+			Error ("\tportal not done %d %p %p\n", i, p, portals);
 		for (j=0 ; j<portallongs ; j++)
 			((long *)portalvector)[j] |= ((long *)p->portalvis)[j];
 		pnum = p - portals;
@@ -226,7 +254,7 @@ void ClusterMerge (int clusternum)
 	// func_viscluster makes this happen all the time because it allows a non-convex set of portals
 	// My analysis says this is ok, but it does make this check for errors in vis kind of useless
 	if ( CheckBit( uncompressed, clusternum ) )
-		Warning("WARNING: Cluster portals saw into cluster\n");
+		Warning("\tWARNING: Cluster portals saw into cluster\n");
 #endif
 		
 	SetBit( uncompressed, clusternum );
@@ -268,7 +296,7 @@ static int CompressAndCrosscheckClusterVis( int clusternum )
 	vismap_p += numbytes;
 	
 	if (vismap_p > vismap_end)
-		Error ("Vismap expansion overflow");
+		Error ("\tVismap expansion overflow");
 
 	dvis->bitofs[clusternum][DVIS_PVS] = dest-vismap;
 
@@ -359,10 +387,21 @@ void CalcVis (void)
 		count += CompressAndCrosscheckClusterVis( i );
 	}
 
-		
-	Msg ("Optimized: %d visible clusters (%.2f%%)\n", count, count*100.0/totalvis);
-	Msg ("Total clusters visible: %i\n", totalvis);
-	Msg ("Average clusters visible: %i\n", totalvis / portalclusters);
+	//lol
+#ifdef MAPBASE
+		Msg("Optimized ");
+		ColorSpewMessage(SPEW_MESSAGE, &magenta, "[%d]", count);
+		Msg(" visible clusters ");
+		ColorSpewMessage(SPEW_MESSAGE, &magenta, "[%.2f%%]\n", count * 100.0 / totalvis);
+		Msg("Total clusters visible ");
+		ColorSpewMessage(SPEW_MESSAGE, &magenta, "[%i]\n", totalvis);
+		Msg("Average clusters visible");
+		ColorSpewMessage(SPEW_MESSAGE, &magenta, " [%i]\n", totalvis / portalclusters);
+#else
+	Msg("Optimized: %d visible clusters (%.2f%%)\n", count, count * 100.0 / totalvis);
+	Msg("Total clusters visible: %i\n", totalvis);
+	Msg("Average clusters visible: %i\n", totalvis / portalclusters);
+#endif
 }
 
 
@@ -421,18 +460,22 @@ void LoadPortals (char *name)
 		char tempPath[MAX_PATH], tempFile[MAX_PATH];
 		if ( GetTempPath( sizeof( tempPath ), tempPath ) == 0 )
 		{
-			Error( "LoadPortals: GetTempPath failed.\n" );
+			Error( "\tLoadPortals: GetTempPath failed.\n" );
 		}
 
 		if ( GetTempFileName( tempPath, "vvis_portal_", 0, tempFile ) == 0 )
 		{
-			Error( "LoadPortals: GetTempFileName failed.\n" );
+			Error( "\tLoadPortals: GetTempFileName failed.\n" );
 		}
 
 		// Read all the data from the network file into memory.
 		FileHandle_t hFile = g_pFileSystem->Open(name, "r");
 		if ( hFile == FILESYSTEM_INVALID_HANDLE )
-			Error( "LoadPortals( %s ): couldn't get file from master.\n", name );
+#ifdef MAPBASE
+			Error("\tLoadPortals: +- %s : couldn't get file from master.\n", name);
+#else
+			Error("\tLoadPortals  %s couldn't get file from master.\n", name);
+#endif 
 
 		CUtlVector<char> data;
 		data.SetSize( g_pFileSystem->Size( hFile ) );
@@ -452,20 +495,43 @@ void LoadPortals (char *name)
 		f = fopen( name, "r" );
 	}
 
-	if ( !f )
-		Error ("LoadPortals: couldn't read %s\n",name);
+	if ( !f ){
+#ifdef MAPBASE
+		Error ("\tLoadPortals couldn't read: +- %s\n",name);
+#else
+		Error ("\tLoadPortals couldn't read %s\n",name);
+#endif
+	}
 
-	if (fscanf (f,"%79s\n%i\n%i\n",magic, &portalclusters, &g_numportals) != 3)
-		Error ("LoadPortals %s: failed to read header", name);
-	if (stricmp(magic,PORTALFILE))
-		Error ("LoadPortals %s: not a portal file", name);
 
+	if (fscanf (f,"%79s\n%i\n%i\n",magic, &portalclusters, &g_numportals) != 3){
+#ifdef MAPBASE
+		Error ("\tLoadPortals: +- %s: failed to read header", name);
+#else
+		Error ("\tLoadPortals: %s: failed to read header", name);
+#endif
+	}
+	if (stricmp(magic,PORTALFILE)){
+#ifdef MAPBASE
+		Error ("\tLoadPortals: +- %s: not a portal file", name);
+#else
+		Error ("\tLoadPortals: %s: not a portal file", name);
+#endif
+	}
+
+#ifdef MAPBASE
+		Msg ("  Portalclusters ");
+		ColorSpewMessage(SPEW_MESSAGE, &magenta, "[%i] \n", portalclusters);
+		Msg ("  Numportals ");
+		ColorSpewMessage(SPEW_MESSAGE, &magenta, "[%i] \n", g_numportals);
+#else
 	Msg ("%4i portalclusters\n", portalclusters);
 	Msg ("%4i numportals\n", g_numportals);
+#endif
 
 	if (g_numportals * 2 >= MAX_PORTALS)
 	{
-		Error("The map overflows the max portal count (%d of max %d)!\n", g_numportals, MAX_PORTALS / 2 );
+		Error("\tThe map overflows the max portal count (%d of max %d)!\n", g_numportals, MAX_PORTALS / 2 );
 	}
 
 	// these counts should take advantage of 64 bit systems automatically
@@ -495,12 +561,12 @@ void LoadPortals (char *name)
 	{
 		if (fscanf (f, "%i %i %i ", &numpoints, &leafnums[0], &leafnums[1])
 			!= 3)
-			Error ("LoadPortals: reading portal %i", i);
+			Error ("\tLoadPortals: reading portal %i", i);
 		if (numpoints > MAX_POINTS_ON_WINDING)
-			Error ("LoadPortals: portal %i has too many points", i);
+			Error ("\tLoadPortals: portal %i has too many points", i);
 		if ( (unsigned)leafnums[0] > portalclusters
 		|| (unsigned)leafnums[1] > portalclusters)
-			Error ("LoadPortals: reading portal %i", i);
+			Error ("\tLoadPortals: reading portal %i", i);
 		
 		w = p->winding = NewWinding (numpoints);
 		w->original = true;
@@ -515,7 +581,7 @@ void LoadPortals (char *name)
 			// so we don't care what size vec_t is
 			if (fscanf (f, "(%lf %lf %lf ) "
 			, &v[0], &v[1], &v[2]) != 3)
-				Error ("LoadPortals: reading portal %i", i);
+				Error ("\tLoadPortals: reading portal %i", i);
 			for (k=0 ; k<3 ; k++)
 				w->points[j][k] = v[k];
 		}
@@ -575,7 +641,7 @@ void CalcPAS (void)
 	byte	uncompressed[MAX_MAP_LEAFS/8];
 	byte	compressed[MAX_MAP_LEAFS/8];
 
-	Msg ("Building PAS...\n");
+	Msg ("Building PAS... ");
 
 	count = 0;
 	for (i=0 ; i<portalclusters ; i++)
@@ -594,7 +660,7 @@ void CalcPAS (void)
 				// OR this pvs row into the phs
 				index = ((j<<3)+k);
 				if (index >= portalclusters)
-					Error ("Bad bit in PVS");	// pad bits should be 0
+					Error ("\tBad bit in PVS\n");	// pad bits should be 0
 				src = (long *)(uncompressedvis + index*leafbytes);
 				dest = (long *)uncompressed;
 				for (l=0 ; l<leaflongs ; l++)
@@ -618,14 +684,24 @@ void CalcPAS (void)
 		vismap_p += j;
 		
 		if (vismap_p > vismap_end)
-			Error ("Vismap expansion overflow");
+			Error ("\tVismap expansion overflow\n");
 
 		dvis->bitofs[i][DVIS_PAS] = (byte *)dest-vismap;
 
 		memcpy (dest, compressed, j);	
 	}
 
-	Msg ("Average clusters audible: %i\n", count/portalclusters);
+#ifdef MAPBASE
+	ColorSpewMessage(SPEW_MESSAGE, &green, "done (0)\n");
+#endif 
+
+#ifdef MAPBASE
+	Msg("Average clusters audible");
+	ColorSpewMessage(SPEW_MESSAGE, &magenta, " [%i]\n", count / portalclusters);
+#else
+	Msg("Average clusters audible: %i\n", count / portalclusters);
+#endif
+
 }
 
 
@@ -982,7 +1058,7 @@ int ParseCommandLine( int argc, char **argv )
 		}
 		else if (argv[i][0] == '-')
 		{
-			Warning("VBSP: Unknown option \"%s\"\n\n", argv[i]);
+			Warning("\tVBSP: Unknown option \"%s\"\n\n", argv[i]);
 			i = 100000;	// force it to print the usage
 			break;
 		}
@@ -995,12 +1071,12 @@ int ParseCommandLine( int argc, char **argv )
 
 void PrintCommandLine( int argc, char **argv )
 {
-	Warning( "Command line: " );
+	Warning("\tCommand line: " );
 	for ( int z=0; z < argc; z++ )
 	{
-		Warning( "\"%s\" ", argv[z] );
+		Warning("\t\"%s\" ", argv[z] );
 	}
-	Warning( "\n\n" );
+	Warning("\t\n\n" );
 }
 
 
@@ -1049,7 +1125,7 @@ void PrintUsage( int argc, char **argv )
 	{
 		if ( V_stricmp( argv[i], "-mpi_ListParams" ) == 0 )
 		{
-			Warning( "VMPI-specific options:\n\n" );
+			Warning("\tVMPI-specific options:\n\n" );
 
 			bool bIsSDKMode = VMPI_IsSDKMode();
 			for ( int i=k_eVMPICmdLineParam_FirstParam+1; i < k_eVMPICmdLineParam_LastParam; i++ )
@@ -1057,9 +1133,9 @@ void PrintUsage( int argc, char **argv )
 				if ( (VMPI_GetParamFlags( (EVMPICmdLineParam)i ) & VMPI_PARAM_SDK_HIDDEN) && bIsSDKMode )
 					continue;
 					
-				Warning( "[%s]\n", VMPI_GetParamString( (EVMPICmdLineParam)i ) );
+				Warning("\t[%s]\n", VMPI_GetParamString( (EVMPICmdLineParam)i ) );
 				Warning( VMPI_GetParamHelpString( (EVMPICmdLineParam)i ) );
-				Warning( "\n\n" );
+				Warning("\t\n\n" );
 			}
 			break;
 		}
@@ -1075,9 +1151,16 @@ int RunVVis( int argc, char **argv )
 	double		start, end;
 
 
-	Msg( "Valve Software - vvis.exe (%s)\n", __DATE__ );
+#ifdef MAPBASE
+	ColorSpewMessage(SPEW_MESSAGE, &cyan, "Valve Software - vvis.exe (Build: pc32 %s)", __DATE__);
+#else
+	Msg("Valve Software - vvis.exe (%s)\n", __DATE__);
+#endif
 
 	verbose = false;
+
+	ThreadSetDefault(); //It does not change the behaviour of vvis, of ThreadSetDefault
+						//to be in the line 1117 (aprox) or in the line 1155 (aprox).
 
 	Q_StripExtension( argv[ argc - 1 ], source, sizeof( source ) );
 	CmdLib_InitFileSystem( argv[ argc - 1 ] );
@@ -1115,14 +1198,22 @@ int RunVVis( int argc, char **argv )
 		SetLowPriority();
 	}
 	
-	ThreadSetDefault ();
+	//ThreadSetDefault ();
 
 	char	targetPath[1024];
 	GetPlatformMapPath( source, targetPath, 0, 1024 );
-	Msg ("reading %s\n", targetPath);
+
+#ifdef MAPBASE
+		Msg ("Reading: +- ");
+		ColorSpewMessage(SPEW_MESSAGE, &blue, "%s", targetPath);
+		ColorSpewMessage(SPEW_MESSAGE, &green, " done (0)\n");
+#else
+	Msg ("Reading %s\n", targetPath);
+#endif
+
 	LoadBSPFile (targetPath);
 	if (numnodes == 0 || numfaces == 0)
-		Error ("Empty map");
+		Error ("\tEmpty map");
 	ParseEntities ();
 
 	// Check the VMF for a vis radius
@@ -1151,8 +1242,15 @@ int RunVVis( int argc, char **argv )
 		Q_StripExtension( portalfile, portalfile, sizeof( portalfile ) );
 	}
 	strcat (portalfile, ".prt");
-	
-	Msg ("reading %s\n", portalfile);
+
+#ifdef MAPBASE
+	Msg("Reading: +- ");
+	ColorSpewMessage(SPEW_MESSAGE, &blue, "%s", portalfile);
+	ColorSpewMessage(SPEW_MESSAGE, &green, " done (0)\n");
+#else
+	Msg("Reading %s\n", targetPath);
+#endif
+
 	LoadPortals (portalfile);
 
 	// don't write out results when simply doing a trace
@@ -1168,21 +1266,35 @@ int RunVVis( int argc, char **argv )
 		CalcVisibleFogVolumes();
 		CalcDistanceFromLeavesToWater();
 
-		visdatasize = vismap_p - dvisdata;	
-		Msg ("visdatasize:%i  compressed from %i\n", visdatasize, originalvismapsize*2);
+		visdatasize = vismap_p - dvisdata;
 
-		Msg ("writing %s\n", targetPath);
+#ifdef MAPBASE
+		Msg("Visdatasize");
+		ColorSpewMessage(SPEW_MESSAGE, &magenta, " [%i] ", visdatasize);
+		Msg("compressed from");
+		ColorSpewMessage(SPEW_MESSAGE, &magenta, " [%i]\n", originalvismapsize * 2);
+#else
+		Msg("visdatasize:%i  compressed from %i\n", visdatasize, originalvismapsize * 2);
+#endif 
+
+#ifdef MAPBASE
+		Msg("Writing Bsp file: +- ");
+		ColorSpewMessage(SPEW_MESSAGE, &blue, "%s ", targetPath);
+		ColorSpewMessage(SPEW_MESSAGE, &green, "done (0)\n");
+#else
+		Msg("Writing %s\n", targetPath);
+#endif
 		WriteBSPFile (targetPath);	
 	}
 	else
 	{
 		if ( g_TraceClusterStart < 0 || g_TraceClusterStart >= portalclusters || g_TraceClusterStop < 0 || g_TraceClusterStop >= portalclusters )
 		{
-			Error("Invalid cluster trace: %d to %d, valid range is 0 to %d\n", g_TraceClusterStart, g_TraceClusterStop, portalclusters-1 );
+			Error("\tInvalid cluster trace: %d to %d, valid range is 0 to %d\n", g_TraceClusterStart, g_TraceClusterStop, portalclusters-1 );
 		}
 		if ( g_bUseMPI )
 		{
-			Warning("Can't compile trace in MPI mode\n");
+			Warning("\tCan't compile trace in MPI mode\n");
 		}
 		CalcVisTrace ();
 		WritePortalTrace(source);
@@ -1192,7 +1304,12 @@ int RunVVis( int argc, char **argv )
 	
 	char str[512];
 	GetHourMinuteSecondsString( (int)( end - start ), str, sizeof( str ) );
-	Msg( "%s elapsed\n", str );
+
+#ifdef MAPBASE
+	ColorSpewMessage(SPEW_MESSAGE, &green, "--> Visibility complete in %s seconds.", str);
+#else
+	Msg("%s elapsed\n", str);
+#endif
 
 	ReleasePakFileLumps();
 	DeleteCmdLine( argc, argv );
@@ -1209,6 +1326,13 @@ main
 int main (int argc, char **argv)
 {
 	CommandLine()->CreateCmdLine( argc, argv );
+/*
+#ifdef MAPBASE
+	#ifdef _WIN32
+		EnableANSI();
+	#endif 
+#endif 
+*/
 
 	MathLib_Init( 2.2f, 2.2f, 0.0f, 1.0f, false, false, false, false );
 	InstallAllocationFunctions();

@@ -10,7 +10,7 @@
 $Conditional VS2015	"0" // Toggles Visual Studio 2015 (v140) toolset
 $Conditional VS2017	"0" // Toggles Visual Studio 2017 (v141) toolset
 $Conditional VS2019	"0" // Toggles Visual Studio 2019 (v142) toolset
-$Conditional VS2022	"0" // Toggles Visual Studio 2022 (v143) toolset
+$Conditional VS2022	"1" // Toggles Visual Studio 2022 (v143) toolset
 
 // 
 // VPC may still say "Generating for Visual Studio 2013" even when using one of the above toolsets. This message is irrelevant and can be ignored.

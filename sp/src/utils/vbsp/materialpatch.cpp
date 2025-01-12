@@ -104,7 +104,7 @@ void CreateMaterialPatch( const char *pOriginalMaterialName, const char *pNewMat
 	KeyValues *kv = new KeyValues( "patch" );
 	if ( !kv )
 	{
-		Error( "Couldn't allocate KeyValues for %s!!!", pNewMaterialName );
+		Error("\tCouldn't allocate KeyValues for %s!!!", pNewMaterialName );
 	}
 
 	kv->SetString( "include", pOldVMTFile );
@@ -367,7 +367,7 @@ static void ExpandPatchFile( KeyValues &keyValues )
 
 	if( nCount >= 10 )
 	{
-		Warning( "Infinite recursion in patch file?\n" );
+		Warning("\tInfinite recursion in patch file?\n" );
 	}
 }
 

@@ -620,7 +620,7 @@ ChunkFileResult_t CChunkFile::ReadChunk(KeyHandler_t pfnKeyHandler, void *pData)
 	//
 	if ((eResult != ChunkFile_Ok) && (eResult != ChunkFile_EOF))
 	{
-		//HandleError("chunkname", eResult);
+		//HandleError("\tchunkname", eResult);
 	}
 
 	return(eResult);

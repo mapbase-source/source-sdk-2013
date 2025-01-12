@@ -1227,7 +1227,7 @@ bool SQVM::TailCall(SQClosure *closure, SQInteger parambase,SQInteger nparams)
 	SQObjectPtr clo = closure;
 	if (ci->_root)
 	{
-		Raise_Error("root calls cannot invoke tailcalls");
+		Raise_Error("\troot calls cannot invoke tailcalls");
 		return false;
 	}
 	for (SQInteger i = 0; i < nparams; i++) STK(i) = STK(parambase + i);

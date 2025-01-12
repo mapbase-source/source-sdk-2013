@@ -8,6 +8,11 @@
 
 #include "vbsp.h"
 #include "collisionutils.h"
+
+#ifdef MAPBASE
+#include "../common/StandartColorFormat.h" //this control the color of the console.
+#endif 
+
 /*
 ==============================================================================
 
@@ -329,7 +334,14 @@ void WritePortalFile (tree_t *tree)
 	qprintf ("--- WritePortalFile ---\n");
 
 	sprintf (filename, "%s.prt", source);
-	Msg ("writing %s...", filename);
+
+#ifdef MAPBASE
+		Msg("Writing portal file: +- ");
+		ColorSpewMessage(SPEW_MESSAGE, &blue, "%s", filename);
+		ColorSpewMessage(SPEW_MESSAGE, &green, " done (0)\n");
+#else
+	Msg("writing %s...", filename);
+#endif 
 
 	headnode = tree->headnode;
 
@@ -340,7 +352,7 @@ void WritePortalFile (tree_t *tree)
 
 // set the cluster field in every leaf and count the total number of portals
 	num_visclusters = 0;
-	Msg("Building visibility clusters...\n");
+	Msg("Building visibility clusters... ");
 	CUtlVector<node_t *> leaves;
 	BuildVisLeafList_r( headnode, leaves );
 
@@ -351,7 +363,7 @@ void WritePortalFile (tree_t *tree)
 // write the file
 	FILE *pf = fopen (filename, "w");
 	if (!pf)
-		Error ("Error opening %s", filename);
+		Error ("\t\nError opening %s", filename);
 		
 	fprintf (pf, "%s\n", PORTALFILE);
 	fprintf (pf, "%i\n", num_visclusters);
@@ -369,6 +381,10 @@ void WritePortalFile (tree_t *tree)
 	clusterleaf = 1;
 	SaveClusters_r (headnode);
 
-	Msg("done (%d)\n", (int)(Plat_FloatTime() - start) );
+#ifdef MAPBASE
+	ColorSpewMessage(SPEW_MESSAGE, &green, "done (%d)\n", (int)(Plat_FloatTime() - start));
+#else
+	Msg("done (%d)\n", (int)(Plat_FloatTime() - start));
+#endif
 }
 
