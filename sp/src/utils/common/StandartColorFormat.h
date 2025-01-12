@@ -2,9 +2,10 @@
 //
 // Purpose: Contains the standard color format for the tools.
 //
+// Author(s): Unusuario2
+//
 // $NoKeywords: $
 //=============================================================================
-
 #pragma once
 
 #include "Color.h"
@@ -14,7 +15,7 @@
 
 // We will use the next color format in the tools.
 //	- Green: process done.
-//	- Dark yellow: indicates a path.
+//	- Blue: indicates a path.
 //	- Purple: indicates a number of a funtion.
 //	- Red: process failed.
 //	- Cyan: Only for header strings.
