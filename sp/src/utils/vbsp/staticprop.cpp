@@ -716,7 +716,7 @@ void EmitStaticProps()
 
 	SetLumpData( );
 #ifdef MAPBASE
-	ColorSpewMessage(SPEW_MESSAGE, &green, "done (%d)\n");
+	ColorSpewMessage(SPEW_MESSAGE, &green, "done (0)\n");
 #else
 	Msg("done (%d)\n", (int)(Plat_FloatTime() - start));
 #endif

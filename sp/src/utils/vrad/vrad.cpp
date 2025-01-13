@@ -1965,8 +1965,8 @@ void MakeAllScales (void)
 
 #ifdef MAPBASE
 	Msg("Transfers ");
-	ColorSpewMessage(SPEW_MESSAGE, &magenta, "[%d],", total_transfer);
-	Msg(" max ");
+	ColorSpewMessage(SPEW_MESSAGE, &magenta, "[%d]", total_transfer);
+	Msg(", max ");
 	ColorSpewMessage(SPEW_MESSAGE, &magenta, "[%d]\n", max_transfer);
 #else
 	Msg("transfers %d, max %d\n", total_transfer, max_transfer);

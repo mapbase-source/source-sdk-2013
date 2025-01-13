@@ -676,9 +676,17 @@ qboolean CMapFile::MakeBrushWindings (mapbrush_t *ob)
 	for (i=0 ; i<3 ; i++)
 	{
 		if (ob->mins[i] < MIN_COORD_INTEGER || ob->maxs[i] > MAX_COORD_INTEGER)
+#ifdef MAPBASE
+			Warning("\tBrush %i: bounds out of range\n", ob->id);
+#else
 			Msg("Brush %i: bounds out of range\n", ob->id);
+#endif
 		if (ob->mins[i] > MAX_COORD_INTEGER || ob->maxs[i] < MIN_COORD_INTEGER)
+#ifdef MAPBASE
+			Warning("\tBrush %i: no visible sides on brush\n", ob->id);
+#else
 			Msg("Brush %i: no visible sides on brush\n", ob->id);
+#endif
 	}
 
 	return true;
