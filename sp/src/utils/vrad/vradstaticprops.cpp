@@ -1455,7 +1455,7 @@ void CVradStaticPropMgr::ComputeLighting( int iThread )
 		return;
 	}
 
-	StartPacifier( "Computing static prop lighting : " );
+	StartPacifier( "Computing static prop lighting -> " );
 
 	// ensure any traces against us are ignored because we have no inherit lighting contribution
 	m_bIgnoreStaticPropTrace = true;
