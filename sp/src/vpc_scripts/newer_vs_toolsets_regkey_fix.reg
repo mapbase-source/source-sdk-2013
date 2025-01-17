@@ -1,0 +1,7 @@
+Windows Registry Editor Version 5.00
+
+; https://github.com/ValveSoftware/source-sdk-2013/issues/72#issuecomment-326633328
+; If you are running a 32-bit system, you may need to remove WOW6432Node from the path.
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\VisualStudio\10.0\Projects\{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}]
+"DefaultProjectExtension"="vcproj"
