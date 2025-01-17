@@ -847,34 +847,40 @@ void RichText::Paint()
 
 		// 3.
 		// Calculate the range of text to draw all at once
-		int iLim = m_TextStream.Count();
+		int iLim = m_TextStream.Count() - 1;
 		
+		// Stop at the next line break
+		if ( m_LineBreaks.IsValidIndex( lineBreakIndexIndex ) && m_LineBreaks[lineBreakIndexIndex] <= iLim )
+			iLim = m_LineBreaks[lineBreakIndexIndex] - 1;
+
 		// Stop at the next format change
 		if ( m_FormatStream.IsValidIndex(renderState.formatStreamIndex) && 
-			m_FormatStream[renderState.formatStreamIndex].textStreamIndex < iLim &&
+			m_FormatStream[renderState.formatStreamIndex].textStreamIndex <= iLim &&
 			m_FormatStream[renderState.formatStreamIndex].textStreamIndex >= i &&
 			m_FormatStream[renderState.formatStreamIndex].textStreamIndex )
 		{
-			iLim = m_FormatStream[renderState.formatStreamIndex].textStreamIndex;
+			iLim = m_FormatStream[renderState.formatStreamIndex].textStreamIndex - 1;
 		}
 
-		// Stop at the next line break
-		if ( m_LineBreaks.IsValidIndex( lineBreakIndexIndex ) && m_LineBreaks[lineBreakIndexIndex] < iLim )
-			iLim = m_LineBreaks[lineBreakIndexIndex];
+		// Stop when entering or exiting the selected range
+		if ( i < selection0 && iLim >= selection0 )
+			iLim = selection0 - 1;
+		if ( i >= selection0 && i < selection1 && iLim >= selection1 )
+			iLim = selection1 - 1;
 
 		// Handle non-drawing characters specially
-		for ( int iT = i; iT < iLim; iT++ )
+		for ( int iT = i; iT <= iLim; iT++ )
 		{
 			if ( iswcntrl(m_TextStream[iT]) )
 			{
-				iLim = iT;
+				iLim = iT - 1;
 				break;
 			}
 		}
 
 		// 4.
 		// Draw the current text range
-		if ( iLim <= i )
+		if ( iLim < i )
 		{
 			if ( m_TextStream[i] == '\t' )
 			{
@@ -887,8 +893,8 @@ void RichText::Paint()
 		}
 		else
 		{
-			renderState.x += DrawString(i, iLim - 1, renderState, hFontCurrent );
-			i = iLim;
+			renderState.x += DrawString(i, iLim, renderState, hFontCurrent );
+			i = iLim + 1;
 		}
 	}
 
