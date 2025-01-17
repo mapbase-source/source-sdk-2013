@@ -462,3 +462,225 @@ void CEP2StunEffect::Render( int x, int y, int w, int h )
 	pRenderContext->MatrixMode( MATERIAL_PROJECTION );
 	pRenderContext->PopMatrix();
 }
+
+// ================================================================================================================
+//
+//  Chromatic Aberration
+//
+// ================================================================================================================
+
+#ifdef MAPBASE
+ConVar r_chromatic_aberration_offset( "r_chromatic_aberration_offset", "8.0" );
+ConVar r_chromatic_aberration_intensity( "r_chromatic_aberration_intensity", "0.2" );
+ConVar r_chromatic_aberration_noise( "r_chromatic_aberration_noise", "4.0" );
+
+ConVar r_chromatic_aberration_frame1_clr( "r_chromatic_aberration_frame1_clr", "1.0 0.0 0.0 1.0" );
+ConVar r_chromatic_aberration_frame1_offset_x( "r_chromatic_aberration_frame1_offset_x", "1.0" );
+ConVar r_chromatic_aberration_frame1_offset_y( "r_chromatic_aberration_frame1_offset_y", "4.0" );
+
+ConVar r_chromatic_aberration_frame2_clr( "r_chromatic_aberration_frame2_clr", "0.0 1.0 0.0 1.0" );
+ConVar r_chromatic_aberration_frame2_offset_x( "r_chromatic_aberration_frame2_offset_x", "-5.0" );
+ConVar r_chromatic_aberration_frame2_offset_y( "r_chromatic_aberration_frame2_offset_y", "-1.0" );
+
+ConVar r_chromatic_aberration_frame3_clr( "r_chromatic_aberration_frame3_clr", "0.0 0.0 1.0 1.0" );
+ConVar r_chromatic_aberration_frame3_offset_x( "r_chromatic_aberration_frame3_offset_x", "3.0" );
+ConVar r_chromatic_aberration_frame3_offset_y( "r_chromatic_aberration_frame3_offset_y", "-3.0" );
+
+//-----------------------------------------------------------------------------
+// Purpose:
+//-----------------------------------------------------------------------------
+void CChromaticAberrationEffect::Init( void ) 
+{
+	m_flDuration = 0.0f;
+	m_flFinishTime = 0.0f;
+	m_bUpdateView = true;
+
+	KeyValues *pVMTKeyValues = new KeyValues( "UnlitGeneric" );
+	pVMTKeyValues->SetString( "$basetexture", STUN_TEXTURE );
+	m_EffectMaterial.Init( "__stuneffect", TEXTURE_GROUP_CLIENT_EFFECTS, pVMTKeyValues );
+	m_StunTexture.Init( STUN_TEXTURE, TEXTURE_GROUP_CLIENT_EFFECTS );
+}
+
+void CChromaticAberrationEffect::Shutdown( void )
+{
+	m_EffectMaterial.Shutdown();
+	m_StunTexture.Shutdown();
+}
+
+//------------------------------------------------------------------------------
+// Purpose: Pick up changes in our parameters
+//------------------------------------------------------------------------------
+void CChromaticAberrationEffect::SetParameters( KeyValues *params )
+{
+	if( params->FindKey( "duration" ) )
+	{
+		m_flDuration = params->GetFloat( "duration" );
+		m_flFinishTime = gpGlobals->curtime + m_flDuration;
+		m_bUpdateView = true;
+	}
+
+	if( params->FindKey( "fadeout" ) )
+	{
+		m_bFadeOut = ( params->GetInt( "fadeout" ) == 1 );
+	}
+
+	if( params->FindKey( "stretch" ) )
+	{
+		m_bStretch = ( params->GetInt( "stretch" ) == 1 );
+	}
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: Render the effect
+//-----------------------------------------------------------------------------
+void CChromaticAberrationEffect::RenderColorFrame( CMatRenderContextPtr &pRenderContext, float flEffectPerc, int nColorMode, int x, int y, int w, int h )
+{
+	// Change color
+	float flColor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+
+	float viewOffsX = flEffectPerc;
+	if (m_bStretch)
+		viewOffsX *= r_chromatic_aberration_offset.GetFloat() * 2;
+	else
+		viewOffsX *= r_chromatic_aberration_offset.GetFloat();
+
+	float viewOffsY = viewOffsX;
+
+	{
+		char szColor[16] = { 0 };
+		float flNoise = sin( gpGlobals->curtime * r_chromatic_aberration_noise.GetFloat() ) * flEffectPerc;
+
+		switch (nColorMode)
+		{
+			// Red
+			case 0:
+				Q_strncpy( szColor, r_chromatic_aberration_frame1_clr.GetString(), sizeof( szColor ) );
+
+				viewOffsX *= r_chromatic_aberration_frame1_offset_x.GetFloat();
+				viewOffsY *= r_chromatic_aberration_frame1_offset_y.GetFloat();
+
+				viewOffsX += flNoise;
+				viewOffsY += flNoise;
+				break;
+			
+			// Green
+			case 1:
+				Q_strncpy( szColor, r_chromatic_aberration_frame2_clr.GetString(), sizeof( szColor ) );
+
+				viewOffsX *= r_chromatic_aberration_frame2_offset_x.GetFloat();
+				viewOffsY *= r_chromatic_aberration_frame2_offset_y.GetFloat();
+
+				viewOffsX += flNoise;
+				viewOffsY += flNoise;
+				break;
+			
+			// Blue
+			case 2:
+				Q_strncpy( szColor, r_chromatic_aberration_frame3_clr.GetString(), sizeof( szColor ) );
+
+				viewOffsX *= r_chromatic_aberration_frame3_offset_x.GetFloat();
+				viewOffsY *= r_chromatic_aberration_frame3_offset_y.GetFloat();
+
+				viewOffsX += flNoise;
+				viewOffsY += flNoise;
+				break;
+		}
+
+		char *c = strtok( szColor, " " );
+		for (int i = 0; i < 4 && c != NULL; i++, c = strtok( NULL, " " ))
+		{
+			flColor[i] = atof( c );
+		}
+	}
+
+	if (flColor[3] == 0.0f || g_pMaterialSystemHardwareConfig->GetDXSupportLevel() < 80)
+		return;
+
+	m_EffectMaterial->ColorModulate( flColor[0], flColor[1], flColor[2] );
+
+	// Set alpha blend value
+	float flOverlayAlpha = clamp( r_chromatic_aberration_intensity.GetFloat() * flEffectPerc * flColor[3], 0.0f, 1.0f);
+	m_EffectMaterial->AlphaModulate( flOverlayAlpha );
+
+	// Draw full screen alpha-blended quad
+	if (m_bStretch)
+	{
+		float vX = x - (viewOffsX * 0.5f);
+		float vY = y - (viewOffsY * 0.5f);
+
+		pRenderContext->DrawScreenSpaceRectangle( m_EffectMaterial, vX, vY, w + viewOffsX, h + viewOffsY,
+			0, 0, (m_StunTexture->GetActualWidth()-1), (m_StunTexture->GetActualHeight()-1),
+			m_StunTexture->GetActualWidth(), m_StunTexture->GetActualHeight() );
+	}
+	else
+	{
+		float vX = x + viewOffsX;
+		float vY = y + viewOffsY;
+
+		pRenderContext->DrawScreenSpaceRectangle( m_EffectMaterial, 0, 0, w, h,
+			vX, vY, (m_StunTexture->GetActualWidth()-1)+vX, (m_StunTexture->GetActualHeight()-1)+vY,
+			m_StunTexture->GetActualWidth(), m_StunTexture->GetActualHeight() );
+	}
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: Render the effect
+//-----------------------------------------------------------------------------
+void CChromaticAberrationEffect::Render( int x, int y, int w, int h )
+{
+	// Make sure we're ready to play this effect
+	if ( !IsEnabled() )
+		return;
+
+	if ( m_bFadeOut && m_flFinishTime < gpGlobals->curtime )
+	{
+		g_pScreenSpaceEffects->DisableScreenSpaceEffect( "mapbase_chromatic_aberration" );
+		return;
+	}
+
+	CMatRenderContextPtr pRenderContext( materials );
+	
+	// Set ourselves to the proper rendermode
+	pRenderContext->MatrixMode( MATERIAL_VIEW );
+	pRenderContext->PushMatrix();
+	pRenderContext->LoadIdentity();
+	pRenderContext->MatrixMode( MATERIAL_PROJECTION );
+	pRenderContext->PushMatrix();
+	pRenderContext->LoadIdentity();
+
+	// Draw the texture if we're using it
+	if ( m_bUpdateView )
+	{
+		// Save off this pass
+		Rect_t srcRect;
+		srcRect.x = x;
+		srcRect.y = y;
+		srcRect.width = w;
+		srcRect.height = h;
+		pRenderContext->CopyRenderTargetToTextureEx( m_StunTexture, 0, &srcRect, NULL );
+		m_bUpdateView = false;
+	}
+
+	float flEffectPerc = SmoothCurve( clamp( ( m_flFinishTime - gpGlobals->curtime ) / m_flDuration, 0.0f, 1.0f ) );
+	if (!m_bFadeOut)
+		flEffectPerc = 1.0f - flEffectPerc;
+
+	RenderColorFrame( pRenderContext, flEffectPerc, 0, x, y, w, h );
+	RenderColorFrame( pRenderContext, flEffectPerc, 1, x, y, w, h );
+	RenderColorFrame( pRenderContext, flEffectPerc, 2, x, y, w, h );
+
+	// Save off this pass
+	Rect_t srcRect;
+	srcRect.x = x;
+	srcRect.y = y;
+	srcRect.width = w;
+	srcRect.height = h;
+	pRenderContext->CopyRenderTargetToTextureEx( m_StunTexture, 0, &srcRect, NULL );
+
+	// Restore our state
+	pRenderContext->MatrixMode( MATERIAL_VIEW );
+	pRenderContext->PopMatrix();
+	pRenderContext->MatrixMode( MATERIAL_PROJECTION );
+	pRenderContext->PopMatrix();
+}
+#endif

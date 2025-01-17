@@ -3506,6 +3506,12 @@ void CAI_BaseNPC::RunTask( const Task_t *pTask )
 			// as this should only run with the NPC "receiving" the interaction
 			ScriptedNPCInteraction_t *pInteraction = m_hForcedInteractionPartner->GetRunningDynamicInteraction();
 
+			if ( !(pInteraction->iFlags & SCNPC_FLAG_TEST_OTHER_ANGLES) )
+			{
+				TaskComplete();
+				return;
+			}
+
 			// Get our target's origin
 			Vector vecTarget = m_hForcedInteractionPartner->GetAbsOrigin();
 

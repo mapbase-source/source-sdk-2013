@@ -85,7 +85,7 @@ BEGIN_VS_SHADER_FLAGS( BlurFilterY, "Help for BlurFilterY", SHADER_NOT_EDITABLE 
 
 			// The temp buffer is 1/4 back buffer size
 			ITexture *src_texture = params[BASETEXTURE]->GetTextureValue();
-			int height = src_texture->GetActualWidth();
+			int height = src_texture->GetActualHeight();
 			float dY = 1.0f / height;
 //			dY *= 0.4;
 			float v[4];

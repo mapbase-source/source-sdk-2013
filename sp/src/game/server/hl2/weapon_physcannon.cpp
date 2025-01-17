@@ -490,6 +490,9 @@ public:
 	float GetLoadWeight( void ) const { return m_flLoadWeight; }
 	void SetAngleAlignment( float alignAngleCosine ) { m_angleAlignment = alignAngleCosine; }
 	void SetIgnorePitch( bool bIgnore ) { m_bIgnoreRelativePitch = bIgnore; }
+#ifdef MAPBASE
+	void SetDontUseListMass( bool bDontUse ) { m_bDontUseListMass = bDontUse; }
+#endif
 	QAngle TransformAnglesToPlayerSpace( const QAngle &anglesIn, CBasePlayer *pPlayer );
 	QAngle TransformAnglesFromPlayerSpace( const QAngle &anglesIn, CBasePlayer *pPlayer );
 
@@ -530,6 +533,12 @@ private:
 
 	// NVNT player controlling this grab controller
 	CBasePlayer*	m_pControllingPlayer;
+
+#ifdef MAPBASE
+	// Prevents using the added mass of every part of the object
+	// (not saved due to only being used upon attach)
+	bool			m_bDontUseListMass;
+#endif
 
 	friend class CWeaponPhysCannon;
 };
@@ -581,6 +590,9 @@ CGrabController::CGrabController( void )
 	m_flDistanceOffset = 0;
 	// NVNT constructing m_pControllingPlayer to NULL
 	m_pControllingPlayer = NULL;
+#ifdef MAPBASE
+	m_bDontUseListMass = false;
+#endif
 }
 
 CGrabController::~CGrabController( void )
@@ -783,12 +795,18 @@ void CGrabController::AttachEntity( CBasePlayer *pPlayer, CBaseEntity *pEntity, 
 	{
 		float mass = pList[i]->GetMass();
 		pList[i]->GetDamping( NULL, &m_savedRotDamping[i] );
-		m_flLoadWeight += mass;
 		m_savedMass[i] = mass;
 
-		// reduce the mass to prevent the player from adding crazy amounts of energy to the system
-		pList[i]->SetMass( REDUCED_CARRY_MASS / flFactor );
-		pList[i]->SetDamping( NULL, &damping );
+#ifdef MAPBASE
+		if (!m_bDontUseListMass || pList[i] == pPhys)
+#endif
+		{
+			m_flLoadWeight += mass;
+
+			// reduce the mass to prevent the player from adding crazy amounts of energy to the system
+			pList[i]->SetMass( REDUCED_CARRY_MASS / flFactor );
+			pList[i]->SetDamping( NULL, &damping );
+		}
 	}
 
 	// NVNT setting m_pControllingPlayer to the player attached
@@ -1077,7 +1095,24 @@ void CPlayerPickupController::Init( CBasePlayer *pPlayer, CBaseEntity *pObject )
 	
 	Pickup_OnPhysGunPickup( pObject, m_pPlayer, PICKED_UP_BY_PLAYER );
 	
+#ifdef MAPBASE
+	bool bUseGrabPos = false;
+	Vector vecGrabPos;
+	if ( dynamic_cast<CRagdollProp*>( pObject ) )
+	{
+		m_grabController.SetDontUseListMass( true );
+
+		// Approximate where we're grabbing from
+		vecGrabPos = pPlayer->EyePosition() + (pPlayer->EyeDirection3D() * 16.0f);
+		bUseGrabPos = true;
+	}
+	else
+		m_grabController.SetDontUseListMass( false );
+
+	m_grabController.AttachEntity( pPlayer, pObject, pPhysics, false, vecGrabPos, bUseGrabPos );
+#else
 	m_grabController.AttachEntity( pPlayer, pObject, pPhysics, false, vec3_origin, false );
+#endif
 	// NVNT apply a downward force to simulate the mass of the held object.
 #if defined( WIN32 ) && !defined( _X360 )
 	HapticSetConstantForce(m_pPlayer,clamp(m_grabController.GetLoadWeight()*0.1,1,6)*Vector(0,-1,0));
@@ -2721,6 +2756,11 @@ CWeaponPhysCannon::FindObjectResult_t CWeaponPhysCannon::FindObject( void )
 	if ( mass < 50.0f )
 	{
 		pullDir *= (mass + 0.5) * (1/50.0f);
+	}
+
+	CPhysicsProp* pProp = dynamic_cast<CPhysicsProp*>(pObj);
+	if (pProp) {
+		pProp->OnPhysGunPull( pOwner );
 	}
 
 	// Nudge it towards us

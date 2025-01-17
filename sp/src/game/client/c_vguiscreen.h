@@ -66,6 +66,10 @@ class C_VGuiScreen : public C_BaseEntity
 public:
 	DECLARE_CLIENTCLASS();
 
+#ifdef MAPBASE
+	C_VGuiScreen* m_pNext;
+#endif // MAPBASE
+
 	C_VGuiScreen();
 	~C_VGuiScreen();
 

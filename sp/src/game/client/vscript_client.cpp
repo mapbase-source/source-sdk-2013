@@ -272,6 +272,8 @@ void CScriptMaterialProxy::Release( void )
 		m_hScriptInstance = NULL;
 	}
 
+	g_ScriptPersistableList.FindAndRemove( this );
+
 	delete this; 
 }
 

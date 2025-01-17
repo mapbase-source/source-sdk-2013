@@ -44,7 +44,8 @@ extern int AE_ZOMBIE_POUND;
 #define ZOMBIE_BLOOD_BITE			3
 
 #ifdef MAPBASE
-#define SF_ZOMBIE_NO_TORSO ( 1 << 15 )
+	#define SF_ZOMBIE_NO_TORSO ( 1 << 15 )
+	#define SF_ZOMBIE_NO_HEADCRAB_SPAWN ( 1 << 16 )
 #endif
 	
 
@@ -141,7 +142,14 @@ public:
 	}
 
 	int MeleeAttack1Conditions ( float flDot, float flDist );
-	virtual float GetClawAttackRange() const { return ZOMBIE_MELEE_REACH; }
+	virtual float GetClawAttackRange() const 
+	{ 
+#ifdef MAPBASE
+		return m_flMeleeReach; 
+#else
+		return ZOMBIE_MELEE_REACH;
+#endif
+	}
 
 	// No range attacks
 	int RangeAttack1Conditions ( float flDot, float flDist ) { return( 0 ); }
@@ -256,6 +264,12 @@ protected:
 	bool	m_fIsHeadless;		// is this zombie headless
 
 	float	m_flNextFlinch;
+
+#ifdef MAPBASE
+	float m_flMeleeReach;
+	float m_flMaxDistToSwat;
+	int m_iMaxObjMassToSwat;
+#endif
 
 	bool m_bHeadShot;			// Used to determine the survival of our crab beyond our death.
 

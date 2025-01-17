@@ -1001,7 +1001,11 @@ public:
 
 			if ( duration )
 			{
-				*duration = enginesound->GetSoundDuration( pSample );
+				if ( Q_stristr( pSample, ".mp3" ) ) {
+					*duration = 0;
+				} else {
+					*duration = enginesound->GetSoundDuration( pSample );
+				}
 			}
 
 			TraceEmitSound( "EmitAmbientSound:  Raw wave emitted '%s' (ent %i)\n",

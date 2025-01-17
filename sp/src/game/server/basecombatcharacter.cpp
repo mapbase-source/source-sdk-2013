@@ -193,6 +193,15 @@ BEGIN_ENT_SCRIPTDESC( CBaseCombatCharacter, CBaseFlex, "The base class shared by
 	DEFINE_SCRIPTFUNC( EyeDirection2D, "Get the eyes' 2D direction." )
 	DEFINE_SCRIPTFUNC( EyeDirection3D, "Get the eyes' 3D direction." )
 
+	DEFINE_SCRIPTFUNC( LastHitGroup, "Get the last hitgroup." )
+
+#ifdef GLOWS_ENABLE
+	DEFINE_SCRIPTFUNC( AddGlowEffect, "" )
+	DEFINE_SCRIPTFUNC( RemoveGlowEffect, "" )
+	DEFINE_SCRIPTFUNC( IsGlowEffectActive, "" )
+	DEFINE_SCRIPTFUNC( SetGlowColor, "" )
+#endif
+
 	// 
 	// Hooks
 	// 
@@ -291,6 +300,8 @@ END_SEND_TABLE();
 IMPLEMENT_SERVERCLASS_ST(CBaseCombatCharacter, DT_BaseCombatCharacter)
 #ifdef GLOWS_ENABLE
 	SendPropBool( SENDINFO( m_bGlowEnabled ) ),
+	SendPropVector( SENDINFO( m_GlowColor ), 8, 0, 0, 1 ),
+	SendPropFloat( SENDINFO( m_GlowAlpha ) ),
 #endif // GLOWS_ENABLE
 	// Data that only gets sent to the local player.
 	SendPropDataTable( "bcc_localdata", 0, &REFERENCE_SEND_TABLE(DT_BCCLocalPlayerExclusive), SendProxy_SendBaseCombatCharacterLocalDataTable ),
@@ -876,6 +887,8 @@ CBaseCombatCharacter::CBaseCombatCharacter( void )
 
 #ifdef GLOWS_ENABLE
 	m_bGlowEnabled.Set( false );
+	m_GlowColor.GetForModify().Init( 0.76f, 0.76f, 0.76f );
+	m_GlowAlpha.Set(1.0f);
 #endif // GLOWS_ENABLE
 }
 
@@ -1608,6 +1621,15 @@ void CBaseCombatCharacter::FixupBurningServerRagdoll( CBaseEntity *pRagdoll )
 	}
 }
 
+inline bool CBaseCombatCharacter::ShouldFadeServerRagdolls() const
+{
+#ifdef MAPBASE
+	return IsNPC() ? HasSpawnFlags( SF_NPC_FADE_CORPSE ) : true;
+#else
+	return true;
+#endif
+}
+
 bool CBaseCombatCharacter::BecomeRagdollBoogie( CBaseEntity *pKiller, const Vector &forceVector, float duration, int flags )
 {
 	Assert( CanBecomeRagdoll() );
@@ -1616,7 +1638,7 @@ bool CBaseCombatCharacter::BecomeRagdollBoogie( CBaseEntity *pKiller, const Vect
 
 	info.SetDamageForce( forceVector );
 
-	CBaseEntity *pRagdoll = CreateServerRagdoll( this, 0, info, COLLISION_GROUP_INTERACTIVE_DEBRIS, true );
+	CBaseEntity *pRagdoll = CreateServerRagdoll( this, 0, info, COLLISION_GROUP_INTERACTIVE_DEBRIS, ShouldFadeServerRagdolls() );
 
 	pRagdoll->SetCollisionBounds( CollisionProp()->OBBMins(), CollisionProp()->OBBMaxs() );
 
@@ -1639,7 +1661,7 @@ CBaseEntity *CBaseCombatCharacter::BecomeRagdollBoogie( CBaseEntity *pKiller, co
 
 	info.SetDamageForce( forceVector );
 
-	CBaseEntity *pRagdoll = CreateServerRagdoll( this, 0, info, COLLISION_GROUP_INTERACTIVE_DEBRIS, true );
+	CBaseEntity *pRagdoll = CreateServerRagdoll( this, 0, info, COLLISION_GROUP_INTERACTIVE_DEBRIS, ShouldFadeServerRagdolls() );
 
 	pRagdoll->SetCollisionBounds( CollisionProp()->OBBMins(), CollisionProp()->OBBMaxs() );
 
@@ -1688,7 +1710,7 @@ bool CBaseCombatCharacter::BecomeRagdoll( const CTakeDamageInfo &info, const Vec
 #endif
 		// in single player create ragdolls on the server when the player hits someone
 		// with their vehicle - for more dramatic death/collisions
-		CBaseEntity *pRagdoll = CreateServerRagdoll( this, m_nForceBone, info2, COLLISION_GROUP_INTERACTIVE_DEBRIS, true );
+		CBaseEntity *pRagdoll = CreateServerRagdoll( this, m_nForceBone, info2, COLLISION_GROUP_INTERACTIVE_DEBRIS, ShouldFadeServerRagdolls() );
 		FixupBurningServerRagdoll( pRagdoll );
 		RemoveDeferred();
 		return true;
@@ -1702,7 +1724,7 @@ bool CBaseCombatCharacter::BecomeRagdoll( const CTakeDamageInfo &info, const Vec
 	// Burning corpses are server-side in episodic, if we're in darkness mode
 	if ( IsOnFire() && HL2GameRules()->IsAlyxInDarknessMode() )
 	{
-		CBaseEntity *pRagdoll = CreateServerRagdoll( this, m_nForceBone, newinfo, COLLISION_GROUP_DEBRIS );
+		CBaseEntity *pRagdoll = CreateServerRagdoll( this, m_nForceBone, newinfo, COLLISION_GROUP_DEBRIS, ShouldFadeServerRagdolls() );
 		FixupBurningServerRagdoll( pRagdoll );
 		RemoveDeferred();
 		return true;
@@ -1723,7 +1745,7 @@ bool CBaseCombatCharacter::BecomeRagdoll( const CTakeDamageInfo &info, const Vec
 			return false;
 
 		//FIXME: This is fairly leafy to be here, but time is short!
-		CBaseEntity *pRagdoll = CreateServerRagdoll( this, m_nForceBone, newinfo, COLLISION_GROUP_INTERACTIVE_DEBRIS, true );
+		CBaseEntity *pRagdoll = CreateServerRagdoll( this, m_nForceBone, newinfo, COLLISION_GROUP_INTERACTIVE_DEBRIS, ShouldFadeServerRagdolls() );
 		FixupBurningServerRagdoll( pRagdoll );
 		PhysSetEntityGameFlags( pRagdoll, FVPHYSICS_NO_SELF_COLLISIONS );
 		RemoveDeferred();
@@ -1733,7 +1755,7 @@ bool CBaseCombatCharacter::BecomeRagdoll( const CTakeDamageInfo &info, const Vec
 
 	if( hl2_episodic.GetBool() && Classify() == CLASS_PLAYER_ALLY_VITAL )
 	{
-		CreateServerRagdoll( this, m_nForceBone, newinfo, COLLISION_GROUP_INTERACTIVE_DEBRIS, true );
+		CreateServerRagdoll( this, m_nForceBone, newinfo, COLLISION_GROUP_INTERACTIVE_DEBRIS, ShouldFadeServerRagdolls() );
 		RemoveDeferred();
 		return true;
 	}
@@ -4086,6 +4108,12 @@ void CBaseCombatCharacter::RemoveGlowEffect( void )
 bool CBaseCombatCharacter::IsGlowEffectActive( void )
 {
 	return m_bGlowEnabled;
+}
+
+void CBaseCombatCharacter::SetGlowColor( float red, float green, float blue, float alpha )
+{
+	m_GlowColor.GetForModify().Init( red, green, blue );
+	m_GlowAlpha.Set( alpha );
 }
 #endif // GLOWS_ENABLE
 

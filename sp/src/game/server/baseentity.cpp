@@ -2312,6 +2312,8 @@ BEGIN_ENT_SCRIPTDESC_ROOT( CBaseEntity, "Root class of all server-side entities"
 	DEFINE_SCRIPTFUNC_NAMED( ScriptEntityToWorldTransform, "EntityToWorldTransform", "Get the entity's transform" )
 
 	DEFINE_SCRIPTFUNC_NAMED( ScriptGetPhysicsObject, "GetPhysicsObject", "Get the entity's physics object if it has one" )
+	DEFINE_SCRIPTFUNC_NAMED( ScriptPhysicsInitNormal, "PhysicsInitNormal", "Initializes the entity's physics object with the specified solid type, solid flags, and whether to start asleep" )
+	DEFINE_SCRIPTFUNC_NAMED( ScriptPhysicsDestroyObject, "PhysicsDestroyObject", "Destroys the entity's physics object" )
 
 	DEFINE_SCRIPTFUNC( ApplyAbsVelocityImpulse, "" )
 	DEFINE_SCRIPTFUNC( ApplyLocalAngularVelocityImpulse, "" )

@@ -32,6 +32,15 @@ public:
 	virtual void Activate();
 	virtual void OnRestore();
 
+#ifdef MAPBASE
+	~CVGuiScreen();
+	virtual int	Save(ISave& save);
+	virtual int	Restore(IRestore& restore);
+
+	virtual bool HandleEntityCommand(CBasePlayer* pClient, KeyValues* pKeyValues);
+	virtual CBaseEntityOutput* FindNamedOutput(const char* pszOutput);
+#endif // MAPBASE
+
 	const char *GetPanelName() const;
 
 	// Sets the screen size + resolution
@@ -74,6 +83,10 @@ private:
 	CNetworkVar( int, m_nOverlayMaterial );
 	CNetworkVar( int, m_fScreenFlags );
 	CNetworkVar( EHANDLE, m_hPlayerOwner );
+
+#ifdef MAPBASE
+	CUtlDict<CBaseEntityOutput*> m_PanelOutputs;
+#endif // MAPBASE
 
 	friend CVGuiScreen *CreateVGuiScreen( const char *pScreenClassname, const char *pScreenType, CBaseEntity *pAttachedTo, CBaseEntity *pOwner, int nAttachmentIndex );
 };

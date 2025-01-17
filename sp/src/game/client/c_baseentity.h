@@ -1206,6 +1206,8 @@ public:
 	HSCRIPT ScriptEntityToWorldTransform( void );
 
 	HSCRIPT ScriptGetPhysicsObject( void );
+	void ScriptPhysicsInitNormal( int nSolidType, int nSolidFlags, bool createAsleep );
+	void ScriptPhysicsDestroyObject() { VPhysicsDestroyObject(); }
 
 	void ScriptSetParent( HSCRIPT hParent, const char *szAttachment );
 	HSCRIPT ScriptGetMoveParent( void );

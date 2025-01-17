@@ -38,6 +38,9 @@ public:
 
 	DECLARE_CLASS( CBasePropDoor, CDynamicProp );
 	DECLARE_SERVERCLASS();
+#ifdef MAPBASE_VSCRIPT
+	DECLARE_ENT_SCRIPTDESC();
+#endif
 
 	CBasePropDoor( void );
 
@@ -79,6 +82,28 @@ public:
 	virtual bool PassesDoorFilter(CBaseEntity *pEntity) { return true; }
 
 	virtual bool KeyValue( const char *szKeyName, const char *szValue );
+	
+	float GetSpeed() const { return m_flSpeed; }
+#endif
+
+#ifdef MAPBASE_VSCRIPT
+	bool ScriptIsDoorOpen() { return IsDoorOpen(); }
+	bool ScriptIsDoorAjar() { return IsDoorAjar(); }
+	bool ScriptIsDoorOpening() { return IsDoorOpening(); }
+	bool ScriptIsDoorClosed() { return IsDoorClosed(); }
+	bool ScriptIsDoorClosing() { return IsDoorClosing(); }
+	bool ScriptIsDoorLocked() { return IsDoorLocked(); }
+	bool ScriptIsDoorBlocked() const { return IsDoorBlocked(); }
+	HSCRIPT ScriptGetActivator() { return ToHScript( m_hActivator.Get() ); }
+
+	HSCRIPT ScriptGetDoorList( int i ) { return m_hDoorList.IsValidIndex(i) ? ToHScript( m_hDoorList[i] ) : NULL; }
+	int GetDoorListCount() { return m_hDoorList.Count(); }
+
+	const char *ScriptGetFullyOpenSound() { return STRING( m_SoundOpen ); }
+	const char *ScriptGetFullyClosedSound() { return STRING( m_SoundClose ); }
+	const char *ScriptGetMovingSound() { return STRING( m_SoundMoving ); }
+	const char *ScriptGetLockedSound() { return STRING( m_ls.sLockedSound ); }
+	const char *ScriptGetUnlockedSound() { return STRING( m_ls.sUnlockedSound ); }
 #endif
 
 protected:
@@ -178,6 +203,12 @@ private:
 #ifdef MAPBASE
 	void InputAllowPlayerUse(inputdata_t &inputdata);
 	void InputDisallowPlayerUse(inputdata_t &inputdata);
+
+	void InputSetFullyOpenSound(inputdata_t &inputdata);
+	void InputSetFullyClosedSound(inputdata_t &inputdata);
+	void InputSetMovingSound(inputdata_t &inputdata);
+	void InputSetLockedSound(inputdata_t &inputdata);
+	void InputSetUnlockedSound(inputdata_t &inputdata);
 #endif
 
 	void SetDoorBlocker( CBaseEntity *pBlocker );

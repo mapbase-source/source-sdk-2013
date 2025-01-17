@@ -3617,6 +3617,20 @@ void CHL2_Player::UpdateWeaponPosture( void )
 	{
 		m_LowerWeaponTimer.Set( .3 );
 		VPROF( "CHL2_Player::UpdateWeaponPosture-CheckLower" );
+
+#ifdef MAPBASE
+		if (m_nButtons & IN_VGUIMODE)
+		{
+			//We're over a friendly, drop our weapon
+			if (Weapon_Lower() == false)
+			{
+				//FIXME: We couldn't lower our weapon!
+			}
+
+			return;
+		}
+#endif // MAPBASE
+
 		Vector vecAim = BaseClass::GetAutoaimVector( AUTOAIM_SCALE_DIRECT_ONLY );
 
 		const float CHECK_FRIENDLY_RANGE = 50 * 12;

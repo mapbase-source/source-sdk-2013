@@ -211,6 +211,9 @@ BEGIN_DATADESC( CNPC_BaseZombie )
 	DEFINE_FIELD( m_fIsTorso, FIELD_BOOLEAN ),
 #ifdef MAPBASE
 	DEFINE_KEYFIELD( m_fIsHeadless, FIELD_BOOLEAN, "Headless" ),
+	DEFINE_KEYFIELD( m_flMeleeReach, FIELD_FLOAT, "MeleeReach" ),
+	DEFINE_KEYFIELD( m_flMaxDistToSwat, FIELD_FLOAT, "MaxDistToSwat" ),
+	DEFINE_KEYFIELD( m_iMaxObjMassToSwat, FIELD_INTEGER, "MaxObjMassToSwat" ),
 #else
 	DEFINE_FIELD( m_fIsHeadless, FIELD_BOOLEAN ),
 #endif
@@ -256,6 +259,12 @@ CNPC_BaseZombie::CNPC_BaseZombie()
 	// moan loop.
 	m_iMoanSound = g_numZombies;
 
+#ifdef MAPBASE
+	m_flMeleeReach = ZOMBIE_MELEE_REACH;
+	m_flMaxDistToSwat = ZOMBIE_PLAYER_MAX_SWAT_DIST;
+	m_iMaxObjMassToSwat = ZOMBIE_MAX_PHYSOBJ_MASS;
+#endif
+
 	g_numZombies++;
 }
 
@@ -295,7 +304,11 @@ bool CNPC_BaseZombie::FindNearestPhysicsObject( int iMaxMass )
 	float dist = VectorNormalize(vecDirToEnemy);
 	vecDirToEnemy.z = 0;
 
-	if( dist > ZOMBIE_PLAYER_MAX_SWAT_DIST )
+#ifndef MAPBASE
+	if (dist > ZOMBIE_PLAYER_MAX_SWAT_DIST)
+#else
+	if (dist > m_flMaxDistToSwat)
+#endif
 	{
 		// Player is too far away. Don't bother 
 		// trying to swat anything at them until
@@ -786,7 +799,7 @@ bool CNPC_BaseZombie::ShouldBecomeTorso( const CTakeDamageInfo &info, float flDa
 HeadcrabRelease_t CNPC_BaseZombie::ShouldReleaseHeadcrab( const CTakeDamageInfo &info, float flDamageThreshold )
 {
 #ifdef MAPBASE
-	if ( m_iHealth <= 0 && !m_fIsHeadless )
+	if ( m_iHealth <= 0 && !m_fIsHeadless && !HasSpawnFlags(SF_ZOMBIE_NO_HEADCRAB_SPAWN))
 #else
 	if ( m_iHealth <= 0 )
 #endif
@@ -2154,7 +2167,11 @@ void CNPC_BaseZombie::GatherConditions( void )
 		// between him and the object he's heading for already. 
 		if( gpGlobals->curtime >= m_flNextSwatScan && (m_hPhysicsEnt == NULL) )
 		{
+#ifdef MAPBASE
+			FindNearestPhysicsObject(m_iMaxObjMassToSwat);
+#else
 			FindNearestPhysicsObject( ZOMBIE_MAX_PHYSOBJ_MASS );
+#endif			
 			m_flNextSwatScan = gpGlobals->curtime + 2.0;
 		}
 	}

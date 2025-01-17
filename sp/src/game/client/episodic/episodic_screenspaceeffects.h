@@ -116,4 +116,38 @@ private:
 
 ADD_SCREENSPACE_EFFECT( CEP2StunEffect, ep2_groggy );
 
+#ifdef MAPBASE
+class CChromaticAberrationEffect : public IScreenSpaceEffect
+{
+public:
+	CChromaticAberrationEffect( void ) :
+		m_flDuration( 0.0f ), 
+		m_flFinishTime( 0.0f ), 
+		m_bUpdateView( true ),
+		m_bEnabled( false ),
+		m_bFadeOut( false ) {}
+
+	virtual void Init( void );
+	virtual void Shutdown( void );
+	virtual void SetParameters( KeyValues *params );
+	virtual void Enable( bool bEnable ) { m_bEnabled = bEnable; };
+	virtual bool IsEnabled( ) { return m_bEnabled; }
+
+	virtual void RenderColorFrame( CMatRenderContextPtr &pRenderContext, float flEffectPerc, int nColorMode, int x, int y, int w, int h );
+	virtual void Render( int x, int y, int w, int h );
+
+private:
+	CTextureReference m_StunTexture;
+	CMaterialReference m_EffectMaterial;
+	float		m_flDuration;
+	float		m_flFinishTime;
+	bool		m_bUpdateView;
+	bool		m_bStretch;
+	bool		m_bFadeOut;
+	bool		m_bEnabled;
+};
+
+ADD_SCREENSPACE_EFFECT( CChromaticAberrationEffect, mapbase_chromatic_aberration );
+#endif
+
 #endif // EPISODIC_SCREENSPACEEFFECTS_H
