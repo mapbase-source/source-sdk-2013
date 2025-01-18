@@ -357,7 +357,8 @@ void RegisterSharedScriptConstants()
 	ScriptRegisterConstant( g_pScriptVM, ROPE_NO_GRAVITY, "Disable gravity on this rope. (for use in rope flags)" );
 	ScriptRegisterConstant( g_pScriptVM, ROPE_NUMFLAGS, "The number of rope flags recognized by the game." );
 
-	ScriptRegisterConstantNamed( g_pScriptVM, Vector( ROPE_GRAVITY ), "ROPE_GRAVITY", "Default rope gravity vector." );
+	static Vector vecRopeGravity( ROPE_GRAVITY );
+	ScriptRegisterConstantNamed( g_pScriptVM, vecRopeGravity, "ROPE_GRAVITY", "Default rope gravity vector." );
 
 	// 
 	// Sounds

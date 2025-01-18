@@ -440,13 +440,11 @@ bool CScriptColorInstanceHelper::Get( void *p, const char *pszKey, ScriptVariant
 bool CScriptColorInstanceHelper::Set( void *p, const char *pszKey, ScriptVariant_t &variant )
 {
 	Color *pClr = ((Color *)p);
-	if ( strlen(pszKey) == 1 )
+	int iVal;
+	if ( strlen(pszKey) == 1 && variant.AssignTo( &iVal ) )
 	{
-		int iVal;
-		variant.AssignTo( &iVal );
 		switch (pszKey[0])
 		{
-			// variant.AssignTo( &(*pClr)[0] );
 			case 'r':
 				(*pClr)[0] = iVal;
 				return true;

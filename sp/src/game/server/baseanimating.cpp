@@ -1261,7 +1261,8 @@ void CBaseAnimating::DispatchAnimEvents ( CBaseAnimating *eventHandler )
 		}
 
 #ifdef MAPBASE_VSCRIPT
-		if (eventHandler->ScriptHookHandleAnimEvent( &event ) == false)
+		scriptanimevent_t wrapper( event );
+		if (!eventHandler->ScriptHookHandleAnimEvent( wrapper ))
 			continue;
 #endif
 
@@ -1299,11 +1300,11 @@ void CBaseAnimating::DispatchAnimEvents ( CBaseAnimating *eventHandler )
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-bool CBaseAnimating::ScriptHookHandleAnimEvent( animevent_t *pEvent )
+bool CBaseAnimating::ScriptHookHandleAnimEvent( scriptanimevent_t &event )
 {
 	if (m_ScriptScope.IsInitialized() && g_Hook_HandleAnimEvent.CanRunInScope(m_ScriptScope))
 	{
-		HSCRIPT hEvent = g_pScriptVM->RegisterInstance( reinterpret_cast<scriptanimevent_t*>(pEvent) );
+		HSCRIPT hEvent = g_pScriptVM->RegisterInstance( &event );
 
 		// event
 		ScriptVariant_t args[] = { hEvent };

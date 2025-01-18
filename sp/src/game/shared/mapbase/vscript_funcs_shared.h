@@ -172,30 +172,47 @@ private:
 //-----------------------------------------------------------------------------
 // Exposes animevent_t to VScript
 //-----------------------------------------------------------------------------
-struct scriptanimevent_t : public animevent_t
+struct scriptanimevent_t
 {
-	int GetEvent() { return event; }
-	void SetEvent( int nEvent ) { event = nEvent; }
+	friend class CAnimEventTInstanceHelper;
 
-	const char *GetOptions() { return options; }
-	void SetOptions( const char *pOptions ) { options = pOptions; }
+public:
+	scriptanimevent_t( animevent_t &event ) : event( event ), options( NULL ) { }
+	~scriptanimevent_t( ) { delete[] options; }
 
-	float GetCycle() { return cycle; }
-	void SetCycle( float flCycle ) { cycle = flCycle; }
+	int GetEvent() { return event.event; }
+	void SetEvent( int nEvent ) { event.event = nEvent; }
 
-	float GetEventTime() { return eventtime; }
-	void SetEventTime( float flEventTime ) { eventtime = flEventTime; }
+	const char *GetOptions() { return event.options; }
+	void SetOptions( const char *pOptions )
+	{
+		size_t len = strlen( pOptions );
+		delete[] options;
+		event.options = options = new char[len + 1];
+		memcpy( options, pOptions, len + 1 );
+	}
 
-	int GetType() { return type; }
-	void SetType( int nType ) { eventtime = type; }
+	float GetCycle() { return event.cycle; }
+	void SetCycle( float flCycle ) { event.cycle = flCycle; }
 
-	HSCRIPT GetSource() { return ToHScript( pSource ); }
+	float GetEventTime() { return event.eventtime; }
+	void SetEventTime( float flEventTime ) { event.eventtime = flEventTime; }
+
+	int GetType() { return event.type; }
+	void SetType( int nType ) { event.type = nType; }
+
+	HSCRIPT GetSource() { return ToHScript( event.pSource ); }
 	void SetSource( HSCRIPT hSource )
 	{
 		CBaseEntity *pEnt = ToEnt( hSource );
 		if (pEnt)
-			pSource = pEnt->GetBaseAnimating();
+			event.pSource = pEnt->GetBaseAnimating();
 	}
+
+private:
+	animevent_t &event;
+	// storage for ScriptVariant_t string, which may be temporary
+	char *options;
 };
 
 class CAnimEventTInstanceHelper : public IScriptInstanceHelper

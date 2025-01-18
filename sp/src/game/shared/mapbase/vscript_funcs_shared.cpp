@@ -535,7 +535,7 @@ bool CAnimEventTInstanceHelper::Get( void *p, const char *pszKey, ScriptVariant_
 {
 	DevWarning( "VScript animevent_t.%s: animevent_t metamethod members are deprecated! Use 'script_help animevent_t' to see the correct functions.\n", pszKey );
 
-	animevent_t *ani = ((animevent_t *)p);
+	animevent_t *ani = &((scriptanimevent_t *)p)->event;
 	if (FStrEq( pszKey, "event" ))
 		variant = ani->event;
 	else if (FStrEq( pszKey, "options" ))
@@ -558,18 +558,28 @@ bool CAnimEventTInstanceHelper::Set( void *p, const char *pszKey, ScriptVariant_
 {
 	DevWarning( "VScript animevent_t.%s: animevent_t metamethod members are deprecated! Use 'script_help animevent_t' to see the correct functions.\n", pszKey );
 
-	animevent_t *ani = ((animevent_t *)p);
+	scriptanimevent_t *script_ani = ((scriptanimevent_t *)p);
+	animevent_t *ani = &script_ani->event;
 	if (FStrEq( pszKey, "event" ))
-		ani->event = variant;
+	{
+		return variant.AssignTo( &ani->event );
+	}
 	else if (FStrEq( pszKey, "options" ))
-		ani->options = variant;
+	{
+		char *szOptions;
+		if (!variant.AssignTo( &szOptions ))
+		{
+			return false;
+		}
+		script_ani->SetOptions( szOptions );
+	}
 	else if (FStrEq( pszKey, "cycle" ))
-		ani->cycle = variant;
+		return variant.AssignTo( &ani->cycle );
 	else if (FStrEq( pszKey, "eventtime" ))
-		ani->eventtime = variant;
+		return variant.AssignTo( &ani->eventtime );
 	else if (FStrEq( pszKey, "type" ))
-		ani->type = variant;
-	else if (FStrEq( pszKey, "source" ))
+		return variant.AssignTo( &ani->type );
+	else if (FStrEq( pszKey, "source" ) && variant.m_type == FIELD_HSCRIPT)
 	{
 		CBaseEntity *pEnt = ToEnt( variant.m_hScript );
 		if (pEnt)
