@@ -1327,6 +1327,15 @@ void CNPC_Strider::BuildScheduleTestBits()
 //---------------------------------------------------------
 int CNPC_Strider::SelectSchedule()
 {
+#ifdef MAPBASE
+	if( GetMoveType() == MOVETYPE_NONE )
+	{
+		// Dropship just released me.
+		AddFlag(FL_FLY);
+		SetMoveType( MOVETYPE_STEP );
+		return SCHED_STRIDER_FALL_TO_GROUND;
+	}
+#endif
 /*
 	if( GetMoveType() != MOVETYPE_FLY )
 	{
@@ -5818,6 +5827,18 @@ AI_BEGIN_CUSTOM_NPC( npc_strider, CNPC_Strider )
 		"		COND_STRIDER_SHOULD_STAND"
 	)
 
+#ifdef MAPBASE
+	DEFINE_SCHEDULE
+	(
+		SCHED_STRIDER_FALL_TO_GROUND,
+
+		"	Tasks "
+		"		TASK_SOUND_WAKE			0"
+		"		TASK_PLAY_SEQUENCE		ACTIVITY:ACT_STRIDER_DEPLOY"
+		""
+		"	Interrupts "
+	)
+#else
 	DEFINE_SCHEDULE
 	(
 		SCHED_STRIDER_FALL_TO_GROUND,
@@ -5827,7 +5848,7 @@ AI_BEGIN_CUSTOM_NPC( npc_strider, CNPC_Strider )
 		""
 		"	Interrupts "
 	)
-
+#endif
 
 AI_END_CUSTOM_NPC()
 

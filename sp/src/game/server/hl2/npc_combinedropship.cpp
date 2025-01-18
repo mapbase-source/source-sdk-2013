@@ -134,6 +134,11 @@ enum LandingState_t
 	LANDING_HOVER_DESCEND,
 	LANDING_HOVER_TOUCHDOWN,
 	LANDING_END_HOVER,
+
+#ifdef MAPBASE
+	// Strider dropoff
+	LANDING_STRIDER,
+#endif
 };
 
 
@@ -295,6 +300,9 @@ private:
 	bool IsHovering();
 	void UpdateGroundRotorWashSound( float flAltitude );
 	void UpdateRotorWashVolume( CSoundPatch *pRotorSound, float flVolume, float flDeltaTime );
+#ifdef MAPBASE
+	void DeathNotice(CBaseEntity* pVictim);
+#endif
 
 private:
 	// Timers
@@ -352,6 +360,12 @@ private:
 	// Template for rollermines dropped by this dropship
 	string_t	m_sRollermineTemplate;
 	string_t	m_sRollermineTemplateData;
+
+#ifdef MAPBASE
+	// Template for strider carried by this dropship
+	string_t	m_sStriderTemplate;
+	string_t	m_sStriderTemplateData;
+#endif
 
 	// Cached attachment points
 	int			m_iMuzzleAttachment;
@@ -827,6 +841,11 @@ BEGIN_DATADESC( CNPC_CombineDropship )
 	DEFINE_KEYFIELD( m_sRollermineTemplate, FIELD_STRING,	"RollermineTemplate" ),
 	DEFINE_FIELD( m_sRollermineTemplateData, FIELD_STRING ),
 
+#ifdef MAPBASE
+	DEFINE_KEYFIELD(m_sStriderTemplate, FIELD_STRING, "StriderTemplate"),
+	DEFINE_FIELD(m_sStriderTemplateData, FIELD_STRING),
+#endif
+
 	DEFINE_ARRAY( m_sNPCTemplateData, FIELD_STRING, DROPSHIP_MAX_SOLDIERS ),
 	DEFINE_KEYFIELD( m_sNPCTemplate[0], FIELD_STRING,	"NPCTemplate" ),
 	DEFINE_KEYFIELD( m_sNPCTemplate[1], FIELD_STRING,	"NPCTemplate2" ),
@@ -962,12 +981,60 @@ void CNPC_CombineDropship::Spawn( void )
 		break;
 
 	case CRATE_STRIDER:
+#ifdef MAPBASE
+		if ( m_sStriderTemplate != NULL_STRING )
+		{
+			m_sStriderTemplateData = Templates_FindByTargetName( STRING( m_sStriderTemplate ) );
+			if (m_sStriderTemplateData == NULL_STRING)
+			{
+				Warning("npc_combinedropship %s: Strider Template %s not found!\n", STRING(GetEntityName()), STRING(m_sStriderTemplate));
+				break;
+			}
+
+			CAI_BaseNPC* pent = NULL;
+			CBaseEntity* pEntity = NULL;
+			MapEntity_ParseEntity( pEntity, STRING( m_sStriderTemplateData ), NULL);
+			if ( pEntity != NULL )
+			{
+				pent = ( CAI_BaseNPC* )pEntity;
+			}
+
+			if ( !FClassnameIs(pent, "npc_strider"))
+			{
+				Warning("npc_combinedropship %s: Strider Template %s is not a strider!\n", STRING(GetEntityName()), STRING(m_sStriderTemplate));
+				break;
+			}
+
+			m_OnSpawnNPC.Set( pEntity, pEntity, this );
+
+			pent->RemoveSpawnFlags( SF_NPC_TEMPLATE );
+
+			pent->SetOwnerEntity( this );
+
+			m_hContainer = pent;
+			m_hContainer->SetAbsOrigin( GetAbsOrigin() - Vector(0, 0, 100) );
+			m_hContainer->SetAbsAngles( GetAbsAngles() );
+			m_hContainer->SetParent( this, 0 );
+			m_hContainer->SetOwnerEntity( this );
+			DispatchSpawn(pent);
+		}
+		else
+		{
+			m_hContainer = ( CBaseAnimating* )CreateEntityByName("npc_strider");
+			m_hContainer->SetAbsOrigin( GetAbsOrigin() - Vector(0, 0, 100) );
+			m_hContainer->SetAbsAngles( GetAbsAngles() );
+			m_hContainer->SetParent( this, 0 );
+			m_hContainer->SetOwnerEntity( this );
+			m_hContainer->Spawn();
+		}
+#else
 		m_hContainer = (CBaseAnimating*)CreateEntityByName( "npc_strider" );
 		m_hContainer->SetAbsOrigin( GetAbsOrigin() - Vector( 0, 0 , 100 ) );
 		m_hContainer->SetAbsAngles( GetAbsAngles() );
 		m_hContainer->SetParent(this, 0);
 		m_hContainer->SetOwnerEntity(this);
 		m_hContainer->Spawn();
+#endif
 		m_hContainer->SetAbsOrigin( GetAbsOrigin() - Vector( 0, 0 , 100 ) );
 #ifdef MAPBASE
 		m_OnSpawnNPC.Set( m_hContainer, m_hContainer, this );
@@ -1201,13 +1268,24 @@ void CNPC_CombineDropship::Precache( void )
 void CNPC_CombineDropship::Flight( void )
 {
 	// Only run the flight model in some flight states
+#ifdef MAPBASE
 	bool bRunFlight = ( GetLandingState() == LANDING_NO || 
 							GetLandingState() == LANDING_LEVEL_OUT || 
 							GetLandingState() == LANDING_LIFTOFF ||
 							GetLandingState() == LANDING_SWOOPING ||
 							GetLandingState() == LANDING_DESCEND ||
 							GetLandingState() == LANDING_HOVER_LEVEL_OUT ||
-							GetLandingState() == LANDING_HOVER_DESCEND );
+							GetLandingState() == LANDING_HOVER_DESCEND ||
+							GetLandingState() == LANDING_STRIDER );
+#else
+	bool bRunFlight = (GetLandingState() == LANDING_NO ||
+		GetLandingState() == LANDING_LEVEL_OUT ||
+		GetLandingState() == LANDING_LIFTOFF ||
+		GetLandingState() == LANDING_SWOOPING ||
+		GetLandingState() == LANDING_DESCEND ||
+		GetLandingState() == LANDING_HOVER_LEVEL_OUT ||
+		GetLandingState() == LANDING_HOVER_DESCEND );
+#endif
 
 	Vector forward, right, up;
 	GetVectors( &forward, &right, &up );
@@ -1429,8 +1507,14 @@ void CNPC_CombineDropship::Flight( void )
 	}
 
 	// If we're landing, deliberately tuck in the back end
+#ifdef MAPBASE
 	if ( GetLandingState() == LANDING_DESCEND || GetLandingState() == LANDING_TOUCHDOWN || 
+		 GetLandingState() == LANDING_UNLOADING || GetLandingState() == LANDING_UNLOADED || 
+		 GetLandingState() == LANDING_STRIDER || IsHovering() )
+#else 
+	if ( GetLandingState() == LANDING_DESCEND || GetLandingState() == LANDING_TOUCHDOWN ||
 		 GetLandingState() == LANDING_UNLOADING || GetLandingState() == LANDING_UNLOADED || IsHovering() )
+#endif
 	{
 		finspeed = -60;
 	}
@@ -1779,6 +1863,16 @@ void CNPC_CombineDropship::InputDropStrider( inputdata_t &inputdata )
 		return;
 	}
 
+#ifdef MAPBASE
+	if (m_iszLandTarget != NULL_STRING)
+	{
+		LandCommon();
+	}
+	else
+	{
+		SetLandingState(LANDING_STRIDER);
+	}
+#else
 	QAngle angles = GetAbsAngles();
 
 	angles.x = 0.0;
@@ -1790,6 +1884,7 @@ void CNPC_CombineDropship::InputDropStrider( inputdata_t &inputdata )
 	m_hContainer->SetAbsVelocity( vec3_origin );
 
 	m_hContainer = NULL;
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -2016,7 +2111,11 @@ void CNPC_CombineDropship::SetLandingState( LandingState_t landingState )
 	if ( m_pDescendingWarningSound )
 	{
 		CSoundEnvelopeController &controller = CSoundEnvelopeController::GetController();
+#ifdef MAPBASE
+		if ( ( landingState == LANDING_DESCEND ) || ( landingState == LANDING_TOUCHDOWN ) || ( landingState == LANDING_UNLOADING ) || ( landingState == LANDING_UNLOADED ) || ( landingState == LANDING_HOVER_DESCEND ) || ( landingState == LANDING_STRIDER ) )
+#else
 		if ( ( landingState == LANDING_DESCEND ) || ( landingState == LANDING_TOUCHDOWN ) || ( landingState == LANDING_UNLOADING ) || ( landingState == LANDING_UNLOADED ) || ( landingState == LANDING_HOVER_DESCEND ) )
+#endif
 		{
 			controller.SoundChangeVolume( m_pDescendingWarningSound, m_bSuppressSound ? 0.0f : 1.0f, 0.3f );
 		}
@@ -2112,8 +2211,15 @@ void CNPC_CombineDropship::PrescheduleThink( void )
 			if ( flDistance < 70 && flSpeed < 100 )
 			{
 				m_flLandingSpeed = flSpeed;
-
-				if( IsHovering() )
+#ifdef MAPBASE
+				if ( m_iCrateType == CRATE_STRIDER )
+				{
+					SetLandingState( LANDING_STRIDER );
+				}
+				else if( IsHovering() )
+#else
+				if ( IsHovering() )
+#endif
 				{
 					SetLandingState( LANDING_HOVER_DESCEND );
 				}
@@ -2314,6 +2420,98 @@ void CNPC_CombineDropship::PrescheduleThink( void )
 			}
 		}
 		break;
+
+#ifdef MAPBASE
+	case LANDING_STRIDER:
+	{
+		if (!m_hContainer)
+		{
+			// Strider died, get out of here
+			SetLandingState(LANDING_LIFTOFF);
+			return;
+		}
+
+		// Orient myself to the desired direction
+		bool bStillOrienting = false;
+		Vector targetDir;
+		if (m_hLandTarget)
+		{
+			// We've got a land target, so match it's orientation
+			AngleVectors(m_hLandTarget->GetAbsAngles(), &targetDir);
+		}
+		else
+		{
+			// No land target. 
+			targetDir = GetDesiredPosition() - GetAbsOrigin();
+		}
+
+		// Don't unload until we're facing the way the dropoff point specifies
+		float flTargetYaw = UTIL_VecToYaw(targetDir);
+		float flDeltaYaw = UTIL_AngleDiff(flTargetYaw, GetAbsAngles().y);
+		if (fabs(flDeltaYaw) > 5)
+		{
+			bStillOrienting = true;
+		}
+
+		// Ensure we land on the drop point. Stop dropping if we're still turning.
+		Vector vecToTarget = (GetDesiredPosition() - GetAbsOrigin());
+		float flDistance = vecToTarget.Length();
+		float flRampedSpeed = m_flLandingSpeed * (flDistance / 70);
+		Vector vecVelocity = (flRampedSpeed / flDistance) * vecToTarget;
+
+#define STRIDER_LANDING_HEIGHT 540.0f
+
+		float flFactor = MIN(1.0, MAX(0.1f, (flAltitude - STRIDER_LANDING_HEIGHT) / flAltitude));
+		float flDescendVelocity = MIN(-75, MAX_LAND_VEL * flFactor);
+
+		vecVelocity.z = flDescendVelocity;
+
+		SetAbsVelocity(vecVelocity);
+
+		if (flAltitude < 600)
+		{
+			QAngle angles = GetLocalAngles();
+
+			// Level out quickly.
+			angles.x = UTIL_Approach(0.0, angles.x, 0.2);
+			angles.z = UTIL_Approach(0.0, angles.z, 0.2);
+
+			SetLocalAngles(angles);
+		}
+		else
+		{
+			// randomly move as if buffeted by ground effects
+			// gently flatten ship from starting pitch/yaw
+			m_existPitch = UTIL_Approach(0.0, m_existPitch, 1);
+			m_existRoll = UTIL_Approach(0.0, m_existRoll, 1);
+
+			QAngle angles = GetLocalAngles();
+			angles.x = m_existPitch + (sin(gpGlobals->curtime * 3.5f) * DROPSHIP_MAX_LAND_TILT);
+			angles.z = m_existRoll + (sin(gpGlobals->curtime * 3.75f) * DROPSHIP_MAX_LAND_TILT);
+			SetLocalAngles(angles);
+		}
+
+		DoRotorWash();
+
+		if (!bStillOrienting && flAltitude < STRIDER_LANDING_HEIGHT)
+		{
+			QAngle angles = GetAbsAngles();
+
+			m_hContainer->SetParent(NULL, 0);
+			m_hContainer->SetOwnerEntity(NULL);
+			m_hContainer->SetAbsAngles(angles);
+			m_hContainer->SetAbsVelocity(vec3_origin);
+
+			m_hContainer = NULL;
+
+			m_flTimeTakeOff = gpGlobals->curtime + 3.5f;
+			SetLandingState(LANDING_UNLOADING);
+
+			return;
+		}
+	}
+	break;
+#endif
 
 	case LANDING_UNLOADING:
 		{
@@ -2817,7 +3015,11 @@ void CNPC_CombineDropship::UpdatePickupNavigation( void )
 void CNPC_CombineDropship::UpdateLandTargetNavigation( void )
 {
 	Vector vecPickup = m_hLandTarget->WorldSpaceCenter();
+#ifdef MAPBASE
+	vecPickup.z += ( m_iCrateType == CRATE_STRIDER ) ? 732 : 256;
+#else
 	vecPickup.z += 256;
+#endif
 	SetDesiredPosition( vecPickup );
 
 	//NDebugOverlay::Cross3D( GetDesiredPosition(), -Vector(32,32,32), Vector(32,32,32), 0, 255, 255, true, 0.1f );
@@ -2850,7 +3052,11 @@ void CNPC_CombineDropship::Hunt( void )
 	// Face our desired position.
 	m_vecDesiredFaceDir = desiredDir;
 
+#ifdef MAPBASE
+	if ( GetLandingState() == LANDING_DESCEND || GetLandingState() == LANDING_LEVEL_OUT || GetLandingState() == LANDING_STRIDER || IsHovering() )
+#else
 	if ( GetLandingState() == LANDING_DESCEND || GetLandingState() == LANDING_LEVEL_OUT || IsHovering() )
+#endif
 	{
 		if ( m_hLandTarget )
 		{
@@ -3149,6 +3355,19 @@ void CNPC_CombineDropship::MakeTracer( const Vector &vecTracerSrc, const trace_t
 		break;
 	}
 }
+
+#ifdef MAPBASE
+//-----------------------------------------------------------------------------
+// Purpose: Need a way to tell if our strider died
+//-----------------------------------------------------------------------------
+void CNPC_CombineDropship::DeathNotice( CBaseEntity *pVictim )
+{
+	if ( m_iCrateType == CRATE_STRIDER && GetLandingState() == LANDING_NO )
+	{
+		m_OnContainerShotDownBeforeDropoff.Set( 1, m_hContainer, this );
+	}
+}
+#endif
 
 AI_BEGIN_CUSTOM_NPC( npc_combinedropship, CNPC_CombineDropship )
 
