@@ -77,6 +77,10 @@ public:
 public:	
 	bool					bParsedScript;
 	bool					bLoadedHudElements;
+#ifdef MAPBASE
+	// Indicates the currently loaded data is from a map-specific script and should be flushed.
+	bool					bCustom;
+#endif
 
 // SHARED
 	char					szClassName[MAX_WEAPON_STRING];
@@ -112,6 +116,17 @@ public:
 	bool					m_bAllowFlipping;	// False to disallow flipping the model, regardless of whether
 												// it is built left or right handed.
 
+#ifdef MAPBASE
+	float					m_flViewmodelFOV;
+	float					m_flBobScale;
+	float					m_flSwayScale;
+	float					m_flSwaySpeedScale;
+
+	char					szDroppedModel[MAX_WEAPON_STRING];		// Model of this weapon when dropped on the ground
+
+	bool					m_bUsesHands;
+#endif
+
 // CLIENT DLL
 	// Sprite data, read from the data file
 	int						iSpriteCount;
@@ -135,6 +150,12 @@ public:
 // The weapon parse function
 bool ReadWeaponDataFromFileForSlot( IFileSystem* filesystem, const char *szWeaponName, 
 	WEAPON_FILE_INFO_HANDLE *phandle, const unsigned char *pICEKey = NULL );
+
+#ifdef MAPBASE
+// For map-specific weapon data
+bool ReadCustomWeaponDataFromFileForSlot( IFileSystem* filesystem, const char *szWeaponName,
+	WEAPON_FILE_INFO_HANDLE *phandle, const unsigned char *pICEKey = NULL );
+#endif
 
 // If weapon info has been loaded for the specified class name, this returns it.
 WEAPON_FILE_INFO_HANDLE LookupWeaponInfoSlot( const char *name );

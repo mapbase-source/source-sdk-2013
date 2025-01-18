@@ -310,6 +310,16 @@ protected:
 
 	bool	IsActive() { return m_flActiveTime > gpGlobals->curtime ? false : true; }
 
+	inline float	GetForwardSpeed() const
+	{
+#ifdef MAPBASE
+		if (m_flSpeedModifier != 1.0f)
+			return m_flForwardSpeed * m_flSpeedModifier;
+		else
+#endif
+		return m_flForwardSpeed;
+	}
+
 	// INPCInteractive Functions
 	virtual bool	CanInteractWith( CAI_BaseNPC *pUser ) { return true; }
 	virtual	bool	HasBeenInteractedWith()	{ return m_bHackedByAlyx; }
@@ -388,7 +398,11 @@ BEGIN_DATADESC( CNPC_RollerMine )
 	DEFINE_FIELD( m_bBuried, FIELD_BOOLEAN ),
 	DEFINE_FIELD( m_wakeUp, FIELD_BOOLEAN ),
 	DEFINE_FIELD( m_bEmbedOnGroundImpact, FIELD_BOOLEAN ),
+#ifdef MAPBASE
+	DEFINE_KEYFIELD( m_bHackedByAlyx, FIELD_BOOLEAN, "Hacked" ),
+#else
 	DEFINE_FIELD( m_bHackedByAlyx, FIELD_BOOLEAN ),
+#endif
 
 	DEFINE_FIELD( m_bPowerDown,	FIELD_BOOLEAN ),
 	DEFINE_FIELD( m_flPowerDownTime,	FIELD_TIME ),
@@ -543,6 +557,9 @@ void CNPC_RollerMine::Spawn( void )
 	BaseClass::Spawn();
 
 	AddEFlags( EFL_NO_DISSOLVE );
+#ifdef MAPBASE
+	AddEFlags( EFL_NO_MEGAPHYSCANNON_RAGDOLL );
+#endif
 
 	CapabilitiesClear();
 	CapabilitiesAdd( bits_CAP_MOVE_GROUND | bits_CAP_INNATE_RANGE_ATTACK1 | bits_CAP_SQUAD );
@@ -1306,7 +1323,7 @@ void CNPC_RollerMine::RunTask( const Task_t *pTask )
 				Vector vecRight;
 				AngleVectors( QAngle( 0, yaw, 0 ), NULL, &vecRight, NULL );
 
-				m_RollerController.m_vecAngular += WorldToLocalRotation( SetupMatrixAngles(GetLocalAngles()), vecRight, -m_flForwardSpeed * 5 );
+				m_RollerController.m_vecAngular += WorldToLocalRotation( SetupMatrixAngles(GetLocalAngles()), vecRight, -GetForwardSpeed() * 5 );
 
 				TaskComplete();
 				return;
@@ -1316,6 +1333,8 @@ void CNPC_RollerMine::RunTask( const Task_t *pTask )
 		}
 
 		{
+			float flForwardSpeed = GetForwardSpeed();
+
 			float yaw = UTIL_VecToYaw( GetNavigator()->GetCurWaypointPos() - GetLocalOrigin() );
 
 			Vector vecRight;
@@ -1355,17 +1374,17 @@ void CNPC_RollerMine::RunTask( const Task_t *pTask )
 				vecCompensate.y = -vecVelocity.x;
 				vecCompensate.z = 0;
 
-				m_RollerController.m_vecAngular = WorldToLocalRotation( SetupMatrixAngles(GetLocalAngles()), vecCompensate, m_flForwardSpeed * -0.75 );
+				m_RollerController.m_vecAngular = WorldToLocalRotation( SetupMatrixAngles(GetLocalAngles()), vecCompensate, flForwardSpeed * -0.75 );
 			}
 
 			if( m_bHackedByAlyx )
 			{
 				// Move faster. 
-				m_RollerController.m_vecAngular += WorldToLocalRotation( SetupMatrixAngles(GetLocalAngles()), vecRight, m_flForwardSpeed * 2.0f );
+				m_RollerController.m_vecAngular += WorldToLocalRotation( SetupMatrixAngles(GetLocalAngles()), vecRight, flForwardSpeed * 2.0f );
 			}
 			else
 			{
-				m_RollerController.m_vecAngular += WorldToLocalRotation( SetupMatrixAngles(GetLocalAngles()), vecRight, m_flForwardSpeed );
+				m_RollerController.m_vecAngular += WorldToLocalRotation( SetupMatrixAngles(GetLocalAngles()), vecRight, flForwardSpeed );
 			}
 		}
 		break;
@@ -1489,8 +1508,10 @@ void CNPC_RollerMine::RunTask( const Task_t *pTask )
 			vecCompensate.z = 0;
 			VectorNormalize( vecCompensate );
 
-			m_RollerController.m_vecAngular = WorldToLocalRotation( SetupMatrixAngles(GetLocalAngles()), vecCompensate, m_flForwardSpeed * -0.75 );
-			m_RollerController.m_vecAngular += WorldToLocalRotation( SetupMatrixAngles(GetLocalAngles()), vecRight, m_flForwardSpeed  * flTorqueFactor );
+			float flForwardSpeed = GetForwardSpeed();
+
+			m_RollerController.m_vecAngular = WorldToLocalRotation( SetupMatrixAngles(GetLocalAngles()), vecCompensate, flForwardSpeed * -0.75 );
+			m_RollerController.m_vecAngular += WorldToLocalRotation( SetupMatrixAngles(GetLocalAngles()), vecRight, flForwardSpeed  * flTorqueFactor );
 		
 			// Taunt when I get closer
 			if( !(m_iSoundEventFlags & ROLLERMINE_SE_TAUNT) && UTIL_DistApprox( GetLocalOrigin(), vecTargetPosition ) <= 400 )
@@ -1608,8 +1629,10 @@ void CNPC_RollerMine::RunTask( const Task_t *pTask )
 			vecCompensate.z = 0;
 			VectorNormalize( vecCompensate );
 
-			m_RollerController.m_vecAngular = WorldToLocalRotation( SetupMatrixAngles(GetLocalAngles()), vecCompensate, m_flForwardSpeed * -0.75 );
-			m_RollerController.m_vecAngular += WorldToLocalRotation( SetupMatrixAngles(GetLocalAngles()), vecRight, m_flForwardSpeed  * flTorqueFactor );
+			float flForwardSpeed = GetForwardSpeed();
+
+			m_RollerController.m_vecAngular = WorldToLocalRotation( SetupMatrixAngles(GetLocalAngles()), vecCompensate, flForwardSpeed * -0.75 );
+			m_RollerController.m_vecAngular += WorldToLocalRotation( SetupMatrixAngles(GetLocalAngles()), vecRight, flForwardSpeed  * flTorqueFactor );
 
 			// Once we're near the player, slow & stop
 			if ( GetAbsOrigin().DistToSqr( vecTargetPosition ) < (ROLLERMINE_RETURN_TO_PLAYER_DIST*2.0) )
@@ -1957,6 +1980,10 @@ void CNPC_RollerMine::NotifyInteraction( CAI_BaseNPC *pUser )
 	// Force the rollermine open here. At very least, this ensures that the 
 	// correct, smaller bounding box is recomputed around it.
 	Open();
+
+#ifdef MAPBASE
+	m_OnHacked.FireOutput(pUser, this);
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -2561,6 +2588,12 @@ float CNPC_RollerMine::RollingSpeed()
 		float rollingSpeed = angVel.Length() - 90;
 		rollingSpeed = clamp( rollingSpeed, 1, MAX_ROLLING_SPEED );
 		rollingSpeed *= (1/MAX_ROLLING_SPEED);
+#ifdef MAPBASE
+		if (m_flSpeedModifier != 1.0f)
+		{
+			rollingSpeed *= m_flSpeedModifier;
+		}
+#endif
 		return rollingSpeed;
 	}
 	return 0;

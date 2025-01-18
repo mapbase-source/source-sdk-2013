@@ -61,6 +61,12 @@ enum
 	COND_FASTZOMBIE_CLIMB_TOUCH	= LAST_BASE_ZOMBIE_CONDITION,
 };
 
+#ifdef MAPBASE
+ConVar sk_zombie_fast_health( "sk_zombie_fast_health", "50");
+ConVar sk_zombie_fast_dmg_one_slash( "sk_zombie_fast_dmg_claw","3");
+ConVar sk_zombie_fast_dmg_both_slash( "sk_zombie_fast_dmg_leap","5");
+#endif
+
 envelopePoint_t envFastZombieVolumeJump[] =
 {
 	{	1.0f, 1.0f,
@@ -255,7 +261,9 @@ public:
 	void OnChangeActivity( Activity NewActivity );
 	void OnStateChange( NPC_STATE OldState, NPC_STATE NewState );
 	void Event_Killed( const CTakeDamageInfo &info );
+#ifndef MAPBASE
 	bool ShouldBecomeTorso( const CTakeDamageInfo &info, float flDamageThreshold );
+#endif
 
 	virtual Vector GetAutoAimCenter() { return WorldSpaceCenter() - Vector( 0, 0, 12.0f ); }
 
@@ -652,7 +660,9 @@ void CFastZombie::Spawn( void )
 
 	m_fJustJumped = false;
 
+#ifndef MAPBASE // Controlled by KV
 	m_fIsTorso = m_fIsHeadless = false;
+#endif
 
 	if( FClassnameIs( this, "npc_fastzombie" ) )
 	{
@@ -670,7 +680,11 @@ void CFastZombie::Spawn( void )
 	SetBloodColor( BLOOD_COLOR_YELLOW );
 #endif // HL2_EPISODIC
 
+#ifdef MAPBASE
+	m_iHealth			= sk_zombie_fast_health.GetInt();
+#else
 	m_iHealth			= 50;
+#endif
 	m_flFieldOfView		= 0.2;
 
 	CapabilitiesClear();
@@ -1084,7 +1098,11 @@ void CFastZombie::HandleAnimEvent( animevent_t *pEvent )
 		right = right * -50;
 
 		QAngle angle( -3, -5, -3  );
+#ifdef MAPBASE
+		ClawAttack( GetClawAttackRange(), sk_zombie_fast_dmg_one_slash.GetInt(), angle, right, ZOMBIE_BLOOD_RIGHT_HAND );
+#else
 		ClawAttack( GetClawAttackRange(), 3, angle, right, ZOMBIE_BLOOD_RIGHT_HAND );
+#endif
 		return;
 	}
 
@@ -1094,7 +1112,11 @@ void CFastZombie::HandleAnimEvent( animevent_t *pEvent )
 		AngleVectors( GetLocalAngles(), NULL, &right, NULL );
 		right = right * 50;
 		QAngle angle( -3, 5, -3 );
+#ifdef MAPBASE
+		ClawAttack( GetClawAttackRange(), sk_zombie_fast_dmg_one_slash.GetInt(), angle, right, ZOMBIE_BLOOD_LEFT_HAND );
+#else
 		ClawAttack( GetClawAttackRange(), 3, angle, right, ZOMBIE_BLOOD_LEFT_HAND );
+#endif
 		return;
 	}
 
@@ -1274,7 +1296,11 @@ void CFastZombie::StartTask( const Task_t *pTask )
 			CBaseEntity *pEnemy = GetEnemy();
 			Vector vecJumpDir;
 
-			if ( GetActivity() == ACT_CLIMB_UP || GetActivity() == ACT_CLIMB_DOWN )
+			if ( GetActivity() == ACT_CLIMB_UP || GetActivity() == ACT_CLIMB_DOWN
+#if EXPANDED_NAVIGATION_ACTIVITIES
+				|| GetActivity() == ACT_CLIMB_ALL
+#endif
+				)
 			{
 				// Jump off the pipe backwards!
 				Vector forward;
@@ -1427,7 +1453,11 @@ int CFastZombie::TranslateSchedule( int scheduleType )
 		break;
 
 	case SCHED_FASTZOMBIE_UNSTICK_JUMP:
-		if ( GetActivity() == ACT_CLIMB_UP || GetActivity() == ACT_CLIMB_DOWN || GetActivity() == ACT_CLIMB_DISMOUNT )
+		if ( GetActivity() == ACT_CLIMB_UP || GetActivity() == ACT_CLIMB_DOWN || GetActivity() == ACT_CLIMB_DISMOUNT
+#if EXPANDED_NAVIGATION_ACTIVITIES
+			|| (GetActivity() >= ACT_CLIMB_ALL && GetActivity() <= ACT_CLIMB_DISMOUNT_BOTTOM)
+#endif
+			)
 		{
 			return SCHED_FASTZOMBIE_CLIMBING_UNSTICK_JUMP;
 		}
@@ -1455,8 +1485,10 @@ int CFastZombie::TranslateSchedule( int scheduleType )
 //---------------------------------------------------------
 Activity CFastZombie::NPC_TranslateActivity( Activity baseAct )
 {
+#ifndef MAPBASE // Now covered by CAI_BaseNPC::NPC_BackupActivity
 	if ( baseAct == ACT_CLIMB_DOWN )
 		return ACT_CLIMB_UP;
+#endif
 	
 	return BaseClass::NPC_TranslateActivity( baseAct );
 }
@@ -1480,7 +1512,11 @@ void CFastZombie::LeapAttackTouch( CBaseEntity *pOther )
 	forward *= 500;
 	QAngle qaPunch( 15, random->RandomInt(-5,5), random->RandomInt(-5,5) );
 	
+#ifdef MAPBASE
+	ClawAttack( GetClawAttackRange(), sk_zombie_fast_dmg_both_slash.GetInt(), qaPunch, forward, ZOMBIE_BLOOD_BOTH_HANDS );
+#else
 	ClawAttack( GetClawAttackRange(), 5, qaPunch, forward, ZOMBIE_BLOOD_BOTH_HANDS );
+#endif
 
 	SetTouch( NULL );
 }
@@ -1848,6 +1884,7 @@ void CFastZombie::Event_Killed( const CTakeDamageInfo &info )
 	BaseClass::Event_Killed( dInfo );
 }
 
+#ifndef MAPBASE
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 bool CFastZombie::ShouldBecomeTorso( const CTakeDamageInfo &info, float flDamageThreshold )
@@ -1868,6 +1905,7 @@ bool CFastZombie::ShouldBecomeTorso( const CTakeDamageInfo &info, float flDamage
 
 	return false;
 }
+#endif
 
 //=============================================================================
 #ifdef HL2_EPISODIC

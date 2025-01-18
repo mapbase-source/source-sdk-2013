@@ -7,4 +7,7 @@
 //	    _vs30.vcs
 //
 
-// There are no examples of such shaders in the SDK, but add yours here.
+SDK_vertexlit_and_unlit_generic_ps2x.fxc
+SDK_vertexlit_and_unlit_generic_vs20.fxc
+SDK_skin_ps20b.fxc
+SDK_skin_vs20.fxc

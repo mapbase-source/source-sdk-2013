@@ -165,6 +165,9 @@ private:
 //-----------------------------------------------------------------------------
 CAPCMissile *FindAPCMissileInCone( const Vector &vecOrigin, const Vector &vecDirection, float flAngle );
 
+#ifdef MAPBASE
+extern ConVar weapon_rpg_fire_rate;
+#endif
 
 //-----------------------------------------------------------------------------
 // RPG
@@ -182,7 +185,11 @@ public:
 	void	Precache( void );
 
 	void	PrimaryAttack( void );
+#ifdef MAPBASE
+	virtual float GetFireRate( void ) { return weapon_rpg_fire_rate.GetFloat(); };
+#else
 	virtual float GetFireRate( void ) { return 1; };
+#endif
 	void	ItemPostFrame( void );
 
 	void	Activate( void );
@@ -196,6 +203,10 @@ public:
 
 	virtual void Drop( const Vector &vecVelocity );
 
+#ifdef MAPBASE
+	bool	SupportsBackupActivity(Activity activity);
+#endif
+
 	int		GetMinBurst() { return 1; }
 	int		GetMaxBurst() { return 1; }
 	float	GetMinRestTime() { return 4.0; }
@@ -205,6 +216,9 @@ public:
 	int		WeaponRangeAttack1Condition( float flDot, float flDist );
 
 	void	Operator_HandleAnimEvent( animevent_t *pEvent, CBaseCombatCharacter *pOperator );
+#ifdef MAPBASE
+	void	Operator_ForceNPCFire( CBaseCombatCharacter  *pOperator, bool bSecondary );
+#endif
 	void	StartGuiding( void );
 	void	StopGuiding( void );
 	void	ToggleGuiding( void );

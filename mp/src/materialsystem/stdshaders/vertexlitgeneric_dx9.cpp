@@ -11,10 +11,13 @@
 #include "emissive_scroll_blended_pass_helper.h"
 #include "cloak_blended_pass_helper.h"
 #include "flesh_interior_blended_pass_helper.h"
+
+#ifdef GAME_SHADER_DLL
 #include "weapon_sheen_pass_helper.h"
+#endif
 
 
-BEGIN_VS_SHADER( VertexLitGeneric, "Help for VertexLitGeneric" )
+BEGIN_VS_SHADER( SDK_VertexLitGeneric, "Help for SDK_VertexLitGeneric" )
 	BEGIN_SHADER_PARAMS
 		SHADER_PARAM( ALBEDO, SHADER_PARAM_TYPE_TEXTURE, "shadertest/BaseTexture", "albedo (Base texture with no baked lighting)" )
 		SHADER_PARAM( COMPRESS, SHADER_PARAM_TYPE_TEXTURE, "shadertest/BaseTexture", "compression wrinklemap" )
@@ -94,6 +97,7 @@ BEGIN_VS_SHADER( VertexLitGeneric, "Help for VertexLitGeneric" )
 		SHADER_PARAM( CLOAKCOLORTINT, SHADER_PARAM_TYPE_COLOR, "[1 1 1]", "Cloak color tint" )
 		SHADER_PARAM( REFRACTAMOUNT, SHADER_PARAM_TYPE_FLOAT, "2", "" )
 
+#ifdef GAME_SHADER_DLL
 		// Weapon Sheen Pass
 		SHADER_PARAM( SHEENPASSENABLED, SHADER_PARAM_TYPE_BOOL, "0", "Enables weapon sheen render in a second pass" )
 		SHADER_PARAM( SHEENMAP, SHADER_PARAM_TYPE_TEXTURE, "shadertest/shadertest_env", "sheenmap" )
@@ -106,6 +110,7 @@ BEGIN_VS_SHADER( VertexLitGeneric, "Help for VertexLitGeneric" )
 		SHADER_PARAM( SHEENMAPMASKOFFSETY, SHADER_PARAM_TYPE_FLOAT, "0", "Y Offset of the mask relative to model space coords of target" )
 		SHADER_PARAM( SHEENMAPMASKDIRECTION, SHADER_PARAM_TYPE_INTEGER, "0", "The direction the sheen should move (length direction of weapon) XYZ, 0,1,2" )
 		SHADER_PARAM( SHEENINDEX, SHADER_PARAM_TYPE_INTEGER, "0", "Index of the Effect Type (Color Additive, Override etc...)" )
+#endif
 
 		// Flesh Interior Pass
 		SHADER_PARAM( FLESHINTERIORENABLED, SHADER_PARAM_TYPE_BOOL, "0", "Enable Flesh interior blend pass" )
@@ -136,6 +141,34 @@ BEGIN_VS_SHADER( VertexLitGeneric, "Help for VertexLitGeneric" )
 
 		SHADER_PARAM( BLENDTINTBYBASEALPHA, SHADER_PARAM_TYPE_BOOL, "0", "Use the base alpha to blend in the $color modulation")
 		SHADER_PARAM( BLENDTINTCOLOROVERBASE, SHADER_PARAM_TYPE_FLOAT, "0", "blend between tint acting as a multiplication versus a replace" )
+
+#ifdef MAPBASE
+		SHADER_PARAM( ALLOWDIFFUSEMODULATION, SHADER_PARAM_TYPE_BOOL, "1", "Allow per-instance color modulation" )
+
+		SHADER_PARAM( ENVMAPFRESNELMINMAXEXP, SHADER_PARAM_TYPE_VEC3, "[0.0 1.0 2.0]", "Min/max fresnel range and exponent for vertexlitgeneric" )
+		SHADER_PARAM( BASEALPHAENVMAPMASKMINMAXEXP, SHADER_PARAM_TYPE_VEC3, "[1.0 0.0 1.0]", "" )
+
+		SHADER_PARAM( PHONGDISABLEHALFLAMBERT, SHADER_PARAM_TYPE_BOOL, "0", "Disable half lambert for phong" )
+#endif
+
+		// vertexlitgeneric tree sway animation control
+		SHADER_PARAM( TREESWAY, SHADER_PARAM_TYPE_INTEGER, "0", "" )
+		SHADER_PARAM( TREESWAYHEIGHT, SHADER_PARAM_TYPE_FLOAT, "1000", "" )
+		SHADER_PARAM( TREESWAYSTARTHEIGHT, SHADER_PARAM_TYPE_FLOAT, "0.2", "" )
+		SHADER_PARAM( TREESWAYRADIUS, SHADER_PARAM_TYPE_FLOAT, "300", "" )
+		SHADER_PARAM( TREESWAYSTARTRADIUS, SHADER_PARAM_TYPE_FLOAT, "0.1", "" )
+		SHADER_PARAM( TREESWAYSPEED, SHADER_PARAM_TYPE_FLOAT, "1", "" )
+		SHADER_PARAM( TREESWAYSPEEDHIGHWINDMULTIPLIER, SHADER_PARAM_TYPE_FLOAT, "2", "" )
+		SHADER_PARAM( TREESWAYSTRENGTH, SHADER_PARAM_TYPE_FLOAT, "10", "" )
+		SHADER_PARAM( TREESWAYSCRUMBLESPEED, SHADER_PARAM_TYPE_FLOAT, "0.1", "" )
+		SHADER_PARAM( TREESWAYSCRUMBLESTRENGTH, SHADER_PARAM_TYPE_FLOAT, "0.1", "" )
+		SHADER_PARAM( TREESWAYSCRUMBLEFREQUENCY, SHADER_PARAM_TYPE_FLOAT, "0.1", "" )
+		SHADER_PARAM( TREESWAYFALLOFFEXP, SHADER_PARAM_TYPE_FLOAT, "1.5", "" )
+		SHADER_PARAM( TREESWAYSCRUMBLEFALLOFFEXP, SHADER_PARAM_TYPE_FLOAT, "1.0", "" )
+		SHADER_PARAM( TREESWAYSPEEDLERPSTART, SHADER_PARAM_TYPE_FLOAT, "3", "" )
+		SHADER_PARAM( TREESWAYSPEEDLERPEND, SHADER_PARAM_TYPE_FLOAT, "6", "" )
+		SHADER_PARAM( TREESWAYSTATIC, SHADER_PARAM_TYPE_BOOL, "0", "" )
+		SHADER_PARAM( TREESWAYSTATICVALUES, SHADER_PARAM_TYPE_VEC2, "[0.5 0.5]", "" )
 	END_SHADER_PARAMS
 
 	void SetupVars( VertexLitGeneric_DX9_Vars_t& info )
@@ -213,6 +246,33 @@ BEGIN_VS_SHADER( VertexLitGeneric, "Help for VertexLitGeneric" )
 		info.m_nSelfIllumMask = SELFILLUMMASK;
 		info.m_nBlendTintByBaseAlpha = BLENDTINTBYBASEALPHA;
 		info.m_nTintReplacesBaseColor = BLENDTINTCOLOROVERBASE;
+
+#ifdef MAPBASE
+		info.m_nAllowDiffuseModulation = ALLOWDIFFUSEMODULATION;
+
+		info.m_nEnvMapFresnelMinMaxExp = ENVMAPFRESNELMINMAXEXP;
+		info.m_nBaseAlphaEnvMapMaskMinMaxExp = BASEALPHAENVMAPMASKMINMAXEXP;
+
+		info.m_nPhongDisableHalfLambert = PHONGDISABLEHALFLAMBERT;
+#endif
+
+		info.m_nTreeSway = TREESWAY;
+		info.m_nTreeSwayHeight = TREESWAYHEIGHT;
+		info.m_nTreeSwayStartHeight = TREESWAYSTARTHEIGHT;
+		info.m_nTreeSwayRadius = TREESWAYRADIUS;
+		info.m_nTreeSwayStartRadius = TREESWAYSTARTRADIUS;
+		info.m_nTreeSwaySpeed = TREESWAYSPEED;
+		info.m_nTreeSwaySpeedHighWindMultiplier = TREESWAYSPEEDHIGHWINDMULTIPLIER;
+		info.m_nTreeSwayStrength = TREESWAYSTRENGTH;
+		info.m_nTreeSwayScrumbleSpeed = TREESWAYSCRUMBLESPEED;
+		info.m_nTreeSwayScrumbleStrength = TREESWAYSCRUMBLESTRENGTH;
+		info.m_nTreeSwayScrumbleFrequency = TREESWAYSCRUMBLEFREQUENCY;
+		info.m_nTreeSwayFalloffExp = TREESWAYFALLOFFEXP;
+		info.m_nTreeSwayScrumbleFalloffExp = TREESWAYSCRUMBLEFALLOFFEXP;
+		info.m_nTreeSwaySpeedLerpStart = TREESWAYSPEEDLERPSTART;
+		info.m_nTreeSwaySpeedLerpEnd = TREESWAYSPEEDLERPEND;
+		info.m_nTreeSwayStatic = TREESWAYSTATIC;
+		info.m_nTreeSwayStaticValues = TREESWAYSTATICVALUES;
 	}
 
 	// Cloak Pass
@@ -228,6 +288,7 @@ BEGIN_VS_SHADER( VertexLitGeneric, "Help for VertexLitGeneric" )
 		info.m_nBumpTransform = BUMPTRANSFORM;
 	}
 
+#ifdef GAME_SHADER_DLL
 	// Weapon Sheen Pass
 	void SetupVarsWeaponSheenPass( WeaponSheenPassVars_t &info )
 	{
@@ -246,6 +307,7 @@ BEGIN_VS_SHADER( VertexLitGeneric, "Help for VertexLitGeneric" )
 		info.m_nBumpFrame = BUMPFRAME;
 		info.m_nBumpTransform = BUMPTRANSFORM;
 	}
+#endif
 
 	bool NeedsPowerOfTwoFrameBufferTexture( IMaterialVar **params, bool bCheckSpecificToThisFrame ) const 
 	{ 
@@ -257,8 +319,11 @@ BEGIN_VS_SHADER( VertexLitGeneric, "Help for VertexLitGeneric" )
 				return true;
 			// else, not cloaking this frame, so check flag2 in case the base material still needs it
 		}
+
+#ifdef GAME_SHADER_DLL
 		if ( params[SHEENPASSENABLED]->GetIntValue() ) // If material supports weapon sheen
 			return true;
+#endif
 
 		// Check flag2 if not drawing cloak pass
 		return IS_FLAG2_SET( MATERIAL_VAR2_NEEDS_POWER_OF_TWO_FRAME_BUFFER_TEXTURE ); 
@@ -335,6 +400,7 @@ BEGIN_VS_SHADER( VertexLitGeneric, "Help for VertexLitGeneric" )
 			InitParamsCloakBlendedPass( this, params, pMaterialName, info );
 		}
 
+#ifdef GAME_SHADER_DLL
 		// Sheen Pass
 		if ( !params[SHEENPASSENABLED]->IsDefined() )
 		{
@@ -346,6 +412,7 @@ BEGIN_VS_SHADER( VertexLitGeneric, "Help for VertexLitGeneric" )
 			SetupVarsWeaponSheenPass( info );
 			InitParamsWeaponSheenPass( this, params, pMaterialName, info );
 		}
+#endif
 		
 		// Emissive Scroll Pass
 		if ( !params[EMISSIVEBLENDENABLED]->IsDefined() )
@@ -400,6 +467,7 @@ BEGIN_VS_SHADER( VertexLitGeneric, "Help for VertexLitGeneric" )
 			InitCloakBlendedPass( this, params, info );
 		}
 
+#ifdef GAME_SHADER_DLL
 		// TODO : Only do this if we're in range of the camera
 		// Weapon Sheen
 		if ( params[SHEENPASSENABLED]->GetIntValue() )
@@ -408,6 +476,7 @@ BEGIN_VS_SHADER( VertexLitGeneric, "Help for VertexLitGeneric" )
 			SetupVarsWeaponSheenPass( info );
 			InitWeaponSheenPass( this, params, info );
 		}
+#endif
 
 		// Emissive Scroll Pass
 		if ( params[EMISSIVEBLENDENABLED]->GetIntValue() )
@@ -453,6 +522,7 @@ BEGIN_VS_SHADER( VertexLitGeneric, "Help for VertexLitGeneric" )
 			Draw( false );
 		}
 
+#ifdef GAME_SHADER_DLL
 		// Weapon sheen pass 
 		// only if doing standard as well (don't do it if cloaked)
 		if ( params[SHEENPASSENABLED]->GetIntValue() )
@@ -469,6 +539,7 @@ BEGIN_VS_SHADER( VertexLitGeneric, "Help for VertexLitGeneric" )
 				Draw( false );
 			}
 		}
+#endif
 
 		// Cloak Pass
 		if ( params[CLOAKPASSENABLED]->GetIntValue() )

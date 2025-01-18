@@ -3592,6 +3592,19 @@ CBaseEntity *PhysCannonGetHeldEntity( CBaseCombatWeapon *pActiveWeapon )
 	return NULL;
 }
 
+CBaseEntity *GetPlayerHeldEntity( CBasePlayer *pPlayer )
+{
+	CBaseEntity *pObject = NULL;
+	CPlayerPickupController *pPlayerPickupController = (CPlayerPickupController *)(pPlayer->GetUseEntity());
+
+	if ( pPlayerPickupController )
+	{
+		pObject = pPlayerPickupController->GetGrabController().GetAttached();
+	}
+
+	return pObject;
+}
+
 float PlayerPickupGetHeldObjectMass( CBaseEntity *pPickupControllerEntity, IPhysicsObject *pHeldObject )
 {
 	float mass = 0.0f;

@@ -15,6 +15,17 @@
 // rel/tf_beta branch:
 //$Conditional TF_BETA	"1"
 
+//-----------------------------------------------------------------------------
+
+// Mapbase functionality conditionals
+$Conditional MAPBASE	"1" // Equivalent to (and required for) our MAPBASE preprocessor defined below
+$Conditional MAPBASE_MP	"1" // Mapbase MP-specific changes
+$Conditional MAPBASE_RPC	"0" // Toggles Mapbase's Rich Presence Client implementations (requires discord-rpc.dll in game bin)
+$Conditional MAPBASE_VSCRIPT	"1" // Toggles VScript implementation (note: interfaces still exist, just the provided implementation is not present)
+$Conditional NEW_RESPONSE_SYSTEM	"1" // Toggles the new Response System library based on the Alien Swarm SDK
+
+//-----------------------------------------------------------------------------
+
 $Configuration "Debug"
 {
 	$Compiler
@@ -27,6 +38,10 @@ $Configuration "Debug"
 // Need to revisit the code to make things run with the _RETAIL preprocessor definition
 // This line was added in the previous check-in, but had previously not been defined in this branch
 //		$PreprocessorDefinitions		"$BASE;_RETAIL"		[$RETAIL]
+
+		// Mapbase base definitions
+		$PreprocessorDefinitions		"$BASE;MAPBASE"		[$MAPBASE]
+		$PreprocessorDefinitions		"$BASE;MAPBASE_MP"		[$MAPBASE_MP]
 	}
 }
 
@@ -42,5 +57,9 @@ $Configuration "Release"
 // Need to revisit the code to make things run with the _RETAIL preprocessor definition
 // This line was added in the previous check-in, but had previously not been defined in this branch
 //		$PreprocessorDefinitions		"$BASE;_RETAIL"		[$RETAIL]
+
+		// Mapbase base definitions
+		$PreprocessorDefinitions		"$BASE;MAPBASE"		[$MAPBASE]
+		$PreprocessorDefinitions		"$BASE;MAPBASE_MP"		[$MAPBASE_MP]
 	}
 }

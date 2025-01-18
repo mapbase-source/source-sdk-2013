@@ -581,6 +581,31 @@ bool CNPC_Vortigaunt::InnateWeaponLOSCondition( const Vector &ownerPos, const Ve
 	UTIL_PredictedPosition( this, flTimeDelta, &vecNewOwnerPos );
 	UTIL_PredictedPosition( GetEnemy(), flTimeDelta, &vecNewTargetPos );
 
+#ifdef MAPBASE
+	// There's apparently a null pointer crash here
+	if (!GetEnemy())
+		return false;
+
+	// The fix below and its accompanying comment were created by DKY.
+
+	/*
+
+	Fix for LOS test failures when the Vort is attempting to find a viable
+	shoot position-- Valve's "predict where we'll be in a moment" hack (as
+	described above) completely breaks SCHED_ESTABLISH_LINE_OF_FIRE because it
+	causes all LOS checks to fail for every node if the Vort's current position
+	is not a valid shooting position.
+	- Thank you, dky.tehkingd.u!
+
+	*/
+
+	// Determine the Vort's predicted position delta
+	Vector ownerDelta = vecNewOwnerPos - GetAbsOrigin();
+
+	// Offset our requested LOS check location by the predicted delta.
+	vecNewOwnerPos = ownerPos + ownerDelta;
+#endif
+
 	Vector vecDelta = vecNewTargetPos - GetEnemy()->GetAbsOrigin();
 	Vector vecFinalTargetPos = GetEnemy()->BodyTarget( vecNewOwnerPos ) + vecDelta;
 
@@ -1045,9 +1070,17 @@ Activity CNPC_Vortigaunt::NPC_TranslateActivity( Activity eNewActivity )
 		if ( GetReadinessLevel() >= AIRL_STIMULATED )
 			return ACT_IDLE_STIMULATED;
 	}
-
+	
 	if ( eNewActivity == ACT_RANGE_ATTACK2 )
+	{
+#ifdef MAPBASE
+		// If we're capable of using grenades, use ACT_COMBINE_THROW_GRENADE
+		if (IsGrenadeCapable())
+			return ACT_COMBINE_THROW_GRENADE;
+		else
+#endif
 		return (Activity) ACT_VORTIGAUNT_DISPEL;
+	}
 
 	return BaseClass::NPC_TranslateActivity( eNewActivity );
 }
@@ -2693,6 +2726,15 @@ void CNPC_Vortigaunt::OnSquishedGrub( const CBaseEntity *pGrub )
 //-----------------------------------------------------------------------------
 void CNPC_Vortigaunt::AimGun( void )
 {
+#ifdef MAPBASE
+	// Use base for func_tank
+	if (m_FuncTankBehavior.IsRunning())
+	{
+		BaseClass::AimGun();
+		return;
+	}
+#endif
+
 	// If our aim lock is on, don't bother
 	if ( m_flAimDelay >= gpGlobals->curtime )
 		return;
@@ -2776,7 +2818,12 @@ bool CNPC_Vortigaunt::CanFlinch( void )
 	if ( IsCurSchedule( SCHED_VORTIGAUNT_DISPEL_ANTLIONS ) || IsCurSchedule( SCHED_RANGE_ATTACK1 ) )
 		return false;
 
+#ifdef MAPBASE
+	// This skips CAI_PlayerAlly's CanFlinch() function since Episodic vorts can flinch to begin with.
+	return CAI_BaseActor::CanFlinch();
+#else
 	return BaseClass::CanFlinch();
+#endif
 }
 
 //-----------------------------------------------------------------------------

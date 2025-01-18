@@ -20,14 +20,23 @@
 #include "ServerNetworkProperty.h"
 #include "shareddefs.h"
 #include "engine/ivmodelinfo.h"
+#ifdef NEW_RESPONSE_SYSTEM
+#include "AI_Criteria.h"
+#include "AI_ResponseSystem.h"
+#endif
+
+#include "vscript/ivscript.h"
+#include "vscript_server.h"
 
 class CDamageModifier;
 class CDmgAccumulator;
 
 struct CSoundParameters;
 
+#ifndef NEW_RESPONSE_SYSTEM
 class AI_CriteriaSet;
 class IResponseSystem;
+#endif
 class IEntitySaveUtils;
 class CRecipientFilter;
 class CStudioHdr;
@@ -35,6 +44,11 @@ class CStudioHdr;
 // Matching the high level concept is significantly better than other criteria
 // FIXME:  Could do this in the script file by making it required and bumping up weighting there instead...
 #define CONCEPT_WEIGHT 5.0f
+
+#ifdef NEW_RESPONSE_SYSTEM
+// Relax the namespace standard a bit so that less code has to be changed
+#define IResponseSystem ResponseRules::IResponseSystem
+#endif
 
 typedef CHandle<CBaseEntity> EHANDLE;
 
@@ -82,6 +96,7 @@ typedef struct KeyValueData_s KeyValueData;
 class CUserCmd;
 class CSkyCamera;
 class CEntityMapData;
+class CWorld;
 class INextBot;
 class IHasAttributes;
 
@@ -311,11 +326,13 @@ a list of all CBaseEntitys is kept in gEntList
 CBaseEntity *CreateEntityByName( const char *className, int iForceEdictIndex = -1 );
 CBaseNetworkable *CreateNetworkableByName( const char *className );
 
+CBaseEntity* ToEnt(HSCRIPT hScript);
+
 // creates an entity and calls all the necessary spawn functions
 extern void SpawnEntityByName( const char *className, CEntityMapData *mapData = NULL );
 
 // calls the spawn functions for an entity
-extern int DispatchSpawn( CBaseEntity *pEntity );
+extern int DispatchSpawn( CBaseEntity *pEntity, bool bRunVScripts = true);
 
 inline CBaseEntity *GetContainingEntity( edict_t *pent );
 
@@ -331,6 +348,16 @@ struct thinkfunc_t
 
 	DECLARE_SIMPLE_DATADESC();
 };
+
+#ifdef MAPBASE_VSCRIPT
+struct scriptthinkfunc_t
+{
+	float		m_flNextThink;
+	HSCRIPT		m_hfnThink;
+	unsigned	m_iContextHash;
+	bool		m_bNoParam;
+};
+#endif
 
 struct EmitSound_t;
 struct rotatingpushmove_t;
@@ -379,6 +406,8 @@ public:
 	DECLARE_SERVERCLASS();
 	// data description
 	DECLARE_DATADESC();
+	// script description
+	DECLARE_ENT_SCRIPTDESC();
 	
 	// memory handling
     void *operator new( size_t stAllocateBlock );
@@ -493,6 +522,8 @@ public:
 	virtual void			SetOwnerEntity( CBaseEntity* pOwner );
 	void					SetEffectEntity( CBaseEntity *pEffectEnt );
 	CBaseEntity				*GetEffectEntity() const;
+	HSCRIPT					GetScriptOwnerEntity();
+	virtual void			SetScriptOwnerEntity(HSCRIPT pOwner);
 
 	// Only CBaseEntity implements these. CheckTransmit calls the virtual ShouldTransmit to see if the
 	// entity wants to be sent. If so, it calls SetTransmit, which will mark any dependents for transmission too.
@@ -544,6 +575,11 @@ public:
 	bool IsFollowingEntity();
 	CBaseEntity *GetFollowedEntity();
 
+#ifdef MAPBASE_VSCRIPT
+	void ScriptFollowEntity( HSCRIPT hBaseEntity, bool bBoneMerge );
+	HSCRIPT ScriptGetFollowedEntity();
+#endif
+
 	// initialization
 	virtual void Spawn( void );
 	virtual void Precache( void ) {}
@@ -563,9 +599,20 @@ public:
 	virtual bool KeyValue( const char *szKeyName, float flValue );
 	virtual bool KeyValue( const char *szKeyName, const Vector &vecValue );
 	virtual bool GetKeyValue( const char *szKeyName, char *szValue, int iMaxLen );
+	bool KeyValueFromString( const char *szKeyName, const char *szValue )		{ return KeyValue( szKeyName, szValue ); }
+	bool KeyValueFromFloat( const char *szKeyName, float flValue )				{ return KeyValue( szKeyName, flValue ); }
+	bool KeyValueFromInt( const char *szKeyName, int nValue )					{ return KeyValue( szKeyName, nValue ); }
+	bool KeyValueFromVector( const char *szKeyName, const Vector &vecValue )	{ return KeyValue( szKeyName, vecValue ); }
 
 	void ValidateEntityConnections();
 	void FireNamedOutput( const char *pszOutput, variant_t variant, CBaseEntity *pActivator, CBaseEntity *pCaller, float flDelay = 0.0f );
+	CBaseEntityOutput *FindNamedOutput( const char *pszOutput );
+#ifdef MAPBASE_VSCRIPT
+	void ScriptFireOutput( const char *pszOutput, HSCRIPT hActivator, HSCRIPT hCaller, const char *szValue, float flDelay );
+	float GetMaxOutputDelay( const char *pszOutput );
+	//void CancelEventsByInput( const char *szInput );
+#endif
+
 
 	// Activate - called for each entity after each load game and level load
 	virtual void Activate( void );
@@ -577,6 +624,9 @@ public:
 	CBaseEntity *NextMovePeer( void );
 
 	void		SetName( string_t newTarget );
+#ifdef MAPBASE_VSCRIPT
+	void		SetNameAsCStr( const char *newTarget );
+#endif
 	void		SetParent( string_t newParent, CBaseEntity *pActivator, int iAttachment = -1 );
 	
 	// Set the movement parent. Your local origin and angles will become relative to this parent.
@@ -588,6 +638,8 @@ public:
 	int			GetParentAttachment();
 
 	string_t	GetEntityName();
+	const char* GetEntityNameAsCStr();	// This method is temporary for VSCRIPT functionality until we figure out what to do with string_t (sjb)
+	const char* GetPreTemplateName(); // Not threadsafe. Get the name stripped of template unique decoration
 
 	bool		NameMatches( const char *pszNameOrWildcard );
 	bool		ClassMatches( const char *pszClassOrWildcard );
@@ -636,6 +688,15 @@ public:
 	// handles an input (usually caused by outputs)
 	// returns true if the the value in the pass in should be set, false if the input is to be ignored
 	virtual bool AcceptInput( const char *szInputName, CBaseEntity *pActivator, CBaseEntity *pCaller, variant_t Value, int outputID );
+#ifdef MAPBASE_VSCRIPT
+	bool ScriptAcceptInput(const char *szInputName, const char *szValue, HSCRIPT hActivator, HSCRIPT hCaller);
+#endif
+
+	bool ScriptInputHook( const char *szInputName, CBaseEntity *pActivator, CBaseEntity *pCaller, variant_t Value, ScriptVariant_t &functionReturn );
+	void ScriptInputHookClearParams();
+#ifdef MAPBASE_VSCRIPT
+	bool ScriptDeathHook( CTakeDamageInfo *info );
+#endif
 
 	//
 	// Input handlers.
@@ -663,10 +724,91 @@ public:
 	void InputDisableShadow( inputdata_t &inputdata );
 	void InputEnableShadow( inputdata_t &inputdata );
 	void InputAddOutput( inputdata_t &inputdata );
+#ifdef MAPBASE
+	void InputChangeVariable( inputdata_t &inputdata );
+#endif
 	void InputFireUser1( inputdata_t &inputdata );
 	void InputFireUser2( inputdata_t &inputdata );
 	void InputFireUser3( inputdata_t &inputdata );
 	void InputFireUser4( inputdata_t &inputdata );
+
+#ifdef MAPBASE
+	void InputPassUser1( inputdata_t &inputdata );
+	void InputPassUser2( inputdata_t &inputdata );
+	void InputPassUser3( inputdata_t &inputdata );
+	void InputPassUser4( inputdata_t &inputdata );
+
+	void InputFireRandomUser( inputdata_t &inputdata );
+	void InputPassRandomUser( inputdata_t &inputdata );
+
+	void InputSetEntityName( inputdata_t &inputdata );
+
+	virtual void InputSetTarget( inputdata_t &inputdata );
+	virtual void InputSetOwnerEntity( inputdata_t &inputdata );
+
+	virtual void InputAddHealth( inputdata_t &inputdata );
+	virtual void InputRemoveHealth( inputdata_t &inputdata );
+	virtual void InputSetHealth( inputdata_t &inputdata );
+
+	virtual void InputSetMaxHealth( inputdata_t &inputdata );
+
+	void InputFireOutput( inputdata_t &inputdata );
+	void InputRemoveOutput( inputdata_t &inputdata );
+	//virtual void InputCancelOutput( inputdata_t &inputdata ); // Find a way to implement this
+	void InputReplaceOutput( inputdata_t &inputdata );
+	void InputAcceptInput( inputdata_t &inputdata );
+	virtual void InputCancelPending( inputdata_t &inputdata );
+
+	void InputFreeChildren( inputdata_t &inputdata );
+
+	void InputSetLocalOrigin( inputdata_t &inputdata );
+	void InputSetLocalAngles( inputdata_t &inputdata );
+	void InputSetAbsOrigin( inputdata_t &inputdata );
+	void InputSetAbsAngles( inputdata_t &inputdata );
+	void InputSetLocalVelocity( inputdata_t &inputdata );
+	void InputSetLocalAngularVelocity( inputdata_t &inputdata );
+
+	void InputAddSpawnFlags( inputdata_t &inputdata );
+	void InputRemoveSpawnFlags( inputdata_t &inputdata );
+	void InputSetRenderMode( inputdata_t &inputdata );
+	void InputSetRenderFX( inputdata_t &inputdata );
+	void InputSetViewHideFlags( inputdata_t &inputdata );
+	void InputAddEffects( inputdata_t &inputdata );
+	void InputRemoveEffects( inputdata_t &inputdata );
+	void InputDrawEntity( inputdata_t &inputdata );
+	void InputUndrawEntity( inputdata_t &inputdata );
+	void InputEnableReceivingFlashlight( inputdata_t &inputdata );
+	void InputDisableReceivingFlashlight( inputdata_t &inputdata );
+	void InputAddEFlags( inputdata_t &inputdata );
+	void InputRemoveEFlags( inputdata_t &inputdata );
+	void InputAddSolidFlags( inputdata_t &inputdata );
+	void InputRemoveSolidFlags( inputdata_t &inputdata );
+	void InputSetMoveType( inputdata_t &inputdata );
+	void InputSetCollisionGroup( inputdata_t &inputdata );
+
+	void InputTouch( inputdata_t &inputdata );
+
+	virtual void InputKilledNPC( inputdata_t &inputdata );
+
+	void InputKillIfNotVisible( inputdata_t &inputdata );
+	void InputKillWhenNotVisible( inputdata_t &inputdata );
+
+	void InputSetThinkNull( inputdata_t &inputdata );
+
+	COutputEvent m_OnKilled;
+#endif
+
+	void InputRunScript(inputdata_t& inputdata);
+	void InputRunScriptFile(inputdata_t& inputdata);
+	void InputCallScriptFunction(inputdata_t& inputdata);
+#ifdef MAPBASE_VSCRIPT
+	void InputRunScriptQuotable(inputdata_t& inputdata);
+	void InputClearScriptScope(inputdata_t& inputdata);
+#endif
+
+	bool RunScriptFile(const char* pScriptFile, bool bUseRootScope = false);
+	bool RunScript(const char* pScriptText, const char* pDebugFilename = "CBaseEntity::RunScript");
+
 
 	// Returns the origin at which to play an inputted dispatcheffect 
 	virtual void GetInputDispatchEffectPosition( const char *sInputString, Vector &pOrigin, QAngle &pAngles );
@@ -795,6 +937,19 @@ public:
 	CNetworkArray( int, m_nModelIndexOverrides, MAX_VISION_MODES ); // used to override the base model index on the client if necessary
 #endif
 
+#ifdef MAPBASE
+	// Prevents this entity from drawing under certain view IDs. Each flag is (1 << the view ID to hide from).
+	// For example, hiding an entity from VIEW_MONITOR prevents it from showing up on RT camera monitors
+	// and hiding an entity from VIEW_MAIN just prevents it from showing up through the player's own "eyes".
+	// Doing this via flags allows for the entity to be hidden from multiple view IDs at the same time.
+	// 
+	// This was partly inspired by Underhell's keyvalue that allows entities to only render in mirrors and cameras.
+	CNetworkVar( int, m_iViewHideFlags );
+
+	// Disables receiving projected textures. Based on a keyvalue from later Source games.
+	CNetworkVar( bool, m_bDisableFlashlight );
+#endif
+
 	// was pev->rendercolor
 	CNetworkColor32( m_clrRender );
 	const color32 GetRenderColor() const;
@@ -841,13 +996,30 @@ protected:
 #endif
 
 	void RemoveExpiredConcepts( void );
+#ifdef MAPBASE
+	// Some new code needs to access these functions from outside of the class.
+public:
+#endif
 	int	GetContextCount() const;						// Call RemoveExpiredConcepts to clean out expired concepts
 	const char *GetContextName( int index ) const;		// note: context may be expired
 	const char *GetContextValue( int index ) const; 	// note: context may be expired
 	bool ContextExpired( int index ) const;
 	int FindContextByName( const char *name ) const;
+#ifndef MAPBASE
 public:
+#endif
+
+#ifdef MAPBASE
+	bool	HasContext( const char *name, const char *value ) const;
+	bool	HasContext( string_t name, string_t value ) const; // NOTE: string_t version only compares pointers!
+	bool	HasContext( const char *nameandvalue ) const;
+	const char *GetContextValue( const char *contextName ) const;
+	float	GetContextExpireTime( const char *name );
+	void	RemoveContext( const char *nameandvalue );
+#endif
+
 	void	AddContext( const char *nameandvalue );
+	void	AddContext( const char *name, const char *value, float duration = 0.0f );
 
 protected:
 	CUtlVector< ResponseContext_t > m_ResponseContexts;
@@ -891,6 +1063,12 @@ public:
 	// Call this to do a TraceAttack on an entity, performs filtering. Don't call TraceAttack() directly except when chaining up to base class
 	void			DispatchTraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator = NULL );
 	virtual bool	PassesDamageFilter( const CTakeDamageInfo &info );
+#ifdef MAPBASE
+	// Special filter functions made for the "damage" family of filters, including filter_damage_transfer.
+	bool			PassesFinalDamageFilter( const CTakeDamageInfo &info );
+	bool			DamageFilterAllowsBlood( const CTakeDamageInfo &info );
+	bool			DamageFilterDamageMod( CTakeDamageInfo &info );
+#endif
 
 
 protected:
@@ -916,7 +1094,7 @@ public:
 	void SendOnKilledGameEvent( const CTakeDamageInfo &info );
 
 	// Notifier that I've killed some other entity. (called from Victim's Event_Killed).
-	virtual void	Event_KilledOther( CBaseEntity *pVictim, const CTakeDamageInfo &info ) { return; }
+	virtual void	Event_KilledOther( CBaseEntity *pVictim, const CTakeDamageInfo &info );
 
 	// UNDONE: Make this data?
 	virtual int				BloodColor( void );
@@ -929,7 +1107,7 @@ public:
 	virtual INextBot		*MyNextBotPointer( void ) { return NULL; }
 	virtual float			GetDelay( void ) { return 0; }
 	virtual bool			IsMoving( void );
-	bool					IsWorld() { return entindex() == 0; }
+	bool					IsWorld() const { extern CWorld *g_WorldEntity; return (void *)this == (void *)g_WorldEntity; } // Ported from the Alien Swarm SDK to fix false IsWorld() positives on server-only entities
 	virtual char const		*DamageDecal( int bitsDamageType, int gameMaterial );
 	virtual void			DecalTrace( trace_t *pTrace, char const *decalName );
 	virtual void			ImpactTrace( trace_t *pTrace, int iDamageType, const char *pCustomImpactName = NULL );
@@ -1049,6 +1227,10 @@ public:
 	void					SUB_CallUseToggle( void ) { this->Use( this, this, USE_TOGGLE, 0 ); }
 	void					SUB_PerformFadeOut( void );
 	virtual	bool			SUB_AllowedToFade( void );
+#ifdef MAPBASE
+	// For KillWhenNotVisible
+	void					SUB_RemoveWhenNotVisible( void );
+#endif
 
 	// change position, velocity, orientation instantly
 	// passing NULL means no change
@@ -1099,21 +1281,21 @@ public:
 #endif
 
 	void FunctionCheck( void *pFunction, const char *name );
-	ENTITYFUNCPTR TouchSet( ENTITYFUNCPTR func, char *name ) 
+	ENTITYFUNCPTR TouchSet( ENTITYFUNCPTR func, const char *name ) 
 	{ 
 		COMPILE_TIME_ASSERT( sizeof(func) == ENTITYFUNCPTR_SIZE );
 		m_pfnTouch = func; 
 		FunctionCheck( *(reinterpret_cast<void **>(&m_pfnTouch)), name ); 
 		return func;
 	}
-	USEPTR	UseSet( USEPTR func, char *name ) 
+	USEPTR	UseSet( USEPTR func, const char *name ) 
 	{ 
 		COMPILE_TIME_ASSERT( sizeof(func) == ENTITYFUNCPTR_SIZE );
 		m_pfnUse = func; 
 		FunctionCheck( *(reinterpret_cast<void **>(&m_pfnUse)), name ); 
 		return func;
 	}
-	ENTITYFUNCPTR	BlockedSet( ENTITYFUNCPTR func, char *name ) 
+	ENTITYFUNCPTR	BlockedSet( ENTITYFUNCPTR func, const char *name ) 
 	{ 
 		COMPILE_TIME_ASSERT( sizeof(func) == ENTITYFUNCPTR_SIZE );
 		m_pfnBlocked = func; 
@@ -1124,7 +1306,16 @@ public:
 #endif // _DEBUG
 
 	virtual void	ModifyOrAppendCriteria( AI_CriteriaSet& set );
+#ifdef NEW_RESPONSE_SYSTEM
+	// this computes criteria that depend on the other criteria having been set. 
+	// needs to be done in a second pass because we may have multiple overrids for
+	// a context before it all settles out.
+	virtual void	ModifyOrAppendDerivedCriteria( AI_CriteriaSet& set ) {};
+#endif
 	void			AppendContextToCriteria( AI_CriteriaSet& set, const char *prefix = "" );
+#ifdef MAPBASE
+	void			ReAppendContextCriteria( AI_CriteriaSet& set );
+#endif
 	void			DumpResponseCriteria( void );
 
 	// Return the IHasAttributes interface for this base entity. Removes the need for:
@@ -1174,6 +1365,20 @@ public:
 	virtual int		GetDamageType() const;
 	virtual float	GetDamage() { return 0; }
 	virtual void	SetDamage(float flDamage) {}
+
+#ifdef MAPBASE
+	// Some entities want to use interactions regardless of whether they're a CBaseCombatCharacter.
+	// Valve ran into this issue with frag grenades when they started deriving from CBaseAnimating instead of CBaseCombatCharacter,
+	// preventing them from using the barnacle interactions for rigged grenade timing so it's guaranteed to blow up in the barnacle's face.
+	// We're used to unaltered behavior now, so we're not restoring that as default, but making this a "base entity" thing is supposed to help in situtions like those.
+	// 
+	// Also, keep in mind pretty much all existing DispatchInteraction() calls are only performed on CBaseCombatCharacters.
+	// You'll need to change their code manually if you want other, non-character entities to use the interaction.
+	bool				DispatchInteraction( int interactionType, void *data, CBaseCombatCharacter* sourceEnt );
+
+	// Do not call HandleInteraction directly, use DispatchInteraction
+	virtual bool		HandleInteraction( int interactionType, void *data, CBaseCombatCharacter* sourceEnt ) { return false; }
+#endif
 
 	virtual Vector	EyePosition( void );			// position of eyes
 	virtual const QAngle &EyeAngles( void );		// Direction of eyes in world space
@@ -1225,6 +1430,10 @@ public:
 	void			SetGravity( float gravity );
 	float			GetFriction( void ) const;
 	void			SetFriction( float flFriction );
+#ifdef MAPBASE_VSCRIPT
+	void			SetMass(float mass);
+	float			GetMass();
+#endif
 
 	virtual	bool FVisible ( CBaseEntity *pEntity, int traceMask = MASK_BLOCKLOS, CBaseEntity **ppBlocker = NULL );
 	virtual bool FVisible( const Vector &vecTarget, int traceMask = MASK_BLOCKLOS, CBaseEntity **ppBlocker = NULL );
@@ -1337,6 +1546,12 @@ public:
 	void					GenderExpandString( char const *in, char *out, int maxlen );
 
 	virtual void ModifyEmitSoundParams( EmitSound_t &params );
+#ifdef MAPBASE
+	// Same as above, but for sentences
+	// (which don't actually have EmitSound_t params)
+	virtual void ModifySentenceParams( int &iSentenceIndex, int &iChannel, float &flVolume, soundlevel_t &iSoundlevel, int &iFlags, int &iPitch,
+		const Vector **pOrigin, const Vector **pDirection, bool &bUpdatePositions, float &soundtime, int &iSpecialDSP, int &iSpeakerIndex );
+#endif
 
 	static float GetSoundDuration( const char *soundname, char const *actormodel );
 
@@ -1366,7 +1581,11 @@ public:
 	static void EmitCloseCaption( IRecipientFilter& filter, int entindex, char const *token, CUtlVector< Vector >& soundorigins, float duration, bool warnifmissing = false );
 	static void	EmitSentenceByIndex( IRecipientFilter& filter, int iEntIndex, int iChannel, int iSentenceIndex, 
 		float flVolume, soundlevel_t iSoundlevel, int iFlags = 0, int iPitch = PITCH_NORM,
-		const Vector *pOrigin = NULL, const Vector *pDirection = NULL, bool bUpdatePositions = true, float soundtime = 0.0f );
+		const Vector *pOrigin = NULL, const Vector *pDirection = NULL, bool bUpdatePositions = true, float soundtime = 0.0f
+#ifdef MAPBASE
+		, int iSpecialDSP = 0, int iSpeakerIndex = 0 // Needed for env_microphone
+#endif
+		);
 
 	static bool IsPrecacheAllowed();
 	static void SetAllowPrecache( bool allow );
@@ -1455,6 +1674,11 @@ public:
 
 	// Callbacks for the physgun/cannon picking up an entity
 	virtual	CBasePlayer		*HasPhysicsAttacker( float dt ) { return NULL; }
+
+#ifdef MAPBASE
+	// This function needed to be extended to phys_magnet and I didn't like the dynamic_casts.
+	virtual bool			CanBePickedUpByPhyscannon() { return false; }
+#endif
 
 	// UNDONE: Make this data?
 	virtual unsigned int	PhysicsSolidMaskForEntity( void ) const;
@@ -1600,7 +1824,7 @@ private:
 	// was pev->flags
 	CNetworkVarForDerived( int, m_fFlags );
 
-	string_t m_iName;	// name used to identify this entity
+	CNetworkVar( string_t, m_iName ); // name used to identify this entity
 
 	// Damage modifiers
 	friend class CDamageModifier;
@@ -1694,6 +1918,12 @@ private:
 	CNetworkVar( bool, m_bAlternateSorting );
 
 	// User outputs. Fired when the "FireInputX" input is triggered.
+#ifdef MAPBASE
+	COutputVariant m_OutUser1;
+	COutputVariant m_OutUser2;
+	COutputVariant m_OutUser3;
+	COutputVariant m_OutUser4;
+#endif
 	COutputEvent m_OnUser1;
 	COutputEvent m_OnUser2;
 	COutputEvent m_OnUser3;
@@ -1802,6 +2032,160 @@ public:
 	}
 
 	virtual bool ShouldBlockNav() const { return true; }
+
+	// VSCRIPT
+	HSCRIPT GetScriptInstance();
+	bool ValidateScriptScope();
+	virtual void RunVScripts();
+	bool CallScriptFunction(const char* pFunctionName, ScriptVariant_t* pFunctionReturn);
+	void ConnectOutputToScript(const char* pszOutput, const char* pszScriptFunc);
+	void DisconnectOutputFromScript(const char* pszOutput, const char* pszScriptFunc);
+	void ScriptThink();
+#ifdef MAPBASE_VSCRIPT
+	void ScriptSetThinkFunction(const char *szFunc, float time);
+	void ScriptStopThinkFunction();
+	void ScriptSetContextThink( const char* szContext, HSCRIPT hFunc, float time );
+	void ScriptSetThink( HSCRIPT hFunc, float time );
+	void ScriptStopThink();
+	void ScriptContextThink();
+private:
+	CUtlVector< scriptthinkfunc_t* > m_ScriptThinkFuncs;
+public:
+#endif
+	const char* GetScriptId();
+	HSCRIPT GetScriptScope();
+#ifdef MAPBASE_VSCRIPT
+	HSCRIPT GetOrCreatePrivateScriptScope();
+#endif
+	void RunPrecacheScripts(void);
+	void RunOnPostSpawnScripts(void);
+
+#ifdef MAPBASE_VSCRIPT
+	HSCRIPT LookupScriptFunction(const char* pFunctionName);
+	bool CallScriptFunctionHandle(HSCRIPT hFunc, ScriptVariant_t* pFunctionReturn);
+#endif
+
+	HSCRIPT ScriptGetMoveParent(void);
+	HSCRIPT ScriptGetRootMoveParent();
+	HSCRIPT ScriptFirstMoveChild(void);
+	HSCRIPT ScriptNextMovePeer(void);
+
+	const Vector& ScriptEyePosition(void) { static Vector vec; vec = EyePosition(); return vec; }
+#ifdef MAPBASE_VSCRIPT
+	const QAngle& ScriptEyeAngles(void) { static QAngle ang; ang = EyeAngles(); return ang; }
+	void ScriptSetAngles(const QAngle angles) { Teleport(NULL, &angles, NULL); }
+	const QAngle& ScriptGetAngles(void) { return GetAbsAngles(); }
+#else
+	void ScriptSetAngles(float fPitch, float fYaw, float fRoll) { QAngle angles(fPitch, fYaw, fRoll); Teleport(NULL, &angles, NULL); }
+	const Vector& ScriptGetAngles(void) { static Vector vec; QAngle qa = GetAbsAngles(); vec.x = qa.x; vec.y = qa.y; vec.z = qa.z; return vec; }
+#endif
+
+#ifndef MAPBASE_VSCRIPT
+	void ScriptSetSize(const Vector& mins, const Vector& maxs) { UTIL_SetSize(this, mins, maxs); }
+	void ScriptUtilRemove(void) { UTIL_Remove(this); }
+#endif
+	void ScriptSetOwner(HSCRIPT hEntity) { SetOwnerEntity(ToEnt(hEntity)); }
+	void ScriptSetOrigin(const Vector& v) { Teleport(&v, NULL, NULL); }
+	void ScriptSetForward(const Vector& v) { QAngle angles; VectorAngles(v, angles); Teleport(NULL, &angles, NULL); }
+	const Vector& ScriptGetForward(void) { static Vector vecForward; GetVectors(&vecForward, NULL, NULL); return vecForward; }
+#ifdef MAPBASE_VSCRIPT
+	const Vector& ScriptGetRight(void) { static Vector vecRight; GetVectors(NULL, &vecRight, NULL); return vecRight; }
+#endif
+	const Vector& ScriptGetLeft(void)  { static Vector vecRight; GetVectors(NULL, &vecRight, NULL); return vecRight; }
+
+	const Vector& ScriptGetUp(void) { static Vector vecUp; GetVectors(NULL, NULL, &vecUp); return vecUp; }
+
+#ifdef MAPBASE_VSCRIPT
+	void ScriptSetOriginAngles(const Vector &vecOrigin, const QAngle &angAngles) { Teleport(&vecOrigin, &angAngles, NULL); }
+	void ScriptSetOriginAnglesVelocity(const Vector &vecOrigin, const QAngle &angAngles, const Vector &vecVelocity) { Teleport(&vecOrigin, &angAngles, &vecVelocity); }
+
+	HSCRIPT ScriptEntityToWorldTransform( void );
+
+	HSCRIPT ScriptGetPhysicsObject( void );
+
+	void ScriptSetParent(HSCRIPT hParent, const char *szAttachment);
+#endif
+
+	const char* ScriptGetModelName(void) const;
+	HSCRIPT ScriptGetModelKeyValues(void);
+
+	void ScriptStopSound(const char* soundname);
+	void ScriptEmitSound(const char* soundname);
+	float ScriptSoundDuration(const char* soundname, const char* actormodel);
+
+	void VScriptPrecacheScriptSound(const char* soundname);
+
+	const Vector& ScriptGetLocalAngularVelocity( void );
+	void ScriptSetLocalAngularVelocity( float pitchVel, float yawVel, float rollVel );
+
+	const Vector& ScriptGetBoundingMins(void);
+	const Vector& ScriptGetBoundingMaxs(void);
+
+#ifdef MAPBASE_VSCRIPT
+	bool	ScriptIsVisible( const Vector &vecSpot ) { return FVisible( vecSpot ); }
+	bool	ScriptIsEntVisible( HSCRIPT pEntity ) { return FVisible( ToEnt( pEntity ) ); }
+	bool	ScriptIsVisibleWithMask( const Vector &vecSpot, int traceMask ) { return FVisible( vecSpot, traceMask ); }
+
+	int		ScriptTakeDamage( HSCRIPT pInfo );
+	void	ScriptFireBullets( HSCRIPT pInfo );
+
+	void ScriptAddContext( const char *name, const char *value, float duration = 0.0f );
+	const char *ScriptGetContext( const char *name );
+	HSCRIPT ScriptGetContextIndex( int index );
+
+	int ScriptClassify(void);
+
+	bool ScriptAddOutput( const char *pszOutputName, const char *pszTarget, const char *pszAction, const char *pszParameter, float flDelay, int iMaxTimes );
+	const char *ScriptGetKeyValue( const char *pszKeyName );
+
+	const Vector& ScriptGetColorVector();
+	int ScriptGetColorR()	{ return m_clrRender.GetR(); }
+	int ScriptGetColorG()	{ return m_clrRender.GetG(); }
+	int ScriptGetColorB()	{ return m_clrRender.GetB(); }
+	int ScriptGetAlpha()	{ return m_clrRender.GetA(); }
+	void ScriptSetColorVector( const Vector& vecColor );
+	void ScriptSetColor( int r, int g, int b );
+	void ScriptSetColorR( int iVal )	{ SetRenderColorR( iVal ); }
+	void ScriptSetColorG( int iVal )	{ SetRenderColorG( iVal ); }
+	void ScriptSetColorB( int iVal )	{ SetRenderColorB( iVal ); }
+	void ScriptSetAlpha( int iVal )		{ SetRenderColorA( iVal ); }
+
+	int ScriptGetRenderMode() { return GetRenderMode(); }
+	void ScriptSetRenderMode( int nRenderMode ) { SetRenderMode( (RenderMode_t)nRenderMode ); }
+
+	int ScriptGetMoveType() { return GetMoveType(); }
+	void ScriptSetMoveType( int iMoveType ) { SetMoveType( (MoveType_t)iMoveType ); }
+
+	int ScriptGetSolid() { return GetSolid(); }
+	void ScriptSetSolid( int i ) { SetSolid( (SolidType_t)i ); }
+
+	bool ScriptDispatchInteraction( int interactionType, HSCRIPT data, HSCRIPT sourceEnt );
+
+	int ScriptGetTakeDamage() { return m_takedamage; }
+	void ScriptSetTakeDamage( int val ) { m_takedamage = val; }
+
+	static ScriptHook_t	g_Hook_UpdateOnRemove;
+	static ScriptHook_t	g_Hook_OnEntText;
+
+	static ScriptHook_t	g_Hook_VPhysicsCollision;
+	static ScriptHook_t	g_Hook_FireBullets;
+	static ScriptHook_t	g_Hook_OnDeath;
+	static ScriptHook_t	g_Hook_OnKilledOther;
+	static ScriptHook_t	g_Hook_HandleInteraction;
+	static ScriptHook_t	g_Hook_ModifyEmitSoundParams;
+	static ScriptHook_t	g_Hook_ModifySentenceParams;
+#endif
+
+	string_t		m_iszVScripts;
+	string_t		m_iszScriptThinkFunction;
+	CScriptScope	m_ScriptScope;
+	HSCRIPT			m_hScriptInstance;
+	string_t		m_iszScriptId;
+#ifdef MAPBASE_VSCRIPT
+	HSCRIPT			m_pScriptModelKeyValues;
+#else
+	CScriptKeyValues* m_pScriptModelKeyValues;
+#endif
 };
 
 // Send tables exposed in this module.
@@ -1930,11 +2314,32 @@ inline string_t CBaseEntity::GetEntityName()
 	return m_iName; 
 }
 
+inline const char *CBaseEntity::GetEntityNameAsCStr()
+{
+	return STRING(m_iName.Get());
+}
+
+inline const char *CBaseEntity::GetPreTemplateName()
+{
+	const char *pszDelimiter = V_strrchr( STRING(m_iName.Get()), '&' );
+	if ( !pszDelimiter )
+		return STRING( m_iName.Get() );
+	static char szStrippedName[128];
+	V_strncpy( szStrippedName, STRING( m_iName.Get() ), MIN( ARRAYSIZE(szStrippedName), pszDelimiter - STRING( m_iName.Get() ) + 1 ) );
+	return szStrippedName;
+}
+
 inline void CBaseEntity::SetName( string_t newName )
 {
 	m_iName = newName;
 }
 
+#ifdef MAPBASE_VSCRIPT
+inline void CBaseEntity::SetNameAsCStr( const char *newName )
+{
+	m_iName = AllocPooledString(newName);
+}
+#endif
 
 inline bool CBaseEntity::NameMatches( const char *pszNameOrWildcard )
 {
@@ -2112,6 +2517,36 @@ inline const QAngle& CBaseEntity::GetAbsAngles( void ) const
 	return m_angAbsRotation;
 }
 
+#ifdef MAPBASE_VSCRIPT
+inline float CBaseEntity::GetMass()
+{
+	IPhysicsObject *vPhys = VPhysicsGetObject();
+	if (vPhys)
+	{
+		return vPhys->GetMass();
+	}
+	else
+	{
+		Warning("Tried to call GetMass() on %s but it has no physics.\n", GetDebugName());
+		return 0;
+	}
+}
+
+inline void CBaseEntity::SetMass(float mass)
+{
+	mass = clamp(mass, VPHYSICS_MIN_MASS, VPHYSICS_MAX_MASS);
+
+	IPhysicsObject *vPhys = VPhysicsGetObject();
+	if (vPhys)
+	{
+		vPhys->SetMass(mass);
+	}
+	else
+	{
+		Warning("Tried to call SetMass() on %s but it has no physics.\n", GetDebugName());
+	}
+}
+#endif
 
 
 //-----------------------------------------------------------------------------
@@ -2606,6 +3041,14 @@ inline void CBaseEntity::FireBullets( int cShots, const Vector &vecSrc,
 	info.m_bPrimaryAttack = bPrimaryAttack;
 
 	FireBullets( info );
+}
+
+//-----------------------------------------------------------------------------
+// VScript
+//-----------------------------------------------------------------------------
+inline const char* CBaseEntity::ScriptGetModelName(void) const
+{
+	return STRING(m_ModelName);
 }
 
 // Ugly technique to override base member functions

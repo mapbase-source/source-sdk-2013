@@ -36,6 +36,15 @@
 #define	SIZE_AMMO_AR2_ALTFIRE		1
 
 #define SF_ITEM_START_CONSTRAINED	0x00000001
+#ifdef MAPBASE
+// Copied from CBaseCombatWeapon's flags, including any additions we made to those.
+// I really, REALLY hope no item uses their own spawnflags either.
+#define SF_ITEM_NO_PLAYER_PICKUP	(1<<1)
+#define SF_ITEM_NO_PHYSCANNON_PUNT (1<<2)
+#define SF_ITEM_NO_NPC_PICKUP	(1<<3)
+
+#define SF_ITEM_ALWAYS_TOUCHABLE	(1<<6) // This needs to stay synced with the weapon spawnflag
+#endif
 
 
 class CItem : public CBaseAnimating, public CDefaultPlayerPickupVPhysics
@@ -77,6 +86,21 @@ public:
 #if defined( HL2MP ) || defined( TF_DLL )
 	void	FallThink( void );
 	float  m_flNextResetCheckTime;
+#endif
+
+#ifdef MAPBASE
+	// This appeared to have no prior use in Source SDK 2013.
+	// It may have been originally intended for TF2 or some other game-specific item class.
+	virtual bool IsCombatItem() const { return true; }
+
+	// Used to access item_healthkit values, etc. from outside of the class
+	virtual float GetItemAmount() { return 1.0f; }
+
+	void	InputEnablePlayerPickup( inputdata_t &inputdata );
+	void	InputDisablePlayerPickup( inputdata_t &inputdata );
+	void	InputEnableNPCPickup( inputdata_t &inputdata );
+	void	InputDisableNPCPickup( inputdata_t &inputdata );
+	void	InputBreakConstraint( inputdata_t &inputdata );
 #endif
 
 	DECLARE_DATADESC();

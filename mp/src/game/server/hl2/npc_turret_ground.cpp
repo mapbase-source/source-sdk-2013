@@ -69,7 +69,7 @@ END_DATADESC()
 void CNPC_GroundTurret::Precache( void )
 {
 	PrecacheModel( GROUNDTURRET_BEAM_SPRITE );
-	PrecacheModel( "models/combine_turrets/ground_turret.mdl" );
+	PrecacheModel( DefaultOrCustomModel( "models/combine_turrets/ground_turret.mdl" ) );
 
 	PrecacheScriptSound( "NPC_CeilingTurret.Deploy" );
 	m_ShotSounds = PrecacheScriptSound( "NPC_FloorTurret.ShotSounds" );
@@ -88,7 +88,7 @@ void CNPC_GroundTurret::Spawn( void )
 {
 	Precache();
 
-	UTIL_SetModel( this, "models/combine_turrets/ground_turret.mdl" );
+	UTIL_SetModel( this, DefaultOrCustomModel( "models/combine_turrets/ground_turret.mdl" ) );
 
 	SetNavType( NAV_FLY );
 	SetSolid( SOLID_VPHYSICS );
@@ -130,8 +130,10 @@ void CNPC_GroundTurret::Spawn( void )
 	if( !GetParent() )
 	{
 		DevMsg("ERROR! npc_ground_turret with no parent!\n");
+#ifndef MAPBASE
 		UTIL_Remove(this);
 		return;
+#endif
 	}
 
 	m_flTimeNextShoot = gpGlobals->curtime;

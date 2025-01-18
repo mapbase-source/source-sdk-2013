@@ -143,6 +143,19 @@ acttable_t CWeaponPistol::m_acttable[] =
 
 IMPLEMENT_ACTTABLE( CWeaponPistol );
 
+#ifdef MAPBASE
+// Allows Weapon_BackupActivity() to access the pistol's activity table.
+acttable_t *GetPistolActtable()
+{
+	return CWeaponPistol::m_acttable;
+}
+
+int GetPistolActtableCount()
+{
+	return ARRAYSIZE(CWeaponPistol::m_acttable);
+}
+#endif
+
 #endif
 
 //-----------------------------------------------------------------------------

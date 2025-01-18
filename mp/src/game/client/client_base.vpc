@@ -18,6 +18,9 @@ $include "$SRCDIR\vpc_scripts\protobuf_builder.vpc"
 $Include "$SRCDIR\vpc_scripts\source_replay.vpc"	[$TF]
 $Include "$SRCDIR\game\protobuf_include.vpc"
 
+// Mapbase stuff
+$Include "$SRCDIR\game\client\client_mapbase.vpc"	 [$MAPBASE]
+
 $Configuration	"Debug"
 {
 	$General
@@ -489,6 +492,11 @@ $Project
 		$File	"viewrender.cpp"
 		$File	"$SRCDIR\game\shared\voice_banmgr.cpp"
 		$File	"$SRCDIR\game\shared\voice_status.cpp"
+		$File	"vscript_client.cpp"
+		$File	"vscript_client.h"
+		$File	"vscript_client.nut"
+		$File	"$SRCDIR\game\shared\vscript_shared.cpp"
+		$File	"$SRCDIR\game\shared\vscript_shared.h"
 		$File	"warp_overlay.cpp"
 		$File	"WaterLODMaterialProxy.cpp"
 		$File	"$SRCDIR\game\shared\weapon_parse.cpp"
@@ -527,7 +535,6 @@ $Project
 				"$SRCDIR\public\dt_utlvector_recv.cpp"				\
 				"$SRCDIR\public\filesystem_helpers.cpp"				\
 				"$SRCDIR\public\interpolatortypes.cpp"				\
-				"$SRCDIR\game\shared\interval.cpp"					\
 				"$SRCDIR\common\language.cpp"						\
 				"$SRCDIR\public\networkvar.cpp"						\
 				"$SRCDIR\common\randoverride.cpp"					\
@@ -1098,6 +1105,7 @@ $Project
 		$File	"$SRCDIR\public\vgui_controls\WizardSubPanel.h"
 		$File	"$SRCDIR\public\worldsize.h"
 		$File	"$SRCDIR\public\zip_uncompressed.h"
+		$File	"$SRCDIR\public\tier1\interval.h"
 		//Haptics
 		$File   "$SRCDIR\public\haptics\ihaptics.h"	[$WIN32]
 		$File   "$SRCDIR\public\haptics\haptic_utils.h"	[$WIN32]
@@ -1154,7 +1162,6 @@ $Project
 		$File	"$SRCDIR\game\shared\igamesystem.h"
 		$File	"$SRCDIR\game\shared\imovehelper.h"
 		$File	"$SRCDIR\game\shared\in_buttons.h"
-		$File	"$SRCDIR\game\shared\interval.h"
 		$File	"$SRCDIR\game\shared\iplayeranimstate.h"
 		$File	"$SRCDIR\game\shared\ipredictionsystem.h"
 		$File	"$SRCDIR\game\shared\itempents.h"
@@ -1251,6 +1258,9 @@ $Project
 		$Lib		vgui_controls
 		$Lib		vtf
 		$ImpLib		steam_api
+		
+		// Discord integration
+		$Lib	"$LIBPUBLIC\discord-rpc" [$MAPBASE_RPC]
 		
 		$Libexternal $LIBCOMMON/libcrypto [$OSXALL]
 		$Libexternal "$SRCDIR\lib\common\$(CRYPTOPPDIR)\libcrypto" [$LINUXALL]

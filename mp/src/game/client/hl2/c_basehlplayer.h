@@ -5,7 +5,6 @@
 // $Workfile:     $
 // $NoKeywords: $
 //=============================================================================//
-
 #if !defined( C_BASEHLPLAYER_H )
 #define C_BASEHLPLAYER_H
 #ifdef _WIN32
@@ -15,6 +14,10 @@
 
 #include "c_baseplayer.h"
 #include "c_hl2_playerlocaldata.h"
+
+#if !defined( HL2MP ) && defined ( MAPBASE )
+#include "mapbase/singleplayer_animstate.h"
+#endif
 
 class C_BaseHLPlayer : public C_BasePlayer
 {
@@ -34,9 +37,16 @@ public:
 	float				GetZoom( void );
 	bool				IsZoomed( void )	{ return m_HL2Local.m_bZooming; }
 
-	bool				IsSprinting( void ) { return m_HL2Local.m_bitsActiveDevices & bits_SUIT_DEVICE_SPRINT; }
+	//Tony; minor cosmetic really, fix confusion by simply renaming this one; everything calls IsSprinting(), and this isn't really even used.
+	bool				IsSprintActive( void ) { return m_HL2Local.m_bitsActiveDevices & bits_SUIT_DEVICE_SPRINT; }
 	bool				IsFlashlightActive( void ) { return m_HL2Local.m_bitsActiveDevices & bits_SUIT_DEVICE_FLASHLIGHT; }
 	bool				IsBreatherActive( void ) { return m_HL2Local.m_bitsActiveDevices & bits_SUIT_DEVICE_BREATHER; }
+
+#ifdef MAPBASE
+	bool				IsCustomDevice0Active( void ) { return m_HL2Local.m_bitsActiveDevices & bits_SUIT_DEVICE_CUSTOM0; }
+	bool				IsCustomDevice1Active( void ) { return m_HL2Local.m_bitsActiveDevices & bits_SUIT_DEVICE_CUSTOM1; }
+	bool				IsCustomDevice2Active( void ) { return m_HL2Local.m_bitsActiveDevices & bits_SUIT_DEVICE_CUSTOM2; }
+#endif
 
 	virtual int			DrawModel( int flags );
 	virtual	void		BuildTransformations( CStudioHdr *hdr, Vector *pos, Quaternion q[], const matrix3x4_t& cameraTransform, int boneMask, CBoneBitList &boneComputed );
@@ -51,6 +61,10 @@ public:
 	void			PerformClientSideNPCSpeedModifiers( float flFrameTime, CUserCmd *pCmd );
 
 	bool				IsWeaponLowered( void ) { return m_HL2Local.m_bWeaponLowered; }
+
+#ifdef SP_ANIM_STATE
+	virtual const QAngle&	GetRenderAngles( void );
+#endif
 
 public:
 
@@ -72,7 +86,13 @@ private:
 	bool				m_bPlayUseDenySound;		// Signaled by PlayerUse, but can be unset by HL2 ladder code...
 	float				m_flSpeedMod;
 	float				m_flExitSpeedMod;
-
+	
+#ifdef SP_ANIM_STATE
+	// At the moment, we network the render angles since almost none of the player anim stuff is done on the client in SP.
+	// If any of this is ever adapted for MP, this method should be replaced with replicating/moving the anim state to the client.
+	float				m_flAnimRenderYaw;
+	QAngle				m_angAnimRender;
+#endif
 
 friend class CHL2GameMovement;
 };

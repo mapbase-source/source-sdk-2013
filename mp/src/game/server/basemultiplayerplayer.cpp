@@ -28,6 +28,7 @@ CBaseMultiplayerPlayer::CBaseMultiplayerPlayer()
 CBaseMultiplayerPlayer::~CBaseMultiplayerPlayer()
 {
 	m_pAchievementKV->deleteThis();
+	delete m_pExpresser;
 }
 
 //-----------------------------------------------------------------------------
@@ -91,7 +92,13 @@ bool CBaseMultiplayerPlayer::SpeakConcept( AI_Response &response, int iConcept )
 {
 	// Save the current concept.
 	m_iCurrentConcept = iConcept;
+#ifdef NEW_RESPONSE_SYSTEM
+	CAI_Concept concept(g_pszMPConcepts[iConcept]);
+	concept.SetSpeaker(this);
+	return FindResponse( response, concept );
+#else
 	return SpeakFindResponse( response, g_pszMPConcepts[iConcept] );
+#endif
 }
 
 //-----------------------------------------------------------------------------

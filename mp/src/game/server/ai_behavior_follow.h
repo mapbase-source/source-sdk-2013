@@ -36,6 +36,9 @@ enum AI_Formations_t
 	AIF_SIDEKICK,
 	AIF_HUNTER,
 	AIF_VORTIGAUNT,
+#ifdef MAPBASE
+	AIF_NUM_FORMATIONS,
+#endif
 };
 
 enum AI_FollowFormationFlags_t
@@ -67,6 +70,10 @@ public:
 #endif
 
 	int m_iFormation;
+
+#ifdef MAPBASE
+	bool m_bNormalMemoryDiscard = false;
+#endif
 
 	DECLARE_DATADESC();
 };

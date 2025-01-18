@@ -57,6 +57,16 @@ enum
 	SOUND_CONTEXT_ALLIES_ONLY		= 0x10000000, // Only player allies can hear this sound
 	SOUND_CONTEXT_PLAYER_VEHICLE	= 0x20000000, // HACK: need this because we're not treating the SOUND_xxx values as true bit values! See switch in OnListened.
 
+#ifdef MAPBASE
+	// You know, I wouldn't mind this approach of leaving types and contexts on the same int
+	// since it was important in the GoldSrc era with how many CSounds there can be at any given time.
+	// I'm just frustrated that this system was retained in Source with very specific and/or useless contexts with very little room to expand.
+	// If this doesn't work, replace SOUND_CONTEXT_PLAYER_VEHICLE with owner server vehicle checks.
+
+	// Only heard by NPCs the owner likes. Needed for shared grenade code.
+	SOUND_CONTEXT_OWNER_ALLIES		= 0x40000000,
+#endif
+
 	ALL_CONTEXTS			= 0xFFF00000,
 
 	ALL_SCENTS				= SOUND_CARCASS | SOUND_MEAT | SOUND_GARBAGE,
@@ -125,6 +135,12 @@ public:
 	void	Reset ( void );
 	int		SoundChannel( void ) const;
 	bool	ValidateOwner() const;
+
+#ifdef MAPBASE_VSCRIPT
+	// For VScript functions
+	HSCRIPT	ScriptGetOwner() const { return ToHScript( m_hOwner ); }
+	HSCRIPT	ScriptGetTarget() const { return ToHScript( m_hTarget ); }
+#endif
 
 	EHANDLE	m_hOwner;				// sound's owner
 	EHANDLE	m_hTarget;				// Sounds's target - an odd concept. For a gunfire sound, the target is the entity being fired at

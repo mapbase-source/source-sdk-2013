@@ -72,6 +72,10 @@ ConVar g_debug_headcrab( "g_debug_headcrab", "0", FCVAR_CHEAT );
 //------------------------------------
 #define SF_HEADCRAB_START_HIDDEN		(1 << 16)
 #define SF_HEADCRAB_START_HANGING		(1 << 17)
+#ifdef MAPBASE
+#define SF_HEADCRAB_DONT_DROWN			(1 << 18)
+#define SF_HEADCRAB_NO_MELEE_INSTAKILL	(1 << 19)
+#endif
 
 
 //-----------------------------------------------------------------------------
@@ -217,6 +221,10 @@ BEGIN_DATADESC( CBaseHeadcrab )
 	DEFINE_INPUTFUNC( FIELD_VOID, "Unburrow", InputUnburrow ),
 	DEFINE_INPUTFUNC( FIELD_VOID, "StartHangingFromCeiling", InputStartHangingFromCeiling ),
 	DEFINE_INPUTFUNC( FIELD_VOID, "DropFromCeiling", InputDropFromCeiling ),
+
+#ifdef MAPBASE
+	DEFINE_OUTPUT( m_OnLeap, "OnLeap" ),
+#endif
 
 	// Function Pointers
 	DEFINE_THINKFUNC( EliminateRollAndPitch ),
@@ -482,6 +490,11 @@ void CBaseHeadcrab::Leap( const Vector &vecVel )
 	m_bMidJump = true;
 	SetThink( &CBaseHeadcrab::ThrowThink );
 	SetNextThink( gpGlobals->curtime );
+
+#ifdef MAPBASE
+	// We usually leap at an enemy, so use that as the activator
+	m_OnLeap.FireOutput(GetEnemy(), this);
+#endif
 }
 
 
@@ -926,7 +939,11 @@ void CBaseHeadcrab::LeapTouch( CBaseEntity *pOther )
 {
 	m_bMidJump = false;
 
+#ifdef MAPBASE
+	if ( IRelationType( pOther ) <= D_FR )
+#else
 	if ( IRelationType( pOther ) == D_HT )
+#endif
 	{
 		// Don't hit if back on ground
 		if ( !( GetFlags() & FL_ONGROUND ) )
@@ -1032,7 +1049,11 @@ void CBaseHeadcrab::GatherConditions( void )
 
 	BaseClass::GatherConditions();
 
+#ifdef MAPBASE
+	if (GetWaterLevel() > 1 && m_lifeState == LIFE_ALIVE && !HasSpawnFlags( SF_HEADCRAB_DONT_DROWN ))
+#else
 	if( m_lifeState == LIFE_ALIVE && GetWaterLevel() > 1 )
+#endif
 	{
 		// Start Drowning!
 		SetCondition( COND_HEADCRAB_IN_WATER );
@@ -1712,7 +1733,12 @@ int CBaseHeadcrab::OnTakeDamage_Alive( const CTakeDamageInfo &inputInfo )
 	//
 	// Certain death from melee bludgeon weapons!
 	//
+#ifdef MAPBASE
+	// (unless the mapper said no)
+	if ( info.GetDamageType() & DMG_CLUB && !HasSpawnFlags( SF_HEADCRAB_NO_MELEE_INSTAKILL ) )
+#else
 	if ( info.GetDamageType() & DMG_CLUB )
+#endif
 	{
 		info.SetDamage( m_iHealth );
 	}
@@ -2230,6 +2256,9 @@ void CBaseHeadcrab::GrabHintNode( CAI_Hint *pHint )
 	{
 		SetHintNode( pHint );
 		pHint->Lock( this );
+#ifdef MAPBASE
+		pHint->NPCStartedUsing( this );
+#endif
 	}
 }
 
@@ -2404,7 +2433,7 @@ void CBaseHeadcrab::CreateDust( bool placeDecal )
 //-----------------------------------------------------------------------------
 void CHeadcrab::Precache( void )
 {
-	PrecacheModel( "models/headcrabclassic.mdl" );
+	PrecacheModel( DefaultOrCustomModel( "models/headcrabclassic.mdl" ) );
 
 	PrecacheScriptSound( "NPC_HeadCrab.Gib" );
 	PrecacheScriptSound( "NPC_HeadCrab.Idle" );
@@ -2426,7 +2455,7 @@ void CHeadcrab::Precache( void )
 void CHeadcrab::Spawn( void )
 {
 	Precache();
-	SetModel( "models/headcrabclassic.mdl" );
+	SetModel( DefaultOrCustomModel( "models/headcrabclassic.mdl" ) );
 
 	BaseClass::Spawn();
 
@@ -2541,7 +2570,7 @@ END_DATADESC()
 //-----------------------------------------------------------------------------
 void CFastHeadcrab::Precache( void )
 {
-	PrecacheModel( "models/headcrab.mdl" );
+	PrecacheModel( DefaultOrCustomModel( "models/headcrab.mdl" ) );
 
 	PrecacheScriptSound( "NPC_FastHeadcrab.Idle" );
 	PrecacheScriptSound( "NPC_FastHeadcrab.Alert" );
@@ -2560,7 +2589,7 @@ void CFastHeadcrab::Precache( void )
 void CFastHeadcrab::Spawn( void )
 {
 	Precache();
-	SetModel( "models/headcrab.mdl" );
+	SetModel( DefaultOrCustomModel( "models/headcrab.mdl" ) );
 
 	BaseClass::Spawn();
 
@@ -3060,7 +3089,7 @@ void CBlackHeadcrab::TelegraphSound( void )
 void CBlackHeadcrab::Spawn( void )
 {
 	Precache();
-	SetModel( "models/headcrabblack.mdl" );
+	SetModel( DefaultOrCustomModel( "models/headcrabblack.mdl" ) );
 
 	BaseClass::Spawn();
 
@@ -3077,7 +3106,7 @@ void CBlackHeadcrab::Spawn( void )
 //-----------------------------------------------------------------------------
 void CBlackHeadcrab::Precache( void )
 {
-	PrecacheModel( "models/headcrabblack.mdl" );
+	PrecacheModel( DefaultOrCustomModel( "models/headcrabblack.mdl" ) );
 
 	PrecacheScriptSound( "NPC_BlackHeadcrab.Telegraph" );
 	PrecacheScriptSound( "NPC_BlackHeadcrab.Attack" );

@@ -132,6 +132,38 @@ struct VertexLitGeneric_DX9_Vars_t
 	int m_nBlendTintByBaseAlpha;
 
 	int m_nTintReplacesBaseColor;
+
+#ifdef MAPBASE
+	// Parameters ported from Alien Swarm SDK shaders.
+
+	// Utility param for disabling tinting on certain materials.
+	int m_nAllowDiffuseModulation;
+
+	// $envmapfresnel on non-phong materials.
+	int m_nEnvMapFresnelMinMaxExp;
+	int m_nBaseAlphaEnvMapMaskMinMaxExp;
+
+	// Disables $halflambert on phong materials. See bPhongHalfLambert in DrawSkin_DX9_Internal() for more info.
+	int m_nPhongDisableHalfLambert;
+#endif
+
+	int m_nTreeSway;
+	int m_nTreeSwayHeight;
+	int m_nTreeSwayStartHeight;
+	int m_nTreeSwayRadius;
+	int m_nTreeSwayStartRadius;
+	int m_nTreeSwaySpeed;
+	int m_nTreeSwaySpeedHighWindMultiplier;
+	int m_nTreeSwayStrength;
+	int m_nTreeSwayScrumbleSpeed;
+	int m_nTreeSwayScrumbleStrength;
+	int m_nTreeSwayScrumbleFrequency;
+	int m_nTreeSwayFalloffExp;
+	int m_nTreeSwayScrumbleFalloffExp;
+	int m_nTreeSwaySpeedLerpStart;
+	int m_nTreeSwaySpeedLerpEnd;
+	int m_nTreeSwayStatic;
+	int m_nTreeSwayStaticValues;
 };
 
 void InitParamsVertexLitGeneric_DX9( CBaseVSShader *pShader, IMaterialVar** params, const char *pMaterialName, bool bVertexLitGeneric, VertexLitGeneric_DX9_Vars_t &info );

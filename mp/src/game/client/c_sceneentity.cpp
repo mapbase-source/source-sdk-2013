@@ -676,7 +676,7 @@ void C_SceneEntity::DispatchStartSpeak( CChoreoScene *scene, C_BaseFlex *actor, 
 		es.m_pSoundName = event->GetParameters();
 
 		EmitSound( filter, actor->entindex(), es );
-		actor->AddSceneEvent( scene, event, NULL, IsClientOnly() );
+		actor->AddSceneEvent( scene, event, NULL, IsClientOnly(), this );
 
 		// Close captioning only on master token no matter what...
 		if ( event->GetCloseCaptionType() == CChoreoEvent::CC_MASTER )
@@ -806,20 +806,72 @@ CChoreoStringPool g_ChoreoStringPool;
 
 CChoreoScene *C_SceneEntity::LoadScene( const char *filename )
 {
+#ifdef MAPBASE
+	char loadfile[MAX_PATH];
+#else
 	char loadfile[ 512 ];
+#endif
 	Q_strncpy( loadfile, filename, sizeof( loadfile ) );
 	Q_SetExtension( loadfile, ".vcd", sizeof( loadfile ) );
 	Q_FixSlashes( loadfile );
 
+#ifdef MAPBASE
+	// 
+	// Raw scene file support
+	// 
+	void *pBuffer = 0;
+	size_t bufsize = scenefilecache->GetSceneBufferSize( loadfile );
+	CChoreoScene *pScene = NULL;
+	if ( bufsize > 0 )
+	{
+		// Definitely in scenes.image
+		pBuffer = malloc( bufsize );
+		if ( !scenefilecache->GetSceneData( filename, (byte *)pBuffer, bufsize ) )
+		{
+			free( pBuffer );
+			return NULL;
+		}
+
+	
+		if ( IsBufferBinaryVCD( (char*)pBuffer, bufsize ) )
+		{
+			pScene = new CChoreoScene( this );
+			CUtlBuffer buf( pBuffer, bufsize, CUtlBuffer::READ_ONLY );
+			if ( !pScene->RestoreFromBinaryBuffer( buf, loadfile, &g_ChoreoStringPool ) )
+			{
+				Warning( "Unable to restore scene '%s'\n", loadfile );
+				delete pScene;
+				pScene = NULL;
+			}
+		}
+	}
+	else if (filesystem->ReadFileEx( loadfile, "MOD", &pBuffer, true ))
+	{
+		// Not in scenes.image, but it's a raw file
+		g_TokenProcessor.SetBuffer((char*)pBuffer);
+		pScene = ChoreoLoadScene( loadfile, this, &g_TokenProcessor, Scene_Printf );
+	}
+	else
+	{
+		// Abandon ship
+		return NULL;
+	}
+
+	if(pScene)
+	{
+		pScene->SetPrintFunc( Scene_Printf );
+		pScene->SetEventCallbackInterface( this );
+	}
+#else
 	char *pBuffer = NULL;
 	size_t bufsize = scenefilecache->GetSceneBufferSize( loadfile );
 	if ( bufsize <= 0 )
 		return NULL;
 
-	pBuffer = new char[ bufsize ];
+	pBuffer = malloc( bufsize );
 	if ( !scenefilecache->GetSceneData( filename, (byte *)pBuffer, bufsize ) )
 	{
-		delete[] pBuffer;
+		free( pBuffer );
 		return NULL;
 	}
 
@@ -845,8 +897,9 @@ CChoreoScene *C_SceneEntity::LoadScene( const char *filename )
 		g_TokenProcessor.SetBuffer( pBuffer );
 		pScene = ChoreoLoadScene( loadfile, this, &g_TokenProcessor, Scene_Printf );
 	}
+#endif
 
-	delete[] pBuffer;
+	free( pBuffer );
 	return pScene;
 }
 
@@ -913,7 +966,7 @@ void C_SceneEntity::UnloadScene( void )
 //-----------------------------------------------------------------------------
 void C_SceneEntity::DispatchStartFlexAnimation( CChoreoScene *scene, C_BaseFlex *actor, CChoreoEvent *event )
 {
-	actor->AddSceneEvent( scene, event, NULL, IsClientOnly() );
+	actor->AddSceneEvent( scene, event, NULL, IsClientOnly(), this );
 }
 
 //-----------------------------------------------------------------------------
@@ -933,7 +986,7 @@ void C_SceneEntity::DispatchEndFlexAnimation( CChoreoScene *scene, C_BaseFlex *a
 //-----------------------------------------------------------------------------
 void C_SceneEntity::DispatchStartExpression( CChoreoScene *scene, C_BaseFlex *actor, CChoreoEvent *event )
 {
-	actor->AddSceneEvent( scene, event, NULL, IsClientOnly() );
+	actor->AddSceneEvent( scene, event, NULL, IsClientOnly(), this );
 }
 
 //-----------------------------------------------------------------------------
@@ -957,7 +1010,7 @@ void C_SceneEntity::DispatchStartGesture( CChoreoScene *scene, C_BaseFlex *actor
 	if ( !Q_stricmp( event->GetName(), "NULL" ) )
 		return;
 
-	actor->AddSceneEvent( scene, event, NULL, IsClientOnly() ); 
+	actor->AddSceneEvent( scene, event, NULL, IsClientOnly(), this ); 
 }
 
 //-----------------------------------------------------------------------------
@@ -972,7 +1025,7 @@ void C_SceneEntity::DispatchProcessGesture( CChoreoScene *scene, C_BaseFlex *act
 		return;
 
 	actor->RemoveSceneEvent( scene, event, false );
-	actor->AddSceneEvent( scene, event, NULL, IsClientOnly() ); 
+	actor->AddSceneEvent( scene, event, NULL, IsClientOnly(), this ); 
 }
 
 //-----------------------------------------------------------------------------
@@ -995,7 +1048,7 @@ void C_SceneEntity::DispatchEndGesture( CChoreoScene *scene, C_BaseFlex *actor, 
 //-----------------------------------------------------------------------------
 void C_SceneEntity::DispatchStartSequence( CChoreoScene *scene, CBaseFlex *actor, CChoreoEvent *event )
 {
-	actor->AddSceneEvent( scene, event, NULL, IsClientOnly() );
+	actor->AddSceneEvent( scene, event, NULL, IsClientOnly(), this );
 }
 
 //-----------------------------------------------------------------------------
@@ -1005,7 +1058,7 @@ void C_SceneEntity::DispatchStartSequence( CChoreoScene *scene, CBaseFlex *actor
 void C_SceneEntity::DispatchProcessSequence( CChoreoScene *scene, CBaseFlex *actor, CChoreoEvent *event )
 {
 	actor->RemoveSceneEvent( scene, event, false );
-	actor->AddSceneEvent( scene, event, NULL, IsClientOnly() );
+	actor->AddSceneEvent( scene, event, NULL, IsClientOnly(), this );
 }
 
 //-----------------------------------------------------------------------------
