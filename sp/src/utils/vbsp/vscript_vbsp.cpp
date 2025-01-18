@@ -66,7 +66,7 @@ HSCRIPT VScriptCompileScript( const char *pszScriptName, bool bWarnMissing )
 	const char *pszIncomingExtension = V_strrchr( pszScriptName , '.' );
 	if ( pszIncomingExtension && V_strcmp( pszIncomingExtension, pszVMExtension ) != 0 )
 	{
-		Warning( "Script file type does not match VM type\n" );
+		Warning("\tScript file type does not match VM type\n" );
 		return NULL;
 	}
 
@@ -107,7 +107,7 @@ HSCRIPT VScriptCompileScript( const char *pszScriptName, bool bWarnMissing )
 
 		if ( !bResult && bWarnMissing )
 		{
-			Warning( "Script not found (%s) \n", scriptPath.operator const char *() );
+			Warning("\tScript not found (%s) \n", scriptPath.operator const char *() );
 			Assert( "Error running script" );
 		}
 
@@ -125,7 +125,7 @@ HSCRIPT VScriptCompileScript( const char *pszScriptName, bool bWarnMissing )
 	HSCRIPT hScript = g_pScriptVM->CompileScript( pBase, pszFilename );
 	if ( !hScript )
 	{
-		Warning( "FAILED to compile and execute script file named %s\n", scriptPath.operator const char *() );
+		Warning("\tFAILED to compile and execute script file named %s\n", scriptPath.operator const char *() );
 		Assert( "Error running script" );
 	}
 	return hScript;
@@ -142,14 +142,14 @@ bool VScriptRunScript( const char *pszScriptName, HSCRIPT hScope, bool bWarnMiss
 
 	if ( !pszScriptName || !*pszScriptName )
 	{
-		Warning( "Cannot run script: NULL script name\n" );
+		Warning("\tCannot run script: NULL script name\n" );
 		return false;
 	}
 
 	// Prevent infinite recursion in VM
 	if ( g_ScriptVBSPRunScriptDepth > 16 )
 	{
-		Warning( "IncludeScript stack overflow\n" );
+		Warning("\tIncludeScript stack overflow\n" );
 		return false;
 	}
 
@@ -161,7 +161,7 @@ bool VScriptRunScript( const char *pszScriptName, HSCRIPT hScope, bool bWarnMiss
 		bSuccess = ( g_pScriptVM->Run( hScript, hScope ) != SCRIPT_ERROR );
 		if ( !bSuccess )
 		{
-			Warning( "Error running script named %s\n", pszScriptName );
+			Warning("\tError running script named %s\n", pszScriptName );
 			Assert( "Error running script" );
 		}
 	}

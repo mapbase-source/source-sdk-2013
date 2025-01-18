@@ -19,6 +19,10 @@
 #include "tier0/fasttimer.h"
 #include "disp_vrad.h"
 
+#ifdef MAPBASE
+#include "../common/StandartColorFormat.h" //this control the color of the console.
+#endif 
+
 class CBSPDispRayDistanceEnumerator;
 
 //=============================================================================
@@ -513,11 +517,21 @@ void CVRadDispMgr::MakePatches( void )
 	}
 
 	// Print stats.
-	qprintf( "%i Displacements\n", nTreeCount );
-	qprintf( "%i Square Feet [%.2f Square Inches]\n", ( int )( flTotalArea / 144.0f ), flTotalArea );
+#ifdef MAPBASE
+	Msg("Number of displacements ");
+	ColorSpewMessage(SPEW_MESSAGE, &magenta, "[%i]\n", nTreeCount);	
+	Msg("Square Feet ");
+	ColorSpewMessage(SPEW_MESSAGE, &magenta, "[%i] [%.2f Square Inches]\n", (int)(flTotalArea / 144.0f), flTotalArea);
+#else
+	qprintf("%i Displacements\n", nTreeCount);
+	qprintf("%i Square Feet [%.2f Square Inches]\n", (int)(flTotalArea / 144.0f), flTotalArea);
+#endif
+
 }
+
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
+
 void CVRadDispMgr::SubdividePatch( int iPatch )
 {
 	// Get the current patch to subdivide.
@@ -1550,7 +1564,11 @@ void CVRadDispMgr::EndTimer( void )
 	CCycleCount duration = m_Timer.GetDuration();
 	double seconds = duration.GetSeconds();
 
+#ifdef MAPBASE
+	ColorSpewMessage(SPEW_MESSAGE, &green, "done (%1.4lf)\n", seconds);
+#else
 	Msg( "Done<%1.4lf sec>\n", seconds );
+#endif
 }
 
 

@@ -1703,7 +1703,7 @@ struct SquirrelSafeCheck
 		if ( top_ != diff )
 		{
 			Assert(!"Squirrel VM stack is not consistent");
-			Error("Squirrel VM stack is not consistent\n");
+			Error("\tSquirrel VM stack is not consistent\n");
 		}
 
 		// TODO: Handle error state checks
@@ -1732,7 +1732,7 @@ void errorfunc(HSQUIRRELVM SQ_UNUSED_ARG(v), const SQChar* format, ...)
 	va_start(args, format);
 	V_vsnprintf(buffer, sizeof(buffer), format, args);
 	va_end(args);
-	Warning("%s", buffer);
+	Warning("\t%s", buffer);
 }
 
 const char * ScriptDataTypeToName(ScriptDataType_t datatype)
@@ -2536,7 +2536,7 @@ bool SquirrelVM::RegisterClass(ScriptClassDesc_t* pClassDesc)
 		char typemask[64];
 		if (!CreateParamCheck(scriptFunction, typemask))
 		{
-			Warning("Unable to create param check for %s.%s\n",
+			Warning("\tUnable to create param check for %s.%s\n",
 				pClassDesc->m_pszClassname, scriptFunction.m_desc.m_pszFunction);
 			break;
 		}
@@ -3277,7 +3277,7 @@ void SquirrelVM::WriteObject(CUtlBuffer* pBuffer, WriteStateMap& writeState, SQI
 			sq_push(vm_, idx);
 			if (SQ_FAILED(sq_writeclosure(vm_, closure_write, pBuffer)))
 			{
-				Error("Failed to write closure");
+				Error("\tFailed to write closure");
 			}
 			sq_pop(vm_, 1);
 		}
@@ -3290,7 +3290,7 @@ void SquirrelVM::WriteObject(CUtlBuffer* pBuffer, WriteStateMap& writeState, SQI
 
 			if (!_closure(obj)->Save(vm_, pBuffer, closure_write))
 			{
-				Error("Failed to write closure\n");
+				Error("\tFailed to write closure\n");
 			}
 
 			int noutervalues = _closure(obj)->_function->_noutervalues;
@@ -3533,7 +3533,7 @@ void SquirrelVM::WriteObject(CUtlBuffer* pBuffer, WriteStateMap& writeState, SQI
 	// case OT_THREAD:
 	// 
 	default:
-		Warning("SquirrelVM::WriteObject: Unexpected type %d", sq_gettype(vm_, idx));
+		Warning("\tSquirrelVM::WriteObject: Unexpected type %d", sq_gettype(vm_, idx));
 		// Save a null instead
 		pBuffer->PutInt(OT_NULL);
 	}
@@ -3673,7 +3673,7 @@ void SquirrelVM::ReadObject(CUtlBuffer* pBuffer, ReadStateMap& readState)
 		{
 			if (SQ_FAILED(sq_readclosure(vm_, closure_read, pBuffer)))
 			{
-				Error("Failed to read closure\n");
+				Error("\tFailed to read closure\n");
 				sq_pushnull(vm_);
 				break;
 			}
@@ -3685,7 +3685,7 @@ void SquirrelVM::ReadObject(CUtlBuffer* pBuffer, ReadStateMap& readState)
 			SQObjectPtr ret;
 			if (!SQClosure::Load(vm_, pBuffer, closure_read, ret))
 			{
-				Error("Failed to read closure\n");
+				Error("\tFailed to read closure\n");
 				sq_pushnull(vm_);
 				break;
 			}
@@ -3725,7 +3725,7 @@ void SquirrelVM::ReadObject(CUtlBuffer* pBuffer, ReadStateMap& readState)
 			HSQOBJECT obj;
 			sq_getstackobj(vm_, -2, &obj);
 			if (_closure(obj) == nullptr)
-				Warning("Closure is null\n");
+				Warning("\tClosure is null\n");
 			else
 				_closure(obj)->_env = _refcounted(env)->GetWeakRef(sq_type(env));
 		}
@@ -3742,7 +3742,7 @@ void SquirrelVM::ReadObject(CUtlBuffer* pBuffer, ReadStateMap& readState)
 		sq_pushstring(vm_, closureName, -1);
 		if (SQ_FAILED(sq_get(vm_, -2)))
 		{
-			Warning("SquirrelVM::ReadObject: Failed to find native closure\n");
+			Warning("\tSquirrelVM::ReadObject: Failed to find native closure\n");
 			sq_pop(vm_, 1);
 			sq_pushnull(vm_);
 		}
@@ -3774,7 +3774,7 @@ void SquirrelVM::ReadObject(CUtlBuffer* pBuffer, ReadStateMap& readState)
 			sq_pushstring(vm_, className, -1);
 			if (SQ_FAILED(sq_get(vm_, -2)))
 			{
-				Warning("SquirrelVM::ReadObject: Failed to find native class: %s\n", className);
+				Warning("\tSquirrelVM::ReadObject: Failed to find native class: %s\n", className);
 				sq_pushnull(vm_);
 			}
 			sq_remove(vm_, -2);
@@ -3807,7 +3807,7 @@ void SquirrelVM::ReadObject(CUtlBuffer* pBuffer, ReadStateMap& readState)
 		}
 		else
 		{
-			Error("SquirrelVM::ReadObject: Unknown class type\n");
+			Error("\tSquirrelVM::ReadObject: Unknown class type\n");
 			sq_pushnull(vm_);
 		}
 		break;
@@ -3872,7 +3872,7 @@ void SquirrelVM::ReadObject(CUtlBuffer* pBuffer, ReadStateMap& readState)
 
 			if (!foundSingleton)
 			{
-				Warning("SquirrelVM::ReadObject: Failed to find singleton for %s\n",
+				Warning("\tSquirrelVM::ReadObject: Failed to find singleton for %s\n",
 					((ScriptClassDesc_t*)typetag)->m_pszScriptName);
 			}
 
@@ -3969,7 +3969,7 @@ void SquirrelVM::ReadObject(CUtlBuffer* pBuffer, ReadStateMap& readState)
 		SQObjectPtr ret;
 		if (!SQFunctionProto::Load(vm_, pBuffer, closure_read, ret))
 		{
-			Error("Failed to deserialize OT_FUNCPROTO\n");
+			Error("\tFailed to deserialize OT_FUNCPROTO\n");
 			sq_pushnull(vm_);
 			break;
 		}
@@ -4005,7 +4005,7 @@ void SquirrelVM::ReadObject(CUtlBuffer* pBuffer, ReadStateMap& readState)
 	// case OT_THREAD:
 	// 
 	default:
-		Error("SquirrelVM::ReadObject: Unexpected type %d", thisType);
+		Error("\tSquirrelVM::ReadObject: Unexpected type %d", thisType);
 	}
 }
 

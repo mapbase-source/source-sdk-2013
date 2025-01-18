@@ -83,7 +83,7 @@ class Color;
 //
 //     To use a warning, use
 //      
-//     Warning("Oh I feel so %s all over\n", "yummy");
+//     Warning("\tOh I feel so %s all over\n", "yummy");
 //
 //     Warning will do its magic in only Debug builds. To perform spew in *all*
 //     builds, use RelWarning.
@@ -92,7 +92,7 @@ class Color;
 //	   These error types do *not* need two sets of parenthesis.
 //
 //	   Msg( "Isn't this exciting %d?", 5 );
-//	   Error( "I'm just thrilled" );
+//	   Error( "\tI'm just thrilled" );
 //
 //   Dynamic Spew messages
 //
@@ -103,7 +103,7 @@ class Color;
 //     level specified in the SpewActivate function to be printed. Use DSpew 
 //     to perform the spew:
 //
-//     DWarning( "group", level, "Oh I feel even yummier!\n" );
+//     DWarning("\tgroup", level, "Oh I feel even yummier!\n" );
 //
 //     Priority level 0 means that the spew will *always* be printed, and group
 //     '*' is the default spew group. If a DWarning is encountered using a group 

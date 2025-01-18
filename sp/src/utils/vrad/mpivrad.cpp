@@ -95,7 +95,7 @@ void VRAD_SetupMPI( int &argc, char **&argv )
 		mode
 		) )
 	{
-		Error( "MPI_Init failed." );
+		Error("\tMPI_Init failed." );
 	}
 
 	StatsDB_InitStatsDatabase( argc, argv, "dbinfo_vrad.txt" );
@@ -166,14 +166,14 @@ void UnSerializeFace( MessageBuffer * pmb, int facenum, int iSource )
 	facelight_t * fl = &facelight[facenum];
 
 	if (pmb->read(f, sizeof(dface_t)) < 0) 
-		Error("UnSerializeFace - invalid dface_t from %s (mb len: %d, offset: %d)", VMPI_GetMachineName( iSource ), pmb->getLen(), pmb->getOffset() );
+		Error("\tUnSerializeFace - invalid dface_t from %s (mb len: %d, offset: %d)", VMPI_GetMachineName( iSource ), pmb->getLen(), pmb->getOffset() );
 
 	if (pmb->read(fl, sizeof(facelight_t)) < 0) 
-		Error("UnSerializeFace - invalid facelight_t from %s (mb len: %d, offset: %d)", VMPI_GetMachineName( iSource ), pmb->getLen(), pmb->getOffset() );
+		Error("\tUnSerializeFace - invalid facelight_t from %s (mb len: %d, offset: %d)", VMPI_GetMachineName( iSource ), pmb->getLen(), pmb->getOffset() );
 
 	fl->sample = (sample_t *) calloc(fl->numsamples, sizeof(sample_t));
 	if (pmb->read(fl->sample, sizeof(sample_t) * fl->numsamples) < 0) 
-		Error("UnSerializeFace - invalid sample_t from %s (mb len: %d, offset: %d, fl->numsamples: %d)", VMPI_GetMachineName( iSource ), pmb->getLen(), pmb->getOffset(), fl->numsamples );
+		Error("\tUnSerializeFace - invalid sample_t from %s (mb len: %d, offset: %d, fl->numsamples: %d)", VMPI_GetMachineName( iSource ), pmb->getLen(), pmb->getOffset(), fl->numsamples );
 
 	//
 	// Read the light information
@@ -184,7 +184,7 @@ void UnSerializeFace( MessageBuffer * pmb, int facenum, int iSource )
 			{
 				fl->light[i][n] = (LightingValue_t *) calloc( fl->numsamples, sizeof(LightingValue_t ) );
 				if ( ReadValues( pmb, fl->light[i][n], fl->numsamples) < 0)
-					Error("UnSerializeFace - invalid fl->light from %s (mb len: %d, offset: %d)", VMPI_GetMachineName( iSource ), pmb->getLen(), pmb->getOffset() );
+					Error("\tUnSerializeFace - invalid fl->light from %s (mb len: %d, offset: %d)", VMPI_GetMachineName( iSource ), pmb->getLen(), pmb->getOffset() );
 			}
 		}
 	}
@@ -192,13 +192,13 @@ void UnSerializeFace( MessageBuffer * pmb, int facenum, int iSource )
 	if (fl->luxel) {
 		fl->luxel = (Vector *) calloc(fl->numluxels, sizeof(Vector));
 		if (ReadValues( pmb, fl->luxel, fl->numluxels) < 0)
-			Error("UnSerializeFace - invalid fl->luxel from %s (mb len: %d, offset: %d)", VMPI_GetMachineName( iSource ), pmb->getLen(), pmb->getOffset() );
+			Error("\tUnSerializeFace - invalid fl->luxel from %s (mb len: %d, offset: %d)", VMPI_GetMachineName( iSource ), pmb->getLen(), pmb->getOffset() );
 	}
 
 	if (fl->luxelNormals) {
 		fl->luxelNormals = (Vector *) calloc(fl->numluxels, sizeof( Vector ));
 		if ( ReadValues( pmb, fl->luxelNormals, fl->numluxels) < 0)
-			Error("UnSerializeFace - invalid fl->luxelNormals from %s (mb len: %d, offset: %d)", VMPI_GetMachineName( iSource ), pmb->getLen(), pmb->getOffset() );
+			Error("\tUnSerializeFace - invalid fl->luxelNormals from %s (mb len: %d, offset: %d)", VMPI_GetMachineName( iSource ), pmb->getLen(), pmb->getOffset() );
 	}
 
 }
@@ -372,7 +372,7 @@ void RunMPIBuildVisLeafs()
 {
     g_CPUTime.Init();
     
-    Msg( "%-20s ", "BuildVisLeafs  :" );
+    Msg( "%-20s ", "BuildVisLeafs ->" );
 	if ( g_bMPIMaster )
 	{
 		StartPacifier("");
@@ -462,7 +462,7 @@ void VMPI_DistributeLightData()
 		// Open 
 		FileHandle_t fp = g_pFileSystem->Open( g_LightResultsFilename.Base(), "rb", VMPI_VIRTUAL_FILES_PATH_ID );
 		if ( !fp )
-			Error( "Can't open '%s' to read lighting info.", g_LightResultsFilename.Base() );
+			Error("\tCan't open '%s' to read lighting info.", g_LightResultsFilename.Base() );
 
 		int size = g_pFileSystem->Size( fp );
 		int faceSize = (numfaces*(MAXLIGHTMAPS+sizeof(int)));

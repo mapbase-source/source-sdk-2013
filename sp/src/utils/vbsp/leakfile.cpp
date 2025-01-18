@@ -7,7 +7,10 @@
 //=============================================================================//
 
 #include "vbsp.h"
-#include "color.h"
+
+#ifdef MAPBASE
+#include "../common/StandartColorFormat.h" //this control the color of the console.
+#endif 
 
 /*
 ==============================================================================
@@ -48,7 +51,7 @@ void LeakFile (tree_t *tree)
 	sprintf (filename, "%s.lin", source);
 	linefile = fopen (filename, "w");
 	if (!linefile)
-		Error ("Couldn't open %s\n", filename);
+		Error ("\tCouldn't open %s\n", filename);
 
 	count = 0;
 	node = &tree->outside_node;
@@ -88,8 +91,12 @@ void LeakFile (tree_t *tree)
 
 	// Emit a leak warning.
 	const char *cl = ValueForKey (node->occupant, "classname");
-	Color red(255,0,0,255);
+	 
+#ifdef MAPBASE
+	ColorSpewMessage( SPEW_MESSAGE, &red, "\tEntity %s (%.2f %.2f %.2f) leaked!\n", cl, origin[0], origin[1], origin[2] );
+#else
 	ColorSpewMessage( SPEW_MESSAGE, &red, "Entity %s (%.2f %.2f %.2f) leaked!\n", cl, origin[0], origin[1], origin[2] );
+#endif
 }
 
 void AreaportalLeakFile( tree_t *tree, portal_t *pStartPortal, portal_t *pEndPortal, node_t *pStart )
@@ -113,7 +120,7 @@ void AreaportalLeakFile( tree_t *tree, portal_t *pStartPortal, portal_t *pEndPor
 	sprintf (filename, "%s.lin", source);
 	linefile = fopen (filename, "w");
 	if (!linefile)
-		Error ("Couldn't open %s\n", filename);
+		Error ("\tCouldn't open %s\n", filename);
 
 	count = 2;
 	WindingCenter (pEndPortal->winding, mid);
@@ -162,7 +169,11 @@ void AreaportalLeakFile( tree_t *tree, portal_t *pStartPortal, portal_t *pEndPor
 	qprintf ("%5i point linefile\n", count);
 
 	fclose (linefile);
-	Warning( "Wrote %s\n", filename );
-	Color red(255,0,0,255);
+	Warning("\tWrote %s\n", filename );
+	 
+#ifdef MAPBASE
+	ColorSpewMessage( SPEW_MESSAGE, &red, "\tAreaportal leak ! File: %s ", filename );
+#else
 	ColorSpewMessage( SPEW_MESSAGE, &red, "Areaportal leak ! File: %s ", filename );
+#endif
 }

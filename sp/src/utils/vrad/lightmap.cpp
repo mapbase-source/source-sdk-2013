@@ -23,6 +23,10 @@
 #include "bitmap/imageformat.h"
 #include "coordsize.h"
 
+#ifdef MAPBASE
+#include "../common/StandartColorFormat.h" //this control the color of the console.
+#endif 
+
 enum
 {
 	AMBIENT_ONLY = 0x1,
@@ -298,7 +302,7 @@ void PairEdges (void)
 					numneighbors++;
 					if ( numneighbors > ARRAYSIZE(tmpneighbor) )
 					{
-						Error("Stack overflow in neighbors\n");
+						Error("\tStack overflow in neighbors\n");
 					}
 				}
             }
@@ -354,7 +358,7 @@ void SaveVertexNormals( void )
 			
 			if( g_numvertnormalindices == MAX_MAP_VERTNORMALINDICES )
 			{
-				Error( "g_numvertnormalindices == MAX_MAP_VERTNORMALINDICES" );
+				Error( "\tg_numvertnormalindices == MAX_MAP_VERTNORMALINDICES" );
 			}
 			
 			g_vertnormalindices[g_numvertnormalindices] = (unsigned short)normalList.FindOrAddNormal( vNormal );
@@ -364,7 +368,7 @@ void SaveVertexNormals( void )
 
 	if( normalList.m_Normals.Size() > MAX_MAP_VERTNORMALS )
 	{
-		Error( "g_numvertnormals > MAX_MAP_VERTNORMALS" );
+		Error( "\tg_numvertnormals > MAX_MAP_VERTNORMALS" );
 	}
 
 	// Copy the list of unique vert normals into g_vertnormals.
@@ -401,14 +405,14 @@ void ErrorLightInfo(const char *s, lightinfo_t *l)
 		WindingCenter(w, vecCenter);
 //		FreeWinding(w);
 
-		Warning("%s at (%g, %g, %g)\n\tmaterial=%s\n", s, (double)vecCenter.x, (double)vecCenter.y, (double)vecCenter.z, TexDataStringTable_GetString( dtexdata[tex->texdata].nameStringTableID ) );
+		Warning("\t%s at (%g, %g, %g)\n\tmaterial=%s\n", s, (double)vecCenter.x, (double)vecCenter.y, (double)vecCenter.z, TexDataStringTable_GetString( dtexdata[tex->texdata].nameStringTableID ) );
 	}
 	//
 	// If not, just show the material name.
 	//
 	else
 	{
-		Warning("%s at (degenerate face)\n\tmaterial=%s\n", s, TexDataStringTable_GetString( dtexdata[tex->texdata].nameStringTableID ));
+		Warning("\t%s at (degenerate face)\n\tmaterial=%s\n", s, TexDataStringTable_GetString( dtexdata[tex->texdata].nameStringTableID ));
 	}
 }
 
@@ -450,7 +454,7 @@ void CalcFaceVectors(lightinfo_t *l)
 	float det = -DotProduct( l->facenormal, luxelSpaceCross );
 	if ( fabs( det ) < 1.0e-20 )
 	{
-		Warning(" warning - face vectors parallel to face normal. bad lighting will be produced\n" );
+		Warning("\t warning - face vectors parallel to face normal. bad lighting will be produced\n" );
 		l->luxelOrigin = vec3_origin;
 	}
 	else
@@ -1144,7 +1148,7 @@ static void ParseLightGeneric( entity_t *e, directlight_t *dl )
 	{	// point towards target
 		e2 = FindTargetEntity (target);
 		if (!e2)
-			Warning("WARNING: light at (%i %i %i) has missing target\n",
+			Warning("\tWARNING: light at (%i %i %i) has missing target\n",
 					(int)dl->light.origin[0], (int)dl->light.origin[1], (int)dl->light.origin[2]);
 		else
 		{
@@ -1179,13 +1183,13 @@ static void SetLightFalloffParams( entity_t * e, directlight_t * dl )
 		float d0 = FloatForKey( e, "_zero_percent_distance" );
 		if ( d0 < d50 )
 		{
-			Warning( "light has _fifty_percent_distance of %f but _zero_percent_distance of %f\n", d50, d0);
+			Warning("\tlight has _fifty_percent_distance of %f but _zero_percent_distance of %f\n", d50, d0);
 			d0 = 2.0 * d50;
 		}
 		float a = 0, b = 1, c = 0;
 		if ( ! SolveInverseQuadraticMonotonic( 0, 1.0, d50, 2.0, d0, 256.0, a, b, c ))
 		{
-			Warning( "can't solve quadratic for light %f %f\n", d50, d0 );
+			Warning("\tcan't solve quadratic for light %f %f\n", d50, d0 );
 		}
 		// it it possible that the parameters couldn't be used because of enforing monoticity. If so, rescale so at
 		// least the 50 percent value is right
@@ -1290,14 +1294,14 @@ static void ParseLightSpot( entity_t* e, directlight_t* dl )
 		// Clamp to 90, that's all DX8 can handle! 
 		if (dl->light.stopdot > 90)
 		{
-			Warning("WARNING: light_spot at (%i %i %i) has inner angle larger than 90 degrees! Clamping to 90...\n",
+			Warning("\tWARNING: light_spot at (%i %i %i) has inner angle larger than 90 degrees! Clamping to 90...\n",
 					(int)dl->light.origin[0], (int)dl->light.origin[1], (int)dl->light.origin[2]);
 			dl->light.stopdot = 90;
 		}
 
 		if (dl->light.stopdot2 > 90)
 		{
-			Warning("WARNING: light_spot at (%i %i %i) has outer angle larger than 90 degrees! Clamping to 90...\n",
+			Warning("\tWARNING: light_spot at (%i %i %i) has outer angle larger than 90 degrees! Clamping to 90...\n",
 					(int)dl->light.origin[0], (int)dl->light.origin[1], (int)dl->light.origin[2]);
 			dl->light.stopdot2 = 90;
 		}
@@ -1485,7 +1489,13 @@ static void ParseLightEnvironment( entity_t* e, directlight_t* dl )
 	{
 		g_SunAngularExtent=atof(angle_str);
 		g_SunAngularExtent=sin((M_PI/180.0)*g_SunAngularExtent);
+
+#ifdef MAPBASE
+		printf("Sun extent from map ");
+		ColorSpewMessage(SPEW_MESSAGE, &magenta, "[%f]\n", g_SunAngularExtent);
+#else
 		printf("sun extent from map=%f\n",g_SunAngularExtent);
+#endif
 	}
 	if ( !gSkyLight )
 	{
@@ -1613,7 +1623,13 @@ void CreateDirectLights (void)
 		}
 	}
 
+#ifdef MAPBASE
+	Msg("Direct lights");
+	ColorSpewMessage(SPEW_MESSAGE, &magenta, " [%i]\n", numdlights);
+#else
 	qprintf ("%i direct lights\n", numdlights);
+#endif
+
 	// exit(1);
 }
 
@@ -1636,7 +1652,7 @@ void ExportDirectLightsToWorldLights()
 
 		if (*pNumworldlights > MAX_MAP_WORLDLIGHTS)
 		{
-			Error("too many lights %d / %d\n", *pNumworldlights, MAX_MAP_WORLDLIGHTS );
+			Error("\ttoo many lights %d / %d\n", *pNumworldlights, MAX_MAP_WORLDLIGHTS );
 		}
 
 		wl->cluster	= dl->light.cluster;
@@ -2030,7 +2046,7 @@ void GatherSampleLightSSE( SSE_sampleLightOutput_t &out, directlight_t *dl, int 
 		                              iThread, nLFlags, static_prop_index_to_ignore, flEpsilon );
 		break;
 	default:
-		Error ("Bad dl->light.type");
+		Error ("\tBad dl->light.type");
 		return;
 	}
 
@@ -2329,7 +2345,7 @@ int GetVisCache( int lastoffset, int cluster, byte *pvs )
 			{ 
 				if ( thisoffset == -1 )
 				{
-					Error ("visofs == -1");
+					Error ("\tvisofs == -1");
 				}
 
 				DecompressVis (&dvisdata[thisoffset], pvs);

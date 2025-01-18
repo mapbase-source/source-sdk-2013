@@ -18,7 +18,12 @@ static bool g_bPacifierSuppressed = false;
 
 void StartPacifier( char const *pPrefix )
 {
-	Msg( "%s", pPrefix );
+#ifdef MAPBASE
+	Msg("%s[", pPrefix);
+#else
+	Msg("%s", pPrefix);
+#endif // MAPBASE
+
 	g_LastPacifierDrawn = -1;
 	UpdatePacifier( 0.001f );
 }
@@ -54,7 +59,11 @@ void EndPacifier( bool bCarriageReturn )
 	UpdatePacifier(1);
 	
 	if( bCarriageReturn && !g_bPacifierSuppressed )
+#ifdef MAPBASE
+		Msg("]\n");
+#else
 		Msg("\n");
+#endif // MAPBASE
 }
 
 void SuppressPacifier( bool bSuppress )

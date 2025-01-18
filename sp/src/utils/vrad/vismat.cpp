@@ -149,7 +149,7 @@ void PvsForOrigin (Vector& org, byte *pvs)
 	}
 
 	if (visofs == -1)
-		Error ("visofs == -1");
+		Error ("\tvisofs == -1");
 
 	DecompressVis (&dvisdata[visofs], pvs);
 }

@@ -65,7 +65,7 @@ static ChunkFileResult_t LoadEntityCallback( CChunkFile *pFile, int nParam )
 	if (num_entities == MAX_MAP_ENTITIES)
 	{
 		// Exits.
-		g_MapError.ReportError ("num_entities == MAX_MAP_ENTITIES");
+		g_MapError.ReportError ("\tnum_entities == MAX_MAP_ENTITIES");
 	}
 
 	entity_t *mapent = &entities[num_entities];
@@ -128,7 +128,7 @@ bool LoadEntsFromMapFile( char const *pFilename )
 	}
 	else
 	{
-		Error("Error in LoadEntsFromMapFile (in-memory file): %s.\n", File.GetErrorText(eResult));
+		Error("\tError in LoadEntsFromMapFile (in-memory file): %s.\n", File.GetErrorText(eResult));
 		return false;
 	}
 }

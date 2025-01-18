@@ -876,7 +876,7 @@ void AddNeighbor( CCoreDispInfo *pMain,
 	// Make sure this slot isn't used on either displacement.
 	if ( pSub->IsValid() || pNeighborSub->IsValid() )
 	{
-		ExecuteOnce( Warning( "Found a displacement edge abutting multiple other edges.\n" ) );
+		ExecuteOnce( Warning("\tFound a displacement edge abutting multiple other edges.\n" ) );
 		return;
 	}
 
@@ -1074,7 +1074,7 @@ void VerifyNeighborConnections( CCoreDispInfo **ppListBase, int nDisps )
 					if ( !VerifyNeighborVertConnection( pHelper, it.GetVertIndex(), it.GetCurrentNeighbor(), it.GetNBVertIndex(), iEdge ) )
 					{
 						pDisp->GetEdgeNeighbor( iEdge )->SetInvalid();
-						Warning( "Warning: invalid neighbor connection on displacement near (%.2f %.2f %.2f)\n", VectorExpand( pDisp->GetCornerPoint(0) ) );
+						Warning("\tWarning: invalid neighbor connection on displacement near (%.2f %.2f %.2f)\n", VectorExpand( pDisp->GetCornerPoint(0) ) );
 						bHappy = false;
 					}
 				}			
@@ -1125,7 +1125,7 @@ void FindNeighboringDispSurfs( CCoreDispInfo **ppListBase, int nListSize )
 
 	if ( nCornerOverflows )
 	{
-		Warning( "Warning: overflowed %d displacement corner-neighbor lists.", nCornerOverflows );
+		Warning("\tWarning: overflowed %d displacement corner-neighbor lists.", nCornerOverflows );
 	}
 
 	// Debug check.. make sure the neighbor connections are intact (make sure that any

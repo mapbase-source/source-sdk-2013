@@ -399,7 +399,7 @@ FSReturnCode_t SetupFileSystemError( bool bRunVConfig, FSReturnCode_t retVal, co
 	Q_vsnprintf( g_FileSystemError, sizeof( g_FileSystemError ), pMsg, marker );
 	va_end( marker );
 
-	Warning( "%s\n", g_FileSystemError );
+	Warning("\t%s\n", g_FileSystemError );
 
 	// Run vconfig?
 	// Don't do it if they specifically asked for it not to, or if they manually specified a vconfig with -game or -vproject.
@@ -410,7 +410,7 @@ FSReturnCode_t SetupFileSystemError( bool bRunVConfig, FSReturnCode_t retVal, co
 
 	if ( g_FileSystemErrorMode == FS_ERRORMODE_AUTO || g_FileSystemErrorMode == FS_ERRORMODE_VCONFIG )
 	{
-		Error( "%s\n", g_FileSystemError );
+		Error("\t%s\n", g_FileSystemError );
 	}
 	
 	return retVal;
@@ -561,7 +561,7 @@ FSReturnCode_t FileSystem_LoadSearchPaths( CFSSearchPathsInit &initInfo )
 			V_MakeAbsolutePath( szAbsSearchPath, sizeof( szAbsSearchPath ), vecPaths[ idxExtraPath ], baseDir );
 			V_FixSlashes( szAbsSearchPath );
 			if ( !V_RemoveDotSlashes( szAbsSearchPath ) )
-				Error( "Bad -insert_search_path - Can't resolve pathname for '%s'", szAbsSearchPath );
+				Error("\tBad -insert_search_path - Can't resolve pathname for '%s'", szAbsSearchPath );
 			V_StripTrailingSlash( szAbsSearchPath );
 			FileSystem_AddLoadedSearchPath( initInfo, "GAME", szAbsSearchPath, false );
 			FileSystem_AddLoadedSearchPath( initInfo, "MOD", szAbsSearchPath, false );
@@ -599,7 +599,7 @@ FSReturnCode_t FileSystem_LoadSearchPaths( CFSSearchPathsInit &initInfo )
 		// Now resolve any ./'s.
 		V_FixSlashes( szAbsSearchPath );
 		if ( !V_RemoveDotSlashes( szAbsSearchPath ) )
-			Error( "FileSystem_AddLoadedSearchPath - Can't resolve pathname for '%s'", szAbsSearchPath );
+			Error("\tFileSystem_AddLoadedSearchPath - Can't resolve pathname for '%s'", szAbsSearchPath );
 		V_StripTrailingSlash( szAbsSearchPath );
 
 		// Don't bother doing any wildcard expansion unless it has wildcards.  This avoids the weird
@@ -924,7 +924,7 @@ FSReturnCode_t LocateGameInfoFile( const CFSSteamSetupInfo &fsInfo, char *pOutDi
 
 	if ( IsPC() )
 	{
-		Warning( "Warning: falling back to auto detection of vproject directory.\n" );
+		Warning("\tWarning: falling back to auto detection of vproject directory.\n" );
 		
 		// Now look for it in the directory they passed in.
 		if ( fsInfo.m_pDirectoryName )
@@ -999,7 +999,7 @@ FSReturnCode_t SetSteamInstallPath( char *steamInstallPath, int steamInstallPath
 	{
 		if ( bErrorsAsWarnings )
 		{
-			Warning( "SetSteamInstallPath: FileSystem_GetExecutableDir failed.\n" );
+			Warning("\tSetSteamInstallPath: FileSystem_GetExecutableDir failed.\n" );
 			return FS_INVALID_PARAMETERS;
 		}
 		else
@@ -1029,7 +1029,7 @@ FSReturnCode_t SetSteamInstallPath( char *steamInstallPath, int steamInstallPath
 		{
 			if ( bErrorsAsWarnings )
 			{
-				Warning( "Can't find %s relative to executable path: %s.\n", pchSteamDLL, executablePath );
+				Warning("\tCan't find %s relative to executable path: %s.\n", pchSteamDLL, executablePath );
 				return FS_MISSING_STEAM_DLL;
 			}
 			else
@@ -1105,7 +1105,7 @@ void SetSteamAppUser( KeyValues *pSteamInfo, const char *steamInstallPath, CStea
 		KeyValues *pSteamAppData = ReadKeyValuesFile( fullFilename );
 		if ( !pSteamAppData || (pTempAppUser = pSteamAppData->GetString( "AutoLoginUser", NULL )) == NULL )
 		{
-			Error( "Can't find steam app user info." );
+			Error("\tCan't find steam app user info." );
 		}
 		Q_strncpy( appUser, pTempAppUser, sizeof( appUser ) ); 
 		

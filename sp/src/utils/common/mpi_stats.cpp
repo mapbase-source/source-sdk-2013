@@ -701,7 +701,7 @@ void GetDBInfo( const char *pDBInfoFilename, CDBInfo *pInfo )
 {
 	char baseExeFilename[512];
 	if ( !GetModuleFileName( GetModuleHandle( NULL ), baseExeFilename, sizeof( baseExeFilename ) ) )
-		Error( "GetModuleFileName failed." );
+		Error("\tGetModuleFileName failed." );
 	
 	// Look for the info file in the same directory as the exe.
 	char dbInfoFilename[512];
@@ -717,7 +717,7 @@ void GetDBInfo( const char *pDBInfoFilename, CDBInfo *pInfo )
 	FILE *fp = fopen( dbInfoFilename, "rt" );
 	if ( !fp )
 	{
-		Error( "Can't open %s for database info.\n", dbInfoFilename );
+		Error("\tCan't open %s for database info.\n", dbInfoFilename );
 	}
 
 	if ( !ReadStringFromFile( fp, pInfo->m_HostName, sizeof( pInfo->m_HostName ) ) ||
@@ -725,7 +725,7 @@ void GetDBInfo( const char *pDBInfoFilename, CDBInfo *pInfo )
 		 !ReadStringFromFile( fp, pInfo->m_UserName, sizeof( pInfo->m_UserName ) ) 
 		 )
 	{
-		Error( "%s is not a valid database info file.\n", dbInfoFilename );
+		Error("\t%s is not a valid database info file.\n", dbInfoFilename );
 	}
 
 	fclose( fp );
@@ -765,7 +765,7 @@ void RunJobWatchApp( char *pCmdLine )
 				&si,
 				&pi ) )
 			{
-				Warning( "%s - error launching '%s'\n", VMPI_GetParamString( mpi_Job_Watch ), pCmdLine );
+				Warning("\t%s - error launching '%s'\n", VMPI_GetParamString( mpi_Job_Watch ), pCmdLine );
 			}
 		}
 	}
@@ -791,7 +791,7 @@ void StatsDB_InitStatsDatabase(
 
 		if ( !VMPI_Stats_Init_Master( dbInfo.m_HostName, dbInfo.m_DBName, dbInfo.m_UserName, argv[argc-1], &jobPrimaryID ) )
 		{
-			Warning( "VMPI_Stats_Init_Master( %s, %s, %s ) failed.\n", dbInfo.m_HostName, dbInfo.m_DBName, dbInfo.m_UserName );
+			Warning("\tVMPI_Stats_Init_Master( %s, %s, %s ) failed.\n", dbInfo.m_HostName, dbInfo.m_DBName, dbInfo.m_UserName );
 
 			// Tell the workers not to use stats.
 			dbInfo.m_HostName[0] = 0; 
@@ -821,7 +821,7 @@ void StatsDB_InitStatsDatabase(
 		if ( dbInfo.m_HostName[0] != 0 )
 		{
 			if ( !VMPI_Stats_Init_Worker( dbInfo.m_HostName, dbInfo.m_DBName, dbInfo.m_UserName, jobPrimaryID ) )
-				Error( "VMPI_Stats_Init_Worker( %s, %s, %s, %d ) failed.\n", dbInfo.m_HostName, dbInfo.m_DBName, dbInfo.m_UserName, jobPrimaryID );
+				Error("\tVMPI_Stats_Init_Worker( %s, %s, %s, %d ) failed.\n", dbInfo.m_HostName, dbInfo.m_DBName, dbInfo.m_UserName, jobPrimaryID );
 		}
 	}
 }

@@ -497,7 +497,7 @@ bool SampleRadial( radial_t *rad, Vector& pnt, LightingValue_t light[NUM_BUMP_VE
 		{
 			// punting over to KenB
 			// 2d coord indexes off of lightmap, generation of pnt seems suspect
-			Warning( "SampleRadial: Punting, Waiting for fix\n" );
+			Warning("\tSampleRadial: Punting, Waiting for fix\n" );
 			warning = true;
 		}
 		for( bumpSample = 0; bumpSample < bumpSampleCount; bumpSample++ )

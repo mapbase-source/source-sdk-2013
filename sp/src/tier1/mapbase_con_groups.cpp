@@ -105,7 +105,7 @@ void LoadConsoleGroupsFromFile( IBaseFileSystem *filesystem, const char *pszFile
 		}
 		else
 		{
-			Warning( "Invalid console group %s (new groups should be defined in the code)\n", pGroup->GetName() );
+			Warning("\tInvalid console group %s (new groups should be defined in the code)\n", pGroup->GetName() );
 		}
 	}
 

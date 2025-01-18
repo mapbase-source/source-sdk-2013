@@ -84,7 +84,7 @@ void ConstructStringVArgsInternal_Impl(T *unicodeOutput, int unicodeBufferSizeIn
 
 			if ( argindex < 0 || argindex > k_cMaxFormatStringArguments )
 			{
-				Warning( "Bad format string in CLocalizeStringTable::ConstructString\n" );
+				Warning("\tBad format string in CLocalizeStringTable::ConstructString\n" );
 				*outputPos = '\0';
 				return;
 			}

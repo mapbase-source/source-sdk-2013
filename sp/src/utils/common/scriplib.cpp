@@ -86,7 +86,7 @@ void AddScriptToStack (char *filename, ScriptPathMode_t pathMode = SCRIPT_USE_AB
 
 	script++;
 	if (script == &scriptstack[MAX_INCLUDES])
-		Error ("script file exceeded MAX_INCLUDES");
+		Error ("\tscript file exceeded MAX_INCLUDES");
 	
 	if ( pathMode == SCRIPT_USE_RELATIVE_PATH )
 		Q_strncpy( script->filename, filename, sizeof( script->filename ) );
@@ -161,7 +161,7 @@ void DefineMacro( char *macroname )
 		mp += strlen( token ) + 1;
 
 		if (mp >= pmacro->macrobuffer + sizeof( pmacro->macrobuffer ))
-			Error("Macro buffer overflow\n");
+			Error("\tMacro buffer overflow\n");
 	}
 	// roll back script_p to previous valid location
 	script->script_p = cp;
@@ -246,7 +246,7 @@ bool AddMacroToStack( char *macroname )
 
 	pnext++;
 	if (pnext == &scriptstack[MAX_INCLUDES])
-		Error ("script file exceeded MAX_INCLUDES");
+		Error ("\tscript file exceeded MAX_INCLUDES");
 
 	// get tokens
 	char *cp = pnext->macrobuffer;
@@ -264,7 +264,7 @@ bool AddMacroToStack( char *macroname )
 		cp += strlen( token ) + 1;
 
 		if (cp >= pnext->macrobuffer + sizeof( pnext->macrobuffer ))
-			Error("Macro buffer overflow\n");
+			Error("\tMacro buffer overflow\n");
 	}
 
 	script = pnext;
@@ -312,7 +312,7 @@ bool ExpandMacroToken( char *&token_p )
 		}
 		if (index >= script->nummacroparams)
 		{
-			Error("unknown macro token \"%s\" in %s\n", tp, script->filename );
+			Error("\tUnknown macro token \"%s\" in %s\n", tp, script->filename );
 		}
 
 		// paste token into 
@@ -323,10 +323,10 @@ bool ExpandMacroToken( char *&token_p )
 		script->script_p = cp + 1;
 
 		if (script->script_p >= script->end_p)
-			Error ("Macro expand overflow\n");
+			Error ("\tMacro expand overflow\n");
 
 		if (token_p >= &token[MAXTOKEN])
-			Error ("Token too large on line %i\n",scriptline);
+			Error ("\tToken too large on line %i\n",scriptline);
 
 		return true;
 	}
@@ -371,7 +371,7 @@ bool ExpandVariableToken( char *&token_p )
 	
 		if (index >= g_definevariable.Count() )
 		{
-			Error("unknown variable token \"%s\" in %s\n", tp, script->filename );
+			Error("\tUnknown variable token \"%s\" in %s\n", tp, script->filename );
 		}
 
 		// paste token into 
@@ -382,10 +382,10 @@ bool ExpandVariableToken( char *&token_p )
 		script->script_p = cp + 1;
 
 		if (script->script_p >= script->end_p)
-			Error ("Macro expand overflow\n");
+			Error ("\tMacro expand overflow\n");
 
 		if (token_p >= &token[MAXTOKEN])
-			Error ("Token too large on line %i\n",scriptline);
+			Error ("\tToken too large on line %i\n",scriptline);
 
 		return true;
 	}
@@ -404,7 +404,7 @@ void ParseFromMemory (char *buffer, int size)
 	script = scriptstack;
 	script++;
 	if (script == &scriptstack[MAX_INCLUDES])
-		Error ("script file exceeded MAX_INCLUDES");
+		Error ("\tScript file exceeded MAX_INCLUDES");
 	strcpy (script->filename, "memory buffer" );
 
 	script->buffer = buffer;
@@ -430,7 +430,7 @@ void PushMemoryScript( char *pszBuffer, const int nSize )
 	script++;
 	if ( script == &scriptstack[MAX_INCLUDES] )
 	{
-		Error ( "script file exceeded MAX_INCLUDES" );
+		Error ("\tScript file exceeded MAX_INCLUDES" );
 	}
 	strcpy (script->filename, "memory buffer" );
 
@@ -492,7 +492,7 @@ void UnGetToken (void)
 qboolean EndOfScript (qboolean crossline)
 {
 	if (!crossline)
-		Error ("Line %i is incomplete\n",scriptline);
+		Error ("\tLine %i is incomplete\n",scriptline);
 
 	if (!strcmp (script->filename, "memory buffer"))
 	{
@@ -612,7 +612,7 @@ skipspace:
 		{
 			if (!crossline)
 			{
-				Error ("Line %i is incomplete\n",scriptline);
+				Error ("\tLine %i is incomplete\n",scriptline);
 			}
 			scriptline = ++script->line;
 		}
@@ -628,7 +628,7 @@ skipspace:
 		(*script->script_p == '/' && *((script->script_p)+1) == '/')) // also make // a comment field
 	{											
 		if (!crossline)
-			Error ("Line %i is incomplete\n",scriptline);
+			Error ("\tLine %i is incomplete\n",scriptline);
 		while (*script->script_p++ != '\n')
 		{
 			if (script->script_p >= script->end_p)
@@ -673,7 +673,7 @@ skipspace:
 			if (script->script_p == script->end_p)
 				break;
 			if (token_p == &token[MAXTOKEN])
-				Error ("Token too large on line %i\n",scriptline);
+				Error ("\tToken too large on line %i\n",scriptline);
 		}
 		script->script_p++;
 	}
@@ -692,7 +692,7 @@ skipspace:
 				if (script->script_p == script->end_p)
 					break;
 				if (token_p == &token[MAXTOKEN])
-					Error ("Token too large on line %i\n",scriptline);
+					Error ("\tToken too large on line %i\n",scriptline);
 
 			}
 		}
@@ -791,7 +791,7 @@ skipspace:
 		if (*script->script_p++ == '\n')
 		{
 			if (!crossline)
-				Error ("Line %i is incomplete\n",scriptline);
+				Error ("\tLine %i is incomplete\n",scriptline);
 			scriptline = ++script->line;
 		}
 	}
@@ -803,7 +803,7 @@ skipspace:
 		(*script->script_p == '/' && *((script->script_p)+1) == '/')) // also make // a comment field
 	{											
 		if (!crossline)
-			Error ("Line %i is incomplete\n",scriptline);
+			Error ("\tLine %i is incomplete\n",scriptline);
 		while (*script->script_p++ != '\n')
 			if (script->script_p >= script->end_p)
 				return EndOfScript (crossline);
@@ -825,7 +825,7 @@ skipspace:
 			if (script->script_p == script->end_p)
 				break;
 			if (token_p == &token[MAXTOKEN])
-				Error ("Token too large on line %i\n",scriptline);
+				Error ("\tToken too large on line %i\n",scriptline);
 		}
 		script->script_p++;
 	}
@@ -840,7 +840,7 @@ skipspace:
 				if (script->script_p == script->end_p)
 					break;
 				if (token_p == &token[MAXTOKEN])
-					Error ("Token too large on line %i\n",scriptline);
+					Error ("\tToken too large on line %i\n",scriptline);
 			}
 		}
 		else if ( V_isdigit( *script->script_p ) || *script->script_p == '.' )
@@ -852,7 +852,7 @@ skipspace:
 				if (script->script_p == script->end_p)
 					break;
 				if (token_p == &token[MAXTOKEN])
-					Error ("Token too large on line %i\n",scriptline);
+					Error ("\tToken too large on line %i\n",scriptline);
 			}
 		}
 		else
@@ -987,7 +987,7 @@ bool CScriptLib::ReadFileToBuffer( const char *pSourceName, CUtlBuffer &buffer, 
 	{
 		if ( !bNoOpenFailureWarning )
 		{
-			Msg( "ReadFileToBuffer(): Error opening %s: %s\n", pSourceName, strerror( errno ) );
+			Warning("\tReadFileToBuffer(): Error opening %s: %s\n", pSourceName, strerror( errno ) );
 		}
 		return false;
 	}

@@ -153,7 +153,7 @@ void VVIS_SetupMPI( int &argc, char **&argv )
 	Msg( "Initializing VMPI...\n" );
 	if ( !VMPI_Init( argc, argv, "dependency_info_vvis.txt", HandleMPIDisconnect, mode ) )
 	{
-		Error( "MPI_Init failed." );
+		Error( "\tMPI_Init failed." );
 	}
 
 	StatsDB_InitStatsDatabase( argc, argv, "dbinfo_vvis.txt" );
@@ -185,7 +185,7 @@ void ReceiveBasePortalVis( uint64 iWorkUnit, MessageBuffer *pBuf, int iWorker )
 	}
 	
 	if ( pBuf->getLen() - pBuf->getOffset() != portalbytes*2 )
-		Error( "Invalid packet in ReceiveBasePortalVis." );
+		Error( "\tInvalid packet in ReceiveBasePortalVis." );
 
 	//
 	// allocate memory for bitwise vis solutions for this portal
@@ -213,7 +213,7 @@ void RunMPIBasePortalVis()
 	int i;
 
 	Msg( "\n\nportalbytes: %d\nNum Work Units: %d\nTotal data size: %d\n", portalbytes, g_numportals*2, portalbytes*g_numportals*2 );
-    Msg("%-20s ", "BasePortalVis:");
+    Msg("%-20s ", "BasePortalVis ->");
 	if ( g_bMPIMaster )
 		StartPacifier("");
 
@@ -280,7 +280,7 @@ void RunMPIBasePortalVis()
 		// Open 
 		FileHandle_t fp = g_pFileSystem->Open( g_BasePortalVisResultsFilename.Base(), "rb", VMPI_VIRTUAL_FILES_PATH_ID );
 		if ( !fp )
-			Error( "Can't open '%s' to read portal info.", g_BasePortalVisResultsFilename.Base() );
+			Error( "\tCan't open '%s' to read portal info.", g_BasePortalVisResultsFilename.Base() );
 
 		for ( i=0; i < g_numportals * 2; i++) 
 		{
@@ -428,7 +428,7 @@ public:
 				if ( key == 'M' )
 				{
 					m_iState = STATE_AT_MENU;
-					Warning("\n\n"
+					Warning("\t\n\n"
 						"----------------------\n"
 						"1. Write scratchpad file.\n"
 						"2. Exit early and use fast vis for remaining portals.\n"
@@ -475,7 +475,7 @@ public:
 				else if ( key == '0' )
 				{
 					m_iState = STATE_NONE;
-					Warning( "\n\nExited menu.\n\n" );
+					Warning("\t\n\nExited menu.\n\n" );
 				}
 			}
 		}
@@ -502,8 +502,8 @@ void CheckExitedEarly()
 {
 	if ( g_VisDistributeWorkCallbacks.m_bExitedEarly )
 	{
-		Warning( "\nExited early, using fastvis results...\n" );
-		Warning( "Exited early, using fastvis results...\n" );
+		Warning("\t\nExited early, using fastvis results...\n" );
+		Warning("\tExited early, using fastvis results...\n" );
 		
 		// Use the fastvis results for portals that we didn't get results for.
 		for ( int i=0; i < g_numportals*2; i++ )
@@ -552,7 +552,7 @@ void RunMPIPortalFlow()
 		}
 		if ( i == 5 )
 		{
-			Error( "RunMPIPortalFlow: can't open a socket to multicast on." );
+			Error( "\tRunMPIPortalFlow: can't open a socket to multicast on." );
 		}
 
 		char cPacketID[2] = { VMPI_VVIS_PACKET_ID, VMPI_SUBPACKETID_MC_ADDR };
@@ -573,7 +573,7 @@ void RunMPIPortalFlow()
 		{
 			char err[512];
 			IP_GetLastErrorString( err, sizeof( err ) );
-			Error( "RunMPIPortalFlow: CreateMulticastListenSocket failed. (%s).", err );
+			Error( "\tRunMPIPortalFlow: CreateMulticastListenSocket failed. (%s).", err );
 		}
 
 		// Make a thread to listen for the data on the multicast socket.
@@ -593,7 +593,7 @@ void RunMPIPortalFlow()
 
 		if ( !g_hMCThread )
 		{
-			Error( "RunMPIPortalFlow: CreateThread failed for multicast receive thread." );
+			Error( "\tRunMPIPortalFlow: CreateThread failed for multicast receive thread." );
 		}			
 	}
 

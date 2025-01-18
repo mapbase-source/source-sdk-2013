@@ -172,7 +172,7 @@ void WriteGLView (tree_t *tree, char *source)
 
 	glview = g_pFileSystem->Open( name, "w" );
 	if (!glview)
-		Error ("Couldn't open %s", name);
+		Error ("\tCouldn't open %s", name);
 	WriteGLView_r (tree->headnode, glview);
 	g_pFileSystem->Close( glview );
 
@@ -191,7 +191,7 @@ void WriteGLViewFaces( tree_t *tree, const char *pName )
 
 	glview = g_pFileSystem->Open( name, "w" );
 	if (!glview)
-		Error ("Couldn't open %s", name);
+		Error ("\tCouldn't open %s", name);
 	WriteGLViewFaces_r (tree->headnode, glview);
 	g_pFileSystem->Close( glview );
 
@@ -209,7 +209,7 @@ void WriteGLViewBrushList( bspbrush_t *pList, const char *pName )
 
 	glview = g_pFileSystem->Open( name, "w" );
 	if (!glview)
-	Error ("Couldn't open %s", name);
+	Error ("\tCouldn't open %s", name);
 	for ( bspbrush_t *pBrush = pList; pBrush; pBrush = pBrush->next )
 	{
 		for (int i =  0; i < pBrush->numsides; i++ )

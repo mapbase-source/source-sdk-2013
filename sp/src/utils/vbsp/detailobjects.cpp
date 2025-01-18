@@ -170,7 +170,7 @@ static void ParseDetailGroup( int detailId, KeyValues* pGroupKeyValues )
 					int nValid = sscanf( pSpriteData, "%f %f %f %f %f", &x, &y, &flWidth, &flHeight, &flTextureSize ); 
 					if ( (nValid != 5) || (flTextureSize == 0) )
 					{
-						Error( "Invalid arguments to \"sprite\" in detail.vbsp (model %s)!\n", model.m_ModelName.String() );
+						Error("\tInvalid arguments to \"sprite\" in detail.vbsp (model %s)!\n", model.m_ModelName.String() );
 					}
 
 					model.m_Tex[0].x = ( x + 0.5f ) / flTextureSize;
@@ -445,7 +445,7 @@ static bool IsModelValid( const char* pModelName )
 	lookup.m_IsValid = LoadStudioModel( pModelName, "detail_prop", buf );
 	if (!lookup.m_IsValid)
 	{
-		Warning("Error loading studio model \"%s\"!\n", pModelName );
+		Warning("\tError loading studio model \"%s\"!\n", pModelName );
 	}
 
 	s_StaticPropLookup.Insert( lookup );
@@ -500,9 +500,9 @@ static void AddDetailSpriteToLump( const Vector &vecOrigin, const QAngle &vecAng
 	// Insert an element into the object dictionary if it aint there...
 	int i = s_DetailObjectLump.AddToTail( );
 
-	if (i >= 65535)
+	if (i >= MAX_MAP_DETAIL_PROPS)
 	{
-		Error( "Error! Too many detail props emitted on this map! (64K max!)n" );
+		Error("\tError! Too many detail props emitted on this map! (64K max!)n" );
 	}
 
 	DetailObjectLump_t& objectLump = s_DetailObjectLump[i];
@@ -834,7 +834,11 @@ static void SetLumpData( )
 //-----------------------------------------------------------------------------
 void EmitDetailModels()
 {
+#ifdef MAPBASE
+	StartPacifier("Placing detail props -> ");
+#else
 	StartPacifier("Placing detail props : ");
+#endif // MAPBASE
 
 	// Place stuff on each face
 	dface_t* pFace = dfaces;
@@ -865,7 +869,7 @@ void EmitDetailModels()
 		int objectType = s_DetailObjectDict.Find(search);
 		if (objectType < 0)
 		{
-			Warning("Material %s uses unknown detail object type %s!\n",	
+			Warning("\tMaterial %s uses unknown detail object type %s!\n",	
 				TexDataStringTable_GetString( pTexData->nameStringTableID ),
 				pDetailType);
 			continue;
@@ -877,7 +881,7 @@ void EmitDetailModels()
 		// Initialize the Random Number generators for detail prop placement based on the hammer Face num.
 		int	detailpropseed = dfaceids[j].hammerfaceid;
 #ifdef WARNSEEDNUMBER
-		Warning( "[%d]\n",detailpropseed );
+		Warning("\t[%d]\n",detailpropseed );
 #endif
 		srand( detailpropseed );
 		RandomSeed( detailpropseed );
@@ -961,6 +965,6 @@ void EmitDetailObjects()
 
 	if ( s_nDetailOverflow != 0 )
 	{
-		Warning( "Error! Too many detail props on this map. %d were not emitted!\n", s_nDetailOverflow );
+		Warning("\tError! Too many detail props on this map. %d were not emitted!\n", s_nDetailOverflow );
 	}
 }

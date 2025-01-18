@@ -292,7 +292,7 @@ bool LoadStudioModel( char const* pModelName, CUtlBuffer& buf )
 	// Construct the file name...
 	if (!LoadFile( pModelName, buf ))
 	{
-		Warning("Error! Unable to load model \"%s\"\n", pModelName );
+		Warning("\tError! Unable to load model \"%s\"\n", pModelName );
 		return false;
 	}
 
@@ -300,7 +300,7 @@ bool LoadStudioModel( char const* pModelName, CUtlBuffer& buf )
 	if (strncmp ((const char *) buf.PeekGet(), "IDST", 4) &&
 		strncmp ((const char *) buf.PeekGet(), "IDAG", 4))
 	{
-		Warning("Error! Invalid model file \"%s\"\n", pModelName );
+		Warning("\tError! Invalid model file \"%s\"\n", pModelName );
 		return false;
 	}
 
@@ -310,13 +310,13 @@ bool LoadStudioModel( char const* pModelName, CUtlBuffer& buf )
 
 	if (pHdr->version != STUDIO_VERSION)
 	{
-		Warning("Error! Invalid model version \"%s\"\n", pModelName );
+		Warning("\tError! Invalid model version \"%s\"\n", pModelName );
 		return false;
 	}
 
 	if (!IsStaticProp(pHdr))
 	{
-		Warning("Error! To use model \"%s\"\n"
+		Warning("\tError! To use model \"%s\"\n"
 			"      as a static prop, it must be compiled with $staticprop!\n", pModelName );
 		return false;
 	}
@@ -358,7 +358,7 @@ bool LoadVTXFile( char const* pModelName, const studiohdr_t *pStudioHdr, CUtlBuf
 
 	if ( !LoadFile( filename, buf ) )
 	{
-		Warning( "Error! Unable to load file \"%s\"\n", filename );
+		Warning("\tError! Unable to load file \"%s\"\n", filename );
 		return false;
 	}
 
@@ -367,12 +367,12 @@ bool LoadVTXFile( char const* pModelName, const studiohdr_t *pStudioHdr, CUtlBuf
 	// Check that it's valid
 	if ( pVtxHdr->version != OPTIMIZED_MODEL_FILE_VERSION )
 	{
-		Warning( "Error! Invalid VTX file version: %d, expected %d \"%s\"\n", pVtxHdr->version, OPTIMIZED_MODEL_FILE_VERSION, filename );
+		Warning("\tError! Invalid VTX file version: %d, expected %d \"%s\"\n", pVtxHdr->version, OPTIMIZED_MODEL_FILE_VERSION, filename );
 		return false;
 	}
 	if ( pVtxHdr->checkSum != pStudioHdr->checksum )
 	{
-		Warning( "Error! Invalid VTX file checksum: %d, expected %d \"%s\"\n", pVtxHdr->checkSum, pStudioHdr->checksum, filename );
+		Warning("\tError! Invalid VTX file checksum: %d, expected %d \"%s\"\n", pVtxHdr->checkSum, pStudioHdr->checksum, filename );
 		return false;
 	}
 
@@ -884,7 +884,7 @@ void CVradStaticPropMgr::UnserializeStaticProps()
 
 	if ( g_GameLumps.GetGameLumpVersion( handle ) != GAMELUMP_STATIC_PROPS_VERSION )
 	{
-		Error( "Cannot load the static props... encountered a stale map version. Re-vbsp the map." );
+		Error( "\tCannot load the static props... encountered a stale map version. Re-vbsp the map." );
 	}
 
 	if ( g_GameLumps.GetGameLump( handle ) )
@@ -908,12 +908,12 @@ void CVradStaticPropMgr::Init()
 {
 	CreateInterfaceFn physicsFactory = GetPhysicsFactory();
 	if ( !physicsFactory )
-		Error( "Unable to load vphysics DLL." );
+		Error( "\tUnable to load vphysics DLL." );
 		
 	s_pPhysCollision = (IPhysicsCollision *)physicsFactory( VPHYSICS_COLLISION_INTERFACE_VERSION, NULL );
 	if( !s_pPhysCollision )
 	{
-		Error( "Unable to get '%s' for physics interface.", VPHYSICS_COLLISION_INTERFACE_VERSION );
+		Error( "\tUnable to get '%s' for physics interface.", VPHYSICS_COLLISION_INTERFACE_VERSION );
 		return;
 	}
 
@@ -1455,7 +1455,7 @@ void CVradStaticPropMgr::ComputeLighting( int iThread )
 		return;
 	}
 
-	StartPacifier( "Computing static prop lighting : " );
+	StartPacifier( "Computing static prop lighting -> " );
 
 	// ensure any traces against us are ignored because we have no inherit lighting contribution
 	m_bIgnoreStaticPropTrace = true;
@@ -1866,7 +1866,7 @@ const vertexFileHeader_t * mstudiomodel_t::CacheVertexData( void *pModelData )
 	FileHandle_t fileHandle = g_pFileSystem->Open( fileName, "rb" );
 	if ( !fileHandle )
 	{
-		Error( "Unable to load vertex data \"%s\"\n", fileName );
+		Error( "\tUnable to load vertex data \"%s\"\n", fileName );
 	}
 
 	// Get the file size
@@ -1874,7 +1874,7 @@ const vertexFileHeader_t * mstudiomodel_t::CacheVertexData( void *pModelData )
 	if ( vvdSize == 0 )
 	{
 		g_pFileSystem->Close( fileHandle );
-		Error( "Bad size for vertex data \"%s\"\n", fileName );
+		Error( "\tBad size for vertex data \"%s\"\n", fileName );
 	}
 
 	vertexFileHeader_t *pVvdHdr = (vertexFileHeader_t *)malloc( vvdSize );
@@ -1884,15 +1884,15 @@ const vertexFileHeader_t * mstudiomodel_t::CacheVertexData( void *pModelData )
 	// check header
 	if ( pVvdHdr->id != MODEL_VERTEX_FILE_ID )
 	{
-		Error("Error Vertex File %s id %d should be %d\n", fileName, pVvdHdr->id, MODEL_VERTEX_FILE_ID);
+		Error("\tError Vertex File %s id %d should be %d\n", fileName, pVvdHdr->id, MODEL_VERTEX_FILE_ID);
 	}
 	if ( pVvdHdr->version != MODEL_VERTEX_FILE_VERSION )
 	{
-		Error("Error Vertex File %s version %d should be %d\n", fileName, pVvdHdr->version, MODEL_VERTEX_FILE_VERSION);
+		Error("\tError Vertex File %s version %d should be %d\n", fileName, pVvdHdr->version, MODEL_VERTEX_FILE_VERSION);
 	}
 	if ( pVvdHdr->checksum != pActiveStudioHdr->checksum )
 	{
-		Error("Error Vertex File %s checksum %d should be %d\n", fileName, pVvdHdr->checksum, pActiveStudioHdr->checksum);
+		Error("\tError Vertex File %s checksum %d should be %d\n", fileName, pVvdHdr->checksum, pActiveStudioHdr->checksum);
 	}
 
 	// need to perform mesh relocation fixups
@@ -1900,7 +1900,7 @@ const vertexFileHeader_t * mstudiomodel_t::CacheVertexData( void *pModelData )
 	vertexFileHeader_t *pNewVvdHdr = (vertexFileHeader_t *)malloc( vvdSize );
 	if ( !pNewVvdHdr )
 	{
-		Error( "Error allocating %d bytes for Vertex File '%s'\n", vvdSize, fileName );
+		Error( "\tError allocating %d bytes for Vertex File '%s'\n", vvdSize, fileName );
 	}
 
 	// load vertexes and run fixups

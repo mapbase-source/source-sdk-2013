@@ -61,10 +61,10 @@ void CheckStack (leaf_t *leaf, threaddata_t *thread)
 	{
 //		Msg ("=");
 		if (p->leaf == leaf)
-			Error ("CheckStack: leaf recursion");
+			Error ("\tCheckStack: leaf recursion");
 		for (p2=thread->pstack_head.next ; p2 != p ; p2=p2->next)
 			if (p2->leaf == p->leaf)
-				Error ("CheckStack: late leaf recursion");
+				Error ("\tCheckStack: late leaf recursion");
 	}
 //	Msg ("\n");
 }
@@ -83,7 +83,7 @@ winding_t *AllocStackWinding (pstack_t *stack)
 		}
 	}
 
-	Error ("Out of memory. AllocStackWinding: failed");
+	Error ("\tOut of memory. AllocStackWinding: failed");
 
 	return NULL;
 }
@@ -98,7 +98,7 @@ void FreeStackWinding (winding_t *w, pstack_t *stack)
 		return;		// not from local
 
 	if (stack->freewindings[i])
-		Error ("FreeStackWinding: allready free");
+		Error ("\tFreeStackWinding: allready free");
 	stack->freewindings[i] = 1;
 }
 
@@ -416,7 +416,7 @@ void DumpPortalTrace( pstack_t *pStack )
 	if ( g_PortalTrace.m_list.Count() )
 		return;
 
-	Warning("Dumped cluster trace!!!\n");
+	Warning("\tDumped cluster trace!!!\n");
 	Vector	mid;
 	mid = ClusterCenter( g_TraceClusterStart );
 	g_PortalTrace.m_list.AddToTail(mid);
@@ -449,14 +449,14 @@ void WritePortalTrace( const char *source )
 
 	if ( !g_PortalTrace.m_list.Count() )
 	{
-		Warning("No trace generated from %d to %d\n", g_TraceClusterStart, g_TraceClusterStop );
+		Warning("\tNo trace generated from %d to %d\n", g_TraceClusterStart, g_TraceClusterStop );
 		return;
 	}
 
 	sprintf (filename, "%s.lin", source);
 	linefile = fopen (filename, "w");
 	if (!linefile)
-		Error ("Couldn't open %s\n", filename);
+		Error ("\tCouldn't open %s\n", filename);
 
 	for ( int i = 0; i < g_PortalTrace.m_list.Count(); i++ )
 	{
@@ -464,7 +464,7 @@ void WritePortalTrace( const char *source )
 		fprintf (linefile, "%f %f %f\n", p[0], p[1], p[2]);
 	}
 	fclose (linefile);
-	Warning("Wrote %s!!!\n", filename);
+	Warning("\tWrote %s!!!\n", filename);
 }
 
 /*

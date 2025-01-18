@@ -10,6 +10,11 @@
 #include "utlvector.h"
 #include <assert.h>
 
+#ifdef MAPBASE
+#include "../common/StandartColorFormat.h" //this control the color of the console.
+#endif 
+
+
 face_t *NewFaceFromFace (face_t *f);
 face_t *ComputeVisibleBrushSides( bspbrush_t *list );
 
@@ -203,7 +208,7 @@ void TryMergeFaceList( face_t **pFaceList )
 		// go ahead and delete the old split/merged faces
 		if ( pFaces->merged || pFaces->split[0] || pFaces->split[1] )
 		{
-			Error("Split face in merge list!");
+			Error("\tSplit face in merge list!");
 		}
 		else
 		{
@@ -241,7 +246,15 @@ void TryMergeFaceList( face_t **pFaceList )
 
 	if ( merged )
 	{
-		Msg("\nMerged %d detail faces...", merged );
+#ifdef MAPBASE
+		#ifdef _WIN32
+		Msg("\nMerged \033[1;35m[%d]\033[0m detail faces... \033[32m done(0)\033[0m\n", merged );
+	#else
+		Msg("Merged %d detail faces... done(0)\n", merged );
+	#endif	
+#else
+	Msg("\nMerged %d detail faces... done(0)\n", merged );
+#endif 
 	}
 	delete[] pPlaneList;
 
@@ -287,7 +300,12 @@ face_t *MergeDetailTree( tree_t *worldtree, int brush_start, int brush_end )
 		if (!nocsg)
 			detailbrushes = ChopBrushes (detailbrushes);
 
-		Msg("done (%d)\n", (int)(Plat_FloatTime() - start) );
+#ifdef MAPBASE
+	ColorSpewMessage(SPEW_MESSAGE, &green, " done (%d)\n", (int)(Plat_FloatTime() - start));
+#else
+	Msg("done (%d)\n", (int)(Plat_FloatTime() - start));
+#endif
+
 		// Now mark the visible sides so we can eliminate all detail brush sides
 		// that are covered by other detail brush sides
 		// NOTE: This still leaves detail brush sides that are covered by the world. (these are removed in the merge operation)
@@ -295,7 +313,12 @@ face_t *MergeDetailTree( tree_t *worldtree, int brush_start, int brush_end )
 		pFaces = ComputeVisibleBrushSides( detailbrushes );
 		TryMergeFaceList( &pFaces );
 		SubdivideFaceList( &pFaces );
-		Msg("done (%d)\n", (int)(Plat_FloatTime() - start) );
+
+#ifdef MAPBASE
+		ColorSpewMessage(SPEW_MESSAGE, &green, " done (%d)\n", (int)(Plat_FloatTime() - start));
+#else
+		Msg("done (%d)\n", (int)(Plat_FloatTime() - start));
+#endif
 
 		start = Plat_FloatTime();
 		Msg("Merging details...");
@@ -307,7 +330,11 @@ face_t *MergeDetailTree( tree_t *worldtree, int brush_start, int brush_end )
 		FreeFaceList( pFaces );
 		FreeBrushList(detailbrushes);
 
-		Msg("done (%d)\n", (int)(Plat_FloatTime() - start) );
+#ifdef MAPBASE
+		ColorSpewMessage(SPEW_MESSAGE, &green, " done (%d)\n", (int)(Plat_FloatTime() - start));
+#else
+		Msg("done (%d)\n", (int)(Plat_FloatTime() - start));
+#endif
 	}
 
 	return pLeafFaceList;
@@ -497,7 +524,7 @@ side_t *FindOriginalSide( mapbrush_t *mb, side_t *pBspSide )
 
 	if ( !bestside )
 	{
-		Error( "Bad detail brush side\n" );
+		Error("\tBad detail brush side\n" );
 	}
 	return bestside;
 }
