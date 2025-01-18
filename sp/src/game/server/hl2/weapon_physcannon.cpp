@@ -2758,7 +2758,7 @@ CWeaponPhysCannon::FindObjectResult_t CWeaponPhysCannon::FindObject( void )
 		pullDir *= (mass + 0.5) * (1/50.0f);
 	}
 
-	CPhysicsProp* pProp = dynamic_cast<CPhysicsProp*>(pObj);
+	CPhysicsProp* pProp = dynamic_cast<CPhysicsProp*>(pEntity);
 	if (pProp) {
 		pProp->OnPhysGunPull( pOwner );
 	}
