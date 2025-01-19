@@ -1654,6 +1654,12 @@ bool CBaseFlex::ProcessSceneEvent( CSceneEventInfo *info, CChoreoScene *scene, C
 	case CChoreoEvent::SPEAK:
 		return true;
 
+#ifdef MAPBASE
+	// Prevents "unknown type" console spam on players
+	case CChoreoEvent::GENERIC:
+		return true;
+#endif
+
 	default:
 		{
 			Msg( "unknown type %d in ProcessSceneEvent()\n", event->GetType() );

@@ -307,6 +307,10 @@ public:
 	virtual bool			ShouldBlockPrimaryFire() { return false; }
 
 #ifdef CLIENT_DLL
+#ifdef MAPBASE
+	virtual bool			DispatchMuzzleEffect( const char *options, bool isFirstPerson );
+#endif
+
 	virtual void			CreateMove( float flInputSampleTime, CUserCmd *pCmd, const QAngle &vecOldViewAngles ) {}
 	virtual int				CalcOverrideModelIndex() OVERRIDE;
 #endif

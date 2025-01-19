@@ -293,6 +293,15 @@ public:
 
 	virtual bool				ShouldInterpolate();
 
+#ifdef MAPBASE
+	bool						InPerspectiveView() const;	// In a view that renders directly from the player's perspective (and may, for example, render the playermodel)
+	bool						DrawingPlayerModelExternally() const;
+	bool						DrawingLegs() const;
+
+	virtual CStudioHdr			*OnNewModel( void );
+	virtual void				BuildTransformations( CStudioHdr *pStudioHdr, Vector *pos, Quaternion q[], const matrix3x4_t &cameraTransform, int boneMask, CBoneBitList &boneComputed );
+#endif
+
 	virtual bool				ShouldDraw();
 	virtual int					DrawModel( int flags );
 
@@ -468,6 +477,9 @@ public:
 	inline void		RemoveSpawnFlags( int flags ) { m_spawnflags &= ~flags; }
 	inline void		AddSpawnFlags( int flags ) { m_spawnflags |= flags; }
 
+	// Draws the player's model below the camera, visible when the player looks down.
+	bool			m_bDrawPlayerLegs;
+
 	// Allows the player's model to draw on non-main views, like monitors or mirrors.
 	bool			m_bDrawPlayerModelExternally;
 
@@ -501,6 +513,10 @@ protected:
 	surfacedata_t* GetGroundSurface();
 
 	virtual void	FireGameEvent( IGameEvent *event );
+
+#ifdef MAPBASE
+	inline CUtlMap<int, float>		&GetFirstPersonArmScales() { return m_FirstPersonModelData.m_FirstPersonBoneScales[FirstPersonModelData_t::BoneScales_Arms]; }
+#endif
 
 protected:
 	// Did we just enter a vehicle this frame?
@@ -555,6 +571,41 @@ private:
 	EHANDLE			m_pCurrentVguiScreen;
 
 	bool			m_bFiredWeapon;
+
+#ifdef MAPBASE
+	struct FirstPersonModelData_t
+	{
+		void Reset()
+		{
+			m_flFirstPersonNeckPivotUp = m_flFirstPersonNeckPivotFwd = FLT_MAX;
+			m_flFirstPersonNeckPivotDuckUp = m_flFirstPersonNeckPivotDuckFwd = FLT_MAX;
+
+			for (int i = 0; i < BoneScales_Max; i++)
+			{
+				m_FirstPersonBoneScales[i].RemoveAll();
+				m_FirstPersonBoneScales[i].SetLessFunc( DefLessFunc( int ) );
+			}
+		}
+
+		void ParseModelData( C_BasePlayer *pPlayer, KeyValues *pkvPlayerModelData );
+
+		enum
+		{
+			BoneScales_Spine,
+			BoneScales_Arms,
+
+			BoneScales_Max
+		};
+
+		// Values to scale bones by when drawing playermodel in first person
+		CUtlMap<int, float> m_FirstPersonBoneScales[BoneScales_Max];
+
+		float			m_flFirstPersonNeckPivotUp, m_flFirstPersonNeckPivotFwd = FLT_MAX;
+		float			m_flFirstPersonNeckPivotDuckUp, m_flFirstPersonNeckPivotDuckFwd = FLT_MAX;
+	};
+
+	FirstPersonModelData_t	m_FirstPersonModelData;
+#endif
 
 
 	// Player flashlight dynamic light pointers

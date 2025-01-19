@@ -19,7 +19,7 @@
 #if defined ( HL2MP )
 #include "basemultiplayerplayer.h"
 #elif defined ( MAPBASE )
-#include "mapbase/singleplayer_animstate.h"
+#include "mapbase/mapbase_playeranimstate.h"
 #endif
 
 class CAI_Squad;
@@ -443,11 +443,12 @@ private:
 	friend class CHL2GameMovement;
 
 #ifdef SP_ANIM_STATE
-	CSinglePlayerAnimState* m_pPlayerAnimState;
+	CMapbasePlayerAnimState* m_pPlayerAnimState;
 
 	// At the moment, we network the render angles since almost none of the player anim stuff is done on the client in SP.
 	// If any of this is ever adapted for MP, this method should be replaced with replicating/moving the anim state to the client.
 	CNetworkVar( float, m_flAnimRenderYaw );
+	CNetworkVar( float, m_flAnimRenderZ );
 #endif
 };
 

@@ -7959,7 +7959,7 @@ Activity CBasePlayer::Weapon_TranslateActivity( Activity baseAct, bool *pRequire
 {
 	Activity weaponTranslation = BaseClass::Weapon_TranslateActivity( baseAct, pRequired );
 	
-	if ( GetActiveWeapon() && GetActiveWeapon()->IsEffectActive(EF_NODRAW) && baseAct != ACT_ARM )
+	if ( GetActiveWeapon() && !GetActiveWeapon()->IsWeaponVisible() && baseAct != ACT_ARM )
 	{
 		// Our weapon is holstered. Use the base activity.
 		return baseAct;
@@ -8866,6 +8866,7 @@ void SendProxy_ShiftPlayerSpawnflags( const SendProp *pProp, const void *pStruct
 		// See baseplayer_shared.h for more details.
 		SendPropInt			( SENDINFO( m_spawnflags ), 3, SPROP_UNSIGNED, SendProxy_ShiftPlayerSpawnflags ),
 
+		SendPropBool		( SENDINFO( m_bDrawPlayerLegs ) ),
 		SendPropBool		( SENDINFO( m_bDrawPlayerModelExternally ) ),
 		SendPropBool		( SENDINFO( m_bInTriggerFall ) ),
 #endif

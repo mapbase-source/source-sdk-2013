@@ -85,6 +85,7 @@ char g_iszGameName[128];
 #ifdef GAME_DLL
 // Default player configuration
 char g_szDefaultPlayerModel[MAX_PATH];
+bool g_bDefaultPlayerLegs;
 bool g_bDefaultPlayerDrawExternally;
 
 char g_szDefaultHandsModel[MAX_PATH];
@@ -235,6 +236,7 @@ public:
 
 #ifdef GAME_DLL
 			Q_strncpy( g_szDefaultPlayerModel, gameinfo->GetString( "player_default_model", "models/player.mdl" ), sizeof( g_szDefaultPlayerModel ) );
+			g_bDefaultPlayerLegs = gameinfo->GetBool( "player_default_legs", false );
 			g_bDefaultPlayerDrawExternally = gameinfo->GetBool( "player_default_draw_externally", false );
 
 			Q_strncpy( g_szDefaultHandsModel, gameinfo->GetString( "player_default_hands", "models/weapons/v_hands.mdl" ), sizeof( g_szDefaultHandsModel ) );

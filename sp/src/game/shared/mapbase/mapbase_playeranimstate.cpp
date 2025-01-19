@@ -15,7 +15,7 @@
 //=============================================================================//
 
 #include "cbase.h"
-#include "singleplayer_animstate.h"
+#include "mapbase_playeranimstate.h"
 #include "tier0/vprof.h"
 #include "animation.h"
 #include "studio.h"
@@ -23,25 +23,33 @@
 #include "utldict.h"
 #include "filesystem.h"
 #include "in_buttons.h"
+#include "gamemovement.h"
 #include "datacache/imdlcache.h"
+#ifdef CLIENT_DLL
+#include "input.h"
+#endif
 
-extern ConVar mp_facefronttime, mp_feetyawrate, mp_ik;
+extern ConVar mp_facefronttime, mp_feetyawrate;
 
-ConVar sv_playeranimstate_animtype( "sv_playeranimstate_animtype", "0", FCVAR_NONE, "The leg animation type used by the singleplayer animation state. 9way = 0, 8way = 1, GoldSrc = 2" );
-ConVar sv_playeranimstate_bodyyaw( "sv_playeranimstate_bodyyaw", "45.0", FCVAR_NONE, "The maximum body yaw used by the singleplayer animation state." );
-ConVar sv_playeranimstate_use_aim_sequences( "sv_playeranimstate_use_aim_sequences", "1", FCVAR_NONE, "Allows the singleplayer animation state to use aim sequences." );
+ConVar sv_playeranimstate_animtype( "sv_playeranimstate_animtype", "0", FCVAR_NONE, "The leg animation type used by the Mapbase animation state. 9way = 0, 8way = 1, GoldSrc = 2" );
+ConVar sv_playeranimstate_bodyyaw( "sv_playeranimstate_bodyyaw", "45.0", FCVAR_NONE, "The maximum body yaw used by the Mapbase animation state." );
+ConVar sv_playeranimstate_use_aim_sequences( "sv_playeranimstate_use_aim_sequences", "0", FCVAR_NONE, "Allows the Mapbase animation state to use aim sequences." );
+ConVar sv_playeranimstate_use_walk_anims( "sv_playeranimstate_use_walk_anims", "0", FCVAR_NONE, "Allows the Mapbase animation state to use walk animations when the player is walking." );
 
 #define MIN_TURN_ANGLE_REQUIRING_TURN_ANIMATION        15.0f
 
+#define WEAPON_RELAX_TIME       0.5f
+
 #define FIRESEQUENCE_LAYER		(AIMSEQUENCE_LAYER+NUM_AIMSEQUENCE_LAYERS)
 #define RELOADSEQUENCE_LAYER	(FIRESEQUENCE_LAYER + 1)
-#define NUM_LAYERS_WANTED		(RELOADSEQUENCE_LAYER + 1)
+#define MISCSEQUENCE_LAYER	    (RELOADSEQUENCE_LAYER + 1)
+#define NUM_LAYERS_WANTED		(MISCSEQUENCE_LAYER + 1)
 
-CSinglePlayerAnimState *CreatePlayerAnimationState( CBasePlayer *pPlayer )
+CMapbasePlayerAnimState *CreatePlayerAnimationState( CBasePlayer *pPlayer )
 {
     MDLCACHE_CRITICAL_SECTION();
 
-    CSinglePlayerAnimState *pState = new CSinglePlayerAnimState( pPlayer );
+    CMapbasePlayerAnimState *pState = new CMapbasePlayerAnimState( pPlayer );
 
     // Setup the movement data.
     CModAnimConfig movementData;
@@ -65,21 +73,20 @@ CSinglePlayerAnimState *CreatePlayerAnimationState( CBasePlayer *pPlayer )
 extern ConVar sv_backspeed;
 extern ConVar mp_feetyawrate;
 extern ConVar mp_facefronttime;
-extern ConVar mp_ik;
 
-CSinglePlayerAnimState::CSinglePlayerAnimState( CBasePlayer *pPlayer ): m_pPlayer( pPlayer )
+CMapbasePlayerAnimState::CMapbasePlayerAnimState( CBasePlayer *pPlayer ): m_pPlayer( pPlayer )
 {
 };
 
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-Activity CSinglePlayerAnimState::CalcMainActivity()
+Activity CMapbasePlayerAnimState::CalcMainActivity()
 {
-#ifdef CLIENT_DLL
-    return ACT_IDLE;
-#else
     float speed = GetOuter()->GetAbsVelocity().Length2D();
+
+    if (m_pPlayer->GetLaggedMovementValue() != 1.0f)
+        speed *= m_pPlayer->GetLaggedMovementValue();
 
     if ( HandleJumping() )
 	{
@@ -95,7 +102,24 @@ Activity CSinglePlayerAnimState::CalcMainActivity()
 	    }
         else
         {
-            if ( GetOuter()->GetFlags() & FL_DUCKING )
+            bool bDucking = GetOuter()->GetFlags() & FL_DUCKING;
+
+            // (currently singleplayer-exclusive since clients can't read whether other players are holding down IN_DUCK)
+            if (m_pPlayer->m_Local.m_flDucktime > 0 && gpGlobals->maxClients == 1)
+            {
+                // Consider ducking if half-way through duck time
+                bDucking = (m_pPlayer->m_Local.m_flDucktime < (GAMEMOVEMENT_DUCK_TIME * 0.9f));
+
+                // Unducking
+#ifdef CLIENT_DLL
+                if (!((m_pPlayer->IsLocalPlayer() ? input->GetButtonBits( 0 ) : m_pPlayer->GetCurrentUserCommand()->buttons) & IN_DUCK))
+#else
+                if (!(m_pPlayer->m_nButtons & IN_DUCK))
+#endif
+                    bDucking = !bDucking;
+            }
+
+            if ( bDucking )
 			{
 				if ( speed > 0 )
 				{
@@ -111,7 +135,7 @@ Activity CSinglePlayerAnimState::CalcMainActivity()
 				if ( speed > 0 )
 				{
 #if EXPANDED_HL2DM_ACTIVITIES
-					if ( m_pPlayer->GetButtons() & IN_WALK )
+					if ( m_pPlayer->m_nButtons & IN_WALK && sv_playeranimstate_use_walk_anims.GetBool() )
 					{
 						idealActivity = ACT_HL2MP_WALK;
 					}
@@ -132,13 +156,12 @@ Activity CSinglePlayerAnimState::CalcMainActivity()
     }
 
     //return m_pPlayer->GetActivity();
-#endif
 }
 
 //-----------------------------------------------------------------------------
 // Purpose:
 //-----------------------------------------------------------------------------
-void CSinglePlayerAnimState::SetPlayerAnimation( PLAYER_ANIM playerAnim )
+void CMapbasePlayerAnimState::SetPlayerAnimation( PLAYER_ANIM playerAnim )
 {
     if ( playerAnim == PLAYER_ATTACK1 )
     {
@@ -162,6 +185,7 @@ void CSinglePlayerAnimState::SetPlayerAnimation( PLAYER_ANIM playerAnim )
         if (!m_bJumping)
         {
             m_bJumping = true;
+            m_bDuckJumping = GetOuter()->GetFlags() & FL_DUCKING; //m_pPlayer->m_nButtons & IN_DUCK;
             m_bFirstJumpFrame = true;
             m_flJumpStartTime = gpGlobals->curtime;
         }
@@ -184,13 +208,13 @@ void CSinglePlayerAnimState::SetPlayerAnimation( PLAYER_ANIM playerAnim )
         if (m_iWeaponSwitchSequence != -1)
         {
             // clear other events that might be playing in our layer
-            m_bPlayingMisc = false;
+            //m_bPlayingMisc = false;
             m_bReloading = false;
 
             m_bWeaponSwitching = true;
             m_flWeaponSwitchCycle = 0;
-            m_flMiscBlendOut = 0.1f;
-            m_flMiscBlendIn = 0.1f;
+            //m_flMiscBlendOut = 0.1f;
+            //m_flMiscBlendIn = 0.1f;
             m_bMiscNoOverride = false;
         }
     }
@@ -199,7 +223,7 @@ void CSinglePlayerAnimState::SetPlayerAnimation( PLAYER_ANIM playerAnim )
 //-----------------------------------------------------------------------------
 // Purpose:
 //-----------------------------------------------------------------------------
-Activity CSinglePlayerAnimState::TranslateActivity( Activity actDesired )
+Activity CMapbasePlayerAnimState::TranslateActivity( Activity actDesired )
 {
 #ifdef CLIENT_DLL
     return actDesired;
@@ -211,7 +235,7 @@ Activity CSinglePlayerAnimState::TranslateActivity( Activity actDesired )
 //-----------------------------------------------------------------------------
 // Purpose:
 //-----------------------------------------------------------------------------
-bool CSinglePlayerAnimState::HandleJumping()
+bool CMapbasePlayerAnimState::HandleJumping()
 {
 	if ( m_bJumping )
 	{
@@ -230,6 +254,7 @@ bool CSinglePlayerAnimState::HandleJumping()
 			if ( m_pOuter->GetFlags() & FL_ONGROUND || GetOuter()->GetGroundEntity() != NULL)
 			{
 				m_bJumping = false;
+				m_bDuckJumping = false;
 				RestartMainSequence();	// Reset the animation.				
 			}
 		}
@@ -242,20 +267,21 @@ bool CSinglePlayerAnimState::HandleJumping()
 //-----------------------------------------------------------------------------
 // Purpose:
 //-----------------------------------------------------------------------------
-void CSinglePlayerAnimState::ComputeSequences( CStudioHdr *pStudioHdr )
+void CMapbasePlayerAnimState::ComputeSequences( CStudioHdr *pStudioHdr )
 {
     CBasePlayerAnimState::ComputeSequences(pStudioHdr);
 
 	ComputeFireSequence();
 	ComputeMiscSequence();
 	ComputeReloadSequence();
-	ComputeWeaponSwitchSequence();	
+	ComputeWeaponSwitchSequence();
+    ComputeRelaxSequence();
 }
 
 //-----------------------------------------------------------------------------
 // Purpose:
 //-----------------------------------------------------------------------------
-void CSinglePlayerAnimState::AddMiscSequence( int iSequence, float flBlendIn, float flBlendOut, float flPlaybackRate, bool bHoldAtEnd, bool bOnlyWhenStill )
+void CMapbasePlayerAnimState::AddMiscSequence( int iSequence, float flBlendIn, float flBlendOut, float flPlaybackRate, bool bHoldAtEnd, bool bOnlyWhenStill )
 {
     Assert( iSequence != -1 );
 
@@ -265,7 +291,7 @@ void CSinglePlayerAnimState::AddMiscSequence( int iSequence, float flBlendIn, fl
 
     m_bPlayingMisc = true;
     m_bMiscHoldAtEnd = bHoldAtEnd;
-    m_bReloading = false;
+    //m_bReloading = false;
     m_flMiscCycle = 0;
     m_bMiscOnlyWhenStill = bOnlyWhenStill;
     m_bMiscNoOverride = true;
@@ -275,12 +301,36 @@ void CSinglePlayerAnimState::AddMiscSequence( int iSequence, float flBlendIn, fl
 //-----------------------------------------------------------------------------
 // Purpose:
 //-----------------------------------------------------------------------------
-void CSinglePlayerAnimState::ClearAnimationState()
+void CMapbasePlayerAnimState::StartWeaponRelax()
+{
+    if (m_bWeaponRelaxing)
+        return;
+
+    m_bWeaponRelaxing = true;
+}
+
+//-----------------------------------------------------------------------------
+// Purpose:
+//-----------------------------------------------------------------------------
+void CMapbasePlayerAnimState::StopWeaponRelax()
+{
+    if (!m_bWeaponRelaxing)
+        return;
+
+    m_bWeaponRelaxing = false;
+}
+
+//-----------------------------------------------------------------------------
+// Purpose:
+//-----------------------------------------------------------------------------
+void CMapbasePlayerAnimState::ClearAnimationState()
 {
 	m_bJumping = false;
+	m_bDuckJumping = false;
 	m_bFiring = false;
 	m_bReloading = false;
 	m_bWeaponSwitching = false;
+	m_bWeaponRelaxing = false;
 	m_bPlayingMisc = false;
     m_flReloadBlendIn = 0.0f;
     m_flReloadBlendOut = 0.0f;
@@ -289,7 +339,7 @@ void CSinglePlayerAnimState::ClearAnimationState()
 	CBasePlayerAnimState::ClearAnimationState();
 }
 
-void CSinglePlayerAnimState::ClearAnimationLayers()
+void CMapbasePlayerAnimState::ClearAnimationLayers()
 {
 	VPROF( "CBasePlayerAnimState::ClearAnimationLayers" );
 	if ( !m_pOuter )
@@ -298,6 +348,11 @@ void CSinglePlayerAnimState::ClearAnimationLayers()
 	m_pOuter->SetNumAnimOverlays( NUM_LAYERS_WANTED );
 	for ( int i=0; i < m_pOuter->GetNumAnimOverlays(); i++ )
 	{
+        // If we're not using aim sequences, leave the aim layers alone
+        // (allows them to be used outside of anim state)
+        if ( !m_AnimConfig.m_bUseAimSequences && i <= NUM_AIMSEQUENCE_LAYERS )
+            continue;
+
 		m_pOuter->GetAnimOverlay( i )->SetOrder( CBaseAnimatingOverlay::MAX_OVERLAYS );
 #ifndef CLIENT_DLL
 		m_pOuter->GetAnimOverlay( i )->m_fFlags = 0;
@@ -308,13 +363,13 @@ void CSinglePlayerAnimState::ClearAnimationLayers()
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-int CSinglePlayerAnimState::CalcAimLayerSequence( float *flCycle, float *flAimSequenceWeight, bool bForceIdle )
+int CMapbasePlayerAnimState::CalcAimLayerSequence( float *flCycle, float *flAimSequenceWeight, bool bForceIdle )
 {
     // TODO?
     return m_pOuter->LookupSequence( "soldier_Aim_9_directions" );
 }
 
-void CSinglePlayerAnimState::UpdateLayerSequenceGeneric( int iLayer, bool &bEnabled,
+void CMapbasePlayerAnimState::UpdateLayerSequenceGeneric( int iLayer, bool &bEnabled,
 					float &flCurCycle, int &iSequence, bool bWaitAtEnd,
 					float fBlendIn, float fBlendOut, bool bMoveBlend, float fPlaybackRate, bool bUpdateCycle /* = true */ )
 {
@@ -383,7 +438,7 @@ void CSinglePlayerAnimState::UpdateLayerSequenceGeneric( int iLayer, bool &bEnab
 	pLayer->m_flPlaybackRate = fPlaybackRate;
 	pLayer->m_flWeight = 1.0f;
 
-	if (iLayer == RELOADSEQUENCE_LAYER)
+	if (fBlendIn > 0.0f || fBlendOut > 0.0f)
 	{
 		// blend this layer in and out for smooth reloading
 		if (flCurCycle < fBlendIn && fBlendIn>0)
@@ -418,25 +473,91 @@ void CSinglePlayerAnimState::UpdateLayerSequenceGeneric( int iLayer, bool &bEnab
 	pLayer->SetOrder( iLayer );
 }
 
-void CSinglePlayerAnimState::ComputeFireSequence()
+void CMapbasePlayerAnimState::ComputeFireSequence()
 {
 	UpdateLayerSequenceGeneric( FIRESEQUENCE_LAYER, m_bFiring, m_flFireCycle, m_iFireSequence, false );
 }
 
-void CSinglePlayerAnimState::ComputeReloadSequence()
+void CMapbasePlayerAnimState::ComputeReloadSequence()
 {
 	UpdateLayerSequenceGeneric( RELOADSEQUENCE_LAYER, m_bReloading, m_flReloadCycle, m_iReloadSequence, false, m_flReloadBlendIn, m_flReloadBlendOut, false, m_fReloadPlaybackRate );
 }
 
-void CSinglePlayerAnimState::ComputeWeaponSwitchSequence()
+void CMapbasePlayerAnimState::ComputeWeaponSwitchSequence()
 {
 	UpdateLayerSequenceGeneric( RELOADSEQUENCE_LAYER, m_bWeaponSwitching, m_flWeaponSwitchCycle, m_iWeaponSwitchSequence, false, 0, 0.5f );
 }
 
-// does misc gestures if we're not firing
-void CSinglePlayerAnimState::ComputeMiscSequence()
+void CMapbasePlayerAnimState::ComputeRelaxSequence()
 {
-	UpdateLayerSequenceGeneric( RELOADSEQUENCE_LAYER, m_bPlayingMisc, m_flMiscCycle, m_iMiscSequence, m_bMiscHoldAtEnd, m_flMiscBlendIn, m_flMiscBlendOut, m_bMiscOnlyWhenStill, m_fMiscPlaybackRate );	
+    bool bRelaxing = m_bWeaponRelaxing;
+    float flRelaxSpeed = 0.05f;
+
+    if ((m_bFiring && m_flFireCycle < 1.0f) || m_bReloading)
+    {
+        // Keep weapon raised
+        bRelaxing = false;
+        flRelaxSpeed = 0.5f;
+        //GetOuter()->SetPoseParameter( GetOuter()->LookupPoseParameter( "weapon_lower" ), 0.0f );
+    }
+
+    if (bRelaxing ? m_flWeaponRelaxAmount != 1.0f : m_flWeaponRelaxAmount != 0.0f)
+    {
+        if (bRelaxing)
+            m_flWeaponRelaxAmount += flRelaxSpeed;
+        else
+            m_flWeaponRelaxAmount -= flRelaxSpeed;
+
+        m_flWeaponRelaxAmount = clamp( m_flWeaponRelaxAmount, 0.0f, 1.0f );
+
+        GetOuter()->SetPoseParameter( GetOuter()->LookupPoseParameter( "weapon_lower" ), m_flWeaponRelaxAmount );
+
+        /*int nPose = GetOuter()->LookupPoseParameter( "weapon_lower" );
+        if (nPose != -1)
+        {
+            float flValue = RemapValClamped( (m_flWeaponRelaxTime - gpGlobals->curtime), 0.0f, 0.5f, 0.0f, 1.0f );
+
+            if (flValue <= 0.0f)
+            {
+                // All done
+                m_flWeaponRelaxTime = FLT_MAX;
+            }
+
+            if (m_bWeaponRelaxing)
+                flValue = 1.0f - flValue;
+
+            GetOuter()->SetPoseParameter( nPose, SimpleSpline( flValue ) );
+        }*/
+    }
+    else if (bRelaxing)
+    {
+        GetOuter()->SetPoseParameter( GetOuter()->LookupPoseParameter( "weapon_lower" ), 1.0f );
+    }
+
+    /*bool bEnabled = m_bWeaponRelaxing;
+    bool bUpdateCycle = true;
+    if (bEnabled)
+    {
+        if (m_flWeaponRelaxCycle >= 0.5f)
+        {
+            // Pause at 0.5
+            m_flWeaponRelaxCycle = 0.5f;
+            bUpdateCycle = false;
+        }
+    }
+    else if (m_flWeaponRelaxCycle < 1.0f)
+    {
+        // Make sure we exit the relax
+        bEnabled = true;
+    }
+
+    UpdateLayerSequenceGeneric( AIMSEQUENCE_LAYER, bEnabled, m_flWeaponRelaxCycle, m_iWeaponRelaxSequence, false, 0.5f, 0.5f, false, 1.0f, bUpdateCycle );*/
+}
+
+// does misc gestures if we're not firing
+void CMapbasePlayerAnimState::ComputeMiscSequence()
+{
+	UpdateLayerSequenceGeneric( MISCSEQUENCE_LAYER, m_bPlayingMisc, m_flMiscCycle, m_iMiscSequence, m_bMiscHoldAtEnd, m_flMiscBlendIn, m_flMiscBlendOut, m_bMiscOnlyWhenStill, m_fMiscPlaybackRate );
 }
 
 //-----------------------------------------------------------------------------
@@ -444,7 +565,7 @@ void CSinglePlayerAnimState::ComputeMiscSequence()
 // Input  :  - 
 // Output : float
 //-----------------------------------------------------------------------------
-float CSinglePlayerAnimState::GetCurrentMaxGroundSpeed()
+float CMapbasePlayerAnimState::GetCurrentMaxGroundSpeed()
 {
 	CStudioHdr *pStudioHdr = GetOuter()->GetModelPtr();
 
@@ -482,10 +603,41 @@ float CSinglePlayerAnimState::GetCurrentMaxGroundSpeed()
 }
 
 //-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+inline bool CMapbasePlayerAnimState::ShouldUseAimPoses( void ) const
+{
+    return GetAimPoseBlend() > 0.0f;
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+float CMapbasePlayerAnimState::GetAimPoseBlend( void ) const
+{
+    if (!GetOuter()->MyCombatCharacterPointer() || !GetOuter()->MyCombatCharacterPointer()->GetActiveWeapon()
+        || GetOuter()->MyCombatCharacterPointer()->GetActiveWeapon()->IsEffectActive( EF_NODRAW ))
+        return 0.0f;
+
+    return 1.0f - m_flWeaponRelaxAmount;
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+float CMapbasePlayerAnimState::SetOuterBodyYaw( float flValue )
+{
+    float flAimPoseBlend = GetAimPoseBlend();
+
+    GetOuter()->SetPoseParameter( GetOuter()->LookupPoseParameter( "aim_yaw" ), flValue * flAimPoseBlend );
+    return CBasePlayerAnimState::SetOuterBodyYaw( flValue * (1.0f - flAimPoseBlend) );
+}
+
+//-----------------------------------------------------------------------------
 // Purpose: Override for backpeddling
 // Input  : dt -
 //-----------------------------------------------------------------------------
-void CSinglePlayerAnimState::ComputePoseParam_BodyYaw( void )
+void CMapbasePlayerAnimState::ComputePoseParam_BodyYaw( void )
 {
     CBasePlayerAnimState::ComputePoseParam_BodyYaw();
 
@@ -495,7 +647,7 @@ void CSinglePlayerAnimState::ComputePoseParam_BodyYaw( void )
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void CSinglePlayerAnimState::ComputePoseParam_BodyLookYaw( void )
+void CMapbasePlayerAnimState::ComputePoseParam_BodyLookYaw( void )
 {
     // See if we even have a blender for pitch
     int upper_body_yaw = GetOuter()->LookupPoseParameter( "aim_yaw" );
@@ -632,7 +784,7 @@ void CSinglePlayerAnimState::ComputePoseParam_BodyLookYaw( void )
 //-----------------------------------------------------------------------------
 // Purpose:
 //-----------------------------------------------------------------------------
-void CSinglePlayerAnimState::ComputePoseParam_BodyPitch( CStudioHdr *pStudioHdr )
+void CMapbasePlayerAnimState::ComputePoseParam_BodyPitch( CStudioHdr *pStudioHdr )
 {
     // Get pitch from v_angle
     float flPitch = m_flEyePitch;
@@ -643,16 +795,19 @@ void CSinglePlayerAnimState::ComputePoseParam_BodyPitch( CStudioHdr *pStudioHdr 
     }
     flPitch = clamp( flPitch, -90, 90 );
 
+    //float flAimPoseBlend = GetAimPoseBlend();
+
     // See if we have a blender for pitch
     GetOuter()->SetPoseParameter( pStudioHdr, "aim_pitch", flPitch );
+    GetOuter()->SetPoseParameter( pStudioHdr, "head_pitch", flPitch );
 
-    ComputePoseParam_HeadPitch( pStudioHdr );
+    //ComputePoseParam_HeadPitch( pStudioHdr );
 }
 
 //-----------------------------------------------------------------------------
 // Purpose:
 //-----------------------------------------------------------------------------
-void CSinglePlayerAnimState::ComputePoseParam_HeadPitch( CStudioHdr *pStudioHdr )
+void CMapbasePlayerAnimState::ComputePoseParam_HeadPitch( CStudioHdr *pStudioHdr )
 {
     // Get pitch from v_angle
     int iHeadPitch = GetOuter()->LookupPoseParameter("head_pitch");
