@@ -1071,10 +1071,10 @@ void RegisterSharedScriptFunctions()
 	// 
 	// Precaching
 	// 
-	ScriptRegisterFunctionNamed( g_pScriptVM, ScriptPrecacheModel, "PrecacheModel", "Precaches a model for later usage." );
+	ScriptRegisterFunctionNamed( g_pScriptVM, ScriptPrecacheModel, "DoPrecacheModel", SCRIPT_ALIAS( "PrecacheModel", "Precaches a model for later usage." ) );
 	ScriptRegisterFunction( g_pScriptVM, PrecacheMaterial, "Precaches a material for later usage." );
 	ScriptRegisterFunction( g_pScriptVM, PrecacheParticleSystem, "Precaches a particle system for later usage." );
-	ScriptRegisterFunctionNamed( g_pScriptVM, ScriptPrecacheOther, "PrecacheOther", "Precaches an entity class for later usage." );
+	ScriptRegisterFunctionNamed( g_pScriptVM, ScriptPrecacheOther, "DoPrecacheOther", SCRIPT_ALIAS( "PrecacheOther", "Precaches an entity class for later usage." ) );
 
 	// 
 	// NPCs

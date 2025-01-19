@@ -360,6 +360,7 @@ struct ScriptClassDesc_t
 	IScriptInstanceHelper *				pHelper; // optional helper
 
 #ifdef MAPBASE_VSCRIPT
+public:
 	static CUtlVector<ScriptClassDesc_t*>& AllClassesDesc()
 	{
 		static CUtlVector<ScriptClassDesc_t*> classes;
