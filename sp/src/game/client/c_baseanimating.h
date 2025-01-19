@@ -464,8 +464,8 @@ public:
 #ifdef MAPBASE_VSCRIPT
 	int		ScriptLookupAttachment( const char *pAttachmentName ) { return LookupAttachment( pAttachmentName ); }
 	const Vector& ScriptGetAttachmentOrigin(int iAttachment);
-	const Vector& ScriptGetAttachmentAngles(int iAttachment);
-	HSCRIPT ScriptGetAttachmentMatrix(int iAttachment);
+	const QAngle& ScriptGetAttachmentAngles(int iAttachment);
+	HSCRIPT_RC ScriptGetAttachmentMatrix(int iAttachment);
 
 	void	ScriptGetBoneTransform( int iBone, HSCRIPT hTransform );
 	void	ScriptSetBoneTransform( int iBone, HSCRIPT hTransform );

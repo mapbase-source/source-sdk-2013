@@ -2612,9 +2612,17 @@ public:
 
 static inline void SetHScript( HSCRIPT &var, HSCRIPT val )
 {
-	if ( var && g_pScriptVM )
-		g_pScriptVM->ReleaseScript( var );
-	var = val;
+	if ( g_pScriptVM )
+	{
+		if ( var )
+			g_pScriptVM->ReleaseScript( var );
+
+		var = g_pScriptVM->CopyObject( val );
+	}
+	else
+	{
+		var = NULL;
+	}
 }
 
 #define CheckCallback(s)\

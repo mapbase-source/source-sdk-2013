@@ -46,12 +46,14 @@ public:
 class CSurfaceScriptHelper
 {
 public:
-	// This class is owned by CScriptGameTrace, and cannot be accessed without being initialised in CScriptGameTrace::RegisterSurface()
-	//CSurfaceScriptHelper() : m_pSurface(NULL), m_hSurfaceData(NULL) {}
+	CSurfaceScriptHelper() : m_pSurface(NULL), m_hSurfaceData(NULL) {}
 
 	~CSurfaceScriptHelper()
 	{
-		g_pScriptVM->RemoveInstance( m_hSurfaceData );
+		if ( m_hSurfaceData )
+		{
+			g_pScriptVM->RemoveInstance( m_hSurfaceData );
+		}
 	}
 
 	void Init( csurface_t *surf )
@@ -98,16 +100,10 @@ class CScriptGameTrace : public CGameTrace
 public:
 	CScriptGameTrace() : m_surfaceAccessor(NULL), m_planeAccessor(NULL)
 	{
-		m_hScriptInstance = g_pScriptVM->RegisterInstance( this );
 	}
 
 	~CScriptGameTrace()
 	{
-		if ( m_hScriptInstance )
-		{
-			g_pScriptVM->RemoveInstance( m_hScriptInstance );
-		}
-
 		if ( m_surfaceAccessor )
 		{
 			g_pScriptVM->RemoveInstance( m_surfaceAccessor );
@@ -117,22 +113,6 @@ public:
 		{
 			g_pScriptVM->RemoveInstance( m_planeAccessor );
 		}
-	}
-
-	void RegisterSurface()
-	{
-		m_surfaceHelper.Init( &surface );
-		m_surfaceAccessor = g_pScriptVM->RegisterInstance( &m_surfaceHelper );
-	}
-
-	void RegisterPlane()
-	{
-		m_planeAccessor = g_pScriptVM->RegisterInstance( &plane );
-	}
-
-	HSCRIPT GetScriptInstance() const
-	{
-		return m_hScriptInstance;
 	}
 
 public:
@@ -154,15 +134,30 @@ public:
 	bool AllSolid() const				{ return allsolid; }
 	bool StartSolid() const				{ return startsolid; }
 
-	HSCRIPT Surface() const				{ return m_surfaceAccessor; }
-	HSCRIPT Plane() const				{ return m_planeAccessor; }
+	HSCRIPT Surface()
+	{
+		if ( !m_surfaceAccessor )
+		{
+			m_surfaceHelper.Init( &surface );
+			m_surfaceAccessor = g_pScriptVM->RegisterInstance( &m_surfaceHelper );
+		}
 
-	void Destroy()						{ delete this; }
+		return m_surfaceAccessor;
+	}
+
+	HSCRIPT Plane()
+	{
+		if ( !m_planeAccessor )
+			m_planeAccessor = g_pScriptVM->RegisterInstance( &plane );
+
+		return m_planeAccessor;
+	}
+
+	void Destroy()						{}
 
 private:
 	HSCRIPT m_surfaceAccessor;
 	HSCRIPT m_planeAccessor;
-	HSCRIPT m_hScriptInstance;
 
 	CSurfaceScriptHelper m_surfaceHelper;
 

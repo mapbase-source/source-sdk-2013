@@ -2920,7 +2920,7 @@ int CScriptGameEventListener::ListenToGameEvent( const char* szEvent, HSCRIPT hF
 	if ( bValid )
 	{
 		m_iContextHash = HashContext( szContext );
-		m_hCallback = hFunc;
+		m_hCallback = g_pScriptVM->CopyObject( hFunc );
 		m_bActive = true;
 
 		s_Listeners.AddToTail( this );
@@ -3247,7 +3247,7 @@ public:
 
 	// NOTE: These two functions are new with Mapbase and have no Valve equivalent
 	static bool KeyValuesWrite( const char *szFile, HSCRIPT hInput );
-	static HSCRIPT KeyValuesRead( const char *szFile );
+	static HSCRIPT_RC KeyValuesRead( const char *szFile );
 
 	void LevelShutdownPostEntity()
 	{
@@ -3433,7 +3433,7 @@ bool CScriptReadWriteFile::KeyValuesWrite( const char *szFile, HSCRIPT hInput )
 //-----------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------
-HSCRIPT CScriptReadWriteFile::KeyValuesRead( const char *szFile )
+HSCRIPT_RC CScriptReadWriteFile::KeyValuesRead( const char *szFile )
 {
 	char pszFullName[MAX_PATH];
 	V_snprintf( pszFullName, sizeof(pszFullName), SCRIPT_RW_FULL_PATH_FMT, szFile );
@@ -3458,7 +3458,7 @@ HSCRIPT CScriptReadWriteFile::KeyValuesRead( const char *szFile )
 		return NULL;
 	}
 
-	HSCRIPT hScript = scriptmanager->CreateScriptKeyValues( g_pScriptVM, pKV, true ); // bAllowDestruct is supposed to automatically remove the involved KV
+	HSCRIPT hScript = scriptmanager->CreateScriptKeyValues( g_pScriptVM, pKV );
 
 	return hScript;
 }
@@ -4609,9 +4609,9 @@ public:
 	CScriptConCommand( const char *name, HSCRIPT fn, const char *helpString, int flags, ConCommand *pLinked = NULL )
 		: BaseClass( name, this, helpString, flags, 0 ),
 		m_pLinked(pLinked),
-		m_hCallback(fn),
 		m_hCompletionCallback(NULL)
 	{
+		m_hCallback = g_pScriptVM->CopyObject( fn );
 		m_nCmdNameLen = V_strlen(name) + 1;
 		Assert( m_nCmdNameLen - 1 <= 128 );
 	}
@@ -4701,7 +4701,7 @@ public:
 
 			BaseClass::m_pCommandCompletionCallback = this;
 			BaseClass::m_bHasCompletionCallback = true;
-			m_hCompletionCallback = fn;
+			m_hCompletionCallback = g_pScriptVM->CopyObject( fn );
 		}
 		else
 		{
@@ -4720,7 +4720,8 @@ public:
 
 			if ( m_hCallback )
 				g_pScriptVM->ReleaseScript( m_hCallback );
-			m_hCallback = fn;
+
+			m_hCallback = g_pScriptVM->CopyObject( fn );
 		}
 		else
 		{
@@ -4781,7 +4782,7 @@ public:
 
 		if (fn)
 		{
-			m_hCallback = fn;
+			m_hCallback = g_pScriptVM->CopyObject( fn );
 			BaseClass::InstallChangeCallback( (FnChangeCallback_t)ScriptConVarCallback );
 		}
 		else
