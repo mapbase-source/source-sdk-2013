@@ -234,8 +234,7 @@ class CMaterialProxyScriptInstanceHelper : public IScriptInstanceHelper
 
 CMaterialProxyScriptInstanceHelper g_MaterialProxyScriptInstanceHelper;
 
-BEGIN_SCRIPTDESC_ROOT_NAMED( CScriptMaterialProxy, "CScriptMaterialProxy", "Material proxy for VScript" )
-	DEFINE_SCRIPT_INSTANCE_HELPER( &g_MaterialProxyScriptInstanceHelper )
+BEGIN_SCRIPTDESC_ROOT_NAMED_WITH_HELPER( CScriptMaterialProxy, "CScriptMaterialProxy", "Material proxy for VScript", &g_MaterialProxyScriptInstanceHelper )
 	DEFINE_SCRIPTFUNC( GetVarString, "Gets a material var's string value" )
 	DEFINE_SCRIPTFUNC( GetVarInt, "Gets a material var's int value" )
 	DEFINE_SCRIPTFUNC( GetVarFloat, "Gets a material var's float value" )

@@ -205,10 +205,9 @@ void ScriptMatrixSetTranslation( const Vector& vecset, HSCRIPT hMat1 )
 //=============================================================================
 CScriptQuaternionInstanceHelper g_QuaternionScriptInstanceHelper;
 
-BEGIN_SCRIPTDESC_ROOT_NAMED( Quaternion, "Quaternion", "A quaternion." )
+BEGIN_SCRIPTDESC_ROOT_NAMED_WITH_HELPER( Quaternion, "Quaternion", "A quaternion.", &g_QuaternionScriptInstanceHelper )
 
 	DEFINE_SCRIPT_CONSTRUCTOR()
-	DEFINE_SCRIPT_INSTANCE_HELPER( &g_QuaternionScriptInstanceHelper )
 	DEFINE_SCRIPTFUNC_NAMED( ScriptInit, "Init", "Creates a quaternion with the given values." )
 
 	DEFINE_MEMBERVAR( "x", FIELD_FLOAT, "The quaternion's i axis component." )
