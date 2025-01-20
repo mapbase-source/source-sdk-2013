@@ -1440,7 +1440,7 @@ public:
 	virtual	bool FVisible ( CBaseEntity *pEntity, int traceMask = MASK_BLOCKLOS, CBaseEntity **ppBlocker = NULL );
 	virtual bool FVisible( const Vector &vecTarget, int traceMask = MASK_BLOCKLOS, CBaseEntity **ppBlocker = NULL );
 
-	virtual bool CanBeSeenBy( CAI_BaseNPC *pNPC ) { return true; } // allows entities to be 'invisible' to NPC senses.
+	virtual bool CanBeSeenBy( CAI_BaseNPC *pNPC ); // allows entities to be 'invisible' to NPC senses.
 
 	// This function returns a value that scales all damage done by this entity.
 	// Use CDamageModifier to hook in damage modifiers on a guy.
@@ -2177,10 +2177,13 @@ public:
 	static ScriptHook_t	g_Hook_VPhysicsCollision;
 	static ScriptHook_t	g_Hook_FireBullets;
 	static ScriptHook_t	g_Hook_OnDeath;
+	static ScriptHook_t	g_Hook_OnTakeDamage;
 	static ScriptHook_t	g_Hook_OnKilledOther;
 	static ScriptHook_t	g_Hook_HandleInteraction;
 	static ScriptHook_t	g_Hook_ModifyEmitSoundParams;
 	static ScriptHook_t	g_Hook_ModifySentenceParams;
+	static ScriptHook_t	g_Hook_ModifyOrAppendCriteria;
+	static ScriptHook_t	g_Hook_CanBeSeenBy;
 #endif
 
 	string_t		m_iszVScripts;

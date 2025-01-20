@@ -1628,8 +1628,51 @@ void CBaseEntity::TakeDamage( const CTakeDamageInfo &inputInfo )
 		DamageFilterDamageMod(info);
 #endif
 
+#ifdef MAPBASE_VSCRIPT
+		if (m_ScriptScope.IsInitialized() && g_Hook_OnTakeDamage.CanRunInScope( m_ScriptScope ))
+		{
+			HSCRIPT hInfo = g_pScriptVM->RegisterInstance( &info );
+
+			// info
+			ScriptVariant_t functionReturn;
+			ScriptVariant_t args[] = { ScriptVariant_t( hInfo ) };
+			if ( g_Hook_OnTakeDamage.Call( m_ScriptScope, &functionReturn, args ) )
+			{
+				if (functionReturn.m_type == FIELD_BOOLEAN && functionReturn.m_bool == false)
+				{
+					g_pScriptVM->RemoveInstance( hInfo );
+					return;
+				}
+			}
+
+			g_pScriptVM->RemoveInstance( hInfo );
+		}
+#endif
+
 		OnTakeDamage( info );
 	}
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: Allows entities to be 'invisible' to NPC senses.
+//-----------------------------------------------------------------------------
+bool CBaseEntity::CanBeSeenBy( CAI_BaseNPC *pNPC )
+{
+#ifdef MAPBASE_VSCRIPT
+	if (m_ScriptScope.IsInitialized() && g_Hook_CanBeSeenBy.CanRunInScope(m_ScriptScope))
+	{
+		// npc
+		ScriptVariant_t functionReturn;
+		ScriptVariant_t args[] = { ToHScript( pNPC ) };
+		if (g_Hook_CanBeSeenBy.Call( m_ScriptScope, &functionReturn, args ))
+		{
+			if (functionReturn.m_bool == false)
+				return false;
+		}
+	}
+#endif
+
+	return true;
 }
 
 //-----------------------------------------------------------------------------
@@ -2251,10 +2294,13 @@ ScriptHook_t	CBaseEntity::g_Hook_OnEntText;
 ScriptHook_t	CBaseEntity::g_Hook_VPhysicsCollision;
 ScriptHook_t	CBaseEntity::g_Hook_FireBullets;
 ScriptHook_t	CBaseEntity::g_Hook_OnDeath;
+ScriptHook_t	CBaseEntity::g_Hook_OnTakeDamage;
 ScriptHook_t	CBaseEntity::g_Hook_OnKilledOther;
 ScriptHook_t	CBaseEntity::g_Hook_HandleInteraction;
 ScriptHook_t	CBaseEntity::g_Hook_ModifyEmitSoundParams;
 ScriptHook_t	CBaseEntity::g_Hook_ModifySentenceParams;
+ScriptHook_t	CBaseEntity::g_Hook_ModifyOrAppendCriteria;
+ScriptHook_t	CBaseEntity::g_Hook_CanBeSeenBy;
 #endif
 
 BEGIN_ENT_SCRIPTDESC_ROOT( CBaseEntity, "Root class of all server-side entities" )
@@ -2377,6 +2423,7 @@ BEGIN_ENT_SCRIPTDESC_ROOT( CBaseEntity, "Root class of all server-side entities"
 
 	DEFINE_SCRIPTFUNC_NAMED( ScriptGetContext, "GetContext", "Get a response context value" )
 	DEFINE_SCRIPTFUNC_NAMED( ScriptAddContext, "AddContext", "Add a response context value" )
+	DEFINE_SCRIPTFUNC( RemoveContext, "Remove a response context" )
 	DEFINE_SCRIPTFUNC( GetContextExpireTime, "Get a response context's expiration time" )
 	DEFINE_SCRIPTFUNC( GetContextCount, "Get the number of response contexts" )
 	DEFINE_SCRIPTFUNC_NAMED( ScriptGetContextIndex, "GetContextIndex", "Get a response context at a specific index in the form of a table" )
@@ -2515,14 +2562,15 @@ BEGIN_ENT_SCRIPTDESC_ROOT( CBaseEntity, "Root class of all server-side entities"
 		DEFINE_SCRIPTHOOK_PARAM( "normal", FIELD_VECTOR )
 	END_SCRIPTHOOK()
 
-	BEGIN_SCRIPTHOOK( CBaseEntity::g_Hook_FireBullets, "FireBullets", FIELD_VOID, "Called for every single VPhysics-related collision experienced by this entity." )
-		DEFINE_SCRIPTHOOK_PARAM( "entity", FIELD_HSCRIPT )
-		DEFINE_SCRIPTHOOK_PARAM( "speed", FIELD_FLOAT )
-		DEFINE_SCRIPTHOOK_PARAM( "point", FIELD_VECTOR )
-		DEFINE_SCRIPTHOOK_PARAM( "normal", FIELD_VECTOR )
+	BEGIN_SCRIPTHOOK( CBaseEntity::g_Hook_FireBullets, "FireBullets", FIELD_VOID, "Called when the entity fires bullets from itself or from a weapon. The parameter is the associated FireBulletsInfo_t handle. Return false to cancel bullet firing." )
+		DEFINE_SCRIPTHOOK_PARAM( "info", FIELD_HSCRIPT )
 	END_SCRIPTHOOK()
 
-	BEGIN_SCRIPTHOOK( CBaseEntity::g_Hook_OnDeath, "OnDeath", FIELD_BOOLEAN, "Called when the entity dies (Event_Killed). Returning false makes the entity cancel death, although this could have unforeseen consequences. For hooking any damage instead of just death, see filter_script and PassesFinalDamageFilter." )
+	BEGIN_SCRIPTHOOK( CBaseEntity::g_Hook_OnDeath, "OnDeath", FIELD_BOOLEAN, "Called when the entity dies (Event_Killed). Returning false makes the entity cancel death, although this could have unforeseen consequences. For hooking any damage instead of just death, use OnTakeDamage." )
+		DEFINE_SCRIPTHOOK_PARAM( "info", FIELD_HSCRIPT )
+	END_SCRIPTHOOK()
+
+	BEGIN_SCRIPTHOOK( CBaseEntity::g_Hook_OnTakeDamage, "OnTakeDamage", FIELD_BOOLEAN, "Called when the entity takes damage (OnTakeDamage). Returning false makes the entity cancel the damage, similar to a damage filter. This is called after any damage filter operations." )
 		DEFINE_SCRIPTHOOK_PARAM( "info", FIELD_HSCRIPT )
 	END_SCRIPTHOOK()
 
@@ -2543,6 +2591,12 @@ BEGIN_ENT_SCRIPTDESC_ROOT( CBaseEntity, "Root class of all server-side entities"
 
 	BEGIN_SCRIPTHOOK( CBaseEntity::g_Hook_ModifySentenceParams, "ModifySentenceParams", FIELD_VOID, "Called every time a sentence is emitted on this entity, allowing for its parameters to be modified." )
 		DEFINE_SCRIPTHOOK_PARAM( "params", FIELD_HSCRIPT )
+	END_SCRIPTHOOK()
+		
+	DEFINE_SIMPLE_SCRIPTHOOK( CBaseEntity::g_Hook_ModifyOrAppendCriteria, "ModifyOrAppendCriteria", FIELD_HSCRIPT, "Called when the criteria set is collected for a response. Return a table of keyvalues to add to the criteria set." )
+
+	BEGIN_SCRIPTHOOK( CBaseEntity::g_Hook_CanBeSeenBy, "CanBeSeenBy", FIELD_BOOLEAN, "Whether or not this entity can be seen by the specified NPC." )
+		DEFINE_SCRIPTHOOK_PARAM( "npc", FIELD_HSCRIPT )
 	END_SCRIPTHOOK()
 #endif
 END_SCRIPTDESC();
@@ -7543,6 +7597,61 @@ void CBaseEntity::ModifyOrAppendCriteria( AI_CriteriaSet& set )
 	// Append base stuff
 	set.AppendCriteria("spawnflags", UTIL_VarArgs("%i", GetSpawnFlags()));
 	set.AppendCriteria("flags", UTIL_VarArgs("%i", GetFlags()));
+#endif
+	
+#ifdef MAPBASE_VSCRIPT
+	if (m_ScriptScope.IsInitialized() && g_Hook_ModifyOrAppendCriteria.CanRunInScope(m_ScriptScope))
+	{
+		ScriptVariant_t functionReturn;
+		if (g_Hook_ModifyOrAppendCriteria.Call( m_ScriptScope, &functionReturn, NULL ))
+		{
+			if (functionReturn.m_hScript != NULL)
+			{
+				int nIterator = -1;
+				ScriptVariant_t varKey, varValue;
+				while ((nIterator = g_pScriptVM->GetKeyValue( functionReturn.m_hScript, nIterator, &varKey, &varValue )) != -1)
+				{
+					float flWeight = 1.0f;
+					char szValue[128];
+					switch (varValue.m_type)
+					{
+						case FIELD_CSTRING:
+							{
+								char *colon = V_strstr( varValue.m_pszString, ":" );
+								if (colon)
+								{
+									// Use as weight
+									flWeight = atof(colon+1);
+									*colon = NULL;
+								}
+								V_strncpy( szValue, varValue.m_pszString, sizeof( szValue ) );
+							}
+							break;
+						case FIELD_BOOLEAN:
+							V_snprintf( szValue, sizeof( szValue ), "%d", varValue.m_bool );
+							break;
+						case FIELD_INTEGER:
+							V_snprintf( szValue, sizeof( szValue ), "%i", varValue.m_int );
+							break;
+						case FIELD_FLOAT:
+							V_snprintf( szValue, sizeof( szValue ), "%f", varValue.m_float );
+							break;
+						case FIELD_VECTOR:
+							V_snprintf( szValue, sizeof( szValue ), "%f %f %f", varValue.m_pVector->x, varValue.m_pVector->y, varValue.m_pVector->z );
+							break;
+						default:
+							Warning( "ModifyOrAppendCriteria doesn't know how to handle field %i for %s\n", varValue.m_type, varKey.m_pszString );
+							break;
+					}
+
+					set.AppendCriteria( varKey.m_pszString, szValue, flWeight );
+
+					g_pScriptVM->ReleaseValue( varKey );
+					g_pScriptVM->ReleaseValue( varValue );
+				}
+			}
+		}
+	}
 #endif
 }
 

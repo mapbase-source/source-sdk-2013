@@ -2551,6 +2551,24 @@ int CNPC_Combine::TranslateSchedule( int scheduleType )
 				}
 			}
 
+#ifdef MAPBASE
+			extern ConVar ai_enemy_memory_fixes;
+
+			// SCHED_COMBINE_ESTABLISH_LINE_OF_FIRE uses TASK_GET_PATH_TO_ENEMY_LKP_LOS, a task with a mistake
+			// detailed in CAI_BaseNPC::StartTask and fixed by ai_enemy_memory_fixes.
+			// 
+			// However, SCHED_COMBINE_ESTABLISH_LINE_OF_FIRE only stops being used once the NPC has LOS to its target.
+			// Since the fixed task now uses the enemy's last known position instead of the enemy's actual position,
+			// this schedule risks getting stuck in a loop.
+			// 
+			// This code makes the soldier run up directly to the last known position if it's visible, allowing the AI
+			// to mark the enemy as eluded.
+			if ( ai_enemy_memory_fixes.GetBool() && FVisible( GetEnemyLKP() ) )
+			{
+				return SCHED_COMBINE_PRESS_ATTACK;
+			}
+#endif
+
 			return SCHED_COMBINE_ESTABLISH_LINE_OF_FIRE;
 		}
 		break;

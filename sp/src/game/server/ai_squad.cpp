@@ -18,6 +18,10 @@
 
 CAI_SquadManager g_AI_SquadManager;
 
+#ifdef MAPBASE
+ConVar ai_squad_broadcast_elusion("ai_squad_broadcast_elusion", "0", FCVAR_NONE, "Tells the entire squad when an enemy is eluded");
+#endif
+
 //-----------------------------------------------------------------------------
 // CAI_SquadManager
 //
@@ -740,6 +744,25 @@ void CAI_Squad::UpdateEnemyMemory( CAI_BaseNPC *pUpdater, CBaseEntity *pEnemy, c
 
 //------------------------------------------------------------------------------
 
+#ifdef MAPBASE
+void CAI_Squad::MarkEnemyAsEluded( CAI_BaseNPC *pUpdater, CBaseEntity *pEnemy )
+{
+	if (!ai_squad_broadcast_elusion.GetBool())
+		return;
+	
+	//Broadcast to all members of the squad
+	for ( int i = 0; i < m_SquadMembers.Count(); i++ )
+	{
+		if ( m_SquadMembers[i] != pUpdater )
+		{
+			m_SquadMembers[i]->GetEnemies()->MarkAsEluded( pEnemy );
+		}
+	}
+}
+#endif
+
+//------------------------------------------------------------------------------
+
 #ifdef PER_ENEMY_SQUADSLOTS
 
 AISquadEnemyInfo_t *CAI_Squad::FindEnemyInfo( CBaseEntity *pEnemy )
@@ -883,14 +906,14 @@ void		CAI_Squad::ScriptRemoveFromSquad( HSCRIPT hNPC ) { RemoveFromSquad( HScrip
 
 bool		CAI_Squad::ScriptIsSilentMember( HSCRIPT hNPC ) { return IsSilentMember( HScriptToClass<CAI_BaseNPC>( hNPC ) ); }
 
-void CAI_Squad::ScriptSetSquadData( int iSlot, const char *data )
+void CAI_Squad::ScriptSetSquadData( int iSlot, int data )
 {
 	SetSquadData( iSlot, data );
 }
 
-const char *CAI_Squad::ScriptGetSquadData( int iSlot )
+int CAI_Squad::ScriptGetSquadData( int iSlot )
 {
-	const char *data;
+	int data;
 	GetSquadData( iSlot, &data );
 	return data;
 }

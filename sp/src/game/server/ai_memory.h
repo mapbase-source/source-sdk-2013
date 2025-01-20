@@ -63,6 +63,9 @@ public:
 	AI_EnemyInfo_t *GetFirst( AIEnemiesIter_t *pIter );
 	AI_EnemyInfo_t *GetNext( AIEnemiesIter_t *pIter );
 	AI_EnemyInfo_t *Find( CBaseEntity *pEntity, bool bTryDangerMemory = false );
+#ifdef MAPBASE
+	unsigned char	FindIndex( CBaseEntity *pEntity );
+#endif
 	AI_EnemyInfo_t *GetDangerMemory();
 
 	int				NumEnemies() const		{ return m_Map.Count(); }

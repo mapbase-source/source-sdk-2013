@@ -1511,6 +1511,26 @@ int CNPC_Strider::TranslateSchedule( int scheduleType )
 				return SCHED_COMBAT_PATROL;
 			}
 		}
+		else
+		{
+#ifdef MAPBASE
+			extern ConVar ai_enemy_memory_fixes;
+
+			// Striders convert TASK_GET_PATH_TO_ENEMY_LOS to TASK_GET_PATH_TO_ENEMY_LKP_LOS, a task which incorrectly
+			// acts identically to the former. This is detailed in CAI_BaseNPC::StartTask and fixed by ai_enemy_memory_fixes.
+			// 
+			// However, SCHED_ESTABLISH_LINE_OF_FIRE only stops being used once the NPC has LOS to its target.
+			// Since the fixed task now uses the enemy's last known position instead of the enemy's actual position,
+			// this schedule risks getting stuck in a loop.
+			// 
+			// This code chains back up to SCHED_ESTABLISH_LINE_OF_FIRE_FALLBACK, which is what's supposed to happen when a
+			// strider is eluded in this way.
+			if ( ai_enemy_memory_fixes.GetBool() && FVisible( GetEnemyLKP() ) )
+			{
+				return TranslateSchedule( SCHED_ESTABLISH_LINE_OF_FIRE_FALLBACK );
+			}
+#endif
+		}
 
 		break;
 

@@ -227,6 +227,18 @@ AI_EnemyInfo_t *CAI_Enemies::Find( CBaseEntity *pEntity, bool bTryDangerMemory )
 
 //-----------------------------------------------------------------------------
 
+#ifdef MAPBASE
+unsigned char CAI_Enemies::FindIndex( CBaseEntity *pEntity )
+{
+	if ( pEntity == AI_UNKNOWN_ENEMY )
+		pEntity = NULL;
+
+	return m_Map.Find( pEntity );
+}
+#endif
+
+//-----------------------------------------------------------------------------
+
 AI_EnemyInfo_t *CAI_Enemies::GetDangerMemory()
 {
 	CMemMap::IndexType_t i = m_Map.Find( NULL );

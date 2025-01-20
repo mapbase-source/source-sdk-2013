@@ -66,6 +66,7 @@ BEGIN_SCRIPTDESC_ROOT( CSound, "A sound NPCs can hear." )
 	DEFINE_SCRIPTFUNC( ValidateOwner, "Returns true if the sound's owner is still valid or if the sound never had an owner in the first place." )
 	DEFINE_SCRIPTFUNC_NAMED( ScriptGetOwner, "GetOwner", "Gets the sound's owner." )
 	DEFINE_SCRIPTFUNC_NAMED( ScriptGetTarget, "GetTarget", "Gets the sound's target." )
+	DEFINE_SCRIPTFUNC_NAMED( ScriptFreeSound, "FreeSound", "Frees the sound from the sound list." )
 
 END_SCRIPTDESC();
 #endif
