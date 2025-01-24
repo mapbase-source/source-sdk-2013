@@ -399,10 +399,38 @@ int C_SpriteRenderer::DrawSprite(
 				if ( group == RENDER_GROUP_VIEW_MODEL_TRANSLUCENT || group == RENDER_GROUP_VIEW_MODEL_OPAQUE )
 					return 0;
 			}
+#ifdef MAPBASE
+			if (ent->m_iViewHideFlags > 0)
+			{
+				// Hide this entity if it's not supposed to be drawn in this view.
+				if (ent->m_iViewHideFlags & (1 << CurrentViewID()))
+				{
+					return 0;
+				}
+			}
+#endif
 			QAngle temp;
 			ent->GetAttachment( attachmentindex, effect_origin, temp );
 		}
 	}
+	
+#ifdef MAPBASE
+	if ( entity )
+	{
+		C_BaseEntity *ent = entity->GetBaseEntity();
+		if ( ent )
+		{
+			if (ent->m_iViewHideFlags > 0)
+			{
+				// Hide this entity if it's not supposed to be drawn in this view.
+				if (ent->m_iViewHideFlags & (1 << CurrentViewID()))
+				{
+					return 0;
+				}
+			}
+		}
+	}
+#endif
 
 	if ( rendermode != kRenderNormal )
 	{
