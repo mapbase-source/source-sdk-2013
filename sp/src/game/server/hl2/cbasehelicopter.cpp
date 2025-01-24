@@ -42,6 +42,10 @@ virtual void NullThink( void );
 
 ConVar g_debug_basehelicopter( "g_debug_basehelicopter", "0", FCVAR_CHEAT );
 
+#ifdef MAPBASE
+ConVar	g_helicopter_use_sight_condition( "g_helicopter_use_sight_condition", "0", 0, "If enabled, helicopters will use the AI sight condition instead of just checking if there's a clear path to the player. This prevents them from cheating." );
+#endif
+
 //---------------------------------------------------------
 //---------------------------------------------------------
 // TODOs
@@ -702,7 +706,11 @@ void CBaseHelicopter::UpdateEnemy()
 		{
 			CBaseEntity *pEnemy = GetEnemy();
 			GatherEnemyConditions( pEnemy );
+#ifdef MAPBASE
+			if ( (g_helicopter_use_sight_condition.GetBool() && pEnemy->Classify() != CLASS_BULLSEYE) ? HasCondition( COND_SEE_ENEMY ) : FVisible( pEnemy ) )
+#else
 			if ( FVisible( pEnemy ) )
+#endif
 			{
 				if (m_flLastSeen < gpGlobals->curtime - 2)
 				{
