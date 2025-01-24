@@ -918,7 +918,7 @@ bool CAI_Expresser::SpeakDispatchResponse( AIConcept_t concept, AI_Response *res
 			textParams.g1 = 255;
 			textParams.b1 = 255;
 
-			if (ai_speech_print_mode.GetBool() && GetOuter()->GetGameTextSpeechParams( textParams ))
+			if (ai_speech_print_mode.GetBool() && GetOuter()->DispatchGetGameTextSpeechParams( textParams ))
 			{
 				CRecipientFilter filter;
 				filter.AddAllPlayers();

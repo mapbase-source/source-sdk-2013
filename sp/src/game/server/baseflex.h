@@ -141,7 +141,8 @@ public:
 	virtual int			GetSpecialDSP( void ) { return 0; }
 
 #ifdef MAPBASE
-	virtual bool		GetGameTextSpeechParams( hudtextparms_t &params );
+	bool				DispatchGetGameTextSpeechParams( hudtextparms_t &params );
+	virtual bool		GetGameTextSpeechParams( hudtextparms_t &params ) { return true; }
 #endif
 
 protected:
