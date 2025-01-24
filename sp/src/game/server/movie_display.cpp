@@ -44,6 +44,14 @@ public:
 
 	void	InputSetDisplayText( inputdata_t &inputdata );
 
+#ifdef MAPBASE
+	void	InputPause( inputdata_t &inputdata );
+	void	InputUnpause( inputdata_t &inputdata );
+
+	void	InputSetTime( inputdata_t &inputdata );
+	void	InputSetFrame( inputdata_t &inputdata );
+#endif
+
 private:
 
 	// Control panel
@@ -56,6 +64,12 @@ private:
 	CNetworkVar( bool, m_bEnabled );
 	CNetworkVar( bool, m_bLooping );
 	CNetworkVar( bool, m_bMuted);
+
+#ifdef MAPBASE
+	CNetworkVar( bool, m_bPaused );
+	CNetworkVar( float, m_flTargetTime );
+	CNetworkVar( int, m_nTargetFrame );
+#endif
 
 	CNetworkString( m_szDisplayText, 128 );
 
@@ -98,6 +112,12 @@ BEGIN_DATADESC( CMovieDisplay )
 	DEFINE_KEYFIELD( m_bLooping, FIELD_BOOLEAN, "looping" ),
 	DEFINE_KEYFIELD( m_bMuted, FIELD_BOOLEAN, "muted"),
 
+#ifdef MAPBASE
+	DEFINE_KEYFIELD( m_bPaused, FIELD_BOOLEAN, "paused" ),
+	DEFINE_KEYFIELD( m_flTargetTime, FIELD_FLOAT, "starttime" ),
+	DEFINE_KEYFIELD( m_nTargetFrame, FIELD_INTEGER, "startframe" ),
+#endif
+
 	DEFINE_FIELD( m_bDoFullTransmit, FIELD_BOOLEAN ),
 
 	DEFINE_FIELD( m_hScreen, FIELD_EHANDLE ),
@@ -107,6 +127,14 @@ BEGIN_DATADESC( CMovieDisplay )
 
 	DEFINE_INPUTFUNC( FIELD_STRING, "SetDisplayText", InputSetDisplayText ),
 
+#ifdef MAPBASE
+	DEFINE_INPUTFUNC( FIELD_VOID, "Pause", InputPause ),
+	DEFINE_INPUTFUNC( FIELD_VOID, "Unpause", InputUnpause ),
+
+	DEFINE_INPUTFUNC( FIELD_FLOAT, "SetTime", InputSetTime ),
+	DEFINE_INPUTFUNC( FIELD_INTEGER, "SetFrame", InputSetFrame ),
+#endif
+
 END_DATADESC()
 
 IMPLEMENT_SERVERCLASS_ST( CMovieDisplay, DT_MovieDisplay )
@@ -115,6 +143,11 @@ IMPLEMENT_SERVERCLASS_ST( CMovieDisplay, DT_MovieDisplay )
 	SendPropBool( SENDINFO(	m_bMuted ) ),
 	SendPropString( SENDINFO( m_szMovieFilename ) ),
 	SendPropString( SENDINFO( m_szGroupName ) ),
+#ifdef MAPBASE
+	SendPropBool( SENDINFO( m_bPaused ) ),
+	SendPropFloat( SENDINFO( m_flTargetTime ) ),
+	SendPropInt( SENDINFO( m_nTargetFrame ) ),
+#endif
 END_SEND_TABLE()
 
 CMovieDisplay::~CMovieDisplay()
@@ -292,6 +325,52 @@ void CMovieDisplay::InputSetDisplayText( inputdata_t &inputdata )
 {
 	Q_strcpy( m_szDisplayText.GetForModify(), inputdata.value.String() );
 }
+
+#ifdef MAPBASE
+//-----------------------------------------------------------------------------
+// 
+//-----------------------------------------------------------------------------
+void CMovieDisplay::InputPause( inputdata_t &inputdata )
+{
+	if (!m_bPaused)
+	{
+		m_bPaused = true;
+		DispatchUpdateTransmitState();
+	}
+}
+
+//-----------------------------------------------------------------------------
+// 
+//-----------------------------------------------------------------------------
+void CMovieDisplay::InputUnpause( inputdata_t &inputdata )
+{
+	if (m_bPaused)
+	{
+		m_bPaused = false;
+		DispatchUpdateTransmitState();
+	}
+}
+
+//-----------------------------------------------------------------------------
+// 
+//-----------------------------------------------------------------------------
+void CMovieDisplay::InputSetTime( inputdata_t &inputdata )
+{
+	float flTime = MAX( inputdata.value.Float(), 0 );
+	m_flTargetTime = flTime;
+	DispatchUpdateTransmitState();
+}
+
+//-----------------------------------------------------------------------------
+// 
+//-----------------------------------------------------------------------------
+void CMovieDisplay::InputSetFrame( inputdata_t &inputdata )
+{
+	int nFrame = MAX( inputdata.value.Int(), 0 );
+	m_nTargetFrame = nFrame;
+	DispatchUpdateTransmitState();
+}
+#endif
 
 //-----------------------------------------------------------------------------
 // 
