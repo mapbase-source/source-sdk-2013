@@ -3482,13 +3482,13 @@ void CBaseCombatCharacter::AddRelationship( const char *pszRelationship, CBaseEn
 		bool bFoundEntity = false;
 
 		// Try to get pointer to an entity of this name
-		CBaseEntity *entity = gEntList.FindEntityByName( NULL, entityString );
+		CBaseEntity *entity = gEntList.FindEntityByName( NULL, entityString, this, pActivator );
 		while( entity )
 		{
 			// make sure you catch all entities of this name.
 			bFoundEntity = true;
 			AddEntityRelationship(entity, disposition, priority );
-			entity = gEntList.FindEntityByName( entity, entityString );
+			entity = gEntList.FindEntityByName( entity, entityString, this, pActivator );
 		}
 
 		if( !bFoundEntity )
