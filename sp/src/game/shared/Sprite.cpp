@@ -866,3 +866,125 @@ bool CSpriteOriented::IsTransparent( void )
 }
 
 #endif
+
+#if defined(MAPBASE) && defined(CLIENT_DLL)
+//-----------------------------------------------------------------------------
+// Purpose: Clientside sprites
+//			CSprites which are created and saved exclusively on the client
+//-----------------------------------------------------------------------------
+class C_SpriteClientside : public C_Sprite
+{
+public:
+	DECLARE_CLASS( C_SpriteClientside, C_Sprite );
+	DECLARE_DATADESC();
+
+	bool KeyValue( const char *szKeyName, const char *szValue );
+};
+
+LINK_ENTITY_TO_CLASS( env_sprite_clientside, C_SpriteClientside );
+
+BEGIN_DATADESC( C_SpriteClientside )
+
+	DEFINE_FIELD( m_flLastTime, FIELD_TIME ),
+	DEFINE_FIELD( m_flMaxFrame, FIELD_FLOAT ),
+	DEFINE_FIELD( m_hAttachedToEntity, FIELD_EHANDLE ),
+	DEFINE_FIELD( m_nAttachment, FIELD_INTEGER ),
+	DEFINE_FIELD( m_flDieTime, FIELD_TIME ),
+
+	DEFINE_FIELD( m_nBrightness,		FIELD_INTEGER ),
+	DEFINE_FIELD( m_flBrightnessTime,	FIELD_FLOAT ),
+
+	DEFINE_KEYFIELD( m_flSpriteScale, FIELD_FLOAT, "scale" ),
+	DEFINE_KEYFIELD( m_flSpriteFramerate, FIELD_FLOAT, "framerate" ),
+	DEFINE_KEYFIELD( m_flFrame, FIELD_FLOAT, "frame" ),
+#ifdef PORTAL
+	DEFINE_FIELD( m_bDrawInMainRender, FIELD_BOOLEAN ),
+	DEFINE_FIELD( m_bDrawInPortalRender, FIELD_BOOLEAN ),
+#endif
+	DEFINE_KEYFIELD( m_flHDRColorScale, FIELD_FLOAT, "HDRColorScale" ),
+
+	DEFINE_KEYFIELD( m_flGlowProxySize,	FIELD_FLOAT, "GlowProxySize" ),
+	
+	DEFINE_FIELD( m_flScaleTime,		FIELD_FLOAT ),
+	DEFINE_FIELD( m_flStartScale,		FIELD_FLOAT ),
+	DEFINE_FIELD( m_flDestScale,		FIELD_FLOAT ),
+	DEFINE_FIELD( m_flScaleTimeStart,	FIELD_TIME ),
+	DEFINE_FIELD( m_nStartBrightness,	FIELD_INTEGER ),
+	DEFINE_FIELD( m_nDestBrightness,	FIELD_INTEGER ),
+	DEFINE_FIELD( m_flBrightnessTimeStart, FIELD_TIME ),
+	DEFINE_FIELD( m_bWorldSpaceScale,	FIELD_BOOLEAN ),
+
+	// Function Pointers
+	// DEFINE_FUNCTION( AnimateThink ),
+	// DEFINE_FUNCTION( ExpandThink ),
+	// DEFINE_FUNCTION( AnimateUntilDead ),
+	// DEFINE_FUNCTION( BeginFadeOutThink ),
+
+	// Inputs
+	// DEFINE_INPUT( m_flSpriteScale, FIELD_FLOAT, "SetScale" ),
+	// DEFINE_INPUTFUNC( FIELD_VOID, "HideSprite", InputHideSprite ),
+	// DEFINE_INPUTFUNC( FIELD_VOID, "ShowSprite", InputShowSprite ),
+	// DEFINE_INPUTFUNC( FIELD_VOID, "ToggleSprite", InputToggleSprite ),
+	// DEFINE_INPUTFUNC( FIELD_FLOAT, "ColorRedValue", InputColorRedValue ),
+	// DEFINE_INPUTFUNC( FIELD_FLOAT, "ColorGreenValue", InputColorGreenValue ),
+	// DEFINE_INPUTFUNC( FIELD_FLOAT, "ColorBlueValue", InputColorBlueValue ),
+
+END_DATADESC()
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+bool C_SpriteClientside::KeyValue( const char *szKeyName, const char *szValue )
+{
+	if (FStrEq( szKeyName, "model" ))
+	{
+		SetModelName( MAKE_STRING( szValue ) );
+	}
+	else if (FStrEq( szKeyName, "scale" ))
+	{
+		m_flSpriteScale = atof( szValue );
+	}
+	else if (FStrEq( szKeyName, "framerate" ))
+	{
+		m_flSpriteFramerate = atof( szValue );
+	}
+	else if (FStrEq( szKeyName, "HDRColorScale" ))
+	{
+		m_flHDRColorScale = atof( szValue );
+	}
+	else if (FStrEq( szKeyName, "GlowProxySize" ))
+	{
+		m_flGlowProxySize = atof( szValue );
+	}
+	else
+	{
+		if ( !BaseClass::KeyValue( szKeyName, szValue ) )
+		{
+			// key hasn't been handled
+			return false;
+		}
+	}
+
+	return true;
+}
+
+CON_COMMAND( spawn_clientside_sprite, "Spawns a clientside sprite" )
+{
+	C_Sprite *pSprite = (C_Sprite *)CreateEntityByName( "env_sprite_clientside" );
+	if (!pSprite)
+		return;
+
+	// Pass in any additional parameters.
+	for ( int i = 2; i + 1 < args.ArgC(); i += 2 )
+	{
+		const char *pKeyName = args[i];
+		const char *pValue = args[i+1];
+		pSprite->KeyValue( pKeyName, pValue );
+	}
+	
+	pSprite->Spawn();
+	pSprite->SetSolid( SOLID_NONE );
+	pSprite->SetMoveType( MOVETYPE_NONE );
+	pSprite->TurnOn();
+}
+#endif

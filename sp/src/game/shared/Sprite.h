@@ -25,6 +25,9 @@ class CBasePlayer;
 #define CSpriteOriented C_SpriteOriented
 #include "c_pixel_visibility.h"
 class CEngineSprite;
+#ifdef MAPBASE
+class C_SpriteClientside;
+#endif
 
 class C_SpriteRenderer
 {
@@ -215,6 +218,9 @@ public:
 	DECLARE_DATADESC();
 
 	static CSprite *SpriteCreate( const char *pSpriteName, const Vector &origin, bool animate );
+#elif defined(MAPBASE)
+	friend class C_SpriteClientside; // Allows datadesc access
+	friend datamap_t* DataMapInit<C_SpriteClientside>( C_SpriteClientside* ); // Allows datadesc access
 #endif
 	static CSprite *SpriteCreatePredictable( const char *module, int line, const char *pSpriteName, const Vector &origin, bool animate );
 
