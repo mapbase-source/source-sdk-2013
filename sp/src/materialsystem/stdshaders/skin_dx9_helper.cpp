@@ -767,16 +767,7 @@ void DrawSkin_DX9_Internal( CBaseVSShader *pShader, IMaterialVar** params, IShad
 
 		pShader->SetVertexShaderTextureTransform( VERTEX_SHADER_SHADER_SPECIFIC_CONST_0, info.m_nBaseTextureTransform );
 
-#ifdef MAPBASE
-		// The original code makes it seem like we have the opportunity to support both $bumptransform and $detail at the same time,
-		// and that may or may not have been Valve's intention, but we'd need to add another texcoord for this and it's already
-		// a limitation with the non-skin shader anyway.
-		if ( bHasBump )
-		{
-			pShader->SetVertexShaderTextureTransform( VERTEX_SHADER_SHADER_SPECIFIC_CONST_4, info.m_nBumpTransform );
-		}
-		else
-#else
+#ifndef MAPBASE // See below
 		if( bHasBump )
 		{
 			pShader->SetVertexShaderTextureTransform( VERTEX_SHADER_SHADER_SPECIFIC_CONST_2, info.m_nBumpTransform );
@@ -794,6 +785,15 @@ void DrawSkin_DX9_Internal( CBaseVSShader *pShader, IMaterialVar** params, IShad
 																info.m_nBaseTextureTransform, 
 																info.m_nDetailScale );
 		}
+#ifdef MAPBASE
+		// The original code makes it seem like we have the opportunity to support both $bumptransform and $detail at the same time,
+		// and that may or may not have been Valve's intention, but we'd need to add another texcoord for this and it's already
+		// a limitation with the non-skin shader anyway.
+		else if ( bHasBump )
+		{
+			pShader->SetVertexShaderTextureTransform( VERTEX_SHADER_SHADER_SPECIFIC_CONST_4, info.m_nBumpTransform );
+		}
+#endif
 
 		pShader->SetModulationPixelShaderDynamicState_LinearColorSpace( 1 );
 		pShader->SetPixelShaderConstant_W( PSREG_SELFILLUMTINT, info.m_nSelfIllumTint, fBlendFactor );
