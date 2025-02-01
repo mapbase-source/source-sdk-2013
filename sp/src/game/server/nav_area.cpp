@@ -192,6 +192,8 @@ CNavArea::CNavArea( void )
 	m_avoidanceObstacleHeight = 0.0f;
 
 	m_totalCost = 0.0f;
+	m_costSoFar = 0.0f;
+	m_pathLengthSoFar = 0.0f;
 
 	ResetNodes();
 
@@ -244,6 +246,8 @@ CNavArea::CNavArea( void )
 	m_isInheritedFrom = false;
 
 	m_funcNavCostVector.RemoveAll();
+
+	m_nVisTestCounter = (uint32)-1;
 }
 
 //--------------------------------------------------------------------------------------------------------------
@@ -3381,16 +3385,10 @@ void CNavArea::AddToOpenList( void )
 	}
 
 	// insert self in ascending cost order
-	// Since costs are positive, IEEE754 let's us compare as integers (see http://www.cygnus-software.com/papers/comparingfloats/comparingfloats.htm)
 	CNavArea *area, *last = NULL;
-	int thisCostBits = *reinterpret_cast<const int *>(&m_totalCost);
-
-	Assert ( m_totalCost >= 0.0f );
 	for( area = m_openList; area; area = area->m_nextOpen )
 	{
-		Assert ( area->GetTotalCost() >= 0.0f );
-		int thoseCostBits = *reinterpret_cast<const int *>(&area->m_totalCost);
-		if ( thisCostBits < thoseCostBits )
+		if ( GetTotalCost() < area->GetTotalCost() )
 		{
 			break;
 		}
@@ -3709,7 +3707,7 @@ static Vector FindPositionInArea( CNavArea *area, NavCornerType corner )
 				pos = cornerPos + Vector(  area->GetSizeX()*0.5f*multX,  area->GetSizeY()*0.5f*multY, 0.0f );
 				if ( !area->IsOverlapping( pos ) )
 				{
-					AssertMsg( false, UTIL_VarArgs( "A Hiding Spot can't be placed on its area at (%.0f %.0f %.0f)", cornerPos.x, cornerPos.y, cornerPos.z) );
+					AssertMsg( false, "A Hiding Spot can't be placed on its area at (%.0f %.0f %.0f)", cornerPos.x, cornerPos.y, cornerPos.z );
 
 					// Just pull the position to a small offset
 					pos = cornerPos + Vector(  1.0f*multX,  1.0f*multY, 0.0f );
@@ -4287,6 +4285,9 @@ bool CNavArea::ComputeLighting( void )
 //--------------------------------------------------------------------------------------------------------------
 CON_COMMAND_F( nav_update_lighting, "Recomputes lighting values", FCVAR_CHEAT )
 {
+	if ( !UTIL_IsCommandIssuedByServerAdmin() )
+		return;
+
 	int numComputed = 0;
 	if ( args.ArgC() == 2 )
 	{
@@ -5630,7 +5631,7 @@ void CNavArea::ComputeVisibilityToMesh( void )
 /**
  * The center and all four corners must ALL be visible
  */
-bool CNavArea::IsEntirelyVisible( const Vector &eye, CBaseEntity *ignore ) const
+bool CNavArea::IsEntirelyVisible( const Vector &eye, const CBaseEntity *ignore ) const
 {
 	Vector corner;
 	trace_t result;
@@ -5663,7 +5664,7 @@ bool CNavArea::IsEntirelyVisible( const Vector &eye, CBaseEntity *ignore ) const
 /**
  * The center or any of the four corners may be visible
  */
-bool CNavArea::IsPartiallyVisible( const Vector &eye, CBaseEntity *ignore ) const
+bool CNavArea::IsPartiallyVisible( const Vector &eye, const CBaseEntity *ignore ) const
 {
 	Vector corner;
 	trace_t result;

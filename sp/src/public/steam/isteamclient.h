@@ -1,4 +1,4 @@
-//====== Copyright � 1996-2008, Valve Corporation, All rights reserved. =======
+﻿//====== Copyright � 1996-2008, Valve Corporation, All rights reserved. =======
 //
 // Purpose: Main interface for loading and accessing Steamworks API's from the 
 //			Steam client.
@@ -40,7 +40,7 @@
 #error ???
 #endif 
 
-typedef struct
+typedef struct ValvePackingSentinel_t
 {
     uint32 m_u32;
     uint64 m_u64;
@@ -98,6 +98,10 @@ class ISteamController;
 class ISteamUGC;
 class ISteamAppList;
 class ISteamHTMLSurface;
+#ifdef SDK_MP
+class ISteamInventory;
+class ISteamVideo;
+#endif
 
 //-----------------------------------------------------------------------------
 // Purpose: Interface to creating a new steam instance, or to
@@ -221,9 +225,21 @@ public:
 	virtual void Set_SteamAPI_CPostAPIResultInProcess( SteamAPI_PostAPIResultInProcess_t func ) = 0;
 	virtual void Remove_SteamAPI_CPostAPIResultInProcess( SteamAPI_PostAPIResultInProcess_t func ) = 0;
 	virtual void Set_SteamAPI_CCheckCallbackRegisteredInProcess( SteamAPI_CheckCallbackRegistered_t func ) = 0;
+
+#ifdef SDK_MP
+	// inventory
+	virtual ISteamInventory *GetISteamInventory( HSteamUser hSteamuser, HSteamPipe hSteamPipe, const char *pchVersion ) = 0;
+
+	// Video
+	virtual ISteamVideo *GetISteamVideo( HSteamUser hSteamuser, HSteamPipe hSteamPipe, const char *pchVersion ) = 0;
+#endif
 };
 
+#ifdef SDK_MP
+#define STEAMCLIENT_INTERFACE_VERSION		"SteamClient017"
+#else
 #define STEAMCLIENT_INTERFACE_VERSION		"SteamClient016"
+#endif
 
 //-----------------------------------------------------------------------------
 // Purpose: Base values for callback identifiers, each callback must
@@ -275,6 +291,9 @@ enum { k_iClientReservedCallbacks = 4300 };
 enum { k_iSteamReservedCallbacks = 4400 };
 enum { k_iSteamHTMLSurfaceCallbacks = 4500 };
 enum { k_iClientVideoCallbacks = 4600 };
+#ifdef SDK_MP
+enum { k_iClientInventoryCallbacks = 4700 };
+#endif
 
 //-----------------------------------------------------------------------------
 // The CALLBACK macros are for client side callback logging enabled with

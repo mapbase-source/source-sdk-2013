@@ -213,6 +213,7 @@ void CalcFovFromProjection ( float *pFov, const VMatrix &proj )
 	Assert ( proj.m[3][2] == -1.0f );
 	Assert ( proj.m[3][3] == 0.0f );
 
+	/*
 	// The math here:
 	// A view-space vector (x,y,z,1) is transformed by the projection matrix
 	// / xscale   0     xoffset  0 \
@@ -227,6 +228,7 @@ void CalcFovFromProjection ( float *pFov, const VMatrix &proj )
 	//        = xscale*(x/z) + xoffset            (I flipped the signs of both sides)
 	// => (+-1 - xoffset)/xscale = x/z
 	// ...and x/z is tan(theta), and theta is the half-FOV.
+	*/
 
 	float fov_px = 2.0f * RAD2DEG ( atanf ( fabsf ( (  1.0f - xoffset ) / xscale ) ) );
 	float fov_nx = 2.0f * RAD2DEG ( atanf ( fabsf ( ( -1.0f - xoffset ) / xscale ) ) );

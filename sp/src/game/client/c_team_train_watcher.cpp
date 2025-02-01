@@ -8,10 +8,10 @@
 #include "c_team_train_watcher.h"
 #include "igameevents.h"
 #include "c_team_objectiveresource.h"
+#include "teamplayroundbased_gamerules.h"
 
 #ifdef TF_CLIENT_DLL
 #include "tf_shareddefs.h"
-#include "teamplayroundbased_gamerules.h"
 #endif
 
 // memdbgon must be the last include file in a .cpp file!!!
@@ -163,18 +163,13 @@ void C_TeamTrainWatcher::OnDataChanged( DataUpdateType_t updateType )
 			int nNumHills = ObjectiveResource()->GetNumNodeHillData( GetTeamNumber() );
 			if ( nNumHills > 0 )
 			{
-				float flStart, flEnd;
+				float flStart = 0, flEnd = 0;
 				for ( int i = 0 ; i < nNumHills ; i++ )
 				{
 					ObjectiveResource()->GetHillData( GetTeamNumber(), i, flStart, flEnd );
-					if ( m_flTotalProgress >= flStart && m_flTotalProgress<= flEnd )
-					{
-						ObjectiveResource()->SetTrainOnHill( GetTeamNumber(), i, true );
-					}
-					else
-					{
-						ObjectiveResource()->SetTrainOnHill( GetTeamNumber(), i, false );
-					}
+
+					bool state = ( m_flTotalProgress >= flStart && m_flTotalProgress <= flEnd );
+					ObjectiveResource()->SetTrainOnHill( GetTeamNumber(), i, state );
 				}
 			}
 		}

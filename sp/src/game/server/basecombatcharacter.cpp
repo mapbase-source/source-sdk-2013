@@ -2728,8 +2728,8 @@ CBaseCombatWeapon *CBaseCombatCharacter::Weapon_GetWpnForAmmo( int iAmmoIndex )
 //-----------------------------------------------------------------------------
 bool CBaseCombatCharacter::Weapon_CanUse( CBaseCombatWeapon *pWeapon )
 {
-	acttable_t *pTable		= pWeapon->ActivityList();
-	int			actCount	= pWeapon->ActivityListCount();
+	int	actCount = 0;
+	acttable_t *pTable = pWeapon->ActivityList( actCount );
 
 	if( actCount < 1 )
 	{
@@ -2817,8 +2817,8 @@ Activity CBaseCombatCharacter::Weapon_BackupActivity( Activity activity, bool we
 	if (!pTable)
 	{
 		// Look for a default list
-		actCount = pWeapon->ActivityListCount();
-		pTable = CBaseCombatWeapon::GetDefaultBackupActivityList( pWeapon->ActivityList(), actCount );
+		acttable_t *pTable = pWeapon->ActivityList( actCount );
+		pTable = CBaseCombatWeapon::GetDefaultBackupActivityList( pTable, actCount );
 	}
 
 	if (pTable && GetModelPtr())

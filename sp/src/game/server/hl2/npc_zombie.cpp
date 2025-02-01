@@ -1217,9 +1217,8 @@ const char *CZombieCustom::GetMoanSound( int nSound )
 	if (!FindResponse( response, concept, &modifiers ))
 		return "NPC_BaseZombie.Moan1";
 #else
-	AI_Response *response = SpeakFindResponse(TLK_ZOMBIE_MOAN, modifiers);
-
-	if ( !response )
+	AI_Response response;
+	if ( !SpeakFindResponse(response, TLK_ZOMBIE_MOAN, modifiers) )
 		return "NPC_BaseZombie.Moan1";
 #endif
 
@@ -1228,8 +1227,7 @@ const char *CZombieCustom::GetMoanSound( int nSound )
 #ifdef NEW_RESPONSE_SYSTEM
 	response.GetName(szSound, sizeof(szSound));
 #else
-	response->GetName(szSound, sizeof(szSound));
-	delete response;
+	Q_strncpy( szSound, response.GetResponsePtr(), AI_Response::MAX_RESPONSE_NAME );
 #endif
 
 	return szSound;

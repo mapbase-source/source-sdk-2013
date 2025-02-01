@@ -29,15 +29,9 @@
 #define CBaseHLBludgeonWeapon C_BaseHLBludgeonWeapon
 #endif
 
-#ifndef HL2MP
 class CWeaponStunStick : public CBaseHLBludgeonWeapon
 {
 	DECLARE_CLASS( CWeaponStunStick, CBaseHLBludgeonWeapon );
-#else
-class CWeaponStunStick : public CBaseHL2MPBludgeonWeapon
-{
-	DECLARE_CLASS( CWeaponStunStick, CBaseHL2MPBludgeonWeapon );
-#endif
 	
 public:
 

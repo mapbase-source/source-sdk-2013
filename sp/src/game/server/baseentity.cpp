@@ -93,6 +93,7 @@ bool CBaseEntity::sm_bDisableTouchFuncs = false;	// Disables PhysicsTouch and Ph
 bool CBaseEntity::sm_bAccurateTriggerBboxChecks = true;	// set to false for legacy behavior in ep1
 
 int CBaseEntity::m_nPredictionRandomSeed = -1;
+int CBaseEntity::m_nPredictionRandomSeedServer = -1;
 CBasePlayer *CBaseEntity::m_pPredictionPlayer = NULL;
 
 // Used to make sure nobody calls UpdateTransmitState directly.
@@ -365,6 +366,8 @@ void CBaseEntityModelLoadProxy::Handler::OnModelLoadComplete( const model_t *pMo
 
 CBaseEntity::CBaseEntity( bool bServerOnly )
 {
+	m_pAttributes = NULL;
+
 	COMPILE_TIME_ASSERT( MOVETYPE_LAST < (1 << MOVETYPE_MAX_BITS) );
 	COMPILE_TIME_ASSERT( MOVECOLLIDE_COUNT < (1 << MOVECOLLIDE_MAX_BITS) );
 
@@ -1551,10 +1554,10 @@ int CBaseEntity::OnTakeDamage( const CTakeDamageInfo &info )
 //-----------------------------------------------------------------------------
 // Purpose: Scale damage done and call OnTakeDamage
 //-----------------------------------------------------------------------------
-void CBaseEntity::TakeDamage( const CTakeDamageInfo &inputInfo )
+int CBaseEntity::TakeDamage( const CTakeDamageInfo &inputInfo )
 {
 	if ( !g_pGameRules )
-		return;
+		return 0;
 
 	bool bHasPhysicsForceDamage = !g_pGameRules->Damage_NoPhysicsForce( inputInfo.GetDamageType() );
 	if ( bHasPhysicsForceDamage && inputInfo.GetDamageType() != DMG_GENERIC )
@@ -1587,20 +1590,20 @@ void CBaseEntity::TakeDamage( const CTakeDamageInfo &inputInfo )
 	// Make sure our damage filter allows the damage.
 	if ( !PassesDamageFilter( inputInfo ))
 	{
-		return;
+		return 0;
 	}
 #endif
 
 	if( !g_pGameRules->AllowDamage(this, inputInfo) )
 	{
-		return;
+		return 0;
 	}
 
 #ifdef MAPBASE
 	// Make sure our damage filter allows the damage.
 	if ( !PassesFinalDamageFilter( inputInfo ))
 	{
-		return;
+		return 0;
 	}
 #endif
 
@@ -1628,8 +1631,9 @@ void CBaseEntity::TakeDamage( const CTakeDamageInfo &inputInfo )
 		DamageFilterDamageMod(info);
 #endif
 
-		OnTakeDamage( info );
+		return OnTakeDamage( info );
 	}
+	return 0;
 }
 
 //-----------------------------------------------------------------------------
@@ -5721,7 +5725,7 @@ void CBaseEntity::PrecacheModelComponents( int nModelIndex )
 							char token[256];
 							const char *pOptions = pEvent->pszOptions();
 							nexttoken( token, pOptions, ' ', sizeof( token ) );
-							if ( token ) 
+							if ( token[0] ) 
 							{
 								PrecacheParticleSystem( token );
 							}
@@ -5807,7 +5811,9 @@ int CBaseEntity::PrecacheModel( const char *name, bool bPreload )
 {
 	if ( !name || !*name )
 	{
+#ifdef STAGING_ONLY
 		Msg( "Attempting to precache model, but model name is NULL\n");
+#endif
 		return -1;
 	}
 
@@ -5816,8 +5822,7 @@ int CBaseEntity::PrecacheModel( const char *name, bool bPreload )
 	{
 		if ( !engine->IsModelPrecached( name ) )
 		{
-			Assert( !"CBaseEntity::PrecacheModel:  too late" );
-			Warning( "Late precache of %s\n", name );
+			DevMsg( "Late precache of %s -- not necessarily a bug now that we allow ~everything to be dynamically loaded.\n", name );
 		}
 	}
 #if defined( WATCHACCESS )
@@ -5876,11 +5881,6 @@ void ConsoleFireTargets( CBasePlayer *pPlayer, const char *name)
 }
 
 #ifdef MAPBASE
-inline bool UtlStringLessFunc( const CUtlString &lhs, const CUtlString &rhs )
-{
-	return Q_stricmp( lhs.String(), rhs.String() ) < 0;
-}
-
 //------------------------------------------------------------------------------
 // Purpose : More concommands needed access to entities, so this has been moved to its own function.
 // Input   : cmdname - The name of the command.
@@ -6339,12 +6339,7 @@ void CC_Ent_FireTarget( const CCommand& args )
 static ConCommand firetarget("firetarget", CC_Ent_FireTarget, 0, FCVAR_CHEAT);
 
 #ifndef MAPBASE
-static bool UtlStringLessFunc( const CUtlString &lhs, const CUtlString &rhs )
-{
-	return Q_stricmp( lhs.String(), rhs.String() ) < 0;
-}
 #endif
-
 class CEntFireAutoCompletionFunctor : public ICommandCallback, public ICommandCompletionCallback
 {
 public:
@@ -7284,7 +7279,7 @@ void CBaseEntity::SetLocalAngles( const QAngle& angles )
 		{
 			Warning( "Bad SetLocalAngles(%f,%f,%f) on %s\n", angles.x, angles.y, angles.z, GetDebugName() );
 		}
-		Assert( false );
+		AssertMsg( false, "Bad SetLocalAngles(%f,%f,%f) on %s\n", angles.x, angles.y, angles.z, GetDebugName() );
 		return;
 	}
 
@@ -9131,24 +9126,21 @@ void CBaseEntity::DispatchResponse( const char *conceptName )
 	AI_Response result;
 	bool found = rs->FindBestResponse( set, result );
 	if ( !found )
-	{
 		return;
-	}
 
 	// Handle the response here...
-	char response[ 256 ];
-	result.GetResponse( response, sizeof( response ) );
+	const char *szResponse = result.GetResponsePtr();
 #ifdef NEW_RESPONSE_SYSTEM
 	switch (result.GetType())
 	{
 	case ResponseRules::RESPONSE_SPEAK:
 	{
-		EmitSound(response);
+		EmitSound(szResponse);
 	}
 	break;
 	case ResponseRules::RESPONSE_SENTENCE:
 	{
-		int sentenceIndex = SENTENCEG_Lookup(response);
+		int sentenceIndex = SENTENCEG_Lookup(szResponse);
 		if (sentenceIndex == -1)
 		{
 			// sentence not found
@@ -9163,7 +9155,7 @@ void CBaseEntity::DispatchResponse( const char *conceptName )
 	case ResponseRules::RESPONSE_SCENE:
 	{
 		// Try to fire scene w/o an actor
-		InstancedScriptedScene(NULL, response);
+		InstancedScriptedScene(NULL, szResponse);
 	}
 	break;
 	case ResponseRules::RESPONSE_PRINT:
@@ -9173,18 +9165,18 @@ void CBaseEntity::DispatchResponse( const char *conceptName )
 	break;
 	case ResponseRules::RESPONSE_ENTITYIO:
 	{
-		CAI_Expresser::FireEntIOFromResponse(response, this);
+		CAI_Expresser::FireEntIOFromResponse(const_cast<char*>(szResponse), this);
 		break;
 	}
 #ifdef MAPBASE_VSCRIPT
 	case ResponseRules::RESPONSE_VSCRIPT:
 	{
-		CAI_Expresser::RunScriptResponse( this, response, &set, false );
+		CAI_Expresser::RunScriptResponse( this, szResponse, &set, false );
 		break;
 	}
 	case ResponseRules::RESPONSE_VSCRIPT_FILE:
 	{
-		CAI_Expresser::RunScriptResponse( this, response, &set, true );
+		CAI_Expresser::RunScriptResponse( this, szResponse, &set, true );
 		break;
 	}
 #endif
@@ -9194,29 +9186,29 @@ void CBaseEntity::DispatchResponse( const char *conceptName )
 	}
 #else
 #ifdef MAPBASE
-	if (response[0] == '$')
+	if (szResponse[0] == '$')
 	{
-		const char *context = response + 1;
+		const char *context = szResponse + 1;
 		const char *replace = GetContextValue(context);
 
 		if (replace)
 		{
-			DevMsg("Replacing %s with %s...\n", response, replace);
-			Q_strncpy(response, replace, sizeof(response));
+			DevMsg("Replacing %s with %s...\n", szResponse, replace);
+			szResponse = replace;
 
 			// Precache it now because it may not have been precached before
 			switch ( result.GetType() )
 			{
 			case RESPONSE_SPEAK:
 				{
-					PrecacheScriptSound( response );
+					PrecacheScriptSound( szResponse );
 				}
 				break;
 
 			case RESPONSE_SCENE:
 				{
 					// TODO: Gender handling?
-					PrecacheInstancedScene( response );
+					PrecacheInstancedScene( szResponse );
 				}
 				break;
 			}
@@ -9226,20 +9218,19 @@ void CBaseEntity::DispatchResponse( const char *conceptName )
 	switch ( result.GetType() )
 	{
 	case RESPONSE_SPEAK:
-		{
-			EmitSound( response );
-		}
+		EmitSound( szResponse );
 		break;
+
 	case RESPONSE_SENTENCE:
 		{
 #ifdef MAPBASE
-			if (response[0] != '!')
+			if (szResponse[0] != '!')
 			{
-				SENTENCEG_PlayRndSz( edict(), response, 1, result.GetSoundLevel(), 0, PITCH_NORM );
+				SENTENCEG_PlayRndSz( edict(), szResponse, 1, result.GetSoundLevel(), 0, PITCH_NORM );
 				break;
 			}
 #endif
-			int sentenceIndex = SENTENCEG_Lookup( response );
+			int sentenceIndex = SENTENCEG_Lookup( szResponse );
 			if( sentenceIndex == -1 )
 			{
 				// sentence not found
@@ -9251,8 +9242,8 @@ void CBaseEntity::DispatchResponse( const char *conceptName )
 			CBaseEntity::EmitSentenceByIndex( filter, entindex(), CHAN_VOICE, sentenceIndex, 1, result.GetSoundLevel(), 0, PITCH_NORM );
 		}
 		break;
+
 	case RESPONSE_SCENE:
-		{
 #ifdef MAPBASE
 			// Most flexing actors that use scenes override DispatchResponse via CAI_Expresser in ai_speech.
 			// So, in order for non-actors to use scenes by themselves, they actually don't really use them at all.
@@ -9264,24 +9255,21 @@ void CBaseEntity::DispatchResponse( const char *conceptName )
 			//if (!ClassMatches("env_speaker"))
 			{
 				// Expand gender string
-				GenderExpandString( response, response, sizeof( response ) );
+				GenderExpandString( szResponse, const_cast<char*>(szResponse), AI_Response::MAX_RESPONSE_NAME );
 
 				// Trust that it's been precached
-				const char *pszSound = GetFirstSoundInScene(response);
+				const char *pszSound = GetFirstSoundInScene(szResponse);
 				EmitSound(pszSound);
 			}
 			//else
 			//	InstancedScriptedScene(NULL, response);
 #else
-			// Try to fire scene w/o an actor
-			InstancedScriptedScene( NULL, response );
+		// Try to fire scene w/o an actor
+		InstancedScriptedScene( NULL, szResponse );
 #endif
-		}
 		break;
-	case RESPONSE_PRINT:
-		{
 
-		}
+	case RESPONSE_PRINT:
 		break;
 	default:
 		// Don't know how to handle .vcds!!!
@@ -9646,7 +9634,7 @@ void CBaseEntity::SetRefEHandle( const CBaseHandle &handle )
 	if ( edict() )
 	{
 		COMPILE_TIME_ASSERT( NUM_NETWORKED_EHANDLE_SERIAL_NUMBER_BITS <= 8*sizeof( edict()->m_NetworkSerialNumber ) );
-		edict()->m_NetworkSerialNumber = (m_RefEHandle.GetSerialNumber() & (1 << NUM_NETWORKED_EHANDLE_SERIAL_NUMBER_BITS) - 1);
+		edict()->m_NetworkSerialNumber = m_RefEHandle.GetSerialNumber() & ( (1 << NUM_NETWORKED_EHANDLE_SERIAL_NUMBER_BITS) - 1 );
 	}
 }
 

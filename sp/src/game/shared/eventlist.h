@@ -90,6 +90,11 @@ typedef enum
 
 	AE_WPN_PLAYWPNSOUND,	// Play a weapon sound from the weapon script file
 
+	AE_RD_ROBOT_POP_PANELS_OFF,
+
+	AE_TAUNT_ENABLE_MOVE,
+	AE_TAUNT_DISABLE_MOVE,
+
 #ifdef MAPBASE
 	AE_NPC_RESPONSE,	// Play a response system concept if we're not speaking
 	AE_NPC_RESPONSE_FORCED,		// Always play a response system concept

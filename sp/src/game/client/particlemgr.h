@@ -236,6 +236,15 @@ public:
 	IMaterial *m_pMaterial;
 };
 
+#ifdef SDK_MP
+// Particle simulation list, used to determine what particles to simulate and how.
+struct ParticleSimListEntry_t
+{
+	CNewParticleEffect* m_pNewParticleEffect;
+	bool m_bBoundingBoxOnly;
+};
+#endif
+
 
 //-----------------------------------------------------------------------------
 // interface IParticleEffect:
@@ -715,8 +724,14 @@ private:
 		const CViewSetup& view, const VMatrix &worldToPixels, float flFocalDist );
 
 	bool RetireParticleCollections( CParticleSystemDefinition* pDef, int nCount, RetireInfo_t *pInfo, float flScreenArea, float flMaxTotalArea );
+
+#ifdef SDK_MP
+	void BuildParticleSimList( CUtlVector< ParticleSimListEntry_t > &list );
+	bool EarlyRetireParticleSystems( int nCount, ParticleSimListEntry_t *ppEffects );
+#else
 	void BuildParticleSimList( CUtlVector< CNewParticleEffect* > &list );
 	bool EarlyRetireParticleSystems( int nCount, CNewParticleEffect **ppEffects );
+#endif
 	static int RetireSort( const void *p1, const void *p2 ); 
 
 private:

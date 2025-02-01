@@ -90,16 +90,14 @@ IResponseSystem *CBaseMultiplayerPlayer::GetResponseSystem()
 //-----------------------------------------------------------------------------
 bool CBaseMultiplayerPlayer::SpeakConcept( AI_Response &response, int iConcept )
 {
+	// Save the current concept.
 	m_iCurrentConcept = iConcept;
 #ifdef NEW_RESPONSE_SYSTEM
 	CAI_Concept concept(g_pszMPConcepts[iConcept]);
 	concept.SetSpeaker(this);
 	return FindResponse( response, concept );
 #else
-	AI_Response *pResponse = SpeakFindResponse( g_pszMPConcepts[iConcept] );
-	if (pResponse)
-		response = *pResponse;
-	return pResponse != NULL;
+	return SpeakFindResponse( response, g_pszMPConcepts[iConcept] );
 #endif
 }
 

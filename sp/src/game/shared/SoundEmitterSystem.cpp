@@ -360,6 +360,17 @@ public:
 		FinishLog();
 #endif
 	}
+
+#ifdef SDK_MP
+	void Flush()
+	{
+		Assert( soundemitterbase );
+#if !defined( CLIENT_DLL )
+		FinishLog();
+#endif
+		soundemitterbase->Flush();
+	}
+#endif
 		
 	void InternalPrecacheWaves( int soundIndex )
 	{
@@ -488,7 +499,6 @@ public:
 		{
 			return;
 		}
-#endif // STAGING_ONLY
 
 		if ( !Q_strncasecmp( params.soundname, "vo", 2 ) &&
 			!( params.channel == CHAN_STREAM ||
@@ -498,6 +508,7 @@ public:
 			DevMsg( "EmitSound:  Voice wave file %s doesn't specify CHAN_VOICE, CHAN_VOICE2 or CHAN_STREAM for sound %s\n",
 				params.soundname, ep.m_pSoundName );
 		}
+#endif // STAGING_ONLY
 
 		// handle SND_CHANGEPITCH/SND_CHANGEVOL and other sound flags.etc.
 		if( ep.m_nFlags & SND_CHANGE_PITCH )
@@ -1041,10 +1052,14 @@ void S_SoundEmitterSystemFlush( void )
 
 	// save the current soundscape
 	// kill the system
+#ifdef SDK_MP
+	g_SoundEmitterSystem.Flush();
+#else
 	g_SoundEmitterSystem.Shutdown();
 
 	// restart the system
 	g_SoundEmitterSystem.Init();
+#endif
 
 #if !defined( CLIENT_DLL )
 	// Redo precache all wave files... (this should work now that we have dynamic string tables)

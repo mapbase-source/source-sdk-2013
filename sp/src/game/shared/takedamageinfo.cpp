@@ -48,7 +48,8 @@ BEGIN_SCRIPTDESC_ROOT( CTakeDamageInfo, "Damage information handler." )
 	DEFINE_SCRIPTFUNC( AddDamage, "Adds to the damage." )
 	DEFINE_SCRIPTFUNC( SubtractDamage, "Removes from the damage." )
 	DEFINE_SCRIPTFUNC( GetDamageBonus, "Gets the damage bonus." )
-	DEFINE_SCRIPTFUNC( SetDamageBonus, "Sets the damage bonus." )
+	DEFINE_SCRIPTFUNC_NAMED( ScriptGetDamageBonusProvider, "GetDamageBonusProvider", "Gets the damage bonus provider." )
+	DEFINE_SCRIPTFUNC_NAMED( ScriptSetDamageBonus, "SetDamageBonus", "Sets the damage bonus." )
 
 	DEFINE_SCRIPTFUNC( GetBaseDamage, "Gets the base damage." )
 	DEFINE_SCRIPTFUNC( BaseDamageIsValid, "Checks if the base damage is valid." )
@@ -115,6 +116,7 @@ void CTakeDamageInfo::Init( CBaseEntity *pInflictor, CBaseEntity *pAttacker, CBa
 	m_iPlayerPenetrationCount = 0;
 	m_flDamageBonus = 0.f;
 	m_bForceFriendlyFire = false;
+	m_flDamageForForce = 0.f;
 }
 
 CTakeDamageInfo::CTakeDamageInfo()
@@ -261,6 +263,27 @@ HSCRIPT CTakeDamageInfo::ScriptGetAttacker() const
 void CTakeDamageInfo::ScriptSetAttacker( HSCRIPT pAttacker )
 {
 	SetAttacker( ToEnt( pAttacker ) );
+}
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+HSCRIPT CTakeDamageInfo::ScriptGetDamageBonusProvider() const
+{
+	return ToHScript( GetDamageBonusProvider() );
+}
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+void CTakeDamageInfo::ScriptSetDamageBonus( float flBonus )
+{
+	m_flDamageBonus = flBonus;
+}
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+void CTakeDamageInfo::ScriptSetDamageBonusProvider( HSCRIPT pProvider )
+{
+	m_hDamageBonusProvider = ToEnt( pProvider );
 }
 #endif
 

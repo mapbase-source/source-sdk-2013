@@ -233,13 +233,10 @@ void CSpeaker::DispatchResponse( const char *conceptName )
 	}
 
 	// Handle the response here...
-	char response[ 256 ];
-	result.GetResponse( response, sizeof( response ) );
+	const char *response = result.GetResponsePtr();
 	if (response[0] == '$')
 	{
-		response[0] = '\0';
-		DevMsg("Replacing %s with %s...\n", response, GetContextValue(response));
-		Q_strncpy(response, GetContextValue(response), sizeof(response));
+		response = GetContextValue( response );
 		PrecacheScriptSound( response );
 	}
 
@@ -283,7 +280,7 @@ void CSpeaker::DispatchResponse( const char *conceptName )
 	break;
 	case ResponseRules::RESPONSE_ENTITYIO:
 	{
-		CAI_Expresser::FireEntIOFromResponse( response, pTarget );
+		CAI_Expresser::FireEntIOFromResponse( const_cast<char*>(response), pTarget );
 		break;
 	}
 #ifdef MAPBASE_VSCRIPT

@@ -131,9 +131,7 @@ public:
 		entity.name = m_nameList.AddString( pGlobalname );
 		entity.levelName = m_nameList.AddString( pMapName );
 		entity.state = state;
-#ifdef MAPBASE
 		entity.counter = 0;
-#endif
 
 		int index = GetIndex( m_nameList.String( entity.name ) );
 		if ( index >= 0 )

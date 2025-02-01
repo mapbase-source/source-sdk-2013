@@ -1020,11 +1020,24 @@ float CBounceBomb::FindNearestNPC()
 	}
 
 #ifdef MAPBASE_MP
-	for (i = 1; i <= gpGlobals->maxClients; i++)
+	for (int i = 1; i <= gpGlobals->maxClients; i++)
 	{
 		CBaseEntity *pPlayer = UTIL_PlayerByIndex( i );
 		if ( pPlayer && !(pPlayer->GetFlags() & FL_NOTARGET) )
 		{
+			bool bPassesFilter = true;
+			if ((m_hEnemyFilter || m_hFriendFilter) && m_bFilterExclusive)
+			{
+				// If we have an enemy or friend filter, and that's all we're supposed to be using,
+				// don't accept the player if they don't pass our filters
+
+				if (m_hEnemyFilter && !m_hEnemyFilter->PassesFilter( this, pPlayer ))
+					bPassesFilter = false;
+
+				else if (m_hFriendFilter && !m_hFriendFilter->PassesFilter( this, pPlayer ))
+					bPassesFilter = false;
+			}
+
 			float flDist = (pPlayer->GetAbsOrigin() - GetAbsOrigin() ).LengthSqr();
 
 			if( flDist < flNearest && FVisible( pPlayer, m_iLOSMask ) )

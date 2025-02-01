@@ -313,7 +313,7 @@ public:
 			ClientModeShared *mode = ( ClientModeShared * )GetClientModeNormal();
 			if ( mode )
 			{
-				mode->ReloadScheme();
+				mode->ReloadScheme( true );
 
 				// We need to reload default values, so load a special "hudlayout_mapbase.res" file that only contains
 				// default Mapbase definitions identical to the defaults in the code
@@ -555,7 +555,7 @@ private:
 		ClientModeShared *mode = ( ClientModeShared * )GetClientModeNormal();
 		if ( mode )
 		{
-			mode->ReloadScheme();
+			mode->ReloadScheme( true );
 		}
 	}
 

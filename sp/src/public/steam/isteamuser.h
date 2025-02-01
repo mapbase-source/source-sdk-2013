@@ -166,6 +166,20 @@ public:
 	// gets the Steam Level of the user, as shown on their profile
 	virtual int GetPlayerSteamLevel() = 0;
 
+#ifdef SDK_MP
+	// Requests a URL which authenticates an in-game browser for store check-out,
+	// and then redirects to the specified URL. As long as the in-game browser
+	// accepts and handles session cookies, Steam microtransaction checkout pages
+	// will automatically recognize the user instead of presenting a login page.
+	// The result of this API call will be a StoreAuthURLResponse_t callback.
+	// NOTE: The URL has a very short lifetime to prevent history-snooping attacks,
+	// so you should only call this API when you are about to launch the browser,
+	// or else immediately navigate to the result URL using a hidden browser window.
+	// NOTE 2: The resulting authorization cookie has an expiration time of one day,
+	// so it would be a good idea to request and visit a new auth URL every 12 hours.
+	virtual SteamAPICall_t RequestStoreAuthURL( const char *pchRedirectURL ) = 0;
+#endif
+
 #ifdef _PS3
 	// Initiates PS3 Logon request using just PSN ticket.  
 	//
@@ -205,7 +219,11 @@ public:
 
 };
 
+#ifdef SDK_MP
+#define STEAMUSER_INTERFACE_VERSION "SteamUser018"
+#else
 #define STEAMUSER_INTERFACE_VERSION "SteamUser017"
+#endif
 
 
 // callbacks
@@ -287,6 +305,17 @@ struct IPCFailure_t
 };
 
 
+#ifdef SDK_MP
+//-----------------------------------------------------------------------------
+// Purpose: Signaled whenever licenses change
+//-----------------------------------------------------------------------------
+struct LicensesUpdated_t
+{
+	enum { k_iCallback = k_iSteamUserCallbacks + 25 };
+};
+#endif
+
+
 //-----------------------------------------------------------------------------
 // callback for BeginAuthSession
 //-----------------------------------------------------------------------------
@@ -341,6 +370,18 @@ struct GameWebCallback_t
 	enum { k_iCallback = k_iSteamUserCallbacks + 64 };
 	char m_szURL[256];
 };
+
+#ifdef SDK_MP
+//-----------------------------------------------------------------------------
+// Purpose: sent to your game in response to ISteamUser::RequestStoreAuthURL
+//-----------------------------------------------------------------------------
+struct StoreAuthURLResponse_t
+{
+	enum { k_iCallback = k_iSteamUserCallbacks + 65 };
+	char m_szURL[512];
+};
+#endif
+
 
 
 #pragma pack( pop )

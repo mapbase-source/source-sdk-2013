@@ -568,7 +568,6 @@ void CBaseAnimating::StudioFrameAdvanceManual( float flInterval )
 	if ( !pStudioHdr )
 		return;
 
-	UpdateModelScale();
 	m_flAnimTime = gpGlobals->curtime;
 	m_flPrevAnimTime = m_flAnimTime - flInterval;
 	float flCycleRate = GetSequenceCycleRate( pStudioHdr, GetSequence() ) * m_flPlaybackRate;
@@ -587,8 +586,6 @@ void CBaseAnimating::StudioFrameAdvance()
 	{
 		return;
 	}
-
-	UpdateModelScale();
 
 	if ( !m_flPrevAnimTime )
 	{
@@ -788,7 +785,7 @@ void CBaseAnimating::InputSetPlaybackRate( inputdata_t &inputdata )
 int CBaseAnimating::SelectWeightedSequence ( Activity activity )
 {
 	Assert( activity != ACT_INVALID );
-	Assert( GetModelPtr() );
+	AssertMsg( GetModelPtr(), "GetModelPtr NULL. %s", STRING(GetEntityName()) ? STRING(GetEntityName()) : "" );
 	return ::SelectWeightedSequence( GetModelPtr(), activity, GetSequence() );
 }
 
@@ -796,16 +793,25 @@ int CBaseAnimating::SelectWeightedSequence ( Activity activity )
 int CBaseAnimating::SelectWeightedSequence ( Activity activity, int curSequence )
 {
 	Assert( activity != ACT_INVALID );
-	Assert( GetModelPtr() );
+	AssertMsg( GetModelPtr(), "GetModelPtr NULL. %s", STRING(GetEntityName()) ? STRING(GetEntityName()) : "" );
 	return ::SelectWeightedSequence( GetModelPtr(), activity, curSequence );
 }
+
+#ifdef SDK_MP
+int CBaseAnimating::SelectWeightedSequenceFromModifiers( Activity activity, CUtlSymbol *pActivityModifiers, int iModifierCount )
+{
+	Assert( activity != ACT_INVALID );
+	AssertMsg( GetModelPtr(), "GetModelPtr NULL. %s", STRING(GetEntityName()) ? STRING(GetEntityName()) : "" );
+	return GetModelPtr()->SelectWeightedSequenceFromModifiers( activity, pActivityModifiers, iModifierCount );
+}
+#endif
 
 //=========================================================
 // ResetActivityIndexes
 //=========================================================
 void CBaseAnimating::ResetActivityIndexes ( void )
 {
-	Assert( GetModelPtr() );
+	AssertMsg( GetModelPtr(), "GetModelPtr NULL. %s", STRING(GetEntityName()) ? STRING(GetEntityName()) : "" );
 	::ResetActivityIndexes( GetModelPtr() );
 }
 
@@ -814,7 +820,7 @@ void CBaseAnimating::ResetActivityIndexes ( void )
 //=========================================================
 void CBaseAnimating::ResetEventIndexes ( void )
 {
-	Assert( GetModelPtr() );
+	AssertMsg( GetModelPtr(), "GetModelPtr NULL. %s", STRING(GetEntityName()) ? STRING(GetEntityName()) : "" );
 	::ResetEventIndexes( GetModelPtr() );
 }
 
@@ -826,7 +832,7 @@ void CBaseAnimating::ResetEventIndexes ( void )
 //=========================================================
 int CBaseAnimating::SelectHeaviestSequence ( Activity activity )
 {
-	Assert( GetModelPtr() );
+	AssertMsg( GetModelPtr(), "GetModelPtr NULL. %s", STRING(GetEntityName()) ? STRING(GetEntityName()) : "" );
 	return ::SelectHeaviestSequence( GetModelPtr(), activity );
 }
 
@@ -838,7 +844,7 @@ int CBaseAnimating::SelectHeaviestSequence ( Activity activity )
 //-----------------------------------------------------------------------------
 int CBaseAnimating::LookupActivity( const char *label )
 {
-	Assert( GetModelPtr() );
+	AssertMsg( GetModelPtr(), "GetModelPtr NULL. %s", STRING(GetEntityName()) ? STRING(GetEntityName()) : "" );
 	return ::LookupActivity( GetModelPtr(), label );
 }
 
@@ -846,7 +852,7 @@ int CBaseAnimating::LookupActivity( const char *label )
 //=========================================================
 int CBaseAnimating::LookupSequence( const char *label )
 {
-	Assert( GetModelPtr() );
+	AssertMsg( GetModelPtr(), "GetModelPtr NULL. %s", STRING(GetEntityName()) ? STRING(GetEntityName()) : "" );
 	return ::LookupSequence( GetModelPtr(), label );
 }
 
@@ -886,7 +892,7 @@ float CBaseAnimating::GetSequenceMoveYaw( int iSequence )
 {
 	Vector				vecReturn;
 	
-	Assert( GetModelPtr() );
+	AssertMsg( GetModelPtr(), "GetModelPtr NULL. %s", STRING(GetEntityName()) ? STRING(GetEntityName()) : "" );
 	::GetSequenceLinearMotion( GetModelPtr(), iSequence, GetPoseParameterArray(), &vecReturn );
 
 	if (vecReturn.Length() > 0)
@@ -922,7 +928,7 @@ float CBaseAnimating::GetSequenceMoveDist( CStudioHdr *pStudioHdr, int iSequence
 //-----------------------------------------------------------------------------
 void CBaseAnimating::GetSequenceLinearMotion( int iSequence, Vector *pVec )
 {
-	Assert( GetModelPtr() );
+	AssertMsg( GetModelPtr(), "GetModelPtr NULL. %s", STRING(GetEntityName()) ? STRING(GetEntityName()) : "" );
 	::GetSequenceLinearMotion( GetModelPtr(), iSequence, GetPoseParameterArray(), pVec );
 }
 
@@ -1069,7 +1075,7 @@ void CBaseAnimating::ResetSequenceInfo ( )
 //=========================================================
 bool CBaseAnimating::IsValidSequence( int iSequence )
 {
-	Assert( GetModelPtr() );
+	AssertMsg( GetModelPtr(), "GetModelPtr NULL. %s", STRING(GetEntityName()) ? STRING(GetEntityName()) : "" );
 	CStudioHdr* pstudiohdr = GetModelPtr( );
 	if (iSequence < 0 || iSequence >= pstudiohdr->GetNumSeq())
 	{
@@ -1991,7 +1997,7 @@ void CBaseAnimating::SetupBones( matrix3x4_t *pBoneToWorld, int boneMask )
 	
 	MDLCACHE_CRITICAL_SECTION();
 
-	Assert( GetModelPtr() );
+	AssertMsg( GetModelPtr(), "GetModelPtr NULL. %s", STRING(GetEntityName()) ? STRING(GetEntityName()) : "" );
 
 	CStudioHdr *pStudioHdr = GetModelPtr( );
 
@@ -2388,7 +2394,7 @@ void CBaseAnimating::GetEyeballs( Vector &origin, QAngle &angles )
 //=========================================================
 int CBaseAnimating::FindTransitionSequence( int iCurrentSequence, int iGoalSequence, int *piDir )
 {
-	Assert( GetModelPtr() );
+	AssertMsg( GetModelPtr(), "GetModelPtr NULL. %s", STRING(GetEntityName()) ? STRING(GetEntityName()) : "" );
 
 	if (piDir == NULL)
 	{
@@ -2437,7 +2443,7 @@ void CBaseAnimating::SetBodygroup( int iGroup, int iValue )
 {
 	// SetBodygroup is not supported on pending dynamic models. Wait for it to load!
 	// XXX TODO we could buffer up the group and value if we really needed to. -henryg
-	Assert( GetModelPtr() );
+	AssertMsg( GetModelPtr(), "GetModelPtr NULL. %s", STRING(GetEntityName()) ? STRING(GetEntityName()) : "" );
 	int newBody = m_nBody;
 	::SetBodygroup( GetModelPtr( ), newBody, iGroup, iValue );
 	m_nBody = newBody;
@@ -3036,7 +3042,7 @@ void CBaseAnimating::InitBoneControllers ( void ) // FIXME: rename
 //=========================================================
 float CBaseAnimating::SetBoneController ( int iController, float flValue )
 {
-	Assert( GetModelPtr() );
+	AssertMsg( GetModelPtr(), "GetModelPtr NULL. %s", STRING(GetEntityName()) ? STRING(GetEntityName()) : "" );
 
 	CStudioHdr *pmodel = (CStudioHdr*)GetModelPtr();
 
@@ -3053,7 +3059,7 @@ float CBaseAnimating::SetBoneController ( int iController, float flValue )
 //=========================================================
 float CBaseAnimating::GetBoneController ( int iController )
 {
-	Assert( GetModelPtr() );
+	AssertMsg( GetModelPtr(), "GetModelPtr NULL. %s", STRING(GetEntityName()) ? STRING(GetEntityName()) : "" );
 
 	CStudioHdr *pmodel = (CStudioHdr*)GetModelPtr();
 
@@ -3244,7 +3250,7 @@ void CBaseAnimating::SetHitboxSet( int setnum )
 //-----------------------------------------------------------------------------
 void CBaseAnimating::SetHitboxSetByName( const char *setname )
 {
-	Assert( GetModelPtr() );
+	AssertMsg( GetModelPtr(), "GetModelPtr NULL. %s", STRING(GetEntityName()) ? STRING(GetEntityName()) : "" );
 	m_nHitboxSet = FindHitboxSetByName( GetModelPtr(), setname );
 }
 
@@ -3263,7 +3269,7 @@ int CBaseAnimating::GetHitboxSet( void )
 //-----------------------------------------------------------------------------
 const char *CBaseAnimating::GetHitboxSetName( void )
 {
-	Assert( GetModelPtr() );
+	AssertMsg( GetModelPtr(), "GetModelPtr NULL. %s", STRING(GetEntityName()) ? STRING(GetEntityName()) : "" );
 	return ::GetHitboxSetName( GetModelPtr(), m_nHitboxSet );
 }
 
@@ -3273,7 +3279,7 @@ const char *CBaseAnimating::GetHitboxSetName( void )
 //-----------------------------------------------------------------------------
 int CBaseAnimating::GetHitboxSetCount( void )
 {
-	Assert( GetModelPtr() );
+	AssertMsg( GetModelPtr(), "GetModelPtr NULL. %s", STRING(GetEntityName()) ? STRING(GetEntityName()) : "" );
 	return ::GetHitboxSetCount( GetModelPtr() );
 }
 
@@ -3616,6 +3622,7 @@ void CBaseAnimating::SetModelScale( float scale, float change_duration /*= 0.0f*
 		mvs->m_flModelScaleGoal = scale;
 		mvs->m_flModelScaleStartTime = gpGlobals->curtime;
 		mvs->m_flModelScaleFinishTime = mvs->m_flModelScaleStartTime + change_duration;
+		SetContextThink( &CBaseAnimating::UpdateModelScale, gpGlobals->curtime, "UpdateModelScaleThink" );
 	}
 	else
 	{
@@ -3654,6 +3661,11 @@ void CBaseAnimating::UpdateModelScale()
 	}
 
 	RefreshCollisionBounds();
+
+	if ( frac < 1.f )
+	{
+		SetContextThink( &CBaseAnimating::UpdateModelScale, gpGlobals->curtime, "UpdateModelScaleThink" );
+	}
 }
 
 void CBaseAnimating::RefreshCollisionBounds( void )

@@ -671,6 +671,10 @@ void CSentence::ParseDataVersionOnePointZero( CUtlBuffer& buf )
 		buf.GetString( token );
 		if ( strlen( token ) <= 0 )
 			break;
+		
+		// end of block, return
+		if ( !V_strcmp( token, "}" ) )
+			break;
 
 		char section[ 256 ];
 		Q_strncpy( section, token, sizeof( section ) );
@@ -1678,7 +1682,7 @@ bool CSentence::ShouldSplitWord( char in )
 	if ( in <= 32 )
 		return true;
 
-	if ( in >= 128 )
+	if ( (unsigned char)in > SCHAR_MAX )
 		return true;
 
 	if ( ispunct( in ) )

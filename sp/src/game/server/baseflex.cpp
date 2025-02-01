@@ -125,7 +125,7 @@ CBaseFlex::CBaseFlex( void ) :
 CBaseFlex::~CBaseFlex( void )
 {
 	m_LocalToGlobal.RemoveAll();
-	Assert( m_SceneEvents.Count() == 0 );
+	AssertMsg( m_SceneEvents.Count() == 0, "m_ScenesEvent.Count != 0: %d", m_SceneEvents.Count() );
 }
 
 void CBaseFlex::SetModel( const char *szModelName )
@@ -529,7 +529,7 @@ bool CBaseFlex::HandleStartSequenceSceneEvent( CSceneEventInfo *info, CChoreoSce
 		float seq_duration = SequenceDuration( info->m_nSequence );
 		float flCycle = dt / seq_duration;
 		flCycle = flCycle - (int)flCycle; // loop
-		SetLayerCycle( info->m_iLayer, flCycle, flCycle );
+		SetLayerCycle( info->m_iLayer, flCycle, flCycle, 0.f );
 
 		SetLayerPlaybackRate( info->m_iLayer, 0.0 );
 	}
@@ -2739,7 +2739,7 @@ void CFlexCycler::Think( void )
 						{
 							m_flexnum = LookupFlex( szTemp );
 
-							if (m_flexnum != -1 && m_flextarget[m_flexnum] != 1)
+							if (m_flexnum != LocalFlexController_t(-1) && m_flextarget[m_flexnum] != 1)
 							{
 								m_flextarget[m_flexnum] = 1.0;
 								// SetFlexTarget( m_flexnum );

@@ -93,7 +93,7 @@ struct levellist_t
 {
 	DECLARE_SIMPLE_DATADESC();
 
-	char	mapName[ MAX_MAP_NAME ];
+	char	mapName[ MAX_MAP_NAME_SAVE ];
 	char	landmarkName[ 32 ];
 	edict_t	*pentLandmark;
 	Vector	vecLandmarkOrigin;
@@ -171,7 +171,7 @@ struct saverestorelevelinfo_t
 	char		szLandmarkName[20];	// landmark we'll spawn near in next level
 	Vector		vecLandmarkOffset;	// for landmark transitions
 	float		time;
-	char		szCurrentMapName[MAX_MAP_NAME];	// To check global entities
+	char		szCurrentMapName[MAX_MAP_NAME_SAVE];	// To check global entities
 	int			mapVersion;
 };
 
@@ -514,8 +514,8 @@ inline const char *CSaveRestoreSegment::StringFromSymbol( int token )
 #ifndef _WIN32
 inline unsigned CSaveRestoreSegment::_rotr ( unsigned val, int shift)
 {
-		register unsigned lobit;        /* non-zero means lo bit set */
-		register unsigned num = val;    /* number to rotate */
+		unsigned lobit;        /* non-zero means lo bit set */
+		unsigned num = val;    /* number to rotate */
 
 		shift &= 0x1f;                  /* modulo 32 -- this will also make
 										   negative shifts work */

@@ -511,7 +511,7 @@ void CBaseEntityOutput::DeleteAllElements( void )
 	m_ActionList = NULL;
 	while (pNext)
 	{
-		register CEventAction *strikeThis = pNext;
+		CEventAction *strikeThis = pNext;
 		pNext = pNext->m_pNext;
 		delete strikeThis;
 	}

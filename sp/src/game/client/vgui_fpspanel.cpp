@@ -18,6 +18,9 @@
 #include "filesystem.h"
 #include "../common/xbox/xboxstubs.h"
 #include "steam/steam_api.h"
+#ifdef SDK_MP
+#include "tier0/cpumonitoring.h"
+#endif
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -208,6 +211,30 @@ void GetFPSColor( int nFps, unsigned char ucColor[3] )
 	}
 }
 
+#ifdef SDK_MP
+//-----------------------------------------------------------------------------
+// Purpose: Set the color appropriately based on the CPU's frequency percentage
+//-----------------------------------------------------------------------------
+void GetCPUColor( float cpuPercentage, unsigned char ucColor[3] )
+{
+	// These colors are for poor CPU performance
+	ucColor[0] = 255; ucColor[1] = 0; ucColor[2] = 0;
+
+	if ( cpuPercentage >= kCPUMonitoringWarning1 )
+	{
+		// Excellent CPU performance
+		ucColor[0] = 10; 
+		ucColor[1] = 200;
+	}
+	else if ( cpuPercentage >= kCPUMonitoringWarning2 )
+	{
+		// Medium CPU performance
+		ucColor[0] = 220;
+		ucColor[1] = 220;
+	}
+}
+#endif
+
 //-----------------------------------------------------------------------------
 // Purpose: 
 // Input  : 
@@ -272,6 +299,19 @@ void CFPSPanel::Paint()
 				GetFPSColor( nFps, ucColor );
 				g_pMatSystemSurface->DrawColoredText( m_hFont, x, 2, ucColor[0], ucColor[1], ucColor[2], 255, "%3i fps on %s", nFps, engine->GetLevelName() );
 			}
+
+#ifdef SDK_MP
+			const CPUFrequencyResults frequency = GetCPUFrequencyResults();
+			double currentTime = Plat_FloatTime();
+			const double displayTime = 5.0f; // Display frequency results for this long.
+			if ( frequency.m_GHz > 0 && frequency.m_timeStamp + displayTime > currentTime )
+			{
+				int lineHeight = vgui::surface()->GetFontTall( m_hFont );
+				// Optionally print out the CPU frequency monitoring data.
+				GetCPUColor( frequency.m_percentage, ucColor );
+				g_pMatSystemSurface->DrawColoredText( m_hFont, x, lineHeight + 2, ucColor[0], ucColor[1], ucColor[2], 255, "CPU frequency percent: %3.1f%%   Min percent: %3.1f%%", frequency.m_percentage, frequency.m_lowestPercentage );
+			}
+#endif
 		}
 	}
 	m_lastRealTime = gpGlobals->realtime;
@@ -361,7 +401,7 @@ public:
 		if ( fpsPanel )
 		{
 			fpsPanel->SetParent( (vgui::Panel *)NULL );
-			delete fpsPanel;
+			fpsPanel->MarkForDeletion();
 			fpsPanel = NULL;
 		}
 	}
@@ -780,7 +820,7 @@ public:
 		if ( ioPanel )
 		{
 			ioPanel->SetParent( (vgui::Panel *)NULL );
-			delete ioPanel;
+			ioPanel->MarkForDeletion();
 			ioPanel = NULL;
 		}
 	}

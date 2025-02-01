@@ -100,6 +100,10 @@ public:
 #ifdef GLOWS_ENABLE
 	CGlowObject			*GetGlowObject( void ){ return m_pGlowEffect; }
 	virtual void		GetGlowEffectColor( float *r, float *g, float *b, float *a = NULL );
+//	void				EnableGlowEffect( float r, float g, float b );
+
+	void				SetClientSideGlowEnabled( bool bEnabled ){ m_bClientSideGlowEnabled = bEnabled; UpdateGlowEffect(); }
+	bool				IsClientSideGlowEnabled( void ){ return m_bClientSideGlowEnabled; }
 #endif // GLOWS_ENABLE
 
 #ifdef MAPBASE_VSCRIPT
@@ -130,7 +134,8 @@ private:
 	CHandle< C_BaseCombatWeapon > m_hActiveWeapon;
 
 #ifdef GLOWS_ENABLE
-	bool				m_bGlowEnabled;
+	bool				m_bClientSideGlowEnabled;	// client-side only value used for spectator
+	bool				m_bGlowEnabled;				// networked value
 	bool				m_bOldGlowEnabled;
 	CGlowObject			*m_pGlowEffect;
 	Vector				m_GlowColor;

@@ -105,6 +105,7 @@
 #include "tf_gamerules.h"
 #include "tf_lobby.h"
 #include "player_vs_environment/tf_population_manager.h"
+#include "workshop/maps_workshop.h"
 
 extern ConVar tf_mm_trusted;
 extern ConVar tf_mm_servermode;
@@ -566,11 +567,13 @@ void DrawAllDebugOverlays( void )
 
 CServerGameDLL g_ServerGameDLL;
 // INTERFACEVERSION_SERVERGAMEDLL_VERSION_8 is compatible with the latest since we're only adding things to the end, so expose that as well.
-EXPOSE_SINGLE_INTERFACE_GLOBALVAR(CServerGameDLL, IServerGameDLL008, INTERFACEVERSION_SERVERGAMEDLL_VERSION_8, g_ServerGameDLL );
+//EXPOSE_SINGLE_INTERFACE_GLOBALVAR(CServerGameDLL, IServerGameDLL008, INTERFACEVERSION_SERVERGAMEDLL_VERSION_8, g_ServerGameDLL );
 EXPOSE_SINGLE_INTERFACE_GLOBALVAR(CServerGameDLL, IServerGameDLL, INTERFACEVERSION_SERVERGAMEDLL, g_ServerGameDLL);
 
+#ifdef SDK_MP
 // When bumping the version to this interface, check that our assumption is still valid and expose the older version in the same way
-COMPILE_TIME_ASSERT( INTERFACEVERSION_SERVERGAMEDLL_INT == 9 );
+COMPILE_TIME_ASSERT( INTERFACEVERSION_SERVERGAMEDLL_INT == 10 );
+#endif
 
 bool CServerGameDLL::DLLInit( CreateInterfaceFn appSystemFactory, 
 		CreateInterfaceFn physicsFactory, CreateInterfaceFn fileSystemFactory, 
@@ -1120,7 +1123,7 @@ void CServerGameDLL::ServerActivate( edict_t *pEdictList, int edictCount, int cl
 
 	if ( gEntList.ResetDeleteList() != 0 )
 	{
-		Msg( "ERROR: Entity delete queue not empty on level start!\n" );
+		Msg( "%s", "ERROR: Entity delete queue not empty on level start!\n" );
 	}
 
 	for ( CBaseEntity *pClass = gEntList.FirstEnt(); pClass != NULL; pClass = gEntList.NextEnt(pClass) )
@@ -1170,6 +1173,7 @@ void CServerGameDLL::ServerActivate( edict_t *pEdictList, int edictCount, int cl
 void CServerGameDLL::GameServerSteamAPIActivated( void )
 {
 #ifndef NO_STEAM
+	steamgameserverapicontext->Clear();
 	steamgameserverapicontext->Init();
 	if ( steamgameserverapicontext->SteamGameServer() && engine->IsDedicatedServer() )
 	{
@@ -1180,6 +1184,7 @@ void CServerGameDLL::GameServerSteamAPIActivated( void )
 #ifdef TF_DLL
 	GCClientSystem()->GameServerActivate();
 	InventoryManager()->GameServerSteamAPIActivated();
+	TFMapsWorkshop()->GameServerSteamAPIActivated();
 #endif
 }
 
@@ -2018,6 +2023,63 @@ const char *CServerGameDLL::GetServerBrowserGameData()
 	return rchResult;
 }
 
+#ifdef SDK_MP
+//-----------------------------------------------------------------------------
+void CServerGameDLL::Status( void (*print) (const char *fmt, ...) )
+{
+	if ( g_pGameRules )
+	{
+		g_pGameRules->Status( print );
+	}
+}
+
+//-----------------------------------------------------------------------------
+void CServerGameDLL::PrepareLevelResources( /* in/out */ char *pszMapName, size_t nMapNameSize,
+                                            /* in/out */ char *pszMapFile, size_t nMapFileSize )
+{
+#ifdef TF_DLL
+	TFMapsWorkshop()->PrepareLevelResources( pszMapName, nMapNameSize, pszMapFile, nMapFileSize );
+#endif // TF_DLL
+}
+
+//-----------------------------------------------------------------------------
+IServerGameDLL::ePrepareLevelResourcesResult
+CServerGameDLL::AsyncPrepareLevelResources( /* in/out */ char *pszMapName, size_t nMapNameSize,
+                                            /* in/out */ char *pszMapFile, size_t nMapFileSize,
+                                            float *flProgress /* = NULL */ )
+{
+#ifdef TF_DLL
+	return TFMapsWorkshop()->AsyncPrepareLevelResources( pszMapName, nMapNameSize, pszMapFile, nMapFileSize, flProgress );
+#endif // TF_DLL
+
+	if ( flProgress )
+	{
+		*flProgress = 1.f;
+	}
+	return IServerGameDLL::ePrepareLevelResources_Prepared;
+}
+
+//-----------------------------------------------------------------------------
+IServerGameDLL::eCanProvideLevelResult CServerGameDLL::CanProvideLevel( /* in/out */ char *pMapName, int nMapNameMax )
+{
+#ifdef TF_DLL
+	return TFMapsWorkshop()->OnCanProvideLevel( pMapName, nMapNameMax );
+#endif // TF_DLL
+	return IServerGameDLL::eCanProvideLevel_CannotProvide;
+}
+
+//-----------------------------------------------------------------------------
+bool CServerGameDLL::IsManualMapChangeOkay( const char **pszReason )
+{
+	if ( GameRules() )
+	{
+		return GameRules()->IsManualMapChangeOkay( pszReason );
+	}
+
+	return true;
+}
+#endif
+
 //-----------------------------------------------------------------------------
 // Purpose: Called during a transition, to build a map adjacency list
 //-----------------------------------------------------------------------------
@@ -2792,7 +2854,7 @@ void CServerGameClients::ClientActive( edict_t *pEdict, bool bLoadGame )
 
 	#if defined( TF_DLL )
 		Assert( pPlayer );
-		if ( pPlayer && !pPlayer->IsFakeClient() )
+		if ( pPlayer && !pPlayer->IsFakeClient() && !pPlayer->IsHLTV() && !pPlayer->IsReplay() )
 		{
 			CSteamID steamID;
 			if ( pPlayer->GetSteamID( &steamID ) )
@@ -2801,7 +2863,10 @@ void CServerGameClients::ClientActive( edict_t *pEdict, bool bLoadGame )
 			}
 			else
 			{
-				Log("WARNING: ClientActive, but we don't know his SteamID?\n");
+				if ( !pPlayer->IsReplay() && !pPlayer->IsHLTV() )
+				{
+					Log("WARNING: ClientActive, but we don't know his SteamID?\n");
+				}
 			}
 		}
 	#endif
@@ -2875,7 +2940,10 @@ void CServerGameClients::ClientDisconnect( edict_t *pEdict )
 				}
 				else
 				{
-					Log("WARNING: ClientDisconnected, but we don't know his SteamID?\n");
+					if ( !player->IsReplay() && !player->IsHLTV() )
+					{
+						Log("WARNING: ClientDisconnected, but we don't know his SteamID?\n");
+					}
 				}
 			}
 		#endif
@@ -3489,7 +3557,7 @@ void MessageWriteEHandle( CBaseEntity *pEntity )
 	{
 		EHANDLE hEnt = pEntity;
 
-		int iSerialNum = hEnt.GetSerialNumber() & (1 << NUM_NETWORKED_EHANDLE_SERIAL_NUMBER_BITS) - 1;
+		int iSerialNum = hEnt.GetSerialNumber() & ( (1 << NUM_NETWORKED_EHANDLE_SERIAL_NUMBER_BITS) - 1 );
 		iEncodedEHandle = hEnt.GetEntryIndex() | (iSerialNum << MAX_EDICT_BITS);
 	}
 	else

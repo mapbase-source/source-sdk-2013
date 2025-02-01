@@ -76,6 +76,9 @@ protected:
 	int						m_nVentPose;
 	
 #ifndef CLIENT_DLL
+#ifdef MAPBASE
+public:
+#endif
 	DECLARE_ACTTABLE();
 #endif
 };

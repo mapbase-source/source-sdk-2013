@@ -33,6 +33,7 @@
 #include "ai_behavior_follow.h"
 #include "ai_behavior_lead.h"
 #include "gameinterface.h"
+#include "ilagcompensationmanager.h"
 
 #ifdef HL2_DLL
 #include "hl2_player.h"
@@ -510,6 +511,7 @@ void CBaseTrigger::StartTouch(CBaseEntity *pOther)
 		{
 			// First entity to touch us that passes our filters
 			m_OnStartTouchAll.FireOutput( pOther, this );
+			StartTouchAll();
 		}
 	}
 }
@@ -549,7 +551,10 @@ void CBaseTrigger::EndTouch(CBaseEntity *pOther)
 			else if ( hOther->IsPlayer() && !hOther->IsAlive() )
 			{
 #ifdef STAGING_ONLY
-				AssertMsg( 0, CFmtStr( "Dead player [%s] is still touching this trigger at [%f %f %f]", hOther->GetEntityName().ToCStr(), XYZ( hOther->GetAbsOrigin() ) ) );
+				if ( !HushAsserts() )
+				{
+					AssertMsg( false, "Dead player [%s] is still touching this trigger at [%f %f %f]", hOther->GetEntityName().ToCStr(), XYZ( hOther->GetAbsOrigin() ) );
+				}
 				Warning( "Dead player [%s] is still touching this trigger at [%f %f %f]", hOther->GetEntityName().ToCStr(), XYZ( hOther->GetAbsOrigin() ) );
 #endif
 				m_hTouchingEntities.Remove( i );
@@ -565,6 +570,7 @@ void CBaseTrigger::EndTouch(CBaseEntity *pOther)
 		if ( !bFoundOtherTouchee /*&& !m_bDisabled*/ )
 		{
 			m_OnEndTouchAll.FireOutput(pOther, this);
+			EndTouchAll();
 		}
 	}
 }
@@ -695,8 +701,8 @@ void CTriggerRemove::Touch( CBaseEntity *pOther )
 BEGIN_DATADESC( CTriggerHurt )
 
 	// Function Pointers
-	DEFINE_FUNCTION( RadiationThink ),
-	DEFINE_FUNCTION( HurtThink ),
+	DEFINE_FUNCTION( CTriggerHurtShim::RadiationThinkShim ),
+	DEFINE_FUNCTION( CTriggerHurtShim::HurtThinkShim ),
 
 	// Fields
 	DEFINE_FIELD( m_flOriginalDamage, FIELD_FLOAT ),
@@ -725,6 +731,7 @@ END_DATADESC()
 
 LINK_ENTITY_TO_CLASS( trigger_hurt, CTriggerHurt );
 
+IMPLEMENT_AUTO_LIST( ITriggerHurtAutoList );
 
 //-----------------------------------------------------------------------------
 // Purpose: Called when spawning, after keyvalues have been handled.
@@ -741,7 +748,7 @@ void CTriggerHurt::Spawn( void )
 	SetThink( NULL );
 	if (m_bitsDamageInflict & DMG_RADIATION)
 	{
-		SetThink ( &CTriggerHurt::RadiationThink );
+		SetThink ( &CTriggerHurtShim::RadiationThinkShim );
 		SetNextThink( gpGlobals->curtime + random->RandomFloat(0.0, 0.5) );
 	}
 }
@@ -789,6 +796,15 @@ void CTriggerHurt::RadiationThink( void )
 bool CTriggerHurt::HurtEntity( CBaseEntity *pOther, float damage )
 {
 	if ( !pOther->m_takedamage || !PassesTriggerFilters(pOther) )
+		return false;
+
+	// If player is disconnected, we're probably in this routine via the
+	//  PhysicsRemoveTouchedList() function to make sure all Untouch()'s are called for the
+	//  player. Calling TakeDamage() in this case can get into the speaking criteria, which
+	//  will then loop through the control points and the touched list again. We shouldn't
+	//  need to hurt players that are disconnected, so skip all of this...
+	bool bPlayerDisconnected = pOther->IsPlayer() && ( ((CBasePlayer *)pOther)->IsConnected() == false );
+	if ( bPlayerDisconnected )
 		return false;
 
 	if ( damage < 0 )
@@ -934,7 +950,7 @@ void CTriggerHurt::Touch( CBaseEntity *pOther )
 {
 	if ( m_pfnThink == NULL )
 	{
-		SetThink( &CTriggerHurt::HurtThink );
+		SetThink( &CTriggerHurtShim::HurtThinkShim );
 		SetNextThink( gpGlobals->curtime );
 	}
 }
@@ -956,6 +972,24 @@ bool CTriggerHurt::KeyValue( const char *szKeyName, const char *szValue )
 	return true;
 }
 #endif
+
+//-----------------------------------------------------------------------------
+// Purpose: Checks if this point is in any trigger_hurt zones with positive damage
+//-----------------------------------------------------------------------------
+bool IsTakingTriggerHurtDamageAtPoint( const Vector &vecPoint )
+{
+	for ( int i = 0; i < ITriggerHurtAutoList::AutoList().Count(); i++ )
+	{
+		// Some maps use trigger_hurt with negative values as healing triggers; don't consider those
+		CTriggerHurt *pTrigger = static_cast<CTriggerHurt*>( ITriggerHurtAutoList::AutoList()[i] );
+		if ( !pTrigger->m_bDisabled && pTrigger->PointIsWithin( vecPoint ) && pTrigger->m_flDamage > 0.f )
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
 
 
 // ##################################################################################
@@ -2461,7 +2495,7 @@ void CTriggerPush::Touch( CBaseEntity *pOther )
 #endif
 
 			Vector vecPush = (m_flPushSpeed * vecAbsDir);
-			if ( pOther->GetFlags() & FL_BASEVELOCITY )
+			if ( ( pOther->GetFlags() & FL_BASEVELOCITY ) && !lagcompensation->IsCurrentlyDoingLagCompensation() )
 			{
 				vecPush = vecPush + pOther->GetBaseVelocity();
 			}
@@ -2530,8 +2564,8 @@ class CTriggerTeleport : public CBaseTrigger
 public:
 	DECLARE_CLASS( CTriggerTeleport, CBaseTrigger );
 
-	void Spawn( void );
-	void Touch( CBaseEntity *pOther );
+	virtual void Spawn( void ) OVERRIDE;
+	virtual void Touch( CBaseEntity *pOther ) OVERRIDE;
 
 	string_t m_iLandmark;
 
@@ -2546,13 +2580,10 @@ BEGIN_DATADESC( CTriggerTeleport )
 
 END_DATADESC()
 
-
-
 void CTriggerTeleport::Spawn( void )
 {
 	InitTrigger();
 }
-
 
 //-----------------------------------------------------------------------------
 // Purpose: Teleports the entity that touched us to the location of our target,
@@ -5455,6 +5486,7 @@ void CServerRagdollTrigger::EndTouch(CBaseEntity *pOther)
 		pCombatChar->m_bForceServerRagdoll = false;
 	}
 }
+
 
 //-----------------------------------------------------------------------------
 // Purpose: A trigger that adds impulse to touching entities

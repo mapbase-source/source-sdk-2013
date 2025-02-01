@@ -40,6 +40,9 @@ $Configuration "Debug"
 
 		// Mapbase base definitions
 		$PreprocessorDefinitions		"$BASE;MAPBASE"		[$MAPBASE]
+
+		$PreprocessorDefinitions		"$BASE;SDK_SP"	[$SDK_SP]
+		$PreprocessorDefinitions		"$BASE;SDK_MP"	[$SDK_MP]
 	}
 }
 
@@ -58,5 +61,8 @@ $Configuration "Release"
 
 		// Mapbase base definitions
 		$PreprocessorDefinitions		"$BASE;MAPBASE"		[$MAPBASE]
+
+		$PreprocessorDefinitions		"$BASE;SDK_SP"	[$SDK_SP]
+		$PreprocessorDefinitions		"$BASE;SDK_MP"	[$SDK_MP]
 	}
 }

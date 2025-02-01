@@ -451,7 +451,7 @@ public:
 	virtual bool			Weapon_ShouldSetLast( CBaseCombatWeapon *pOldWeapon, CBaseCombatWeapon *pNewWeapon ) { return true; }
 	virtual bool			Weapon_ShouldSelectItem( CBaseCombatWeapon *pWeapon );
 	void					Weapon_DropSlot( int weaponSlot );
-	CBaseCombatWeapon		*Weapon_GetLast( void ) { return m_hLastWeapon.Get(); }
+	CBaseCombatWeapon		*GetLastWeapon( void ) { return m_hLastWeapon.Get(); }
 #ifdef MAPBASE
 	virtual Activity		Weapon_TranslateActivity( Activity baseAct, bool *pRequired = NULL );
 #endif
@@ -661,7 +661,7 @@ public:
 
 	virtual void			HandleAnimEvent( animevent_t *pEvent );
 
-	virtual bool			ShouldAnnounceAchievement( void ){ return true; }
+	virtual bool			ShouldAnnounceAchievement( void );
 
 #if defined USES_ECON_ITEMS
 	// Wearables
@@ -790,6 +790,8 @@ public:
 	bool	IsPredictingWeapons( void ) const; 
 	int		CurrentCommandNumber() const;
 	const CUserCmd *GetCurrentUserCommand() const;
+	int		GetLockViewanglesTickNumber() const { return m_iLockViewanglesTickNumber; }
+	QAngle	GetLockViewanglesData() const { return m_qangLockViewangles; }
 
 	int		GetFOV( void );														// Get the current FOV value
 	int		GetDefaultFOV( void ) const;										// Default FOV if not specified otherwise
@@ -882,7 +884,9 @@ private:
 
 public:
 	
-
+	// How long since this player last interacted with something the game considers an objective/target/goal
+	float				GetTimeSinceLastObjective( void ) const { return ( m_flLastObjectiveTime == -1.f ) ? 999.f : gpGlobals->curtime - m_flLastObjectiveTime; }
+	void				SetLastObjectiveTime( float flTime ) { m_flLastObjectiveTime = flTime; }
 
 	// Used by gamemovement to check if the entity is stuck.
 	int m_StuckLast;
@@ -964,7 +968,8 @@ public:
 
 #if defined USES_ECON_ITEMS
 	CEconWearable			*GetWearable( int i ) { return m_hMyWearables[i]; }
-	int						GetNumWearables( void ) { return m_hMyWearables.Count(); }
+	const CEconWearable		*GetWearable( int i ) const { return m_hMyWearables[i]; }
+	int						GetNumWearables( void ) const { return m_hMyWearables.Count(); }
 #endif
 
 #ifdef MAPBASE
@@ -974,6 +979,7 @@ public:
 private:
 
 	Activity				m_Activity;
+	float					m_flLastObjectiveTime;				// Last curtime player touched/killed something the gamemode considers an objective
 
 protected:
 
@@ -1141,6 +1147,8 @@ protected:
 	// Last received usercmd (in case we drop a lot of packets )
 	CUserCmd				m_LastCmd;
 	CUserCmd				*m_pCurrentCommand;
+	int						m_iLockViewanglesTickNumber;
+	QAngle					m_qangLockViewangles;
 
 	float					m_flStepSoundTime;	// time to check for next footstep sound
 
@@ -1304,6 +1312,9 @@ private:
 
 	// Store the last time we successfully processed a usercommand
 	float			m_flLastUserCommandTime;
+
+	// used to prevent achievement announcement spam
+	CUtlVector< float >		m_flAchievementTimes;
 
 public:
 	virtual unsigned int PlayerSolidMask( bool brushOnly = false ) const;	// returns the solid mask for the given player, so bots can have a more-restrictive set

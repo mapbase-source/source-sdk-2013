@@ -98,7 +98,6 @@ DEFINE_STATIC_HOOK( WeaponMeleeAttack2Condition );
 #endif
 
 DEFINE_STATIC_HOOK( ActivityList );
-DEFINE_STATIC_HOOK( ActivityListCount );
 
 #define DEFINE_SIMPLE_WEAPON_HOOK( name, returnType, description ) DEFINE_SIMPLE_SCRIPTHOOK( CWeaponCustomScripted::g_Hook_##name, #name, returnType, description )
 #define BEGIN_WEAPON_HOOK( name, returnType, description ) BEGIN_SCRIPTHOOK( CWeaponCustomScripted::g_Hook_##name, #name, returnType, description )
@@ -158,7 +157,6 @@ BEGIN_ENT_SCRIPTDESC( CWeaponCustomScripted, CBaseCombatWeapon, "Special weapon 
 #endif
 
 	DEFINE_SIMPLE_WEAPON_HOOK( ActivityList, FIELD_HSCRIPT, "" )
-	DEFINE_SIMPLE_WEAPON_HOOK( ActivityListCount, FIELD_INTEGER, "" )
 
 END_SCRIPTDESC();
 
@@ -616,18 +614,11 @@ void CWeaponCustomScripted::OnDataChanged(DataUpdateType_t type)
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-acttable_t *CWeaponCustomScripted::ActivityList( void )
+acttable_t *CWeaponCustomScripted::ActivityList( int &iActivityCount )
 {
 	// TODO
 
-	return BaseClass::ActivityList();
-}
-
-int CWeaponCustomScripted::ActivityListCount( void )
-{
-	// TODO
-
-	return BaseClass::ActivityListCount();
+	return BaseClass::ActivityList( iActivityCount );
 }
 
 void CWeaponCustomScripted::RunVScripts()

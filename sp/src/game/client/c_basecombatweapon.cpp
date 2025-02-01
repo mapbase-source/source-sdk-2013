@@ -187,7 +187,10 @@ void C_BaseCombatWeapon::OnDataChanged( DataUpdateType_t updateType )
 		EnsureCorrectRenderingModel();
 	}
 
-	UpdateVisibility();
+	if ( updateType == DATA_UPDATE_CREATED )
+	{
+		UpdateVisibility();
+	}
 
 	m_iOldState = m_iState;
 

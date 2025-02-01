@@ -2328,11 +2328,6 @@ void CSceneEntity::InputTriggerEvent( inputdata_t &inputdata )
 	}
 }
 
-struct NPCInterjection
-{
-	AI_Response *response;
-	CAI_BaseActor *npc;
-};
 //-----------------------------------------------------------------------------
 // Purpose: 
 // Input  : &inputdata - 
@@ -2341,47 +2336,38 @@ void CSceneEntity::InputInterjectResponse( inputdata_t &inputdata )
 {
 	// Not currently playing a scene
 	if ( !m_pScene )
-	{
 		return;
-	}
 
-	CUtlVector< CAI_BaseActor * >	candidates;
-	int i;
-	for ( i = 0 ; i < m_pScene->GetNumActors(); i++ )
+	CUtlVector<CAI_BaseActor *> candidates;
+
+	for ( int i = 0 ; i < m_pScene->GetNumActors(); i++ )
 	{
 		CBaseFlex *pTestActor = FindNamedActor( i );
 		if ( !pTestActor )
 			continue;
 
-		CAI_BaseActor *pBaseActor = dynamic_cast<CAI_BaseActor*>(pTestActor);
-		if ( !pBaseActor )
-			continue;
-
-		if ( !pBaseActor->IsAlive() )
+		CAI_BaseActor *pBaseActor = dynamic_cast<CAI_BaseActor *>(pTestActor);
+		if ( !pBaseActor || !pBaseActor->IsAlive() )
 			continue;
 
 		candidates.AddToTail( pBaseActor );
 	}
 
 	int c = candidates.Count();
-
 	if ( !c )
-	{
 		return;
-	}
-	
-	int useIndex = 0;
+
 	if ( !m_bIsPlayingBack )
 	{
 		// Use any actor if not playing a scene
-		useIndex = RandomInt( 0, c - 1 );
+		// int useIndex = RandomInt( 0, c - 1 );
+		Assert( !"m_bIsPlayBack is false and this code does nothing. Should it?");
 	}
 	else
 	{
-#ifdef NEW_RESPONSE_SYSTEM
 		CUtlString modifiers("scene:");
 		modifiers += STRING( GetEntityName() );
-
+#ifdef NEW_RESPONSE_SYSTEM
 		while (candidates.Count() > 0)
 		{
 			// Pick a random slot in the candidates array.
@@ -2412,56 +2398,30 @@ void CSceneEntity::InputInterjectResponse( inputdata_t &inputdata )
 			candidates.FastRemove(slot);
 		}
 #else
-		CUtlVector< NPCInterjection > validResponses;
-
-		char modifiers[ 512 ];
-		Q_snprintf( modifiers, sizeof( modifiers ), "scene:%s", STRING( GetEntityName() ) );
-
-		for ( int i = 0; i < c; i++ )
+		while (candidates.Count() > 0)
 		{
-			CAI_BaseActor *npc = candidates[ i ];
-			Assert( npc );
+			// Pick a random slot in the candidates array.
+			int slot = RandomInt( 0, candidates.Count() - 1 );
 
-			AI_Response *response = npc->SpeakFindResponse( inputdata.value.String(), modifiers );
-			if ( !response )
-				continue;
+			CAI_BaseActor *npc = candidates[ slot ];
 
-			float duration = npc->GetResponseDuration( response );
-			// Couldn't look it up
-			if ( duration <= 0.0f )
-				continue;
-
-			if ( !npc->PermitResponse( duration ) )
+			// Try to find the response for this slot.
+			AI_Response response;
+			bool result = npc->SpeakFindResponse( response, inputdata.value.String(), modifiers.Get() );
+			if ( result )
 			{
-				delete response;
-				continue;
-			}
+				float duration = npc->GetResponseDuration( response );
 
-			// 
-			NPCInterjection inter;
-			inter.response = response;
-			inter.npc = npc;
-
-			validResponses.AddToTail( inter );
-		}
-
-		int rcount = validResponses.Count();
-		if ( rcount >= 1 )
-		{
-			int slot = RandomInt( 0, rcount - 1 );
-
-			for ( int i = 0; i < rcount; i++ )
-			{
-				NPCInterjection *pInterjection = &validResponses[ i ];
-				if ( i == slot )
+				if ( ( duration > 0.0f ) && npc->PermitResponse( duration ) )
 				{
-					pInterjection->npc->SpeakDispatchResponse( inputdata.value.String(), pInterjection->response );
-				}
-				else
-				{
-					delete pInterjection->response;
+					// If we could look it up, dispatch it and bail.
+					npc->SpeakDispatchResponse( inputdata.value.String(), response );
+					return;
 				}
 			}
+
+			// Remove this entry and look for another one.
+			candidates.FastRemove(slot);
 		}
 #endif
 	}
@@ -3108,24 +3068,18 @@ void CSceneEntity::QueueResumePlayback( void )
 				CAI_BaseActor *pBaseActor = dynamic_cast<CAI_BaseActor*>(pActor);
 				if ( pBaseActor )
 				{
-#ifdef NEW_RESPONSE_SYSTEM
 					AI_Response response;
+#ifdef NEW_RESPONSE_SYSTEM
 					CAI_Concept concept(STRING(m_iszResumeSceneFile));
 					bool result = pBaseActor->FindResponse( response, concept, NULL );
+#else
+					bool result = pBaseActor->SpeakFindResponse( response, STRING(m_iszResumeSceneFile), NULL );
+#endif
 					if ( result )
 					{
-						const char* szResponse = response.GetResponsePtr();
+						const char *szResponse = response.GetResponsePtr();
 						bStartedScene = InstancedScriptedScene( NULL, szResponse, &m_hWaitingForThisResumeScene, 0, false ) != 0;
 					}
-#else
-					AI_Response *result = pBaseActor->SpeakFindResponse( STRING(m_iszResumeSceneFile), NULL );
-					if ( result )
-					{
-						char response[ 256 ];
-						result->GetResponse( response, sizeof( response ) );
-						bStartedScene = InstancedScriptedScene( NULL, response, &m_hWaitingForThisResumeScene, 0, false ) != 0;
-					}
-#endif
 				}
 			}
 		}
@@ -5804,8 +5758,9 @@ void CSceneManager::RemoveScenesInvolvingActor( CBaseFlex *pActor )
 	if ( !pActor )
 		return;
 
+	// This loop can remove items from m_ActiveScenes array, so loop through backwards.
 	int c = m_ActiveScenes.Count();
-	for ( int i = 0; i < c; i++ )
+	for ( int i = c - 1 ; i >= 0; --i )
 	{
 		CSceneEntity *pScene = m_ActiveScenes[ i ].Get();
 		if ( !pScene )

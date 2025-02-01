@@ -160,6 +160,11 @@ public:
 
 	// returns true if Steam itself is running in VR mode
 	virtual bool IsSteamRunningInVR() = 0;
+	
+#ifdef SDK_MP
+	// Sets the inset of the overlay notification from the corner specified by SetOverlayNotificationPosition.
+	virtual void SetOverlayNotificationInset( int nHorizontalInset, int nVerticalInset ) = 0;
+#endif
 };
 
 #define STEAMUTILS_INTERFACE_VERSION "SteamUtils007"

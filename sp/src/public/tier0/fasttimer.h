@@ -222,8 +222,10 @@ private:
 	unsigned	m_nIters;
 	CCycleCount m_Total;
 	CCycleCount	m_Peak;
+#ifndef SDK_MP
 	bool		m_fReport;
 	const tchar *m_pszName;
+#endif
 };
 
 // -------------------------------------------------------------------------- // 

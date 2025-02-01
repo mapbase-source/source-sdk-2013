@@ -70,7 +70,7 @@ itemFlags_t g_ItemFlags[8] =
 	{ "ITEM_FLAG_NOITEMPICKUP",		ITEM_FLAG_NOITEMPICKUP }
 };
 #else
-extern itemFlags_t g_ItemFlags[7];
+extern itemFlags_t g_ItemFlags[8];
 #endif
 
 
@@ -79,7 +79,7 @@ static CUtlDict< FileWeaponInfo_t*, unsigned short > m_WeaponInfoDatabase;
 #ifndef MAPBASE // Mapbase makes weapons in the same slot & position swap each other out, which is a feature mods can intentionally use.
 #ifdef _DEBUG
 // used to track whether or not two weapons have been mistakenly assigned the wrong slot
-bool g_bUsedWeaponSlots[MAX_WEAPON_SLOTS][MAX_WEAPON_POSITIONS] = { 0 };
+bool g_bUsedWeaponSlots[MAX_WEAPON_SLOTS][MAX_WEAPON_POSITIONS] = { { false } };
 
 #endif
 #endif

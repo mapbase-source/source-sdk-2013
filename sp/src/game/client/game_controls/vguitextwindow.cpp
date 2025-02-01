@@ -102,11 +102,7 @@ CTextWindow::CTextWindow(IViewPort *pViewPort) : Frame(NULL, PANEL_INFO	)
 	SetTitleBarVisible( false );
 
 	m_pTextMessage = new TextEntry( this, "TextMessage" );
-#if defined( ENABLE_CHROMEHTMLWINDOW )
 	m_pHTMLMessage = new CMOTDHTML( this,"HTMLMessage" );
-#else
-	m_pHTMLMessage = NULL;
-#endif
 	m_pTitleLabel  = new Label( this, "MessageTitle", "Message Title" );
 	m_pOK		   = new Button(this, "ok", "#PropertyDialog_OK");
 
@@ -142,9 +138,9 @@ void CTextWindow::Reset( void )
 	// HPE_BEGIN:
 	// [Forrest] Replace strange hard-coded default message with hard-coded error message.
 	//=============================================================================
-	Q_strcpy( m_szTitle, "Error loading info message." );
-	Q_strcpy( m_szMessage, "" );
-	Q_strcpy( m_szMessageFallback, "" );
+	V_strcpy_safe( m_szTitle, "Error loading info message." );
+	V_strcpy_safe( m_szMessage, "" );
+	V_strcpy_safe( m_szMessageFallback, "" );
 	//=============================================================================
 	// HPE_END
 	//=============================================================================
@@ -165,7 +161,6 @@ void CTextWindow::ShowText( const char *text )
 
 void CTextWindow::ShowURL( const char *URL, bool bAllowUserToDisable )
 {
-#if defined( ENABLE_CHROMEHTMLWINDOW )
 	#ifdef _DEBUG
 		Msg( "CTextWindow::ShowURL( %s )\n", URL );
 	#endif
@@ -196,8 +191,6 @@ void CTextWindow::ShowURL( const char *URL, bool bAllowUserToDisable )
 	m_pHTMLMessage->SetVisible( true );
 	m_pHTMLMessage->OpenURL( URL, NULL );
 	m_bShownURL = true;
-
-#endif
 }
 
 void CTextWindow::ShowIndex( const char *entry )
@@ -286,9 +279,8 @@ void CTextWindow::Update( void )
 
 	m_pTitleLabel->SetText( m_szTitle );
 
-#if defined( ENABLE_CHROMEHTMLWINDOW )
-	m_pHTMLMessage->SetVisible( false );
-#endif
+	if ( m_pHTMLMessage )
+		m_pHTMLMessage->SetVisible( false );
 	m_pTextMessage->SetVisible( false );
 
 	if ( m_nContentType == TYPE_INDEX )
@@ -427,13 +419,11 @@ void CTextWindow::ShowPanel( bool bShow )
 		SetVisible( false );
 		SetMouseInputEnabled( false );
 
-#if defined( ENABLE_CHROMEHTMLWINDOW )
-		if ( m_bUnloadOnDismissal && m_bShownURL )
+		if ( m_bUnloadOnDismissal && m_bShownURL && m_pHTMLMessage )
 		{
 			m_pHTMLMessage->OpenURL( "about:blank", NULL );
 			m_bShownURL = false;
 		}
-#endif
 	}
 }
 

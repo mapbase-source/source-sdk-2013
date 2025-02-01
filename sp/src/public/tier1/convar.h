@@ -138,7 +138,11 @@ public:
 	virtual CVarDLLIdentifier_t	GetDLLIdentifier() const;
 
 protected:
-	virtual void				Create( const char *pName, const char *pHelpString = 0, 
+#ifndef SDK_MP
+	inline void					Create( const char *pName, const char *pHelpString = 0, 
+									int flags = 0 ) { CreateBase( pName, pHelpString, flags ); }
+#endif
+	virtual void				CreateBase( const char *pName, const char *pHelpString = 0, 
 									int flags = 0 );
 
 	// Used internally by OneTimeInit to initialize/shutdown

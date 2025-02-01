@@ -98,7 +98,7 @@ class CSkyCamera;
 class CEntityMapData;
 class CWorld;
 class INextBot;
-
+class IHasAttributes;
 
 typedef CUtlVector< CBaseEntity* > EntityList_t;
 
@@ -1092,7 +1092,7 @@ public:
 	virtual int		OnTakeDamage( const CTakeDamageInfo &info );
 
 	// This is what you should call to apply damage to an entity.
-	void TakeDamage( const CTakeDamageInfo &info );
+	int TakeDamage( const CTakeDamageInfo &info );
 	virtual void AdjustDamageDirection( const CTakeDamageInfo &info, Vector &dir, CBaseEntity *pEnt ) {}
 
 	virtual int		TakeHealth( float flHealth, int bitsDamageType );
@@ -1279,45 +1279,42 @@ public:
 	int		GetHealth() const		{ return m_iHealth; }
 	void	SetHealth( int amt )	{ m_iHealth = amt; }
 
+	float HealthFraction() const;
+
 	// Ugly code to lookup all functions to make sure they are in the table when set.
 #ifdef _DEBUG
-	void FunctionCheck( void *pFunction, const char *name );
 
+#ifdef GNUC
+#define ENTITYFUNCPTR_SIZE	8
+#else
+#define ENTITYFUNCPTR_SIZE	4
+#endif
+
+	void FunctionCheck( void *pFunction, const char *name );
 	ENTITYFUNCPTR TouchSet( ENTITYFUNCPTR func, const char *name ) 
 	{ 
-#ifdef GNUC
-		COMPILE_TIME_ASSERT( sizeof(func) == 8 );
-#else
-		COMPILE_TIME_ASSERT( sizeof(func) == 4 );
-#endif
+		COMPILE_TIME_ASSERT( sizeof(func) == ENTITYFUNCPTR_SIZE );
 		m_pfnTouch = func; 
 		FunctionCheck( *(reinterpret_cast<void **>(&m_pfnTouch)), name ); 
 		return func;
 	}
 	USEPTR	UseSet( USEPTR func, const char *name ) 
 	{ 
-#ifdef GNUC
-		COMPILE_TIME_ASSERT( sizeof(func) == 8 );
-#else
-		COMPILE_TIME_ASSERT( sizeof(func) == 4 );
-#endif
+		COMPILE_TIME_ASSERT( sizeof(func) == ENTITYFUNCPTR_SIZE );
 		m_pfnUse = func; 
 		FunctionCheck( *(reinterpret_cast<void **>(&m_pfnUse)), name ); 
 		return func;
 	}
 	ENTITYFUNCPTR	BlockedSet( ENTITYFUNCPTR func, const char *name ) 
 	{ 
-#ifdef GNUC
-		COMPILE_TIME_ASSERT( sizeof(func) == 8 );
-#else
-		COMPILE_TIME_ASSERT( sizeof(func) == 4 );
-#endif
+		COMPILE_TIME_ASSERT( sizeof(func) == ENTITYFUNCPTR_SIZE );
 		m_pfnBlocked = func; 
 		FunctionCheck( *(reinterpret_cast<void **>(&m_pfnBlocked)), name ); 
 		return func;
 	}
 
-#endif
+#endif // _DEBUG
+
 	virtual void	ModifyOrAppendCriteria( AI_CriteriaSet& set );
 #ifdef NEW_RESPONSE_SYSTEM
 	// this computes criteria that depend on the other criteria having been set. 
@@ -1330,7 +1327,18 @@ public:
 	void			ReAppendContextCriteria( AI_CriteriaSet& set );
 #endif
 	void			DumpResponseCriteria( void );
-	
+
+	// Return the IHasAttributes interface for this base entity. Removes the need for:
+	//	dynamic_cast< IHasAttributes * >( pEntity );
+	// Which is remarkably slow.
+	// GetAttribInterface( CBaseEntity *pEntity ) in attribute_manager.h uses
+	//  this function, tests for NULL, and Asserts m_pAttributes == dynamic_cast.
+	inline IHasAttributes *GetHasAttributesInterfacePtr() const { return m_pAttributes; }
+
+protected:
+	// NOTE: m_pAttributes needs to be set in the leaf class constructor.
+	IHasAttributes *m_pAttributes;
+
 private:
 	friend class CAI_Senses;
 	CBaseEntity	*m_pLink;// used for temporary link-list operations. 
@@ -1985,6 +1993,7 @@ private:
 	//  randon number generators to spit out the same random numbers on both sides for a particular
 	//  usercmd input.
 	static int						m_nPredictionRandomSeed;
+	static int						m_nPredictionRandomSeedServer;
 	static CBasePlayer				*m_pPredictionPlayer;
 
 	// FIXME: Make hierarchy a member of CBaseEntity
@@ -1998,7 +2007,7 @@ private:
 	
 public:
 	// Accessors for above
-	static int						GetPredictionRandomSeed( void );
+	static int						GetPredictionRandomSeed( bool bUseUnSyncedServerPlatTime = false );
 	static void						SetPredictionRandomSeed( const CUserCmd *cmd );
 	static CBasePlayer				*GetPredictionPlayer( void );
 	static void						SetPredictionPlayer( CBasePlayer *player );
@@ -2037,6 +2046,7 @@ public:
 		return s_bAbsQueriesValid;
 	}
 
+	virtual bool ShouldBlockNav() const { return true; }
 
 	// VSCRIPT
 	HSCRIPT GetScriptInstance();

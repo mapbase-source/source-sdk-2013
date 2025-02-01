@@ -1454,7 +1454,7 @@ void CGlobalEntityList::OnAddEntity( IHandleEntity *pEnt, CBaseHandle handle )
 
 void CGlobalEntityList::OnRemoveEntity( IHandleEntity *pEnt, CBaseHandle handle )
 {
-#ifdef DEBUG
+#ifdef DBGFLAG_ASSERT
 	if ( !g_fInCleanupDelete )
 	{
 		int i;

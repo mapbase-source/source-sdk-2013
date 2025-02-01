@@ -45,6 +45,9 @@ public:
 	virtual ~CPotteryWheelPanel();
 
 	// Overriden methods of vgui::Panel
+#ifdef SDK_MP
+	virtual void ApplySettings( KeyValues *inResourceData );
+#endif
 	virtual void Init( int x, int y, int wide, int tall );
 	virtual void Paint();
 
@@ -117,6 +120,7 @@ protected:
 	bool WarpMouse( int &x, int &y );
 	IManipulator		*m_pCurrentManip;
 	int m_nManipStartX, m_nManipStartY;
+	int m_nClickStartX, m_nClickStartY;
 
 	// Re-apply the manipulators on a new model
 	void ApplyManipulation();
@@ -136,6 +140,7 @@ protected:
 private:
 	void CreateDefaultLights();
 	void DestroyLights();
+	void ParseLightsFromKV( KeyValues *pLightsKV );
 
 	CMaterialReference m_LightProbeBackground;
 	CMaterialReference m_LightProbeHDRBackground;

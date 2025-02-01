@@ -365,7 +365,7 @@ void CParticleProperty::StopParticlesInvolving( CBaseEntity *pEntity )
 // Purpose: Stop all effects that were created using the given definition
 //			name.
 //-----------------------------------------------------------------------------
-void CParticleProperty::StopParticlesNamed( const char *pszEffectName, bool bForceRemoveInstantly /* =false */ )
+void CParticleProperty::StopParticlesNamed( const char *pszEffectName, bool bForceRemoveInstantly /* =false */,  bool bInverse /*= false*/ )
 {
 	CParticleSystemDefinition *pDef = g_pParticleSystemMgr->FindParticleSystem( pszEffectName );
 	AssertMsg1(pDef, "Could not find particle definition %s", pszEffectName );
@@ -384,12 +384,14 @@ void CParticleProperty::StopParticlesNamed( const char *pszEffectName, bool bFor
 	{
 		// for each effect...
 		CNewParticleEffect *pParticleEffect = m_ParticleEffects[i].pParticleEffect.GetObject();
-		if (pParticleEffect->m_pDef() == pDef)
+		bool bMatches = pParticleEffect->m_pDef() == pDef;
+		if ( bMatches == !bInverse )
 		{
 			pParticleEffect->StopEmission( false, bRemoveInstantly );
 		}
 	}
 }
+
 
 void CParticleProperty::StopParticlesWithNameAndAttachment( const char *pszEffectName, int iAttachmentPoint, bool bForceRemoveInstantly /* =false */ )
 {
@@ -562,7 +564,7 @@ void CParticleProperty::UpdateControlPoint( ParticleEffectList_t *pEffect, int i
 #ifdef TF_CLIENT_DLL
 
 	CBaseEntity *pWearable = (CBaseEntity*) pPoint->hEntity.Get();
-	if ( pWearable && dynamic_cast<IHasAttributes*>( pWearable ) && !pWearable->IsPlayer() )
+	if ( pWearable && GetAttribInterface( pWearable ) && !pWearable->IsPlayer() )
 	{
 		C_BaseAnimating *pAnimating = pPoint->hEntity->GetBaseAnimating();
 		if ( pAnimating )
@@ -616,7 +618,9 @@ void CParticleProperty::UpdateControlPoint( ParticleEffectList_t *pEffect, int i
 						if ( !pAnimating->C_BaseAnimating::GetAttachment( pPoint->iAttachmentPoint, attachmentToWorld ) )
 						{
 							Warning( "Cannot update control point %d for effect '%s'.\n", pPoint->iAttachmentPoint, pEffect->pParticleEffect->GetEffectName() );
-							attachmentToWorld = pAnimating->RenderableToWorldTransform();
+							// Remove the effect cause this warning means something is orphaned
+							StopParticlesNamed( pEffect->pParticleEffect->GetEffectName() );
+							return;
 						}
 					}
 
@@ -625,7 +629,7 @@ void CParticleProperty::UpdateControlPoint( ParticleEffectList_t *pEffect, int i
 					MatrixVectors( vMat.As3x4(), &vecForward, &vecRight, &vecUp );
 					MatrixPosition( vMat.As3x4(), vecOrigin );
 
-					if ( pEffect->pParticleEffect->m_pDef->IsViewModelEffect() )
+					if ( pEffect->pParticleEffect->GetIsViewModelEffect() )
 					{
 						FormatViewModelAttachment( vecOrigin, true );
 					}
