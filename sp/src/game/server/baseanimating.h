@@ -15,6 +15,9 @@
 #include "studio.h"
 #include "datacache/idatacache.h"
 #include "tier0/threadtools.h"
+#if !defined(SDK_MP) && defined(_DEBUG)
+#include "tier0/icommandline.h"
+#endif
 
 
 struct animevent_t;
