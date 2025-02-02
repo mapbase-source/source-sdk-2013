@@ -615,12 +615,19 @@ void CUtlBuffer::GetStringInternal( char *pString, size_t maxLenInChars )
 		return;
 	}
 
+#ifdef SDK_MP
 	Assert( maxLenInChars != 0 );
 
 	if ( maxLenInChars == 0 )
 	{
 		return;
 	}
+#else
+	if ( maxLenInChars == 0 )
+	{
+		maxLenInChars = INT_MAX;
+	}
+#endif
 
 	// Remember, this *includes* the null character
 	// It will be 0, however, if the buffer is empty.
