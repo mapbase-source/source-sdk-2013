@@ -38,9 +38,7 @@
 
 #include "materialsystem/imaterialsystem.h"
 #include "materialsystem/ishaderapi.h"
-#ifdef SDK_MP
 #include "materialsystem/ishadersystem_declarations.h"
-#endif
 
 
 //-----------------------------------------------------------------------------

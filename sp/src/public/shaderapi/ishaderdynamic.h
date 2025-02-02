@@ -36,7 +36,7 @@ struct LightState_t
 {
 	int  m_nNumLights;
 	bool m_bAmbientLight;
-#ifdef SDK_MP
+#ifndef SDK_MP
 	bool m_bStaticLight;
 #else
 	bool m_bStaticLightVertex;

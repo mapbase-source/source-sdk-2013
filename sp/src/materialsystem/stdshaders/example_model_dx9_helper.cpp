@@ -19,7 +19,11 @@
 
 static ConVar mat_fullbright( "mat_fullbright", "0", FCVAR_CHEAT );
 static ConVar r_lightwarpidentity( "r_lightwarpidentity", "0", FCVAR_CHEAT );
+#ifdef SDK_MP
+static ConVar r_rimlight( "r_rimlight", "1", FCVAR_NONE );
+#else
 static ConVar r_rimlight( "r_rimlight", "1", FCVAR_CHEAT );
+#endif
 
 // Textures may be bound to the following samplers:
 //	SHADER_SAMPLER0	 Base (Albedo) / Gloss in alpha

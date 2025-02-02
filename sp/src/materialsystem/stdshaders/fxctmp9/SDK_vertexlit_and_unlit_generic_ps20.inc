@@ -511,6 +511,27 @@ public:
 		m_bLIGHTING_PREVIEW = true;
 #endif
 	}
+private:
+	int m_nSTATIC_LIGHT_LIGHTMAP;
+#ifdef _DEBUG
+	bool m_bSTATIC_LIGHT_LIGHTMAP;
+#endif
+public:
+	void SetSTATIC_LIGHT_LIGHTMAP( int i )
+	{
+		Assert( i >= 0 && i <= 0 );
+		m_nSTATIC_LIGHT_LIGHTMAP = i;
+#ifdef _DEBUG
+		m_bSTATIC_LIGHT_LIGHTMAP = true;
+#endif
+	}
+	void SetSTATIC_LIGHT_LIGHTMAP( bool i )
+	{
+		m_nSTATIC_LIGHT_LIGHTMAP = i ? 1 : 0;
+#ifdef _DEBUG
+		m_bSTATIC_LIGHT_LIGHTMAP = true;
+#endif
+	}
 public:
 	sdk_vertexlit_and_unlit_generic_ps20_Dynamic_Index()
 	{
@@ -522,16 +543,20 @@ public:
 		m_bLIGHTING_PREVIEW = false;
 #endif // _DEBUG
 		m_nLIGHTING_PREVIEW = 0;
+#ifdef _DEBUG
+		m_bSTATIC_LIGHT_LIGHTMAP = false;
+#endif // _DEBUG
+		m_nSTATIC_LIGHT_LIGHTMAP = 0;
 	}
 	int GetIndex()
 	{
 		// Asserts to make sure that we aren't using any skipped combinations.
 		// Asserts to make sure that we are setting all of the combination vars.
 #ifdef _DEBUG
-		bool bAllDynamicVarsDefined = m_bPIXELFOGTYPE && m_bLIGHTING_PREVIEW;
+		bool bAllDynamicVarsDefined = m_bPIXELFOGTYPE && m_bLIGHTING_PREVIEW && m_bSTATIC_LIGHT_LIGHTMAP;
 		Assert( bAllDynamicVarsDefined );
 #endif // _DEBUG
-		return ( 1 * m_nPIXELFOGTYPE ) + ( 2 * m_nLIGHTING_PREVIEW ) + 0;
+		return ( 1 * m_nPIXELFOGTYPE ) + ( 2 * m_nLIGHTING_PREVIEW ) + ( 6 * m_nSTATIC_LIGHT_LIGHTMAP ) + 0;
 	}
 };
-#define shaderDynamicTest_sdk_vertexlit_and_unlit_generic_ps20 psh_forgot_to_set_dynamic_PIXELFOGTYPE + psh_forgot_to_set_dynamic_LIGHTING_PREVIEW + 0
+#define shaderDynamicTest_sdk_vertexlit_and_unlit_generic_ps20 psh_forgot_to_set_dynamic_PIXELFOGTYPE + psh_forgot_to_set_dynamic_LIGHTING_PREVIEW + psh_forgot_to_set_dynamic_STATIC_LIGHT_LIGHTMAP + 0

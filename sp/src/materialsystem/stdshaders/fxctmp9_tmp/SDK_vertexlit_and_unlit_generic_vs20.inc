@@ -263,7 +263,7 @@ public:
 		bool bAllStaticVarsDefined = m_bVERTEXCOLOR && m_bCUBEMAP && m_bHALFLAMBERT && m_bFLASHLIGHT && m_bSEAMLESS_BASE && m_bSEAMLESS_DETAIL && m_bSEPARATE_DETAIL_UVS && m_bUSE_STATIC_CONTROL_FLOW && m_bDONT_GAMMA_CONVERT_VERTEX_COLOR && m_bTREESWAY;
 		Assert( bAllStaticVarsDefined );
 #endif // _DEBUG
-		return ( 192 * m_nVERTEXCOLOR ) + ( 384 * m_nCUBEMAP ) + ( 768 * m_nHALFLAMBERT ) + ( 1536 * m_nFLASHLIGHT ) + ( 3072 * m_nSEAMLESS_BASE ) + ( 6144 * m_nSEAMLESS_DETAIL ) + ( 12288 * m_nSEPARATE_DETAIL_UVS ) + ( 24576 * m_nUSE_STATIC_CONTROL_FLOW ) + ( 49152 * m_nDONT_GAMMA_CONVERT_VERTEX_COLOR ) + ( 98304 * m_nTREESWAY ) + 0;
+		return ( 384 * m_nVERTEXCOLOR ) + ( 768 * m_nCUBEMAP ) + ( 1536 * m_nHALFLAMBERT ) + ( 3072 * m_nFLASHLIGHT ) + ( 6144 * m_nSEAMLESS_BASE ) + ( 12288 * m_nSEAMLESS_DETAIL ) + ( 24576 * m_nSEPARATE_DETAIL_UVS ) + ( 49152 * m_nUSE_STATIC_CONTROL_FLOW ) + ( 98304 * m_nDONT_GAMMA_CONVERT_VERTEX_COLOR ) + ( 196608 * m_nTREESWAY ) + 0;
 	}
 };
 #define shaderStaticTest_sdk_vertexlit_and_unlit_generic_vs20 vsh_forgot_to_set_static_VERTEXCOLOR + vsh_forgot_to_set_static_CUBEMAP + vsh_forgot_to_set_static_HALFLAMBERT + vsh_forgot_to_set_static_FLASHLIGHT + vsh_forgot_to_set_static_SEAMLESS_BASE + vsh_forgot_to_set_static_SEAMLESS_DETAIL + vsh_forgot_to_set_static_SEPARATE_DETAIL_UVS + vsh_forgot_to_set_static_USE_STATIC_CONTROL_FLOW + vsh_forgot_to_set_static_DONT_GAMMA_CONVERT_VERTEX_COLOR + vsh_forgot_to_set_static_TREESWAY + 0
@@ -312,24 +312,45 @@ public:
 #endif
 	}
 private:
-	int m_nSTATIC_LIGHT;
+	int m_nSTATIC_LIGHT_VERTEX;
 #ifdef _DEBUG
-	bool m_bSTATIC_LIGHT;
+	bool m_bSTATIC_LIGHT_VERTEX;
 #endif
 public:
-	void SetSTATIC_LIGHT( int i )
+	void SetSTATIC_LIGHT_VERTEX( int i )
 	{
 		Assert( i >= 0 && i <= 1 );
-		m_nSTATIC_LIGHT = i;
+		m_nSTATIC_LIGHT_VERTEX = i;
 #ifdef _DEBUG
-		m_bSTATIC_LIGHT = true;
+		m_bSTATIC_LIGHT_VERTEX = true;
 #endif
 	}
-	void SetSTATIC_LIGHT( bool i )
+	void SetSTATIC_LIGHT_VERTEX( bool i )
 	{
-		m_nSTATIC_LIGHT = i ? 1 : 0;
+		m_nSTATIC_LIGHT_VERTEX = i ? 1 : 0;
 #ifdef _DEBUG
-		m_bSTATIC_LIGHT = true;
+		m_bSTATIC_LIGHT_VERTEX = true;
+#endif
+	}
+private:
+	int m_nSTATIC_LIGHT_LIGHTMAP;
+#ifdef _DEBUG
+	bool m_bSTATIC_LIGHT_LIGHTMAP;
+#endif
+public:
+	void SetSTATIC_LIGHT_LIGHTMAP( int i )
+	{
+		Assert( i >= 0 && i <= 1 );
+		m_nSTATIC_LIGHT_LIGHTMAP = i;
+#ifdef _DEBUG
+		m_bSTATIC_LIGHT_LIGHTMAP = true;
+#endif
+	}
+	void SetSTATIC_LIGHT_LIGHTMAP( bool i )
+	{
+		m_nSTATIC_LIGHT_LIGHTMAP = i ? 1 : 0;
+#ifdef _DEBUG
+		m_bSTATIC_LIGHT_LIGHTMAP = true;
 #endif
 	}
 private:
@@ -428,9 +449,13 @@ public:
 #endif // _DEBUG
 		m_nDYNAMIC_LIGHT = 0;
 #ifdef _DEBUG
-		m_bSTATIC_LIGHT = false;
+		m_bSTATIC_LIGHT_VERTEX = false;
 #endif // _DEBUG
-		m_nSTATIC_LIGHT = 0;
+		m_nSTATIC_LIGHT_VERTEX = 0;
+#ifdef _DEBUG
+		m_bSTATIC_LIGHT_LIGHTMAP = false;
+#endif // _DEBUG
+		m_nSTATIC_LIGHT_LIGHTMAP = 0;
 #ifdef _DEBUG
 		m_bDOWATERFOG = false;
 #endif // _DEBUG
@@ -453,10 +478,10 @@ public:
 		// Asserts to make sure that we aren't using any skipped combinations.
 		// Asserts to make sure that we are setting all of the combination vars.
 #ifdef _DEBUG
-		bool bAllDynamicVarsDefined = m_bCOMPRESSED_VERTS && m_bDYNAMIC_LIGHT && m_bSTATIC_LIGHT && m_bDOWATERFOG && m_bSKINNING && m_bLIGHTING_PREVIEW && m_bNUM_LIGHTS;
+		bool bAllDynamicVarsDefined = m_bCOMPRESSED_VERTS && m_bDYNAMIC_LIGHT && m_bSTATIC_LIGHT_VERTEX && m_bSTATIC_LIGHT_LIGHTMAP && m_bDOWATERFOG && m_bSKINNING && m_bLIGHTING_PREVIEW && m_bNUM_LIGHTS;
 		Assert( bAllDynamicVarsDefined );
 #endif // _DEBUG
-		return ( 1 * m_nCOMPRESSED_VERTS ) + ( 2 * m_nDYNAMIC_LIGHT ) + ( 4 * m_nSTATIC_LIGHT ) + ( 8 * m_nDOWATERFOG ) + ( 16 * m_nSKINNING ) + ( 32 * m_nLIGHTING_PREVIEW ) + ( 64 * m_nNUM_LIGHTS ) + 0;
+		return ( 1 * m_nCOMPRESSED_VERTS ) + ( 2 * m_nDYNAMIC_LIGHT ) + ( 4 * m_nSTATIC_LIGHT_VERTEX ) + ( 8 * m_nSTATIC_LIGHT_LIGHTMAP ) + ( 16 * m_nDOWATERFOG ) + ( 32 * m_nSKINNING ) + ( 64 * m_nLIGHTING_PREVIEW ) + ( 128 * m_nNUM_LIGHTS ) + 0;
 	}
 };
-#define shaderDynamicTest_sdk_vertexlit_and_unlit_generic_vs20 vsh_forgot_to_set_dynamic_COMPRESSED_VERTS + vsh_forgot_to_set_dynamic_DYNAMIC_LIGHT + vsh_forgot_to_set_dynamic_STATIC_LIGHT + vsh_forgot_to_set_dynamic_DOWATERFOG + vsh_forgot_to_set_dynamic_SKINNING + vsh_forgot_to_set_dynamic_LIGHTING_PREVIEW + vsh_forgot_to_set_dynamic_NUM_LIGHTS + 0
+#define shaderDynamicTest_sdk_vertexlit_and_unlit_generic_vs20 vsh_forgot_to_set_dynamic_COMPRESSED_VERTS + vsh_forgot_to_set_dynamic_DYNAMIC_LIGHT + vsh_forgot_to_set_dynamic_STATIC_LIGHT_VERTEX + vsh_forgot_to_set_dynamic_STATIC_LIGHT_LIGHTMAP + vsh_forgot_to_set_dynamic_DOWATERFOG + vsh_forgot_to_set_dynamic_SKINNING + vsh_forgot_to_set_dynamic_LIGHTING_PREVIEW + vsh_forgot_to_set_dynamic_NUM_LIGHTS + 0

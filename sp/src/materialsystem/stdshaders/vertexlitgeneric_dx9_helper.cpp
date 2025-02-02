@@ -32,6 +32,9 @@
 
 static ConVar mat_fullbright( "mat_fullbright","0", FCVAR_CHEAT );
 static ConVar r_lightwarpidentity( "r_lightwarpidentity","0", FCVAR_CHEAT );
+#ifdef SDK_MP
+static ConVar mat_luxels( "mat_luxels", "0", FCVAR_CHEAT );
+#endif
 
 
 static inline bool WantsSkinShader( IMaterialVar** params, const VertexLitGeneric_DX9_Vars_t &info )
@@ -415,7 +418,10 @@ static void DrawVertexLitGeneric_DX9_Internal( CBaseVSShader *pShader, IMaterial
 
 	bool bIsAlphaTested = IS_FLAG_SET( MATERIAL_VAR_ALPHATEST ) != 0;
 	bool bHasDiffuseWarp = (!bHasFlashlight || IsX360() ) && hasDiffuseLighting && (info.m_nDiffuseWarpTexture != -1) && params[info.m_nDiffuseWarpTexture]->IsTexture();
-
+#ifdef SDK_MP
+	bool bHasLightmapTexture = IsTextureSet( info.m_nLightmap, params );
+	bool bHasMatLuxel = bHasLightmapTexture && mat_luxels.GetBool();
+#endif
 
 	//bool bNoCull = IS_FLAG_SET( MATERIAL_VAR_NOCULL );
 	bool bFlashlightNoLambert = false;
@@ -464,7 +470,7 @@ static void DrawVertexLitGeneric_DX9_Internal( CBaseVSShader *pShader, IMaterial
 	
 	bool bHasVertexColor = bVertexLitGeneric ? false : IS_FLAG_SET( MATERIAL_VAR_VERTEXCOLOR );
 	bool bHasVertexAlpha = bVertexLitGeneric ? false : IS_FLAG_SET( MATERIAL_VAR_VERTEXALPHA );
-
+	
 	if ( pShader->IsSnapshotting() || (! pContextData ) || ( pContextData->m_bMaterialVarsChanged ) )
 	{
 		bool bSeamlessBase = IsBoolSet( info.m_nSeamlessBase, params ) && !bTreeSway;
@@ -670,6 +676,11 @@ static void DrawVertexLitGeneric_DX9_Internal( CBaseVSShader *pShader, IMaterial
 			{
 				pShaderShadow->EnableTexture( SHADER_SAMPLER11, true );	// self illum mask
 			}
+
+
+			// Always enable this sampler, used for lightmaps depending on the dynamic combo.
+			// Lightmaps are generated in gamma space, but not sRGB, so leave that disabled. Conversion is done in the shader.
+			pShaderShadow->EnableTexture( SHADER_SAMPLER12, true );
 
 			bool bSRGBWrite = true;
 			if( (info.m_nLinearWrite != -1) && (params[info.m_nLinearWrite]->GetIntValue() == 1) )
@@ -1341,11 +1352,37 @@ static void DrawVertexLitGeneric_DX9_Internal( CBaseVSShader *pShader, IMaterial
 
 
 		// Set up light combo state
-		LightState_t lightState = {0, false, false};
+#ifdef SDK_MP
+		LightState_t lightState = { 0, false, false, false };
+#else
+		LightState_t lightState = { 0, false, false };
+#endif
 		if ( bVertexLitGeneric && (!bHasFlashlight || IsX360() ) )
 		{
 			pShaderAPI->GetDX9LightState( &lightState );
 		}
+
+#ifdef SDK_MP
+		// Override the lighting desired if we have a lightmap set!
+		if ( bHasLightmapTexture )
+		{
+			lightState.m_bStaticLightVertex = false;
+			lightState.m_bStaticLightTexel = true;
+			
+			// Usual case, not debugging.
+			if (!bHasMatLuxel)
+			{
+				pShader->BindTexture(SHADER_SAMPLER12, info.m_nLightmap);
+			}
+			else
+			{
+				float dimensions[] = { 0.0f, 0.0f, 0.0f, 0.0f };
+				DynamicCmdsOut.BindStandardTexture( SHADER_SAMPLER12, TEXTURE_DEBUG_LUXELS );
+				pShader->GetTextureDimensions( &dimensions[0], &dimensions[1], info.m_nLightmap );
+				DynamicCmdsOut.SetPixelShaderConstant( 11, dimensions, 1 );
+			}
+		}
+#endif
 
 		MaterialFogMode_t fogType = pShaderAPI->GetSceneFogMode();
 		int fogIndex = ( fogType == MATERIAL_FOG_LINEAR_BELOW_FOG_Z ) ? 1 : 0;
@@ -1436,7 +1473,9 @@ static void DrawVertexLitGeneric_DX9_Internal( CBaseVSShader *pShader, IMaterial
 			if ( bAmbientOnly )	// Override selected light combo to be ambient only
 			{
 				lightState.m_bAmbientLight = true;
-				lightState.m_bStaticLight = false;
+#ifdef SDK_MP
+				lightState.m_bStaticLightVertex = false;
+#endif
 				lightState.m_nNumLights = 0;
 			}
 
@@ -1448,7 +1487,13 @@ static void DrawVertexLitGeneric_DX9_Internal( CBaseVSShader *pShader, IMaterial
 
 				DECLARE_DYNAMIC_VERTEX_SHADER( sdk_vertexlit_and_unlit_generic_vs20 );
 				SET_DYNAMIC_VERTEX_SHADER_COMBO( DYNAMIC_LIGHT, lightState.HasDynamicLight() );
-				SET_DYNAMIC_VERTEX_SHADER_COMBO( STATIC_LIGHT,  lightState.m_bStaticLight  ? 1 : 0 );
+#ifdef SDK_MP
+				SET_DYNAMIC_VERTEX_SHADER_COMBO( STATIC_LIGHT_VERTEX,  lightState.m_bStaticLightVertex  ? 1 : 0 );
+				SET_DYNAMIC_VERTEX_SHADER_COMBO( STATIC_LIGHT_LIGHTMAP, lightState.m_bStaticLightTexel ? 1 : 0 );
+#else
+				SET_DYNAMIC_VERTEX_SHADER_COMBO( STATIC_LIGHT_VERTEX, lightState.m_bStaticLight ? 1 : 0 );
+				SET_DYNAMIC_VERTEX_SHADER_COMBO( STATIC_LIGHT_LIGHTMAP, 0 );
+#endif
 				SET_DYNAMIC_VERTEX_SHADER_COMBO( DOWATERFOG,  fogIndex );
 				SET_DYNAMIC_VERTEX_SHADER_COMBO( SKINNING,  numBones > 0 );
 				SET_DYNAMIC_VERTEX_SHADER_COMBO(
@@ -1465,6 +1510,13 @@ static void DrawVertexLitGeneric_DX9_Internal( CBaseVSShader *pShader, IMaterial
 
 //					SET_DYNAMIC_PIXEL_SHADER_COMBO( PIXELFOGTYPE, pShaderAPI->GetPixelFogCombo() );
 					SET_DYNAMIC_PIXEL_SHADER_COMBO( FLASHLIGHTSHADOWS, bFlashlightShadows );
+#ifdef SDK_MP
+					SET_DYNAMIC_PIXEL_SHADER_COMBO( STATIC_LIGHT_LIGHTMAP, lightState.m_bStaticLightTexel ? 1 : 0 );
+					SET_DYNAMIC_PIXEL_SHADER_COMBO( DEBUG_LUXELS, bHasMatLuxel ? 1 : 0 );
+#else
+					SET_DYNAMIC_PIXEL_SHADER_COMBO( STATIC_LIGHT_LIGHTMAP, 0 );
+					SET_DYNAMIC_PIXEL_SHADER_COMBO( DEBUG_LUXELS, 0 );
+#endif
 					SET_DYNAMIC_PIXEL_SHADER_COMBO(
 						LIGHTING_PREVIEW,
 						pShaderAPI->GetIntRenderingParameter(INT_RENDERPARM_ENABLE_FIXED_LIGHTING) );
@@ -1474,6 +1526,11 @@ static void DrawVertexLitGeneric_DX9_Internal( CBaseVSShader *pShader, IMaterial
 				{
 					DECLARE_DYNAMIC_PIXEL_SHADER( sdk_vertexlit_and_unlit_generic_ps20 );
 					SET_DYNAMIC_PIXEL_SHADER_COMBO( PIXELFOGTYPE, pShaderAPI->GetPixelFogCombo() );
+#ifdef SDK_MP
+					SET_DYNAMIC_PIXEL_SHADER_COMBO( STATIC_LIGHT_LIGHTMAP, lightState.m_bStaticLightTexel ? 1 : 0 );
+#else
+					SET_DYNAMIC_PIXEL_SHADER_COMBO( STATIC_LIGHT_LIGHTMAP, 0 );
+#endif
 					SET_DYNAMIC_PIXEL_SHADER_COMBO(
 						LIGHTING_PREVIEW,
 						pShaderAPI->GetIntRenderingParameter(INT_RENDERPARM_ENABLE_FIXED_LIGHTING) );
@@ -1490,7 +1547,13 @@ static void DrawVertexLitGeneric_DX9_Internal( CBaseVSShader *pShader, IMaterial
 
 				DECLARE_DYNAMIC_VERTEX_SHADER( sdk_vertexlit_and_unlit_generic_vs30 );
 				SET_DYNAMIC_VERTEX_SHADER_COMBO( DYNAMIC_LIGHT, lightState.HasDynamicLight() );
-				SET_DYNAMIC_VERTEX_SHADER_COMBO( STATIC_LIGHT,  lightState.m_bStaticLight  ? 1 : 0 );
+#ifdef SDK_MP
+				SET_DYNAMIC_VERTEX_SHADER_COMBO( STATIC_LIGHT_VERTEX, lightState.m_bStaticLightVertex ? 1 : 0 );
+				SET_DYNAMIC_VERTEX_SHADER_COMBO( STATIC_LIGHT_LIGHTMAP, lightState.m_bStaticLightTexel ? 1 : 0 );
+#else
+				SET_DYNAMIC_VERTEX_SHADER_COMBO( STATIC_LIGHT_VERTEX, lightState.m_bStaticLight ? 1 : 0 );
+				SET_DYNAMIC_VERTEX_SHADER_COMBO( STATIC_LIGHT_LIGHTMAP, 0 );
+#endif
 				SET_DYNAMIC_VERTEX_SHADER_COMBO( DOWATERFOG,  fogIndex );
 				SET_DYNAMIC_VERTEX_SHADER_COMBO( SKINNING,  numBones > 0 );
 				SET_DYNAMIC_VERTEX_SHADER_COMBO( LIGHTING_PREVIEW, 
@@ -1502,6 +1565,13 @@ static void DrawVertexLitGeneric_DX9_Internal( CBaseVSShader *pShader, IMaterial
 				DECLARE_DYNAMIC_PIXEL_SHADER( sdk_vertexlit_and_unlit_generic_ps30 );
 //				SET_DYNAMIC_PIXEL_SHADER_COMBO( PIXELFOGTYPE, pShaderAPI->GetPixelFogCombo() );
 				SET_DYNAMIC_PIXEL_SHADER_COMBO( FLASHLIGHTSHADOWS, bFlashlightShadows );
+#ifdef SDK_MP
+				SET_DYNAMIC_PIXEL_SHADER_COMBO( STATIC_LIGHT_LIGHTMAP,  lightState.m_bStaticLightTexel  ? 1 : 0 );
+				SET_DYNAMIC_PIXEL_SHADER_COMBO( DEBUG_LUXELS, bHasMatLuxel ? 1 : 0 );
+#else
+				SET_DYNAMIC_PIXEL_SHADER_COMBO( STATIC_LIGHT_LIGHTMAP, 0 );
+				SET_DYNAMIC_PIXEL_SHADER_COMBO( DEBUG_LUXELS, 0 );
+#endif
 				SET_DYNAMIC_PIXEL_SHADER_COMBO(	LIGHTING_PREVIEW,
 					pShaderAPI->GetIntRenderingParameter(INT_RENDERPARM_ENABLE_FIXED_LIGHTING) );
 				SET_DYNAMIC_PIXEL_SHADER_CMD( DynamicCmdsOut, sdk_vertexlit_and_unlit_generic_ps30 );

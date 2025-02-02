@@ -66,6 +66,8 @@ $Project
 		$File	"depthoffield_dx9.cpp"
 		
 		$File	"core_dx9.cpp"
+
+		$File	"debugluxel.cpp"
 	}
 
 	//$Shaders	"mapbase_dx9_20b.txt"

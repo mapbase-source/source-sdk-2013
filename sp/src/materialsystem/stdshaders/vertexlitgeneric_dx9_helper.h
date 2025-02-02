@@ -54,6 +54,7 @@ struct VertexLitGeneric_DX9_Vars_t
 	int m_nFlashlightNoLambert;
 	int m_nFlashlightTexture;
 	int m_nFlashlightTextureFrame;
+	int m_nLightmap;
 
 	int m_nSelfIllumTint;
 	int m_nSelfIllumFresnel;
@@ -67,6 +68,7 @@ struct VertexLitGeneric_DX9_Vars_t
 	int m_nPhongWarpTexture;	
 	int m_nPhongBoost;
 	int m_nPhongFresnelRanges;
+	int m_nPhongExponentFactor;
 	int m_nSelfIllumEnvMapMask_Alpha;
 	int m_nAmbientOnly;
 	int m_nHDRColorScale;
