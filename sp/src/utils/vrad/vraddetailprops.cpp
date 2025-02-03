@@ -738,7 +738,13 @@ void ComputeIndirectLightingAtPoint( Vector &position, Vector &normal, Vector &o
 			ColorRGBExp32ToVector( *pLightmap, lightmapColor );
 		}
 
+#ifdef SDK_MP
+		float invLengthSqr = 1.0f / (1.0f + ((vEnd - position) * surfEnum.m_HitFrac / 128.0).LengthSqr());
+		// Include falloff using invsqrlaw.
+		VectorMultiply( lightmapColor, invLengthSqr * dtexdata[pTex->texdata].reflectivity, lightmapColor );
+#else
 		VectorMultiply( lightmapColor, dtexdata[pTex->texdata].reflectivity, lightmapColor );
+#endif
 		VectorAdd( outColor, lightmapColor, outColor );
 	}
 

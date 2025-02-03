@@ -84,8 +84,10 @@ bool FileSystem_Init_Normal( const char *pFilename, FSInitType_t initType, bool 
 		if ( FileSystem_GetFileSystemDLLName( fileSystemDLLName, MAX_PATH, bSteam ) != FS_OK )
 			return false;
 
+#ifndef SDK_MP
 		// If we're under Steam we need extra setup to let us find the proper modules
 		FileSystem_SetupSteamInstallPath();
+#endif
 
 		// Next, load the module, call Connect/Init.
 		CFSLoadModuleInfo loadModuleInfo;

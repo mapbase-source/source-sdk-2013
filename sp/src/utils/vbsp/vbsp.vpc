@@ -189,6 +189,7 @@ $Project "Vbsp"
 		$Lib mathlib
 		$Lib tier2
 		$Lib vtf
+		$Lib "$LIBCOMMON/lzma" [$SDK_MP]
 		$Lib vscript [$MAPBASE_VSCRIPT]
 	}
 
