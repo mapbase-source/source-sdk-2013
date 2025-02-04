@@ -178,6 +178,9 @@ private:
 #endif
 
 	DECLARE_CACHED_HOOK( ActivityList );
+#ifndef SDK_MP
+	DECLARE_CACHED_HOOK( ActivityListCount );
+#endif
 
 private:
 

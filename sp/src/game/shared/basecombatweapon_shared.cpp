@@ -2933,8 +2933,13 @@ bool CBaseCombatWeapon::CanBePickedUpByNPCs(void)
 //-----------------------------------------------------------------------------
 Activity CBaseCombatWeapon::ActivityOverride( Activity baseAct, bool *pRequired )
 {
+#ifdef SDK_MP
 	int actCount = 0;
 	acttable_t *pTable = ActivityList( actCount );
+#else
+	acttable_t *pTable = ActivityList();
+	int actCount = ActivityListCount();
+#endif
 
 	for ( int i = 0; i < actCount; i++ )
 	{

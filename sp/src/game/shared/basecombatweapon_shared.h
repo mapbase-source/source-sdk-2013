@@ -71,8 +71,18 @@ class CUserCmd;
 
 // Put this in your derived class definition to declare it's activity table
 // UNDONE: Cascade these?
+#ifdef SDK_MP
+
 #define DECLARE_ACTTABLE()		static acttable_t m_acttable[];\
 	virtual acttable_t *ActivityList( int &iActivityCount ) OVERRIDE;
+
+#else
+
+#define DECLARE_ACTTABLE()		static acttable_t m_acttable[];\
+	acttable_t *ActivityList( void );\
+	int ActivityListCount( void );
+
+#endif
 
 // You also need to include the activity table itself in your class' implementation:
 // e.g.
@@ -88,8 +98,18 @@ class CUserCmd;
 // Put this after your derived class' definition to implement the accessors for the
 // activity table.
 // UNDONE: Cascade these?
+#ifdef SDK_MP
+
 #define IMPLEMENT_ACTTABLE(className) \
 	acttable_t *className::ActivityList( int &iActivityCount ) { iActivityCount = ARRAYSIZE(m_acttable); return m_acttable; }
+
+#else
+
+#define IMPLEMENT_ACTTABLE(className) \
+	acttable_t *className::ActivityList( void ) { return m_acttable; } \
+	int className::ActivityListCount( void ) { return ARRAYSIZE(m_acttable); } \
+
+#endif
 
 typedef struct
 {
@@ -476,7 +496,12 @@ public:
 	virtual CHudTexture const	*GetSpriteZoomedAutoaim( void ) const;
 
 	virtual Activity		ActivityOverride( Activity baseAct, bool *pRequired );
+#ifdef SDK_MP
 	virtual	acttable_t*		ActivityList( int &iActivityCount ) { return NULL; }
+#else
+	virtual	acttable_t*		ActivityList( void ) { return NULL; }
+	virtual	int				ActivityListCount( void ) { return 0; }
+#endif
 
 	virtual void			PoseParameterOverride( bool bReset );
 	virtual poseparamtable_t* PoseParamList( int &iPoseParamCount ) { return NULL; }

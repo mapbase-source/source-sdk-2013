@@ -614,12 +614,28 @@ void CWeaponCustomScripted::OnDataChanged(DataUpdateType_t type)
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
+#ifdef SDK_MP
 acttable_t *CWeaponCustomScripted::ActivityList( int &iActivityCount )
 {
 	// TODO
 
 	return BaseClass::ActivityList( iActivityCount );
 }
+#else
+acttable_t *CWeaponCustomScripted::ActivityList( void )
+{
+	// TODO
+
+	return BaseClass::ActivityList();
+}
+
+int CWeaponCustomScripted::ActivityListCount( void )
+{
+	// TODO
+
+	return BaseClass::ActivityListCount();
+}
+#endif
 
 void CWeaponCustomScripted::RunVScripts()
 {
