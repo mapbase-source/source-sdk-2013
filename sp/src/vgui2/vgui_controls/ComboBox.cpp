@@ -234,7 +234,7 @@ void ComboBox::RemoveAll()
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-int ComboBox::GetItemCount() const
+int ComboBox::GetItemCount()
 {
 	return m_pDropDown->GetItemCount();
 }

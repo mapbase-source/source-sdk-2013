@@ -138,6 +138,7 @@ protected:
 	bool	m_bNeedsSort;
 
 private:
+private:
 	template< typename TKey >
 	int	FindLessOrEqual( const TKey& search, bool *pFound ) const;
 

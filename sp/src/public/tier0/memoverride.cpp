@@ -1275,6 +1275,7 @@ wchar_t * __cdecl _wcsdup ( const wchar_t * string )
 	return 0;
 }
 #endif
+
 } // end extern "C"
 
 #if _MSC_VER >= 1400

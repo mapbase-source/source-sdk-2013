@@ -114,19 +114,6 @@ enum EResult
 	k_EResultAccountLoginDeniedThrottle = 87,	// login attempt failed, try to throttle response to possible attacker
 	k_EResultTwoFactorCodeMismatch = 88,		// two factor code mismatch
 	k_EResultTwoFactorActivationCodeMismatch = 89,	// activation code for two-factor didn't match
-#ifdef SDK_MP
-	k_EResultAccountAssociatedToMultiplePartners = 90,	// account has been associated with multiple partners
-	k_EResultNotModified = 91,					// data not modified
-	k_EResultNoMobileDevice = 92,				// the account does not have a mobile device associated with it
-	k_EResultTimeNotSynced = 93,				// the time presented is out of range or tolerance
-	k_EResultSmsCodeFailed = 94,				// SMS code failure (no match, none pending, etc.)
-	k_EResultAccountLimitExceeded = 95,			// Too many accounts access this resource
-	k_EResultAccountActivityLimitExceeded = 96,	// Too many changes to this account
-	k_EResultPhoneActivityLimitExceeded = 97,	// Too many changes to this phone
-	k_EResultRefundToWallet = 98,				// Cannot refund to payment method, must use wallet
-	k_EResultEmailSendFailure = 99,				// Cannot send an email
-	k_EResultNotSettled = 100,					// Can't perform operation till payment has settled
-#endif
 };
 
 // Error codes for use with the voice functions
@@ -140,15 +127,11 @@ enum EVoiceResult
 	k_EVoiceResultDataCorrupted = 5,
 	k_EVoiceResultRestricted = 6,
 	k_EVoiceResultUnsupportedCodec = 7,
-#ifdef SDK_MP
-	k_EVoiceResultReceiverOutOfDate = 8,
-	k_EVoiceResultReceiverDidNotAnswer = 9,
-#endif
 
 };
 
 // Result codes to GSHandleClientDeny/Kick
-enum EDenyReason
+typedef enum
 {
 	k_EDenyInvalid = 0,
 	k_EDenyInvalidVersion = 1,
@@ -166,14 +149,14 @@ enum EDenyReason
 	k_EDenySteamResponseTimedOut = 13,
 	k_EDenySteamValidationStalled = 14,
 	k_EDenySteamOwnerLeftGuestUser = 15,
-};
+} EDenyReason;
 
 // return type of GetAuthSessionTicket
 typedef uint32 HAuthTicket;
 const HAuthTicket k_HAuthTicketInvalid = 0;
 
 // results from BeginAuthSession
-enum EBeginAuthSessionResult
+typedef enum
 {
 	k_EBeginAuthSessionResultOK = 0,						// Ticket is valid for this game and this steamID.
 	k_EBeginAuthSessionResultInvalidTicket = 1,				// Ticket is not valid.
@@ -181,10 +164,10 @@ enum EBeginAuthSessionResult
 	k_EBeginAuthSessionResultInvalidVersion = 3,			// Ticket is from an incompatible interface version
 	k_EBeginAuthSessionResultGameMismatch = 4,				// Ticket is not for this game
 	k_EBeginAuthSessionResultExpiredTicket = 5,				// Ticket has expired
-};
+} EBeginAuthSessionResult;
 
 // Callback values for callback ValidateAuthTicketResponse_t which is a response to BeginAuthSession
-enum EAuthSessionResponse
+typedef enum
 {
 	k_EAuthSessionResponseOK = 0,							// Steam has verified the user is online, the ticket is valid and ticket has not been reused.
 	k_EAuthSessionResponseUserNotConnectedToSteam = 1,		// The user in question is not connected to steam
@@ -196,15 +179,15 @@ enum EAuthSessionResponse
 	k_EAuthSessionResponseAuthTicketInvalidAlreadyUsed = 7,	// This ticket has already been used, it is not valid.
 	k_EAuthSessionResponseAuthTicketInvalid = 8,			// This ticket is not from a user instance currently connected to steam.
 	k_EAuthSessionResponsePublisherIssuedBan = 9,			// The user is banned for this game. The ban came via the web api and not VAC
-};
+} EAuthSessionResponse;
 
 // results from UserHasLicenseForApp
-enum EUserHasLicenseForAppResult
+typedef enum
 {
 	k_EUserHasLicenseResultHasLicense = 0,					// User has a license for specified app
 	k_EUserHasLicenseResultDoesNotHaveLicense = 1,			// User does not have a license for the specified app
 	k_EUserHasLicenseResultNoAuth = 2,						// User has not been authenticated
-};
+} EUserHasLicenseForAppResult;
 
 
 // Steam account types
@@ -261,9 +244,6 @@ enum EAppOwnershipFlags
 	k_EAppOwnershipFlags_LicensePermanent	= 0x0800,	// permanent license, not borrowed, or guest or freeweekend etc
 	k_EAppOwnershipFlags_LicenseRecurring	= 0x1000,	// Recurring license, user is charged periodically
 	k_EAppOwnershipFlags_LicenseCanceled	= 0x2000,	// Mark as canceled, but might be still active if recurring
-#ifdef SDK_MP
-	k_EAppOwnershipFlags_AutoGrant			= 0x4000,	// Ownership is based on any kind of autogrant license
-#endif
 };
 
 
@@ -282,13 +262,8 @@ enum EAppType
 	k_EAppType_Guide				= 0x040,	// game guide, PDF etc
 	k_EAppType_Driver				= 0x080,	// hardware driver updater (ATI, Razor etc)
 	k_EAppType_Config				= 0x100,	// hidden app used to config Steam features (backpack, sales, etc)
-#ifdef SDK_MP
-	k_EAppType_Hardware				= 0x200,	// a hardware device (Steam Machine, Steam Controller, Steam Link, etc.)
-	// 0x400 is up for grabs here
-#else
 	k_EAppType_Film					= 0x200,	// A Movie (feature film)
 	k_EAppType_TVSeries				= 0x400,	// A TV or other video series which will have episodes and perhaps seasons
-#endif
 	k_EAppType_Video				= 0x800,	// A video component of either a Film or TVSeries (may be the feature, an episode, preview, making-of, etc)
 	k_EAppType_Plugin				= 0x1000,	// Plug-in types for other Apps
 	k_EAppType_Music				= 0x2000,	// Music files
@@ -338,9 +313,6 @@ enum EChatEntryType
 	k_EChatEntryTypeHistoricalChat = 11,	// a chat message from user's chat history or offilne message
 	k_EChatEntryTypeReserved1 = 12,
 	k_EChatEntryTypeReserved2 = 13,
-#ifdef SDK_MP
-	k_EChatEntryTypeLinkBlocked = 14, // a link was removed by the chat filter.
-#endif
 };
 
 
@@ -422,35 +394,10 @@ enum ENotificationPosition
 };
 
 
-#ifdef SDK_MP
-//-----------------------------------------------------------------------------
-// Purpose: Broadcast upload result details
-//-----------------------------------------------------------------------------
-enum EBroadcastUploadResult
-{
-	k_EBroadcastUploadResultNone = 0,	// broadcast state unknown
-	k_EBroadcastUploadResultOK = 1,		// broadcast was good, no problems
-	k_EBroadcastUploadResultInitFailed = 2,	// broadcast init failed
-	k_EBroadcastUploadResultFrameFailed = 3,	// broadcast frame upload failed
-	k_EBroadcastUploadResultTimeout = 4,	// broadcast upload timed out
-	k_EBroadcastUploadResultBandwidthExceeded = 5,	// broadcast send too much data
-	k_EBroadcastUploadResultLowFPS = 6,	// broadcast FPS too low
-	k_EBroadcastUploadResultMissingKeyFrames = 7,	// broadcast sending not enough key frames
-	k_EBroadcastUploadResultNoConnection = 8,	// broadcast client failed to connect to relay
-	k_EBroadcastUploadResultRelayFailed = 9,	// relay dropped the upload
-	k_EBroadcastUploadResultSettingsChanged = 10,	// the client changed broadcast settings 
-	k_EBroadcastUploadResultMissingAudio = 11,	// client failed to send audio data
-	k_EBroadcastUploadResultTooFarBehind = 12,	// clients was too slow uploading
-};
-#endif
-
-
 #pragma pack( push, 1 )		
 
 #define CSTEAMID_DEFINED
-#ifndef SDK_MP
 #define CSTEAMID_RENDERLINK_SUPPORT
-#endif
 
 // Steam ID structure (64 bits total)
 class CSteamID
@@ -783,7 +730,7 @@ public:
 	explicit CSteamID( const char *pchSteamID, EUniverse eDefaultUniverse = k_EUniverseInvalid );
 	const char * Render() const;				// renders this steam ID to string
 	static const char * Render( uint64 ulSteamID );	// static method to render a uint64 representation of a steam ID to a string
-	
+
 #ifdef CSTEAMID_RENDERLINK_SUPPORT
 	const char * RenderLink() const;				// renders this steam ID to an admin console link string
 	static const char * RenderLink( uint64 ulSteamID );	// static method to render a uint64 representation of a steam ID to a string
@@ -955,10 +902,10 @@ public:
 		m_gameID.m_nType = k_EGameIDTypeGameMod;
 
 		char rgchModDir[MAX_PATH];
-		V_FileBase( pchModPath, rgchModDir, sizeof( rgchModDir ) );
+		Q_FileBase( pchModPath, rgchModDir, sizeof( rgchModDir ) );
 		CRC32_t crc32;
 		CRC32_Init( &crc32 );
-		CRC32_ProcessBuffer( &crc32, rgchModDir, V_strlen( rgchModDir ) );
+		CRC32_ProcessBuffer( &crc32, rgchModDir, Q_strlen( rgchModDir ) );
 		CRC32_Final( &crc32 );
 
 		// set the high-bit on the mod-id 
@@ -975,8 +922,8 @@ public:
 
 		CRC32_t crc32;
 		CRC32_Init( &crc32 );
-		CRC32_ProcessBuffer( &crc32, pchExePath, V_strlen( pchExePath ) );
-		CRC32_ProcessBuffer( &crc32, pchAppName, V_strlen( pchAppName ) );
+		CRC32_ProcessBuffer( &crc32, pchExePath, Q_strlen( pchExePath ) );
+		CRC32_ProcessBuffer( &crc32, pchAppName, Q_strlen( pchAppName ) );
 		CRC32_Final( &crc32 );
 
 		// set the high-bit on the mod-id 
@@ -996,7 +943,7 @@ public:
 		CRC32_t crc32;
 		CRC32_Init( &crc32 );
 		const char *pchFileId = vstFileID.Render();
-		CRC32_ProcessBuffer( &crc32, pchFileId, V_strlen( pchFileId ) );
+		CRC32_ProcessBuffer( &crc32, pchFileId, Q_strlen( pchFileId ) );
 		CRC32_Final( &crc32 );
 
 		// set the high-bit on the mod-id 

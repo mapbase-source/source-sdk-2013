@@ -209,12 +209,10 @@ void FileSystem_ClearSteamEnvVars();
 // Find the steam.cfg above you for optional stuff
 FSReturnCode_t GetSteamCfgPath( char *steamCfgPath, int steamCfgPathLen );
 
-#ifndef SDK_MP
 // Setup the Steam.dll path without needing all the extra gameinfo stuff first
 // used by the CSteamApplication::Create() code to LoadModule() on the filesystem
 // before the underlying apps know specific details about the environment to load
 FSReturnCode_t FileSystem_SetupSteamInstallPath();
-#endif
 
 // Returns the last error.
 const char *FileSystem_GetLastErrorString();

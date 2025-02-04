@@ -607,27 +607,18 @@ int CUtlBuffer::PeekDelimitedStringLength( CUtlCharConversion *pConv, bool bActu
 //-----------------------------------------------------------------------------
 // Reads a null-terminated string
 //-----------------------------------------------------------------------------
-void CUtlBuffer::GetStringInternal( char *pString, size_t maxLenInChars )
+void CUtlBuffer::GetString( char* pString, int nMaxChars )
 {
-	if ( !IsValid() )
+	if (!IsValid())
 	{
 		*pString = 0;
 		return;
 	}
 
-#ifdef SDK_MP
-	Assert( maxLenInChars != 0 );
-
-	if ( maxLenInChars == 0 )
+	if ( nMaxChars == 0 )
 	{
-		return;
+		nMaxChars = INT_MAX;
 	}
-#else
-	if ( maxLenInChars == 0 )
-	{
-		maxLenInChars = INT_MAX;
-	}
-#endif
 
 	// Remember, this *includes* the null character
 	// It will be 0, however, if the buffer is empty.
@@ -638,21 +629,24 @@ void CUtlBuffer::GetStringInternal( char *pString, size_t maxLenInChars )
 		EatWhiteSpace();
 	}
 
-	if ( nLen <= 0 )
+	if ( nLen == 0 )
 	{
 		*pString = 0;
 		m_Error |= GET_OVERFLOW;
 		return;
 	}
-
-	const size_t nCharsToRead = min( (size_t)nLen, maxLenInChars ) - 1;
-
-	Get( pString, nCharsToRead );
-	pString[nCharsToRead] = 0;
-
-	if ( (size_t)nLen > (nCharsToRead + 1) )
+	
+	// Strip off the terminating NULL
+	if ( nLen <= nMaxChars )
 	{
-		SeekGet( SEEK_CURRENT, nLen - (nCharsToRead + 1) );
+		Get( pString, nLen - 1 );
+		pString[ nLen - 1 ] = 0;
+	}
+	else
+	{
+		Get( pString, nMaxChars - 1 );
+		pString[ nMaxChars - 1 ] = 0;
+		SeekGet( SEEK_CURRENT, nLen - 1 - nMaxChars );
 	}
 
 	// Read the terminating NULL in binary formats
@@ -661,17 +655,6 @@ void CUtlBuffer::GetStringInternal( char *pString, size_t maxLenInChars )
 		VerifyEquals( GetChar(), 0 );
 	}
 }
-
-
-#ifndef SDK_MP
-//-----------------------------------------------------------------------------
-// Don't enforce the new format in SP
-//-----------------------------------------------------------------------------
-void CUtlBuffer::GetString( char* pString, int nMaxChars )
-{
-	GetStringInternal( pString, nMaxChars );
-}
-#endif
 
 
 //-----------------------------------------------------------------------------
@@ -748,7 +731,7 @@ void CUtlBuffer::GetDelimitedString( CUtlCharConversion *pConv, char *pString, i
 {
 	if ( !IsText() || !pConv )
 	{
-		GetStringInternal( pString, nMaxChars );
+		GetString( pString, nMaxChars );
 		return;
 	}
 
@@ -1058,7 +1041,7 @@ int CUtlBuffer::VaScanf( const char* pFmt, va_list list )
 				case 's':
 					{
 						char* s = va_arg( list, char * );
-						GetStringInternal( s, 256 );
+						GetString( s );
 					}
 					break;
 

@@ -422,8 +422,10 @@ void CBaseModelPanel::OnMousePressed ( vgui::MouseCode code )
 
 	EnableMouseCapture( true, code );
 
+#ifdef SDK_MP
 	// Save where they clicked
 	input()->GetCursorPosition( m_nClickStartX, m_nClickStartY );
+#endif
 
 	// Warp the mouse to the center of the screen
 	int width, height;
@@ -458,8 +460,10 @@ void CBaseModelPanel::OnMouseReleased( vgui::MouseCode code )
 	EnableMouseCapture( false );
 	m_bMousePressed = false;
 
+#ifdef SDK_MP
 	// Restore the cursor to where the clicked
 	input()->SetCursorPos( m_nClickStartX, m_nClickStartY );
+#endif
 }
 
 //-----------------------------------------------------------------------------

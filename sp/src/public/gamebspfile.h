@@ -36,11 +36,7 @@ enum
 {
 	GAMELUMP_DETAIL_PROPS_VERSION = 4,
 	GAMELUMP_DETAIL_PROP_LIGHTING_VERSION = 0,
-#ifdef SDK_MP
-	GAMELUMP_STATIC_PROPS_VERSION = 10,
-#else
 	GAMELUMP_STATIC_PROPS_VERSION = 6,
-#endif
 	GAMELUMP_STATIC_PROP_LIGHTING_VERSION = 0,
 	GAMELUMP_DETAIL_PROP_LIGHTING_HDR_VERSION = 0,
 };
@@ -143,13 +139,7 @@ enum
 	
 	STATIC_PROP_NO_SELF_SHADOWING = 0x80,					// disable self shadowing in vrad
 
-#ifdef SDK_MP
-	STATIC_PROP_NO_PER_TEXEL_LIGHTING = 0x100,				// whether we should do per-texel lightmaps in vrad.
-
-	STATIC_PROP_WC_MASK		= 0x1d8,						// all flags settable in hammer (?)
-#else
 	STATIC_PROP_WC_MASK		= 0xd8,							// all flags settable in hammer (?)
-#endif
 };
 
 struct StaticPropDictLump_t
@@ -193,11 +183,7 @@ struct StaticPropLumpV5_t
 //	int				m_Lighting;			// index into the GAMELUMP_STATIC_PROP_LIGHTING lump
 };
 
-#ifdef SDK_MP
-struct StaticPropLumpV6_t
-#else
 struct StaticPropLump_t
-#endif
 {
 	DECLARE_BYTESWAP_DATADESC();
 	Vector			m_Origin;
@@ -216,78 +202,6 @@ struct StaticPropLump_t
 	unsigned short	m_nMaxDXLevel;
 	//	int				m_Lighting;			// index into the GAMELUMP_STATIC_PROP_LIGHTING lump
 };
-
-#ifdef SDK_MP
-struct StaticPropLump_t
-{
-	DECLARE_BYTESWAP_DATADESC();
-	Vector			m_Origin;
-	QAngle			m_Angles;
-	unsigned short	m_PropType;
-	unsigned short	m_FirstLeaf;
-	unsigned short	m_LeafCount;
-	unsigned char	m_Solid;
-	int				m_Skin;
-	float			m_FadeMinDist;
-	float			m_FadeMaxDist;
-	Vector			m_LightingOrigin;
-	float			m_flForcedFadeScale;
-	unsigned short	m_nMinDXLevel;
-	unsigned short	m_nMaxDXLevel;
-	//	int				m_Lighting;			// index into the GAMELUMP_STATIC_PROP_LIGHTING lump
-	unsigned int	m_Flags;
-	unsigned short  m_nLightmapResolutionX;
-	unsigned short  m_nLightmapResolutionY;
-
-
-	StaticPropLump_t& operator=(const StaticPropLumpV4_t& _rhs)
-	{
-		m_Origin				= _rhs.m_Origin;
-		m_Angles				= _rhs.m_Angles;
-		m_PropType				= _rhs.m_PropType;
-		m_FirstLeaf				= _rhs.m_FirstLeaf;
-		m_LeafCount				= _rhs.m_LeafCount;
-		m_Solid					= _rhs.m_Solid;
-		m_Flags					= _rhs.m_Flags;
-		m_Skin					= _rhs.m_Skin;
-		m_FadeMinDist			= _rhs.m_FadeMinDist;
-		m_FadeMaxDist			= _rhs.m_FadeMaxDist;
-		m_LightingOrigin		= _rhs.m_LightingOrigin;
-
-		// These get potentially set twice--once here and once in the caller.
-		// Value judgement: This makes the code easier to work with, so unless it's a perf issue...
-		m_flForcedFadeScale		= 1.0f;
-		m_nMinDXLevel			= 0;
-		m_nMaxDXLevel			= 0;
-		m_nLightmapResolutionX	= 0;
-		m_nLightmapResolutionY	= 0;
-
-		// Older versions don't want this.
-		m_Flags					|= STATIC_PROP_NO_PER_TEXEL_LIGHTING;		
-		return *this;
-	}
-
-	StaticPropLump_t& operator=(const StaticPropLumpV5_t& _rhs)
-	{
-		(*this) = reinterpret_cast<const StaticPropLumpV4_t&>(_rhs);
-
-		m_flForcedFadeScale = _rhs.m_flForcedFadeScale;
-		return *this;
-	}
-
-	StaticPropLump_t& operator=(const StaticPropLumpV6_t& _rhs)
-	{
-		(*this) = reinterpret_cast<const StaticPropLumpV5_t&>(_rhs);
-
-		m_nMinDXLevel = _rhs.m_nMinDXLevel;
-		m_nMaxDXLevel = _rhs.m_nMaxDXLevel;
-		return *this;
-	}
-};
-#endif
-
-
-
 
 struct StaticPropLeafLump_t
 {

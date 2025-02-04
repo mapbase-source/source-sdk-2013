@@ -86,7 +86,7 @@ public:
 		if ( pValue )
 		{
 			m_bExisted = true;
-			m_OriginalValue.SetSize( Q_strlen( pValue ) + 1 );
+			m_OriginalValue.SetSize( strlen( pValue ) + 1 );
 			memcpy( m_OriginalValue.Base(), pValue, m_OriginalValue.Count() );
 		}
 		else
@@ -982,7 +982,6 @@ bool DoesPathExistAlready( const char *pPathEnvVar, const char *pTestPath )
 	}
 }
 
-#ifndef SDK_MP
 FSReturnCode_t SetSteamInstallPath( char *steamInstallPath, int steamInstallPathLen, CSteamEnvVars &steamEnvVars, bool bErrorsAsWarnings )
 {
 	if ( IsConsole() )
@@ -993,7 +992,7 @@ FSReturnCode_t SetSteamInstallPath( char *steamInstallPath, int steamInstallPath
 
 	if ( IsPosix() )
 		return FS_OK; // under posix the content does not live with steam.dll up the path, rely on the environment already being set by steam
-
+	
 	// Start at our bin directory and move up until we find a directory with steam.dll in it.
 	char executablePath[MAX_PATH];
 	if ( !FileSystem_GetExecutableDir( executablePath, sizeof( executablePath ) )	)
@@ -1025,7 +1024,7 @@ FSReturnCode_t SetSteamInstallPath( char *steamInstallPath, int steamInstallPath
 		// find 
 		if ( DoesFileExistIn( steamInstallPath, pchSteamDLL ) && !DoesFileExistIn( steamInstallPath, "steamapp.cfg" ) )
 			break;
-
+	
 		if ( !Q_StripLastDir( steamInstallPath, steamInstallPathLen ) )
 		{
 			if ( bErrorsAsWarnings )
@@ -1054,7 +1053,6 @@ FSReturnCode_t SetSteamInstallPath( char *steamInstallPath, int steamInstallPath
 	}
 	return FS_OK;
 }
-#endif
 
 FSReturnCode_t GetSteamCfgPath( char *steamCfgPath, int steamCfgPathLen )
 {
@@ -1134,7 +1132,6 @@ void SetSteamUserPassphrase( KeyValues *pSteamInfo, CSteamEnvVars &steamEnvVars 
 	}
 }
 
-#ifndef SDK_MP
 FSReturnCode_t SetupSteamStartupEnvironment( KeyValues *pFileSystemInfo, const char *pGameInfoDirectory, CSteamEnvVars &steamEnvVars )
 {
 	// Ok, we're going to run Steam. See if they have SteamInfo.txt. If not, we'll try to deduce what we can.
@@ -1157,7 +1154,6 @@ FSReturnCode_t SetupSteamStartupEnvironment( KeyValues *pFileSystemInfo, const c
 
 	return FS_OK;
 }
-#endif
 
 FSReturnCode_t FileSystem_SetBasePaths( IFileSystem *pFileSystem )
 {
@@ -1214,7 +1210,6 @@ FSReturnCode_t FileSystem_GetFileSystemDLLName( char *pFileSystemDLL, int nMaxLe
 	return FS_OK;
 }
 
-#ifndef SDK_MP
 //-----------------------------------------------------------------------------
 // Sets up the steam.dll install path in our PATH env var (so you can then just 
 // LoadLibrary() on filesystem_steam.dll without having to copy steam.dll anywhere special )
@@ -1227,7 +1222,6 @@ FSReturnCode_t FileSystem_SetupSteamInstallPath()
 	steamEnvVars.m_Path.SetRestoreOriginalValue( false ); // We want to keep the change to the path going forward.
 	return ret;
 }
-#endif
 
 //-----------------------------------------------------------------------------
 // Sets up the steam environment + gets back the gameinfo.txt path
@@ -1247,8 +1241,7 @@ FSReturnCode_t FileSystem_SetupSteamEnvironment( CFSSteamSetupInfo &fsInfo )
 #else
 	setenv( GAMEDIR_TOKEN, fsInfo.m_GameInfoPath, 1 );
 #endif
-
-#ifndef SDK_MP
+	
 	CSteamEnvVars steamEnvVars;
 	if ( fsInfo.m_bSteam )
 	{
@@ -1284,7 +1277,6 @@ FSReturnCode_t FileSystem_SetupSteamEnvironment( CFSSteamSetupInfo &fsInfo )
 			steamEnvVars.m_Path.SetRestoreOriginalValue( false ); // We want to keep the change to the path going forward.
 		}
 	}
-#endif
 
 	return FS_OK;
 }

@@ -823,11 +823,19 @@ void ClearPakFile( IZip *pak )
 // Input  : *relativename - 
 //			*fullpath - 
 //-----------------------------------------------------------------------------
+#ifdef SDK_MP
 void AddFileToPak( IZip *pak, const char *relativename, const char *fullpath, IZip::eCompressionType compressionType )
 {
 	DevMsg( "Adding file to pakfile [ %s ]\n", fullpath );
 	pak->AddFileToZip( relativename, fullpath, compressionType );
 }
+#else
+void AddFileToPak( IZip *pak, const char *relativename, const char *fullpath )
+{
+	DevMsg( "Adding file to pakfile [ %s ]\n", fullpath );
+	pak->AddFileToZip( relativename, fullpath );
+}
+#endif
 
 //-----------------------------------------------------------------------------
 // Purpose: Add buffer to .bsp PAK lump as named file
@@ -835,10 +843,17 @@ void AddFileToPak( IZip *pak, const char *relativename, const char *fullpath, IZ
 //			*data - 
 //			length - 
 //-----------------------------------------------------------------------------
+#ifdef SDK_MP
 void AddBufferToPak( IZip *pak, const char *pRelativeName, void *data, int length, bool bTextMode, IZip::eCompressionType compressionType )
 {
 	pak->AddBufferToZip( pRelativeName, data, length, bTextMode, compressionType );
 }
+#else
+void AddBufferToPak( IZip *pak, const char *pRelativeName, void *data, int length, bool bTextMode )
+{
+	pak->AddBufferToZip( pRelativeName, data, length, bTextMode );
+}
+#endif
 
 //-----------------------------------------------------------------------------
 // Purpose: Add entire directory to .bsp PAK lump as named file
@@ -4039,7 +4054,11 @@ void ConvertPakFileContents( const char *pInFilename )
 		if ( !bConverted )
 		{
 			// straight copy
+#ifdef SDK_MP
 			AddBufferToPak( newPakFile, relativeName, sourceBuf.Base(), sourceBuf.TellMaxPut(), false, IZip::eCompressionType_None );
+#else
+			AddBufferToPak( newPakFile, relativeName, sourceBuf.Base(), sourceBuf.TellMaxPut(), false );
+#endif
 		}
 		else
 		{
@@ -4047,7 +4066,11 @@ void ConvertPakFileContents( const char *pInFilename )
 			V_StripExtension( relativeName, relativeName, sizeof( relativeName ) );
 			V_strcat( relativeName, ".360", sizeof( relativeName ) );
 			V_strcat( relativeName, pExt, sizeof( relativeName ) );
-			AddBufferToPak( newPakFile, relativeName, targetBuf.Base(), targetBuf.TellMaxPut(), false, IZip::eCompressionType_None );
+#ifdef SDK_MP
+			AddBufferToPak( newPakFile, relativeName, sourceBuf.Base(), sourceBuf.TellMaxPut(), false, IZip::eCompressionType_None );
+#else
+			AddBufferToPak( newPakFile, relativeName, sourceBuf.Base(), sourceBuf.TellMaxPut(), false );
+#endif
 		}
 
 		if ( V_stristr( relativeName, ".hdr" ) || V_stristr( relativeName, "_hdr" ) )

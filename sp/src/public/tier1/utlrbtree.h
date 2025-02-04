@@ -217,8 +217,6 @@ public:
 	void     RemoveAll( );
 	void	 Purge();
 
-	bool HasElement( T const &search ) const { return Find( search ) != InvalidIndex(); }
-
 	// Allocation, deletion
 	void  FreeNode( I i );
 
@@ -1150,11 +1148,6 @@ void CUtlRBTree<T, I, L, M>::RemoveAll()
 
 	// Clear everything else out
 	m_Root = InvalidIndex(); 
-	// Technically, this iterator could become invalid. It will not, because it's 
-	// always the same iterator. If we don't clear this here, the state of this
-	// container will be invalid after we start inserting elements again.
-	m_LastAlloc = m_Elements.InvalidIterator();
-	m_FirstFree = InvalidIndex();
 	m_NumElements = 0;
 
 	Assert( IsValid() );
@@ -1168,7 +1161,9 @@ template < class T, class I, typename L, class M >
 void CUtlRBTree<T, I, L, M>::Purge()
 {
 	RemoveAll();
+	m_FirstFree = InvalidIndex();
 	m_Elements.Purge();
+	m_LastAlloc = m_Elements.InvalidIterator();
 }
 
 

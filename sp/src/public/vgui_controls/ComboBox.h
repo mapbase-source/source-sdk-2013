@@ -63,7 +63,7 @@ public:
 	virtual int AddItem(const char *itemText, const KeyValues *userData);
 	virtual int AddItem(const wchar_t *itemText, const KeyValues *userData);
 
-	virtual int GetItemCount() const;
+	virtual int GetItemCount();
 	int GetItemIDFromRow( int row );
 
 	// update the item

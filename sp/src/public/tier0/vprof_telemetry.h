@@ -15,40 +15,27 @@
 #define RAD_TELEMETRY_ENABLED
 #endif
 
-#endif // !MAKE_VPC
+#endif // !defined( MAKE_VPC )
 
 
 #if !defined( RAD_TELEMETRY_ENABLED )
 
 //
-// Kill all tmZone() macros, etc.
+// If Telemetry isn't enabled, then kill all the tmZone() macros, etc.
 //
+#define NTELEMETRY		1
+// Different versions of radbase.h define RADCOPYRIGHT to different values. So undef that here.
+#undef RADCOPYRIGHT
+
 #include "tmapi_dummy.h"
 
 inline void TelemetryTick() {}
 inline void TelemetrySetLevel( unsigned int Level ) {}
-#ifdef SDK_MP
-#define TelemetrySetLockName( _ctx, _location, _description ) 
 
-class CTelemetryLock
-{
-public:
-	CTelemetryLock(void *plocation, const char *description) {}
-	~CTelemetryLock() {}
-	void Locked() {}
-	void Unlocked() {}
-};
-
-class CTelemetrySpikeDetector
-{
-public:
-	CTelemetrySpikeDetector( const char *msg, uint32 threshold = 50 ) {}
-	~CTelemetrySpikeDetector() { }
-};
-#else
 #define TELEMETRY_REQUIRED( tmRequiredCode ) //a basic wrapper to only enable code if telemetry is present
 #define TELEMETRY_REQUIRED_REPLACE( tmRequiredCode, replacementCode ) replacementCode //in case you need to replace the code with something specific if telemetry isn't present
-#endif
+
+//#define TMZF_NONE
 
 #else
 
@@ -59,10 +46,8 @@ public:
 // Different versions of radbase.h define RADCOPYRIGHT to different values. So undef that here.
 #undef RADCOPYRIGHT
 
-#ifndef SDK_MP
 PLATFORM_INTERFACE void TelemetryTick();
 PLATFORM_INTERFACE void TelemetrySetLevel( unsigned int Level );
-#endif
 
 struct TelemetryData
 {
@@ -70,103 +55,29 @@ struct TelemetryData
 	float flRDTSCToMilliSeconds;	// Conversion from tmFastTime() (rdtsc) to milliseconds.
 	uint32 FrameCount;				// Count of frames to capture before turning off.
 	char ServerAddress[128];		// Server name to connect to.
-#ifndef SDK_MP
 	uint32 ZoneFilterVal;			// tmZoneFiltered default filtered value (in MicroSeconds)
-#endif
 	int playbacktick;				// GetPlaybackTick() value from demo file (or 0 if not playing a demo).
-#ifndef SDK_MP
 	float dotatime;					// CDOTAGamerules::GetDOTATime()
-#endif
 	uint32 DemoTickStart;			// Start telemetry on demo tick #
 	uint32 DemoTickEnd;				// End telemetry on demo tick #
 	uint32 Level;					// Current Telemetry level (Use TelemetrySetLevel to modify)
 };
 PLATFORM_INTERFACE TelemetryData g_Telemetry;
 
-PLATFORM_INTERFACE void TelemetryTick();
-PLATFORM_INTERFACE void TelemetrySetLevel( unsigned int Level );
-
-#define TELEMETRY_LEVEL0	g_Telemetry.tmContext[0]	// high level tmZone()
-#define TELEMETRY_LEVEL1	g_Telemetry.tmContext[1]	// lower level tmZone(), tmZoneFiltered()
-#define TELEMETRY_LEVEL2	g_Telemetry.tmContext[2]	// VPROF_0
-#define TELEMETRY_LEVEL3	g_Telemetry.tmContext[3]	// VPROF_1
-#define TELEMETRY_LEVEL4	g_Telemetry.tmContext[4]	// VPROF_2
-#define TELEMETRY_LEVEL5	g_Telemetry.tmContext[5]	// VPROF_3
-#define TELEMETRY_LEVEL6	g_Telemetry.tmContext[6]	// VPROF_4
-
-#define TelemetrySetLockName( _ctx, _location, _description ) \
-	do  													  \
-	{   													  \
-		static bool s_bNameSet = false; 					  \
-		if( _ctx && !s_bNameSet )							  \
-		{   												  \
-			tmLockName( _ctx, _location, _description ); 	  \
-			s_bNameSet = true;  							  \
-		}   												  \
-	} while( 0 )
-
-class CTelemetryLock
-{
-public:
-	CTelemetryLock(void *plocation, const char *description)
-	{
-		m_plocation = (const char *)plocation;
-		m_description = description;
-		TelemetrySetLockName( TELEMETRY_LEVEL1, m_plocation, m_description );
-		tmTryLock( TELEMETRY_LEVEL1, m_plocation, "%s", m_description );
-	}
-	~CTelemetryLock()
-	{
-		Unlocked();
-	}
-	void Locked()
-	{
-		tmEndTryLock( TELEMETRY_LEVEL1, m_plocation, TMLR_SUCCESS );
-		tmSetLockState( TELEMETRY_LEVEL1, m_plocation, TMLS_LOCKED, "%s Locked", m_description );
-	}
-	void Unlocked()
-	{
-		if( m_plocation )
-		{
-			tmSetLockState( TELEMETRY_LEVEL1, m_plocation, TMLS_RELEASED, "%s Released", m_description );
-			m_plocation = NULL;
-		}
-	}
-
-public:
-	const char *m_plocation;
-	const char *m_description;
-};
-
-class CTelemetrySpikeDetector
-{
-public:
-	// Spews Telemetry message when threshold hit (in milliseconds.)
-	CTelemetrySpikeDetector( const char *msg, float threshold = 5 ) :
-		m_message( msg ), m_threshold( threshold ), time0( tmFastTime() ) {}
-	~CTelemetrySpikeDetector()
-	{
-		float time = ( tmFastTime() - time0 ) * g_Telemetry.flRDTSCToMilliSeconds;
-		if( time >= m_threshold )
-		{
-			tmMessage( TELEMETRY_LEVEL0, TMMF_ICON_NOTE | TMMF_SEVERITY_WARNING, "(source/spike)%s %.2fms %t", m_message, time, tmSendCallStack( TELEMETRY_LEVEL0, 0 ) );
-		}
-	}
-
-private:
-	TmU64 time0;
-	float m_threshold;
-	const char *m_message;
-};
-
-#ifndef SDK_MP
 #define TELEMETRY_REQUIRED( tmRequiredCode ) tmRequiredCode //a basic wrapper to only enable code if telemetry is present
 #define TELEMETRY_REQUIRED_REPLACE( tmRequiredCode, replacementCode ) tmRequiredCode //in case you need to replace the code with something specific if telemetry isn't present
-#endif
 
 #endif // RAD_TELEMETRY_ENABLED
 
-#ifndef SDK_MP
+
+
+
+
+
+
+
+
+
 #define TELEMETRY_ERROR_BUILD_DISABLED		TELEMETRY_REQUIRED_REPLACE( TMERR_DISABLED, 0x0001 )
 #define TELEMETRY_ERROR_DISCONNECTED		TELEMETRY_REQUIRED_REPLACE( TMCS_DISCONNECTED, 0 )
 
@@ -1136,7 +1047,5 @@ private:
 };
 
 #endif // RAD_TELEMETRY_ENABLED
-
-#endif
 
 #endif // VPROF_TELEMETRY_H

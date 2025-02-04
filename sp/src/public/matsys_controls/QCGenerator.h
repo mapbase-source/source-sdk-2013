@@ -79,9 +79,9 @@ struct QCInfo
 	{
 		pQCGenerator = pPanel;
 
-		V_strcpy_safe( pszSMDPath, "" );
-		V_strcpy_safe( pszCollisionPath, "" );
-		V_strcpy_safe( pszSurfaceProperty, "default" );
+		Q_strcpy( pszSMDPath, "" );
+		Q_strcpy( pszCollisionPath, "" );
+		Q_strcpy( pszSurfaceProperty, "default" );
 		bStaticProp = false;
 		bMostlyOpaque = false;
 		bDisableCollision = false;

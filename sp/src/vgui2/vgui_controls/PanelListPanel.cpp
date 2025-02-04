@@ -248,8 +248,7 @@ void PanelListPanel::DeleteAllItems()
 	{
 		if ( m_DataItems[i].panel )
 		{
-			m_DataItems[i].panel->MarkForDeletion();
-			m_DataItems[i].panel = NULL;
+			delete m_DataItems[i].panel;
 		}
 	}
 

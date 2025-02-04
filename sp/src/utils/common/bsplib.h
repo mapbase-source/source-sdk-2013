@@ -14,7 +14,9 @@
 #pragma once
 #endif
 
+#ifdef SDK_MP
 #include "zip_utils.h"
+#endif
 #include "bspfile.h"
 #include "utlvector.h"
 #include "utlstring.h"
@@ -196,8 +198,13 @@ extern int			g_PhysDispSize;
 IZip				*GetPakFile( void );
 IZip				*GetSwapPakFile( void );
 void				ClearPakFile( IZip *pak );
+#ifdef SDK_MP
 void				AddFileToPak( IZip *pak, const char *pRelativeName, const char *fullpath, IZip::eCompressionType compressionType = IZip::eCompressionType_None );
 void				AddBufferToPak( IZip *pak, const char *pRelativeName, void *data, int length, bool bTextMode, IZip::eCompressionType compressionType = IZip::eCompressionType_None );
+#else
+void				AddFileToPak( IZip *pak, const char *pRelativeName, const char *fullpath );
+void				AddBufferToPak( IZip *pak, const char *pRelativeName, void *data, int length, bool bTextMode );
+#endif
 void				AddDirToPak( IZip *pak, const char *pDirPath, const char *pPakPrefix = NULL );
 bool				FileExistsInPak( IZip *pak, const char *pRelativeName );
 bool				ReadFileFromPak( IZip *pak, const char *pRelativeName, bool bTextMode, CUtlBuffer &buf );

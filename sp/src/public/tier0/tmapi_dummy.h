@@ -30,16 +30,10 @@
 #define tmEnterEx(...)
 #define tmZone(...) 
 #define tmZoneFiltered(...)
-#define tmLeave(...)
 #define tmLeaveEx(...)
 
 #define tmBeginTimeSpan(...)
 #define tmEndTimeSpan(...)
-
-#define tmBeginTimeSpanAt(...)
-#define tmEndTimeSpanAt(...)
-
-#define tmDynamicString(...) ""
 
 #define tmEmitAccumulationZone(...)
 
