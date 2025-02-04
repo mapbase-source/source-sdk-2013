@@ -2237,8 +2237,13 @@ void CBaseCombatWeapon::ItemPostFrame( void )
 
 	// -----------------------
 	//  Reload pressed / Clip Empty
+	// -----------------------
+#ifdef SDK_MP
 	//  Can only start the Reload Cycle after the firing cycle
 	if ( ( pOwner->m_nButtons & IN_RELOAD ) && m_flNextPrimaryAttack <= gpGlobals->curtime && UsesClipsForAmmo1() && !m_bInReload ) 
+#else
+	if ( ( pOwner->m_nButtons & IN_RELOAD ) && UsesClipsForAmmo1() && !m_bInReload ) 
+#endif
 	{
 		// reload when reload is pressed, or if no buttons are down and weapon is empty.
 		Reload();

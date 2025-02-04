@@ -374,7 +374,9 @@ void C_SceneEntity::PostDataUpdate( DataUpdateType_t updateType )
 			SetNextClientThink( CLIENT_THINK_ALWAYS );
 		}
 
+#ifdef SDK_MP
 		m_bWasPlaying = !m_bIsPlayingBack; // force it to be "changed"
+#endif
 	}
 
 	// Playback state changed...

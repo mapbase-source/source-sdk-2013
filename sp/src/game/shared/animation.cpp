@@ -339,7 +339,7 @@ int CStudioHdr::CActivityToSequenceMapping::SelectWeightedSequence( CStudioHdr *
 
 }
 
-#ifdef SK_MP
+#ifdef SDK_MP
 int CStudioHdr::CActivityToSequenceMapping::SelectWeightedSequenceFromModifiers( CStudioHdr *pstudiohdr, int activity, CUtlSymbol *pActivityModifiers, int iModifierCount )
 {
 	if ( !pstudiohdr->SequencesAvailable() )

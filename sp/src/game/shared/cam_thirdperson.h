@@ -46,7 +46,11 @@ public:
 	const Vector&	GetCameraOffsetAngles( void ) const { return m_vecCameraOffset; }
 	
 	void	SetDesiredCameraOffset( const Vector& vecOffset ) { m_vecDesiredCameraOffset = vecOffset; }
+#ifdef SDK_MP
 	const Vector&	GetDesiredCameraOffset( void ) const { return m_vecDesiredCameraOffset; }
+#else
+	Vector	GetDesiredCameraOffset( void );
+#endif
 
 	Vector	GetFinalCameraOffset( void );
 

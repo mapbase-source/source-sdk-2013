@@ -172,7 +172,9 @@ class CLagCompensationManager : public CAutoGameSystemPerFrame, public ILagCompe
 public:
 	CLagCompensationManager( char const *name ) : CAutoGameSystemPerFrame( name ), m_flTeleportDistanceSqr( 64 *64 )
 	{
+#ifdef SDK_MP
 		m_isCurrentlyDoingCompensation = false;
+#endif
 	}
 
 	// IServerSystem stuff
@@ -195,7 +197,9 @@ public:
 	void			StartLagCompensation( CBasePlayer *player, CUserCmd *cmd );
 	void			FinishLagCompensation( CBasePlayer *player );
 
+#ifdef SDK_MP
 	bool			IsCurrentlyDoingLagCompensation() const OVERRIDE { return m_isCurrentlyDoingCompensation; }
+#endif
 
 private:
 	void			BacktrackPlayer( CBasePlayer *player, float flTargetTime );
@@ -220,7 +224,9 @@ private:
 
 	float					m_flTeleportDistanceSqr;
 
+#ifdef SDK_MP
 	bool					m_isCurrentlyDoingCompensation;	// Sentinel to prevent calling StartLagCompensation a second time before a Finish.
+#endif
 };
 
 static CLagCompensationManager g_LagCompensationManager( "CLagCompensationManager" );
@@ -327,7 +333,9 @@ void CLagCompensationManager::FrameUpdatePostEntityThink()
 // Called during player movement to set up/restore after lag compensation
 void CLagCompensationManager::StartLagCompensation( CBasePlayer *player, CUserCmd *cmd )
 {
+#ifdef SDK_MP
 	Assert( !m_isCurrentlyDoingCompensation );
+#endif
 
 	//DONT LAG COMP AGAIN THIS FRAME IF THERES ALREADY ONE IN PROGRESS
 	//IF YOU'RE HITTING THIS THEN IT MEANS THERES A CODE BUG
@@ -357,7 +365,9 @@ void CLagCompensationManager::StartLagCompensation( CBasePlayer *player, CUserCm
 	Q_memset( m_RestoreData, 0, sizeof( m_RestoreData ) );
 	Q_memset( m_ChangeData, 0, sizeof( m_ChangeData ) );
 
+#ifdef SDK_MP
 	m_isCurrentlyDoingCompensation = true;
+#endif
 
 	// Get true latency
 
@@ -744,7 +754,9 @@ void CLagCompensationManager::FinishLagCompensation( CBasePlayer *player )
 
 	if ( !m_bNeedToRestore )
 	{
+#ifdef SDK_MP
 		m_isCurrentlyDoingCompensation = false;
+#endif
 		return; // no player was changed at all
 	}
 
@@ -841,7 +853,9 @@ void CLagCompensationManager::FinishLagCompensation( CBasePlayer *player )
 		}
 	}
 
+#ifdef SDK_MP
 	m_isCurrentlyDoingCompensation = false;
+#endif
 }
 
 

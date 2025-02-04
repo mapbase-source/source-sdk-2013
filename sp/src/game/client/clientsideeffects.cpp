@@ -107,8 +107,10 @@ public:
 
 	//	Add an effect to the effects list
 	void			AddEffect( CClientSideEffect *effect );
+#ifdef SDK_MP
 	// Remove the specified effect
 	void			RemoveEffect( CClientSideEffect *effect );
+#endif
 	// Draw/update all effects in the current list
 	void			DrawEffects( double frametime );
 	// Flush out all effects from the list
@@ -171,6 +173,7 @@ void CEffectsList::AddEffect( CClientSideEffect *effect )
 }
 
 //-----------------------------------------------------------------------------
+#ifdef SDK_MP
 void CEffectsList::RemoveEffect( CClientSideEffect *effect ) 
 {
 	Assert( effect );
@@ -186,6 +189,7 @@ void CEffectsList::RemoveEffect( CClientSideEffect *effect )
 
 	Assert( false ); // don't know this effect
 }
+#endif
 
 //-----------------------------------------------------------------------------
 // Purpose: Remove specified effect by index

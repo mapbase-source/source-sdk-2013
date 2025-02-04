@@ -101,7 +101,9 @@ void CBaseHudWeaponSelection::Reset(void)
 	// Start hidden
 	m_bSelectionVisible = false;
 	m_flSelectionTime = gpGlobals->curtime;
+#ifdef SDK_MP
 	gHUD.UnlockRenderGroup( gHUD.LookupRenderGroupIndexByName( "weapon_selection" ) );
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -208,7 +210,9 @@ bool CBaseHudWeaponSelection::IsInSelectionMode()
 void CBaseHudWeaponSelection::OpenSelection( void )
 {
 	m_bSelectionVisible = true;
+#ifdef SDK_MP
 	gHUD.LockRenderGroup( gHUD.LookupRenderGroupIndexByName( "weapon_selection" ) );
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -217,7 +221,9 @@ void CBaseHudWeaponSelection::OpenSelection( void )
 void CBaseHudWeaponSelection::HideSelection( void )
 {
 	m_bSelectionVisible = false;
+#ifdef SDK_MP
 	gHUD.UnlockRenderGroup( gHUD.LookupRenderGroupIndexByName( "weapon_selection" ) );
+#endif
 }
 
 //-----------------------------------------------------------------------------

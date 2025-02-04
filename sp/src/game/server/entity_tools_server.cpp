@@ -99,9 +99,11 @@ EXPOSE_SINGLE_INTERFACE_GLOBALVAR( CServerTools, IServerTools002, VSERVERTOOLS_I
 #endif
 EXPOSE_SINGLE_INTERFACE_GLOBALVAR( CServerTools, IServerTools, VSERVERTOOLS_INTERFACE_VERSION, g_ServerTools );
 
-#ifdef SDK_MP
 // When bumping the version to this interface, check that our assumption is still valid and expose the older version in the same way
+#ifdef SDK_MP
 COMPILE_TIME_ASSERT( VSERVERTOOLS_INTERFACE_VERSION_INT == 3 );
+#else
+COMPILE_TIME_ASSERT( VSERVERTOOLS_INTERFACE_VERSION_INT == 2 );
 #endif
 
 

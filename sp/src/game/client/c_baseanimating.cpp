@@ -1116,8 +1116,10 @@ void C_BaseAnimating::UnlockStudioHdr()
 		}
 		m_hStudioHdr = MDLHANDLE_INVALID;
 
+#ifdef SDK_MP
 		delete m_pStudioHdr;
 		m_pStudioHdr = NULL;
+#endif
 	}
 }
 
@@ -3853,7 +3855,11 @@ void C_BaseAnimating::DoAnimationEvents( CStudioHdr *pStudioHdr )
 		}
 
 		// Necessary to get the next loop working
+#ifdef SDK_MP
+		m_flPrevEventCycle = -0.01;
+#else
 		m_flPrevEventCycle = flEventCycle - 0.001f;
+#endif
 	}
 
 	for (int i = 0; i < (int)seqdesc.numevents; i++)

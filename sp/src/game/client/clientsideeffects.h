@@ -53,8 +53,10 @@ public:
 
 	// Add an effect to the list of effects
 	virtual void	AddEffect( CClientSideEffect *effect ) = 0;
+#ifdef SDK_MP
 	// Remove the specified effect
 	virtual void	RemoveEffect( CClientSideEffect *effect ) = 0;
+#endif
 	// Simulate/Update/Draw effects on list
 	virtual void	DrawEffects( double frametime ) = 0;
 	// Flush out all effects fbrom the list

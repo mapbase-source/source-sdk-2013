@@ -51,6 +51,12 @@ public:
 		m_LastTime = -1;
 		m_LastValue = t0;
 	}
+#ifndef SDK_MP
+	CApparentVelocity()
+	{
+		m_LastTime = -1;
+	}
+#endif
 
 	float AddSample( float time, T value )
 	{

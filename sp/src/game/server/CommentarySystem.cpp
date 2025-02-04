@@ -973,7 +973,11 @@ void CC_CommentaryChanged( IConVar *pConVar, const char *pOldString, float flOld
 		g_CommentarySystem.SetCommentaryMode( var.GetBool() );
 	}
 }
+#ifdef SDK_MP
 ConVar commentary( "commentary", "0", FCVAR_NONE, "Desired commentary mode state.", CC_CommentaryChanged );
+#else
+ConVar commentary( "commentary", "0", FCVAR_ARCHIVE | FCVAR_ARCHIVE_XBOX, "Desired commentary mode state.", CC_CommentaryChanged );
+#endif
 
 //-----------------------------------------------------------------------------
 // Purpose: We need to revert back any convar changes that are made by the

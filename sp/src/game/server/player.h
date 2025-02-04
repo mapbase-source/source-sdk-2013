@@ -451,7 +451,12 @@ public:
 	virtual bool			Weapon_ShouldSetLast( CBaseCombatWeapon *pOldWeapon, CBaseCombatWeapon *pNewWeapon ) { return true; }
 	virtual bool			Weapon_ShouldSelectItem( CBaseCombatWeapon *pWeapon );
 	void					Weapon_DropSlot( int weaponSlot );
+#ifdef SDK_MP
 	CBaseCombatWeapon		*GetLastWeapon( void ) { return m_hLastWeapon.Get(); }
+#else
+	CBaseCombatWeapon		*GetLastWeapon( void ) { return Weapon_GetLast(); }
+	CBaseCombatWeapon		*Weapon_GetLast( void ) { return m_hLastWeapon.Get(); }
+#endif
 #ifdef MAPBASE
 	virtual Activity		Weapon_TranslateActivity( Activity baseAct, bool *pRequired = NULL );
 #endif
@@ -790,8 +795,10 @@ public:
 	bool	IsPredictingWeapons( void ) const; 
 	int		CurrentCommandNumber() const;
 	const CUserCmd *GetCurrentUserCommand() const;
+#ifdef SDK_MP
 	int		GetLockViewanglesTickNumber() const { return m_iLockViewanglesTickNumber; }
 	QAngle	GetLockViewanglesData() const { return m_qangLockViewangles; }
+#endif
 
 	int		GetFOV( void );														// Get the current FOV value
 	int		GetDefaultFOV( void ) const;										// Default FOV if not specified otherwise
@@ -1147,8 +1154,10 @@ protected:
 	// Last received usercmd (in case we drop a lot of packets )
 	CUserCmd				m_LastCmd;
 	CUserCmd				*m_pCurrentCommand;
+#ifdef SDK_MP
 	int						m_iLockViewanglesTickNumber;
 	QAngle					m_qangLockViewangles;
+#endif
 
 	float					m_flStepSoundTime;	// time to check for next footstep sound
 
@@ -1313,8 +1322,10 @@ private:
 	// Store the last time we successfully processed a usercommand
 	float			m_flLastUserCommandTime;
 
+#ifdef SDK_MP
 	// used to prevent achievement announcement spam
 	CUtlVector< float >		m_flAchievementTimes;
+#endif
 
 public:
 	virtual unsigned int PlayerSolidMask( bool brushOnly = false ) const;	// returns the solid mask for the given player, so bots can have a more-restrictive set

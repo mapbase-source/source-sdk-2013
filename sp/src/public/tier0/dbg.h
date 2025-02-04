@@ -223,13 +223,6 @@ typedef void (*AssertFailedNotifyFunc_t)( const char *pchFile, int nLine, const 
 DBG_INTERFACE void SetAssertFailedNotifyFunc( AssertFailedNotifyFunc_t func );
 DBG_INTERFACE void CallAssertFailedNotifyFunc( const char *pchFile, int nLine, const char *pchMessage );
 
-/* True if -hushasserts was passed on command line. */
-#ifdef SDK_MP
-DBG_INTERFACE bool HushAsserts();
-#else
-#define HushAsserts()	CommandLine()->FindParm( "-hushasserts" )
-#endif
-
 #if defined( USE_SDL )
 DBG_INTERFACE void SetAssertDialogParent( struct SDL_Window *window );
 DBG_INTERFACE struct SDL_Window * GetAssertDialogParent();
@@ -400,44 +393,18 @@ DBG_INTERFACE struct SDL_Window * GetAssertDialogParent();
 #define  AssertAlways( _exp )           							_AssertMsg( _exp, _T("Assertion Failed: ") _T(#_exp), ((void)0), false )
 #define  AssertMsgAlways( _exp, _msg )  							_AssertMsg( _exp, _msg, ((void)0), false )
 
-#ifdef SDK_MP
-// Stringify a number
-#define V_STRINGIFY_INTERNAL(x) #x
-// Extra level of indirection needed when passing in a macro to avoid getting the macro name instead of value
-#define V_STRINGIFY(x) V_STRINGIFY_INTERNAL(x)
-
-// Macros to help decorate warnings or errors with the location in code
-#define FILE_LINE_FUNCTION_STRING __FILE__ "(" V_STRINGIFY(__LINE__) "):" __FUNCTION__ ":"
-#define FILE_LINE_STRING __FILE__ "(" V_STRINGIFY(__LINE__) "):"
-#define FUNCTION_LINE_STRING __FUNCTION__ "(" V_STRINGIFY(__LINE__) "): "
-
-// Handy define for inserting clickable messages into the build output.
-// Use like this:
-// #pragma MESSAGE("Some message")
-#define MESSAGE(msg) message(__FILE__ "(" V_STRINGIFY(__LINE__) "): " msg)
-#endif
-
 
 #if !defined( _X360 ) || !defined( _RETAIL )
 
 /* These are always compiled in */
 DBG_INTERFACE void Msg( PRINTF_FORMAT_STRING const tchar* pMsg, ... ) FMTFUNCTION( 1, 2 );
 DBG_INTERFACE void DMsg( const tchar *pGroupName, int level, PRINTF_FORMAT_STRING const tchar *pMsg, ... ) FMTFUNCTION( 3, 4 );
-#ifdef SDK_MP
-DBG_INTERFACE void MsgV( PRINTF_FORMAT_STRING const tchar *pMsg, va_list arglist );
-#endif
 
 DBG_INTERFACE void Warning( PRINTF_FORMAT_STRING const tchar *pMsg, ... ) FMTFUNCTION( 1, 2 );
 DBG_INTERFACE void DWarning( const tchar *pGroupName, int level, PRINTF_FORMAT_STRING const tchar *pMsg, ... ) FMTFUNCTION( 3, 4 );
-#ifdef SDK_MP
-DBG_INTERFACE void WarningV( PRINTF_FORMAT_STRING const tchar *pMsg, va_list arglist );
-#endif
 
 DBG_INTERFACE void Log( PRINTF_FORMAT_STRING const tchar *pMsg, ... ) FMTFUNCTION( 1, 2 );
 DBG_INTERFACE void DLog( const tchar *pGroupName, int level, PRINTF_FORMAT_STRING const tchar *pMsg, ... ) FMTFUNCTION( 3, 4 );
-#ifdef SDK_MP
-DBG_INTERFACE void LogV( PRINTF_FORMAT_STRING const tchar *pMsg, va_list arglist );
-#endif
 
 #ifdef Error
 // p4.cpp does a #define Error Warning and in that case the Error prototype needs to
@@ -445,33 +412,17 @@ DBG_INTERFACE void LogV( PRINTF_FORMAT_STRING const tchar *pMsg, va_list arglist
 DBG_INTERFACE void Error( PRINTF_FORMAT_STRING const tchar *pMsg, ... ) FMTFUNCTION( 1, 2 );
 #else
 DBG_INTERFACE void NORETURN Error( PRINTF_FORMAT_STRING const tchar *pMsg, ... ) FMTFUNCTION( 1, 2 );
-#ifdef SDK_MP
-DBG_INTERFACE void NORETURN ErrorV( PRINTF_FORMAT_STRING const tchar *pMsg, va_list arglist );
-#endif
-
 #endif
 
 #else
 
 inline void Msg( ... ) {}
 inline void DMsg( ... ) {}
-#ifdef SDK_MP
-inline void MsgV( PRINTF_FORMAT_STRING const tchar *pMsg, va_list arglist ) {}
-#endif
 inline void Warning( PRINTF_FORMAT_STRING const tchar *pMsg, ... ) {}
-#ifdef SDK_MP
-inline void WarningV( PRINTF_FORMAT_STRING const tchar *pMsg, va_list arglist ) {}
-#endif
 inline void DWarning( ... ) {}
 inline void Log( ... ) {}
 inline void DLog( ... ) {}
-#ifdef SDK_MP
-inline void LogV( PRINTF_FORMAT_STRING const tchar *pMsg, va_list arglist ) {}
-#endif
 inline void Error( ... ) {}
-#ifdef SDK_MP
-inline void ErrorV( PRINTF_FORMAT_STRING const tchar *pMsg, va_list arglist ) {}
-#endif
 
 #endif
 

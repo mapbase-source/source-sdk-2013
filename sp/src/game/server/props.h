@@ -377,8 +377,12 @@ protected:
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
+#ifdef SDK_MP
 DECLARE_AUTO_LIST( IPhysicsPropAutoList );
 class CPhysicsProp : public CBreakableProp, public IPhysicsPropAutoList
+#else
+class CPhysicsProp : public CBreakableProp
+#endif
 {
 	DECLARE_CLASS( CPhysicsProp, CBreakableProp );
 	DECLARE_SERVERCLASS();

@@ -740,8 +740,10 @@ CBasePlayer::CBasePlayer( )
 	m_bForceOrigin = false;
 	m_hVehicle = NULL;
 	m_pCurrentCommand = NULL;
+#ifdef SDK_MP
 	m_iLockViewanglesTickNumber = 0;
 	m_qangLockViewangles.Init();
+#endif
 
 	// Setup our default FOV
 	m_iDefaultFOV = g_pGameRules->DefaultFOV();
@@ -2827,7 +2829,9 @@ bool CBasePlayer::SetObserverTarget(CBaseEntity *target)
 		Vector	start = target->EyePosition();
 		
 		QAngle ang = target->EyeAngles();
+#ifdef SDK_MP
 		ang.z = 0; // PASSTIME no view roll when spectating ball
+#endif
 
 		AngleVectors( ang, &dir );
 		VectorNormalize( dir );
@@ -10001,6 +10005,7 @@ void CBasePlayer::HandleAnimEvent( animevent_t *pEvent )
 //-----------------------------------------------------------------------------
 bool CBasePlayer::ShouldAnnounceAchievement( void )
 {
+#ifdef SDK_MP
 	m_flAchievementTimes.AddToTail( gpGlobals->curtime );
 	if ( m_flAchievementTimes.Count() > 3 )
 	{
@@ -10010,6 +10015,7 @@ bool CBasePlayer::ShouldAnnounceAchievement( void )
 			return false;
 		}
 	}
+#endif
 
 	return true;
 }

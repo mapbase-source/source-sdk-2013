@@ -187,7 +187,9 @@ void C_BaseCombatWeapon::OnDataChanged( DataUpdateType_t updateType )
 		EnsureCorrectRenderingModel();
 	}
 
+#ifdef SDK_MP
 	if ( updateType == DATA_UPDATE_CREATED )
+#endif
 	{
 		UpdateVisibility();
 	}

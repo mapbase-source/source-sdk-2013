@@ -567,12 +567,16 @@ void DrawAllDebugOverlays( void )
 
 CServerGameDLL g_ServerGameDLL;
 // INTERFACEVERSION_SERVERGAMEDLL_VERSION_8 is compatible with the latest since we're only adding things to the end, so expose that as well.
-//EXPOSE_SINGLE_INTERFACE_GLOBALVAR(CServerGameDLL, IServerGameDLL008, INTERFACEVERSION_SERVERGAMEDLL_VERSION_8, g_ServerGameDLL );
+#ifndef SDK_MP
+EXPOSE_SINGLE_INTERFACE_GLOBALVAR(CServerGameDLL, IServerGameDLL008, INTERFACEVERSION_SERVERGAMEDLL_VERSION_8, g_ServerGameDLL );
+#endif
 EXPOSE_SINGLE_INTERFACE_GLOBALVAR(CServerGameDLL, IServerGameDLL, INTERFACEVERSION_SERVERGAMEDLL, g_ServerGameDLL);
 
-#ifdef SDK_MP
 // When bumping the version to this interface, check that our assumption is still valid and expose the older version in the same way
+#ifdef SDK_MP
 COMPILE_TIME_ASSERT( INTERFACEVERSION_SERVERGAMEDLL_INT == 10 );
+#else
+COMPILE_TIME_ASSERT( INTERFACEVERSION_SERVERGAMEDLL_INT == 9 );
 #endif
 
 bool CServerGameDLL::DLLInit( CreateInterfaceFn appSystemFactory, 
@@ -1173,7 +1177,9 @@ void CServerGameDLL::ServerActivate( edict_t *pEdictList, int edictCount, int cl
 void CServerGameDLL::GameServerSteamAPIActivated( void )
 {
 #ifndef NO_STEAM
+#ifdef SDK_MP
 	steamgameserverapicontext->Clear();
+#endif
 	steamgameserverapicontext->Init();
 	if ( steamgameserverapicontext->SteamGameServer() && engine->IsDedicatedServer() )
 	{

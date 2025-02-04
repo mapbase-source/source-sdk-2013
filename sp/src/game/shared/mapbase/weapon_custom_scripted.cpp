@@ -98,6 +98,9 @@ DEFINE_STATIC_HOOK( WeaponMeleeAttack2Condition );
 #endif
 
 DEFINE_STATIC_HOOK( ActivityList );
+#ifndef SDK_MP
+DEFINE_STATIC_HOOK( ActivityListCount );
+#endif
 
 #define DEFINE_SIMPLE_WEAPON_HOOK( name, returnType, description ) DEFINE_SIMPLE_SCRIPTHOOK( CWeaponCustomScripted::g_Hook_##name, #name, returnType, description )
 #define BEGIN_WEAPON_HOOK( name, returnType, description ) BEGIN_SCRIPTHOOK( CWeaponCustomScripted::g_Hook_##name, #name, returnType, description )
@@ -157,6 +160,9 @@ BEGIN_ENT_SCRIPTDESC( CWeaponCustomScripted, CBaseCombatWeapon, "Special weapon 
 #endif
 
 	DEFINE_SIMPLE_WEAPON_HOOK( ActivityList, FIELD_HSCRIPT, "" )
+#ifndef SDK_MP
+	DEFINE_SIMPLE_WEAPON_HOOK( ActivityListCount, FIELD_INTEGER, "" );
+#endif
 
 END_SCRIPTDESC();
 

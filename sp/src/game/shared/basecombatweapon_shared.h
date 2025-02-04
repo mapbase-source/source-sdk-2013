@@ -321,7 +321,11 @@ public:
 	bool					UsesSecondaryAmmo( void );					// returns true if the weapon actually uses secondary ammo
 	void					GiveDefaultAmmo( void );
 	
+#ifdef SDK_MP
 	virtual bool			CanHolster( void ) const { return TRUE; };		// returns true if the weapon can be holstered
+#else
+	virtual bool			CanHolster( void ) { return TRUE; };		// returns true if the weapon can be holstered
+#endif
 	virtual bool			DefaultDeploy( char *szViewModel, char *szWeaponModel, int iActivity, char *szAnimExt );
 	virtual bool			CanDeploy( void ) { return true; }			// return true if the weapon's allowed to deploy
 	virtual bool			Deploy( void );								// returns true is deploy was successful
@@ -367,7 +371,11 @@ public:
 	virtual void			Reload_NPC( bool bPlaySound = true );
 #endif
 
+#ifdef SDK_MP
 	virtual bool			AutoFiresFullClip( void ) const { return false; }
+#else
+	virtual bool			AutoFiresFullClip( void ) { return false; }
+#endif
 	virtual void			UpdateAutoFire( void );
 
 	// Weapon firing

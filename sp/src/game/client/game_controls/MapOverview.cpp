@@ -181,7 +181,11 @@ void CMapOverview::Init( void )
 	// register for events as client listener
 	ListenForGameEvent( "game_newmap" );
 	ListenForGameEvent( "round_start" );
+#ifdef SDK_MP
 	ListenForGameEvent( "player_connect_client" );
+#else
+	ListenForGameEvent( "player_connect" );
+#endif
 	ListenForGameEvent( "player_info" );
 	ListenForGameEvent( "player_team" );
 	ListenForGameEvent( "player_spawn" );
@@ -933,7 +937,11 @@ void CMapOverview::FireGameEvent( IGameEvent *event )
 		ResetRound();
 	}
 
+#ifdef SDK_MP
 	else if ( Q_strcmp(type,"player_connect_client") == 0 )
+#else
+	else if ( Q_strcmp(type,"player_connect") == 0 )
+#endif
 	{
 		int index = event->GetInt("index"); // = entity index - 1 
 

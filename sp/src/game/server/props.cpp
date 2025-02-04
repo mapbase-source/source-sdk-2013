@@ -2010,7 +2010,9 @@ LINK_ENTITY_TO_CLASS( dynamic_prop, CDynamicProp );
 LINK_ENTITY_TO_CLASS( prop_dynamic, CDynamicProp );	
 LINK_ENTITY_TO_CLASS( prop_dynamic_override, CDynamicProp );	
 
+#ifdef SDK_MP
 IMPLEMENT_AUTO_LIST( IPhysicsPropAutoList );
+#endif
 
 BEGIN_DATADESC( CDynamicProp )
 

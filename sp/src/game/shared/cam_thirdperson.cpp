@@ -21,6 +21,12 @@ static Vector CAM_HULL_MAX( CAM_HULL_OFFSET, CAM_HULL_OFFSET, CAM_HULL_OFFSET);
 
 extern const ConVar *sv_cheats;
 
+#ifndef SDK_MP
+extern ConVar cam_idealdist;
+extern ConVar cam_idealdistright;
+extern ConVar cam_idealdistup;
+#endif
+
 void CAM_ToThirdPerson(void);
 void CAM_ToFirstPerson(void);
 
@@ -98,6 +104,18 @@ void CThirdPersonManager::Update( void )
 #endif
 
 }
+
+#ifndef SDK_MP
+Vector CThirdPersonManager::GetDesiredCameraOffset( void )
+{ 
+	if ( IsOverridingThirdPerson() == true )
+	{
+		return Vector( cam_idealdist.GetFloat(), cam_idealdistright.GetFloat(), cam_idealdistup.GetFloat() );
+	}
+
+	return m_vecDesiredCameraOffset; 
+}
+#endif
 
 Vector CThirdPersonManager::GetFinalCameraOffset( void )
 {

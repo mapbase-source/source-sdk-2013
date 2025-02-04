@@ -23,7 +23,9 @@ public:
 	// Called during player movement to set up/restore after lag compensation
 	virtual void	StartLagCompensation( CBasePlayer *player, CUserCmd *cmd ) = 0;
 	virtual void	FinishLagCompensation( CBasePlayer *player ) = 0;
+#ifdef SDK_MP
 	virtual bool	IsCurrentlyDoingLagCompensation() const = 0;
+#endif
 };
 
 extern ILagCompensationManager *lagcompensation;

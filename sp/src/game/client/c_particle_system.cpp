@@ -235,6 +235,7 @@ void ParticleEffectCallback( const CEffectData &data )
 					pEnt->ParticleProp()->StopEmission();
 				}
 
+#ifdef SDK_MP
 				Vector vOffset = vec3_origin;
 				ParticleAttachment_t iAttachType = (ParticleAttachment_t)data.m_nDamageType;
 				if ( iAttachType == PATTACH_ABSORIGIN_FOLLOW || iAttachType == PATTACH_POINT_FOLLOW || iAttachType == PATTACH_ROOTBONE_FOLLOW )
@@ -243,6 +244,10 @@ void ParticleEffectCallback( const CEffectData &data )
 				}
 
 				pEffect = pEnt->ParticleProp()->Create( pszName, iAttachType, data.m_nAttachmentIndex, vOffset );
+#else
+				ParticleAttachment_t iAttachType = (ParticleAttachment_t)data.m_nDamageType;
+				pEffect = pEnt->ParticleProp()->Create( pszName, iAttachType, data.m_nAttachmentIndex );
+#endif
 				AssertMsg2( pEffect.IsValid() && pEffect->IsValid(), "%s could not create particle effect %s",
 					C_BaseEntity::Instance( data.m_hEntity )->GetDebugName(), pszName );
 				if ( pEffect.IsValid() && pEffect->IsValid() )

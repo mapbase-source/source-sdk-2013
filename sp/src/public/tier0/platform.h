@@ -1283,6 +1283,12 @@ PLATFORM_INTERFACE bool Is64BitOS();
 //-----------------------------------------------------------------------------
 #define MAPBASE_VERSION "7.3"
 #define MAPBASE_VER_INT 7300	// For use in #if in a similar fashion to macros like _MSC_VER
+
+// Global MP stubs
+#ifndef SDK_MP
+#define HushAsserts()	CommandLine()->FindParm( "-hushasserts" )
+#endif
+
 #endif
 
 

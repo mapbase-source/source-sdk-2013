@@ -15014,7 +15014,11 @@ void CAI_BaseNPC::ParseScriptedNPCInteractions(void)
 						// Add anything else to our miscellaneous criteria
 						else
 						{
+#ifdef SDK_MP
 							szCriteria = const_cast<char*>(UTIL_VarArgs("%s,%s:%s", szCriteria, szName, szValue));
+#else
+							szCriteria = UTIL_VarArgs("%s,%s:%s", szCriteria, szName, szValue);
+#endif
 						}
 
 						pCurNode = pCurNode->GetNextKey();

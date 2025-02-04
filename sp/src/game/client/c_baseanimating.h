@@ -829,7 +829,16 @@ inline CStudioHdr *C_BaseAnimating::GetModelPtr() const
 
 inline void C_BaseAnimating::InvalidateMdlCache()
 {
+#ifdef SDK_MP
 	UnlockStudioHdr();
+#else
+	if ( m_pStudioHdr )
+	{
+		UnlockStudioHdr();
+		delete m_pStudioHdr;
+		m_pStudioHdr = NULL;
+	}
+#endif
 }
 
 inline bool C_BaseAnimating::IsModelScaleFractional() const
