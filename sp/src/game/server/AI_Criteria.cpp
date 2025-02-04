@@ -227,6 +227,7 @@ AI_Response::AI_Response( const AI_Response &from )
 #ifdef MAPBASE
 	m_iContextFlags = from.m_iContextFlags;
 #else
+	m_bApplyContextToWorld = from.m_bApplyContextToWorld;
 #endif
 }
 
