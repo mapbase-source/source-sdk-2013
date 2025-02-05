@@ -375,6 +375,7 @@ public:
 	virtual bool			AutoFiresFullClip( void ) const { return false; }
 #else
 	virtual bool			AutoFiresFullClip( void ) { return false; }
+	virtual bool			CanOverload( void ) { return false; }
 #endif
 	virtual void			UpdateAutoFire( void );
 

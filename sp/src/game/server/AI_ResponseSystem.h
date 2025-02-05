@@ -21,7 +21,9 @@
 abstract_class IResponseFilter
 {
 public:
+#ifdef SDK_MP
 	virtual ~IResponseFilter(){}
+#endif
 	virtual bool IsValidResponse( ResponseType_t type, const char *pszValue ) = 0;
 };
 

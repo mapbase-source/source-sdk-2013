@@ -74,7 +74,11 @@ public:
 	virtual void	Disable();
 	virtual void	Layout();
 
+#ifdef SDK_MP
 	virtual void	ReloadScheme( bool flushLowLevel );
+#else
+	virtual void	ReloadScheme( bool flushLowLevel = false );
+#endif
 	virtual void	OverrideView( CViewSetup *pSetup );
 	virtual bool	ShouldDrawDetailObjects( );
 	virtual bool	ShouldDrawEntity(C_BaseEntity *pEnt);

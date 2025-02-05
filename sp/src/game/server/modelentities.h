@@ -56,7 +56,11 @@ public:
 
 	DECLARE_DATADESC();
 
+#ifdef SDK_MP
 	virtual bool IsOn( void ) const;
+#else
+	virtual bool IsOn( void );
+#endif
 };
 
 

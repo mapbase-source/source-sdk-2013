@@ -191,7 +191,11 @@ void CFuncBrush::TurnOn( void )
 }
 
 
+#ifdef SDK_MP
 bool CFuncBrush::IsOn( void ) const
+#else
+bool CFuncBrush::IsOn( void )
+#endif
 {
 	return !IsEffectActive( EF_NODRAW );
 }
