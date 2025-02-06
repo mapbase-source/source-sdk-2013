@@ -1236,7 +1236,7 @@ void CVradStaticPropMgr::ApplyLightingToStaticProp( CStaticProp &prop, const CCo
 #endif
 {
 #ifdef SDK_MP
-	if ( pResults->m_ColorVertsArrays.Count() == 0 &&if ( pResults->m_ColorVertsArrays.Count() == 0 ) pResults->m_ColorTexelsArrays.Count() == 0 )
+	if ( pResults->m_ColorVertsArrays.Count() == 0 && pResults->m_ColorTexelsArrays.Count() == 0 )
 #else
 	if ( pResults->m_ColorVertsArrays.Count() == 0 )
 #endif

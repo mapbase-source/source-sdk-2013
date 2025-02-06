@@ -29,7 +29,7 @@
 	#include "fx_quad.h"
 	#include "fx.h"
 
-	extern void DrawHalo( IMaterial* pMaterial, const Vector &source, float scale, float const *color, float flHDRColorScale = 1.0f );
+	extern void DrawHalo( IMaterial* pMaterial, const Vector &source, float scale, float const *color, float flHDRColorScale );
 	extern void FormatViewModelAttachment( Vector &vOrigin, bool bInverse );
 
 #endif
@@ -710,7 +710,7 @@ void C_WeaponStunStick::DrawThirdPersonEffects( void )
 	
 	// Draw an all encompassing glow around the entire head
 	UTIL_GetWeaponAttachment( this, m_BeamCenterAttachment, vecOrigin, vecAngles );
-	DrawHalo( pMaterial, vecOrigin, scale, color );
+	DrawHalo( pMaterial, vecOrigin, scale, color, 1.0f );
 
 	if ( InSwing() )
 	{
@@ -722,7 +722,7 @@ void C_WeaponStunStick::DrawThirdPersonEffects( void )
 
 		// Draw an all encompassing glow around the entire head
 		UTIL_GetWeaponAttachment( this, m_BeamCenterAttachment, vecOrigin, vecAngles );
-		DrawHalo( pMaterial, vecOrigin, scale, color );
+		DrawHalo( pMaterial, vecOrigin, scale, color, 1.0f );
 
 		// Update our effects
 		if ( gpGlobals->frametime != 0.0f && ( random->RandomInt( 0, 5 ) == 0 ) )
@@ -809,7 +809,7 @@ void C_WeaponStunStick::DrawFirstPersonEffects( void )
 	{
 		// Draw an all encompassing glow around the entire head
 		UTIL_GetWeaponAttachment( this, m_BeamCenterAttachment, vecOrigin, vecAngles );
-		DrawHalo( pMaterial, vecOrigin, scale, color );
+		DrawHalo( pMaterial, vecOrigin, scale, color, 1.0f );
 	}
 
 	// Draw bright points at each attachment location
@@ -829,7 +829,7 @@ void C_WeaponStunStick::DrawFirstPersonEffects( void )
 		if ( color[0] > 0.0f )
 		{
 			UTIL_GetWeaponAttachment( this, i, vecOrigin, vecAngles );
-			DrawHalo( pMaterial, vecOrigin, scale, color );
+			DrawHalo( pMaterial, vecOrigin, scale, color, 1.0f );
 		}
 	}
 }
@@ -859,11 +859,11 @@ void C_WeaponStunStick::DrawNPCEffects( void )
 
 		CMatRenderContextPtr pRenderContext( materials );
 		pRenderContext->Bind( pMaterial );
-		DrawHalo( pMaterial, vEnd, random->RandomFloat( 4.0f, 6.0f ), color );
+		DrawHalo( pMaterial, vEnd, random->RandomFloat( 4.0f, 6.0f ), color, 1.0f );
 
 		color[0] = color[1] = color[2] = random->RandomFloat( 0.9f, 1.0f );
 
-		DrawHalo( pMaterial, vEnd, random->RandomFloat( 2.0f, 3.0f ), color );
+		DrawHalo( pMaterial, vEnd, random->RandomFloat( 2.0f, 3.0f ), color, 1.0f );
 	}
 }
 #endif
