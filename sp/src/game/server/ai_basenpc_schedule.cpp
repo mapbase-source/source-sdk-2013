@@ -918,7 +918,7 @@ void CAI_BaseNPC::StartTurn( float flDeltaYaw )
 {
 	float flCurrentYaw;
 	
-	flCurrentYaw = UTIL_AngleMod( GetLocalAngles().y );
+	flCurrentYaw = UTIL_AngleMod( GetAbsAngles().y );
 	GetMotor()->SetIdealYaw( UTIL_AngleMod( flCurrentYaw + flDeltaYaw ) );
 	SetTurnActivity();
 }
@@ -1111,7 +1111,7 @@ void CAI_BaseNPC::StartScriptMoveToTargetTask( int task )
 	{
 		TaskFail(FAIL_NO_TARGET);
 	}
-	else if ( (m_hTargetEnt->GetAbsOrigin() - GetLocalOrigin()).Length() < 1 )
+	else if ( (m_hTargetEnt->GetAbsOrigin() - GetAbsOrigin()).Length() < 1 )
 	{
 		TaskComplete();
 	}
@@ -1576,7 +1576,7 @@ void CAI_BaseNPC::StartTask( const Task_t *pTask )
 		break;
 
 	case TASK_SET_IDEAL_YAW_TO_CURRENT:
-		GetMotor()->SetIdealYaw( UTIL_AngleMod( GetLocalAngles().y ) );
+		GetMotor()->SetIdealYaw( UTIL_AngleMod( GetAbsAngles().y ) );
 		TaskComplete();
 		break;
 
@@ -1730,7 +1730,7 @@ void CAI_BaseNPC::StartTask( const Task_t *pTask )
 			{
 				TaskFail(FAIL_NO_TARGET);
 			}
-			else if ( (pTarget->GetAbsOrigin() - GetLocalOrigin()).Length() < 1 )
+			else if ( (pTarget->GetAbsOrigin() - GetAbsOrigin()).Length() < 1 )
 			{
 				TaskComplete();
 			}
@@ -2965,7 +2965,7 @@ void CAI_BaseNPC::StartTask( const Task_t *pTask )
 		{
 			if ( m_hTargetEnt != NULL )
 			{
-				GetMotor()->SetIdealYaw( UTIL_AngleMod( m_hTargetEnt->GetLocalAngles().y ) );
+				GetMotor()->SetIdealYaw( UTIL_AngleMod( m_hTargetEnt->GetAbsAngles().y ) );
 			}
 
 			if ( m_scriptState != SCRIPT_CUSTOM_MOVE_TO_MARK )
@@ -3294,7 +3294,7 @@ void CAI_BaseNPC::RunTask( const Task_t *pTask )
 				pTarget = GetEnemy();
 			if ( pTarget )
 			{
-				GetMotor()->SetIdealYawAndUpdate( pTarget->GetAbsOrigin() - GetLocalOrigin() , AI_KEEP_YAW_SPEED );
+				GetMotor()->SetIdealYawAndUpdate( pTarget->GetAbsOrigin() - GetAbsOrigin(), AI_KEEP_YAW_SPEED );
 			}
 
 			if ( IsActivityFinished() )

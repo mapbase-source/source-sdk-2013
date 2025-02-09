@@ -2847,7 +2847,7 @@ void CAI_BaseNPC::SetHeadDirection( const Vector &vTargetPos, float flInterval)
 	//--------------------------------------
 	// Set head yaw
 	//--------------------------------------
-	float flDesiredYaw = VecToYaw(vTargetPos - GetLocalOrigin()) - GetLocalAngles().y;
+	float flDesiredYaw = VecToYaw(vTargetPos - GetAbsOrigin()) - GetAbsAngles().y;
 	if (flDesiredYaw > 180)
 		flDesiredYaw -= 360;
 	if (flDesiredYaw < -180)
@@ -7791,7 +7791,7 @@ void CAI_BaseNPC::NPCInit ( void )
 
 	SetGravity(1.0);	// Don't change
 	m_takedamage		= DAMAGE_YES;
-	GetMotor()->SetIdealYaw( GetLocalAngles().y );
+	GetMotor()->SetIdealYaw( GetAbsAngles().y );
 	m_iMaxHealth		= m_iHealth;
 	m_lifeState			= LIFE_ALIVE;
 	SetIdealState( NPC_STATE_IDLE );// Assume npc will be idle, until proven otherwise
@@ -9404,14 +9404,14 @@ float CAI_BaseNPC::CalcIdealYaw( const Vector &vecTarget )
 		vecProjection.x = -vecTarget.y;
 		vecProjection.y = vecTarget.x;
 
-		return UTIL_VecToYaw( vecProjection - GetLocalOrigin() );
+		return UTIL_VecToYaw( vecProjection - GetAbsOrigin() );
 	}
 	else if ( GetNavigator()->GetMovementActivity() == ACT_STRAFE_RIGHT )
 	{
 		vecProjection.x = vecTarget.y;
 		vecProjection.y = vecTarget.x;
 
-		return UTIL_VecToYaw( vecProjection - GetLocalOrigin() );
+		return UTIL_VecToYaw( vecProjection - GetAbsOrigin() );
 	}
 #ifdef MAPBASE
 	// Allow hint nodes to override the yaw without needing to control AI
@@ -9422,7 +9422,7 @@ float CAI_BaseNPC::CalcIdealYaw( const Vector &vecTarget )
 #endif
 	else
 	{
-		return UTIL_VecToYaw ( vecTarget - GetLocalOrigin() );
+		return UTIL_VecToYaw ( vecTarget - GetAbsOrigin() );
 	}
 }
 
@@ -9622,7 +9622,7 @@ void CAI_BaseNPC::HandleAnimEvent( animevent_t *pEvent )
 			//DevMsg( "Turned!\n" );
 			SetIdealActivity( ACT_IDLE );
 			Forget( bits_MEMORY_TURNING );
-			SetBoneController( 0, GetLocalAngles().y );
+			SetBoneController( 0, GetAbsAngles().y );
 			IncrementInterpolationFrame();
 			break;
 		}
@@ -10901,7 +10901,7 @@ Vector CAI_BaseNPC::GetShootEnemyDir( const Vector &shootOrigin, bool bNoisy )
 	else
 	{
 		Vector forward;
-		AngleVectors( GetLocalAngles(), &forward );
+		AngleVectors( GetAbsAngles(), &forward );
 		return forward;
 	}
 }
@@ -13874,7 +13874,7 @@ bool CAI_BaseNPC::OverrideMove( float flInterval )
 float CAI_BaseNPC::VecToYaw( const Vector &vecDir )
 {
 	if (vecDir.x == 0 && vecDir.y == 0 && vecDir.z == 0)
-		return GetLocalAngles().y;
+		return GetAbsAngles().y;
 
 	return UTIL_VecToYaw( vecDir );
 }
