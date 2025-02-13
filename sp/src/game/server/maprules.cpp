@@ -14,6 +14,7 @@
 #include "entityoutput.h"
 #ifdef MAPBASE
 #include "eventqueue.h"
+#include "saverestore_utlvector.h"
 #endif
 
 // memdbgon must be the last include file in a .cpp file!!!
@@ -823,5 +824,451 @@ void CGamePlayerTeam::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TY
 		UTIL_Remove( this );
 	}
 }
+
+
+#ifdef MAPBASE
+//-----------------------------------------------------------------------------
+// Purpose: Displays a custom number menu for player(s)
+//-----------------------------------------------------------------------------
+LINK_ENTITY_TO_CLASS( game_menu, CGameMenu );
+
+BEGIN_DATADESC( CGameMenu )
+
+	DEFINE_UTLVECTOR( m_ActivePlayers, FIELD_EHANDLE ),
+	DEFINE_UTLVECTOR( m_ActivePlayerTimes, FIELD_TIME ),
+
+	DEFINE_KEYFIELD( m_flDisplayTime, FIELD_FLOAT, "holdtime" ),
+
+	DEFINE_KEYFIELD( m_iszTitle, FIELD_STRING, "Title" ),
+
+	DEFINE_KEYFIELD( m_iszOption[0], FIELD_STRING, "Case01" ),
+	DEFINE_KEYFIELD( m_iszOption[1], FIELD_STRING, "Case02" ),
+	DEFINE_KEYFIELD( m_iszOption[2], FIELD_STRING, "Case03" ),
+	DEFINE_KEYFIELD( m_iszOption[3], FIELD_STRING, "Case04" ),
+	DEFINE_KEYFIELD( m_iszOption[4], FIELD_STRING, "Case05" ),
+	DEFINE_KEYFIELD( m_iszOption[5], FIELD_STRING, "Case06" ),
+	DEFINE_KEYFIELD( m_iszOption[6], FIELD_STRING, "Case07" ),
+	DEFINE_KEYFIELD( m_iszOption[7], FIELD_STRING, "Case08" ),
+	DEFINE_KEYFIELD( m_iszOption[8], FIELD_STRING, "Case09" ),
+	DEFINE_KEYFIELD( m_iszOption[9], FIELD_STRING, "Case10" ),
+
+	// Inputs
+	DEFINE_INPUTFUNC( FIELD_VOID, "ShowMenu", InputShowMenu ),
+	DEFINE_INPUTFUNC( FIELD_VOID, "HideMenu", InputHideMenu ),
+	DEFINE_INPUTFUNC( FIELD_VOID, "__DoRestore", InputDoRestore ),
+
+	// Outputs
+	DEFINE_OUTPUT( m_OnCase[0], "OnCase01" ),
+	DEFINE_OUTPUT( m_OnCase[1], "OnCase02" ),
+	DEFINE_OUTPUT( m_OnCase[2], "OnCase03" ),
+	DEFINE_OUTPUT( m_OnCase[3], "OnCase04" ),
+	DEFINE_OUTPUT( m_OnCase[4], "OnCase05" ),
+	DEFINE_OUTPUT( m_OnCase[5], "OnCase06" ),
+	DEFINE_OUTPUT( m_OnCase[6], "OnCase07" ),
+	DEFINE_OUTPUT( m_OnCase[7], "OnCase08" ),
+	DEFINE_OUTPUT( m_OnCase[8], "OnCase09" ),
+	DEFINE_OUTPUT( m_OnCase[9], "OnCase10" ),
+	DEFINE_OUTPUT( m_OutValue, "OutValue" ),
+	DEFINE_OUTPUT( m_OnTimeout, "OnTimeout" ),
+
+	DEFINE_THINKFUNC( TimeoutThink ),
+
+END_DATADESC()
+
+IMPLEMENT_AUTO_LIST( IGameMenuAutoList );
+
+static const char *s_pTimeoutContext = "TimeoutContext";
+
+#define	MENU_INFINITE_TIME	-1.0f
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+CGameMenu::CGameMenu()
+{
+	m_flDisplayTime = 5.0f;
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+void CGameMenu::OnRestore()
+{
+	BaseClass::OnRestore();
+
+	// Do this a bit after we restore since the HUD might not be ready yet
+	g_EventQueue.AddEvent( this, "__DoRestore", 0.4f, this, this );
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+void CGameMenu::InputDoRestore( inputdata_t &inputdata )
+{
+	// Check if we should restore the menu on anyone
+	FOR_EACH_VEC_BACK( m_ActivePlayers, i )
+	{
+		if (m_ActivePlayers[i].Get())
+		{
+			if (m_ActivePlayerTimes[i] > gpGlobals->curtime || m_ActivePlayerTimes[i] == MENU_INFINITE_TIME)
+			{
+				CRecipientFilter filter;
+				filter.AddRecipient( static_cast<CBasePlayer*>( m_ActivePlayers[i].Get() ) );
+
+				ShowMenu( filter, m_ActivePlayerTimes[i] - gpGlobals->curtime );
+				continue;
+			}
+		}
+
+		// Remove this player since it's no longer valid
+		m_ActivePlayers.Remove( i );
+		m_ActivePlayerTimes.Remove( i );
+	}
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+void CGameMenu::TimeoutThink()
+{
+	float flNextLowestTime = FLT_MAX;
+	FOR_EACH_VEC( m_ActivePlayerTimes, i )
+	{
+		// If the player is still in our list, then they must not have selected an option
+		if (m_ActivePlayerTimes[i] != MENU_INFINITE_TIME)
+		{
+			if (m_ActivePlayerTimes[i] <= gpGlobals->curtime)
+			{
+				m_OnTimeout.FireOutput( m_ActivePlayers[i], this );
+
+				// Remove this player since it's no longer valid
+				m_ActivePlayers.Remove( i );
+				m_ActivePlayerTimes.Remove( i );
+				break;
+			}
+			else if (m_ActivePlayerTimes[i] < flNextLowestTime)
+			{
+				flNextLowestTime = m_ActivePlayerTimes[i];
+			}
+		}
+	}
+
+	if (flNextLowestTime < FLT_MAX)
+	{
+		SetNextThink( flNextLowestTime, s_pTimeoutContext );
+	}
+	else
+	{
+		SetContextThink( NULL, TICK_NEVER_THINK, s_pTimeoutContext );
+	}
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+void CGameMenu::ShowMenu( CRecipientFilter &filter, float flDisplayTime )
+{
+	// Before showing the menu, check each menu to see if there's already one being shown to one of our recipients
+	for ( int i = 0; i < IGameMenuAutoList::AutoList().Count(); i++ )
+	{
+		CGameMenu *pMenu = static_cast<CGameMenu*>( IGameMenuAutoList::AutoList()[i] );
+		if ( pMenu != this && pMenu->IsActive() )
+		{
+			for ( int j = 0; j < filter.GetRecipientCount(); j++ )
+			{
+				CBaseEntity *ent = CBaseEntity::Instance( filter.GetRecipientIndex( j ) );
+				if ( pMenu->IsActiveOnTarget( ent ) )
+				{
+					Msg( "%s overriding menu %s for player %i\n", GetDebugName(), pMenu->GetDebugName(), j );
+					pMenu->RemoveTarget( ent );
+				}
+			}
+		}
+	}
+
+	if (flDisplayTime == 0.0f)
+	{
+		flDisplayTime = m_flDisplayTime;
+	}
+
+	char szString[512] = { 0 };
+	int nBitsValidSlots = 0;
+
+	if (m_iszTitle != NULL_STRING)
+	{
+		V_strncat( szString, STRING( m_iszTitle ), sizeof( szString ) );
+	}
+	else
+	{
+		// Insert space to tell menu code to skip
+		V_strncat( szString, " ", sizeof( szString ) );
+	}
+
+	// Insert newline even if there's no string
+	V_strncat( szString, "\n", sizeof( szString ) );
+
+	// Populate the options
+	for (int i = 0; i < MAX_MENU_OPTIONS; i++)
+	{
+		if (m_iszOption[i] != NULL_STRING)
+		{
+			nBitsValidSlots |= (1 << i);
+
+			V_strncat( szString, STRING( m_iszOption[i] ), sizeof( szString ) );
+		}
+		else
+		{
+			// Insert space to tell menu code to skip
+			V_strncat( szString, " ", sizeof( szString ) );
+		}
+
+		// Insert newline even if there's no string
+		V_strncat( szString, "\n", sizeof( szString ) );
+	}
+
+	if (nBitsValidSlots <= 0 && m_iszTitle == NULL_STRING)
+	{
+		Warning( "%s ShowMenu: Can't show menu with no options or title\n", GetDebugName() );
+		return;
+	}
+
+	UserMessageBegin( filter, "ShowMenuComplex" );
+		WRITE_WORD( nBitsValidSlots );
+		WRITE_FLOAT( flDisplayTime );
+		WRITE_BYTE( 0 );
+		WRITE_STRING( szString );
+	MessageEnd();
+
+	float flMenuTime;
+	if (flDisplayTime <= 0.0f)
+	{
+		flMenuTime = MENU_INFINITE_TIME;
+	}
+	else
+	{
+		flMenuTime = gpGlobals->curtime + flDisplayTime;
+	}
+
+	for ( int j = 0; j < filter.GetRecipientCount(); j++ )
+	{
+		CBaseEntity *ent = CBaseEntity::Instance( filter.GetRecipientIndex( j ) );
+
+		// Check if we already track this player. If not, make a new one
+		bool bFound = false;
+		FOR_EACH_VEC( m_ActivePlayers, i )
+		{
+			if (m_ActivePlayers[i].Get() == ent)
+			{
+				m_ActivePlayerTimes[i] = flMenuTime;
+				bFound = true;
+				break;
+			}
+		}
+
+		if (!bFound)
+		{
+			m_ActivePlayers.AddToTail( ent );
+			m_ActivePlayerTimes.AddToTail( flMenuTime );
+		}
+	}
+
+	if (GetNextThink( s_pTimeoutContext ) == TICK_NEVER_THINK)
+	{
+		SetContextThink( &CGameMenu::TimeoutThink, gpGlobals->curtime + flDisplayTime, s_pTimeoutContext );
+	}
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+void CGameMenu::HideMenu( CRecipientFilter &filter )
+{
+	UserMessageBegin( filter, "ShowMenuComplex" );
+		WRITE_WORD( -1 );
+		WRITE_FLOAT( 0.0f );
+		WRITE_BYTE( 0 );
+		WRITE_STRING( "" );
+	MessageEnd();
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+void CGameMenu::MenuSelected( int nSlot, CBaseEntity *pActivator )
+{
+	if (nSlot <= 0 || nSlot > MAX_MENU_OPTIONS)
+	{
+		Warning( "%s: Invalid slot %i\n", GetDebugName(), nSlot );
+		return;
+	}
+
+	m_OnCase[nSlot-1].FireOutput( pActivator, this );
+	m_OutValue.Set( nSlot, pActivator, this );
+
+	RemoveTarget( pActivator );
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+bool CGameMenu::IsActive()
+{
+	FOR_EACH_VEC_BACK( m_ActivePlayers, i )
+	{
+		if (m_ActivePlayers[i].Get())
+		{
+			if (m_ActivePlayerTimes[i] > gpGlobals->curtime || m_ActivePlayerTimes[i] == MENU_INFINITE_TIME)
+				return true;
+		}
+
+		// Remove this player since it's no longer valid
+		m_ActivePlayers.Remove( i );
+		m_ActivePlayerTimes.Remove( i );
+	}
+
+	return false;
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+bool CGameMenu::IsActiveOnTarget( CBaseEntity *pPlayer )
+{
+	FOR_EACH_VEC_BACK( m_ActivePlayers, i )
+	{
+		if (m_ActivePlayers[i].Get() == pPlayer)
+		{
+			if (m_ActivePlayerTimes[i] > gpGlobals->curtime || m_ActivePlayerTimes[i] == MENU_INFINITE_TIME)
+				return true;
+
+			// Remove this player since it's no longer valid
+			m_ActivePlayers.Remove( i );
+			m_ActivePlayerTimes.Remove( i );
+			return false;
+		}
+	}
+
+	return false;
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+void CGameMenu::RemoveTarget( CBaseEntity *pPlayer )
+{
+	FOR_EACH_VEC_BACK( m_ActivePlayers, i )
+	{
+		if (m_ActivePlayers[i].Get() == pPlayer)
+		{
+			m_ActivePlayers.Remove( i );
+			m_ActivePlayerTimes.Remove( i );
+			break;
+		}
+	}
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+void CGameMenu::InputShowMenu( inputdata_t &inputdata )
+{
+	if (HasSpawnFlags( SF_GAMEMENU_ALLPLAYERS ))
+	{
+		CRecipientFilter filter;
+		filter.AddAllPlayers();
+
+		ShowMenu( filter );
+	}
+	else
+	{
+		CBasePlayer *pPlayer = NULL;
+
+		// If we're in singleplayer, show the message to the player.
+		if ( gpGlobals->maxClients == 1 )
+		{
+			pPlayer = UTIL_GetLocalPlayer();
+		}
+		// Otherwise show the message to the player that triggered us.
+		else if ( inputdata.pActivator && inputdata.pActivator->IsNetClient() )
+		{
+			pPlayer = ToBasePlayer( inputdata.pActivator );
+		}
+
+		if (pPlayer)
+		{
+			CRecipientFilter filter;
+			filter.AddRecipient( pPlayer );
+
+			ShowMenu( filter );
+		}
+	}
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+void CGameMenu::InputHideMenu( inputdata_t &inputdata )
+{
+	if (HasSpawnFlags( SF_GAMEMENU_ALLPLAYERS ))
+	{
+		CRecipientFilter filter;
+
+		FOR_EACH_VEC_BACK( m_ActivePlayers, i )
+		{
+			// Select all players in our list who are still active, and remove them
+			if (m_ActivePlayerTimes[i] > gpGlobals->curtime || m_ActivePlayerTimes[i] == MENU_INFINITE_TIME)
+			{
+				filter.AddRecipient( static_cast<CBasePlayer*>(m_ActivePlayers[i].Get()) );
+			}
+
+			m_ActivePlayers.Remove( i );
+			m_ActivePlayerTimes.Remove( i );
+		}
+
+		if (filter.GetRecipientCount() <= 0)
+			return;
+
+		HideMenu( filter );
+	}
+	else
+	{
+		CBasePlayer *pPlayer = NULL;
+
+		// If we're in singleplayer, show the message to the player.
+		if ( gpGlobals->maxClients == 1 )
+		{
+			pPlayer = UTIL_GetLocalPlayer();
+		}
+		// Otherwise show the message to the player that triggered us.
+		else if ( inputdata.pActivator && inputdata.pActivator->IsNetClient() )
+		{
+			pPlayer = ToBasePlayer( inputdata.pActivator );
+		}
+
+		if (!pPlayer)
+			return;
+
+		// Verify that this player is in our list
+		CRecipientFilter filter;
+		FOR_EACH_VEC( m_ActivePlayers, i )
+		{
+			if (m_ActivePlayers[i].Get() == pPlayer && (m_ActivePlayerTimes[i] > gpGlobals->curtime || m_ActivePlayerTimes[i] == MENU_INFINITE_TIME))
+			{
+				filter.AddRecipient( pPlayer );
+
+				// Remove since the player won't have the menu anymore
+				m_ActivePlayers.Remove( i );
+				m_ActivePlayerTimes.Remove( i );
+				break;
+			}
+		}
+
+		if (filter.GetRecipientCount() <= 0)
+			return;
+
+		HideMenu( filter );
+	}
+}
+#endif
 
 
