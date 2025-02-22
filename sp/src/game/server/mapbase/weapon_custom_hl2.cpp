@@ -93,6 +93,7 @@ public:
 	virtual Activity	GetPrimaryAttackActivity(void) { return m_CustomData.m_bHitUsesMissAnim ? ACT_VM_MISSCENTER : BaseClass::GetPrimaryAttackActivity(); }
 
 	const char* GetWeaponScriptName() { return m_iszWeaponScriptName.Get(); }
+	const char* GetName( void ) const { return STRING( m_iClassname ); }
 	virtual int		GetDamageType() { return g_nDamageClassTypeBits[m_CustomData.m_nDamageClass]; }
 
 	virtual void InitCustomWeaponFromData(const void* pData, const char* pszWeaponScript);
@@ -381,6 +382,7 @@ public:
 	CHLCustomWeaponGun();
 	virtual void InitCustomWeaponFromData(const void* pData, const char* pszWeaponScript);
 	const char* GetWeaponScriptName() { return m_iszWeaponScriptName.Get(); }
+	const char* GetName( void ) const { return STRING( m_iClassname ); }
 
 	// Weapon behaviour
 	virtual void			ItemPostFrame(void);				// called each frame by the player PostThink

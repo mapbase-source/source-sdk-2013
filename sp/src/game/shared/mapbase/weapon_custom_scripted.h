@@ -60,6 +60,7 @@ public:
 	bool			IsPredicted( void ) const { return m_iszClientScripts[0] != '\0'; }
 
 	const char*		GetWeaponScriptName() { return m_iszWeaponScriptName[0] != '\0' ? m_iszWeaponScriptName : BaseClass::GetWeaponScriptName(); }
+	const char*		GetName() const { return m_iszWeaponScriptName[0] != '\0' ? STRING( m_iClassname ) : BaseClass::GetName(); }
 
 	// Weapon selection
 	bool			HasAnyAmmo( void );						// Returns true is weapon has ammo
