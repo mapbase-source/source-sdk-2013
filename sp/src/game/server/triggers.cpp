@@ -509,7 +509,7 @@ void CBaseTrigger::StartTouch(CBaseEntity *pOther)
 		if ( bAdded && ( m_hTouchingEntities.Count() == 1 ) )
 		{
 			// First entity to touch us that passes our filters
-			m_OnStartTouchAll.FireOutput( pOther, this );
+			OnStartTouchAll(pOther);
 		}
 	}
 }
@@ -564,10 +564,31 @@ void CBaseTrigger::EndTouch(CBaseEntity *pOther)
 		// Didn't find one?
 		if ( !bFoundOtherTouchee /*&& !m_bDisabled*/ )
 		{
-			m_OnEndTouchAll.FireOutput(pOther, this);
+			OnEndTouchAll(pOther);
 		}
 	}
 }
+#ifdef MAPBASE
+
+//-----------------------------------------------------------------------------
+// Purpose: Called when an entity starts touching us.
+// Input  : pOther - The entity that is touching us.
+//-----------------------------------------------------------------------------
+void CBaseTrigger::OnStartTouchAll(CBaseEntity* pOther)
+{
+	m_OnStartTouchAll.FireOutput(pOther, this);
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: Called when an entity stops touching us.
+// Input  : pOther - The entity that was touching us.
+//-----------------------------------------------------------------------------
+void CBaseTrigger::OnEndTouchAll(CBaseEntity* pOther)
+{
+	m_OnEndTouchAll.FireOutput(pOther, this);
+}
+
+#endif // MAPBASE
 
 //-----------------------------------------------------------------------------
 // Purpose: Return true if the specified entity is touching us

@@ -81,6 +81,14 @@ public:
 	virtual bool PassesTriggerFilters(CBaseEntity *pOther);
 	virtual void StartTouch(CBaseEntity *pOther);
 	virtual void EndTouch(CBaseEntity *pOther);
+#ifdef MAPBASE
+	virtual void OnStartTouchAll(CBaseEntity* pOther);
+	virtual void OnEndTouchAll(CBaseEntity* pOther);
+#endif // MAPBASE
+
+
+	
+
 	bool IsTouching( CBaseEntity *pOther );
 #ifdef MAPBASE_VSCRIPT
 	bool ScriptIsTouching( HSCRIPT hOther );
