@@ -10,7 +10,7 @@
 #include "cbase.h"
 
 #include "basemodularweapon.h"
-#include "baseattachment.h"
+#include "saverestore_utlmap.h"
 
 #include "tier0/memdbgon.h"
 
