@@ -1,3 +1,4 @@
 [submodule "sp/game/fracture_point"]
 	path = sp/game/fracture_point
 	url = https://github.com/Nbc66/fracture_point_game.git
+	branch = main
