@@ -27,18 +27,12 @@ public:
     virtual void EquipAttachment(CBaseWeaponAttachment* pAttachment);
     virtual void RemoveAttachment(AttachmentType_t type);
 
-    virtual float GetFireRate();
     virtual float GetDamage();
-    virtual float GetSpread();
+
+    virtual void  PrimaryAttack(void);
 
 private:
-    float m_flBaseDamage;
-    float m_flBaseFireRate;
-    float m_flBaseSpread;
-
-    float m_flModifiedDamage;
-    float m_flModifiedFireRate;
-    float m_flModifiedSpread;
+    float m_flBaseDamage = 0.0f;
 
     CUtlMap<AttachmentType_t, CBaseWeaponAttachment*> m_Attachments;
 };

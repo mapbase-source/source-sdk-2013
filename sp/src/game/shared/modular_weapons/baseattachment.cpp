@@ -26,24 +26,17 @@ BEGIN_DATADESC(CBaseWeaponAttachment)
 END_DATADESC()
 #endif
 
-AttachmentType_t CBaseWeaponAttachment::GetAttachmentType()
+bool CBaseWeaponAttachment::IsCompatibleWithWeapon(CBaseModularWeapon* pWeapon)
 {
-	return m_AttachmentType;
-}
+    for (int i = 0; i < m_CompatibleWeapons.Count(); i++)
+    {
+        if (!V_strcmp(m_CompatibleWeapons.Element(i), pWeapon->GetClassname()))
+        {
+            return true;
+        }
+    }
 
-float CBaseWeaponAttachment::GetDamageModifier()
-{
-	return m_flDamageModifier;
-}
-
-float CBaseWeaponAttachment::GetFireRateModifier()
-{
-    return m_flFireRateModifier;
-}
-
-float CBaseWeaponAttachment::GetSpreadModifier()
-{
-    return m_flSpreadModifier;
+    return false;
 }
 
 bool CBaseWeaponAttachment::IsCompatibleWithWeapon(const char* WeaponClassName)
@@ -59,38 +52,37 @@ bool CBaseWeaponAttachment::IsCompatibleWithWeapon(const char* WeaponClassName)
     return false;
 }
 
-bool CBaseWeaponAttachment::IsCompatibleWithWeapon(CBaseModularWeapon* pWeapon)
-{
-    for (int i = 0; i < m_CompatibleWeapons.Count(); i++)
-    {
-        if (!V_strcmp(m_CompatibleWeapons.Element(i), pWeapon->GetClassname()))
-        {
-            return true;
-        }
-    }
-
-    return false;
-}
-
 void CBaseWeaponAttachment::AddCompatibleWeapon(CBaseModularWeapon* pWeapon)
 {
-    auto IsDuplicate = [this](CUtlVector<const char*>& vec, const char* str) -> bool
-        {
-            for (int i = 0; i < vec.Count(); i++)
-            {
-                if (!V_strcmp(vec[i], str))
-                {
-                    return true;
-                }
-
-            }
-
-            return false;
-        };
-
     //no need to add duplicates
     if (!IsDuplicate(m_CompatibleWeapons, pWeapon->GetClassname()))
     {
-        m_CompatibleWeapons.AddToTail(pWeapon->GetClassname());
+        AddWeapon(pWeapon->GetClassname());
+    }
+}
+
+void CBaseWeaponAttachment::AddCompatibleWeapon(const char* szWeaponClassName)
+{
+    //no need to add duplicates
+    if (!IsDuplicate(m_CompatibleWeapons, szWeaponClassName))
+    {
+        AddWeapon(szWeaponClassName);
+    }
+}
+
+template <typename... Args>
+void CBaseWeaponAttachment::AddCompatibleWeapons(Args... args)
+{
+    static_assert((std::is_same_v<Args, const char*> && ...), "Only const char* strings are allowed!");
+
+    (AddWeapon(args), ...);  // Fold expression to call AddWeapon on each argument
+}
+
+void CBaseWeaponAttachment::AddWeapon(const char* szWeaponClassName)
+{
+    // No need to add duplicates
+    if (!IsDuplicate(m_CompatibleWeapons, szWeaponClassName))
+    {
+        m_CompatibleWeapons.AddToTail(szWeaponClassName);
     }
 }
