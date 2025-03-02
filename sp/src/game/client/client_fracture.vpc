@@ -9,6 +9,7 @@ $Macro GAMENAME 	"Fracture Point" [!$SOURCESDK]
 $Macro GAMENAME 	"fracture_point" [$SOURCESDK]
 
 $Include "$SRCDIR\game\client\client_base.vpc"
+$Include "$SRCDIR\game\shared\modular_weapons\attachments\attachments.vpc"
 
 $Configuration
 {
@@ -41,6 +42,15 @@ $Project "Client (Fracture Point)"
 				$File "$SRCDIR\game\shared\modular_weapons\basemodularweapon.h"
 				$File "$SRCDIR\game\shared\modular_weapons\baseattachment.h"
 				$File "$SRCDIR\game\shared\modular_weapons\baseattachment.cpp"
+				
+				$Folder "Attachments"
+				{
+					$Folder "Silencers"
+					{
+						$File "$ATTACHMENTDIR\silencer\attachment_silencer.h"
+						$File "$ATTACHMENTDIR\silencer\attachment_silencer.cpp"
+					}
+				}
 			}
 		}
 	

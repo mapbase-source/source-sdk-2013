@@ -1,0 +1,19 @@
+$Macro ATTACHMENTDIR "$SRCDIR\game\shared\modular_weapons\attachments"
+
+$Project
+{
+	$Folder	"Source Files"
+	{
+		$Folder "FRACTURE DLL"
+		{
+			$Folder "Attachments"
+			{
+				$Folder "Silencers"
+				{
+					$File "$ATTACHMENTDIR\silencer\attachment_silencer.h"
+					$File "$ATTACHMENTDIR\silencer\attachment_silencer.cpp"
+				}
+			}
+		}
+	}
+}
