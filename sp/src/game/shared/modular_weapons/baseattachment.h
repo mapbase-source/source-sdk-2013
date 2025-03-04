@@ -58,6 +58,8 @@ public:
     bool IsCompatibleWithWeapon(const char* WeaponClassName);
     bool IsCompatibleWithWeapon(CBaseModularWeapon* pWeapon);
 
+    virtual const char* GetModel() { return ""; };
+
     // Method to add compatible weapons
     void AddCompatibleWeapon(CBaseModularWeapon* pWeapon);
     void AddCompatibleWeapon(const char* szWeaponClassName);

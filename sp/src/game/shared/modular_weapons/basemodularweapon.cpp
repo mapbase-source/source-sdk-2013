@@ -47,7 +47,39 @@ CBaseModularWeapon::~CBaseModularWeapon()
 
 void CBaseModularWeapon::EquipAttachment(CBaseWeaponAttachment* pAttachment)
 {
-	return; //TODO: Implement
+	if (pAttachment)
+	{
+		switch (pAttachment->GetAttachmentType())
+		{
+		case ATTACHMENT_SILENCER:
+		{
+			m_Attachments[ATTACHMENT_SILENCER] = pAttachment;
+			if (pAttachment->IsCompatibleWithWeapon(this))
+			{
+#ifdef CLIENT_DLL
+				CBasePlayer* pPlayer = CBasePlayer::GetLocalPlayer();
+				C_BaseViewModel* pVM = pPlayer->GetViewModel();
+				if (pVM)
+				{
+					PrecacheModel(pAttachment->GetModel());
+					pAttachment->AddEffects(EF_BONEMERGE | EF_BONEMERGE_FASTCULL | EF_PARENT_ANIMATES);
+					pAttachment->InitializeAsClientEntity(pAttachment->GetModel(), RENDER_GROUP_VIEW_MODEL_TRANSLUCENT);
+					SetParent(pVM);
+					SetLocalOrigin(vec3_origin);
+					AddSolidFlags(FSOLID_NOT_SOLID);
+				}
+			
+#endif // CLIENT_DLL
+			}
+			break;
+		}
+
+		default:
+			break;
+		}
+	}
+
+	return;
 }
 
 void CBaseModularWeapon::RemoveAttachment(AttachmentType_t type)

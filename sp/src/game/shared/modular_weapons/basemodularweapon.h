@@ -41,7 +41,7 @@ inline CBaseModularWeapon* ToModularWeapon(CBaseEntity* pEntity)
 {
     if (!pEntity || !pEntity->IsBaseCombatWeapon())
         return NULL;
-    return dynamic_cast<CBaseModularWeapon*>(pEntity);
+    return static_cast<CBaseModularWeapon*>(pEntity);
 }
 
 #endif // !MODULAR_WEAPON_BASE_H
