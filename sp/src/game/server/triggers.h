@@ -86,9 +86,6 @@ public:
 	virtual void OnEndTouchAll(CBaseEntity* pOther);
 #endif // MAPBASE
 
-
-	
-
 	bool IsTouching( CBaseEntity *pOther );
 #ifdef MAPBASE_VSCRIPT
 	bool ScriptIsTouching( HSCRIPT hOther );
