@@ -69,9 +69,9 @@ public:
 
 private:
     AttachmentType_t m_AttachmentType;
-    float m_flDamageModifier;
-    float m_flFireRateModifier;
-    float m_flSpreadModifier;
+    float m_flDamageModifier = 0.0f;
+    float m_flFireRateModifier = 0.0f;
+    float m_flSpreadModifier = 0.0f;
 
     bool IsDuplicate(CUtlVector<const char*>& vec, const char* str)
     {

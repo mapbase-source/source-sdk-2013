@@ -7,6 +7,8 @@ CSilencerAttachment::CSilencerAttachment()
 	AddCompatibleWeapon("weapon_glock18c");
 	SetAttachmentType(ATTACHMENT_SILENCER);
 	SetDamageModifier(0.5f);
+	SetFireRateModifier(0.0f);
+	SetSpreadModifier(0.0f);
 }
 
 CSilencerAttachment::~CSilencerAttachment()
@@ -32,12 +34,16 @@ void CSilencerAttachment::Restore(CRestore& restore)
 {
 	BaseClass::Restore(restore);
 }
-#ifdef CLIENT_DLL
+
+LINK_ENTITY_TO_CLASS(silencerattachment, CSilencerAttachment);
+
+#ifndef CLIENT_DLL
+// Should always be server-sided, also i'd probably move this somewhere else in the future -Wire
 CON_COMMAND_F(fp_give_silencer, "gives the silencer to the player", FCVAR_CHEAT)
 {
-	CSilencerAttachment* pSilencer = new CSilencerAttachment;
+	CSilencerAttachment* pSilencer = CREATE_ENTITY(CSilencerAttachment, "silencerattachment");
 
-	CBasePlayer* pPlayer = CBasePlayer::GetLocalPlayer();
+	CBasePlayer* pPlayer = UTIL_GetLocalPlayer();
 
 	if (pPlayer && pSilencer)
 	{
@@ -49,7 +55,7 @@ CON_COMMAND_F(fp_give_silencer, "gives the silencer to the player", FCVAR_CHEAT)
 		}
 		else
 		{
-			delete pSilencer;
+			pSilencer->Remove();
 		}
 
 	}

@@ -21,6 +21,11 @@ BEGIN_NETWORK_TABLE(CBaseModularWeapon, DT_BaseModularWeapon)
 #ifdef GAME_DLL
 SendPropExclude("DT_AnimTimeMustBeFirst", "m_flAnimTime"),
 SendPropExclude("DT_BaseAnimating", "m_nSequence"),
+SendPropArray3(SENDINFO_ARRAY3(m_hAttachmentEnts), SendPropEHandle(SENDINFO_ARRAY(m_hAttachmentEnts))),
+SendPropInt(SENDINFO(m_bActiveMerge), 1, SPROP_UNSIGNED),
+#else
+RecvPropArray3(RECVINFO_ARRAY(m_hAttachmentEnts), RecvPropEHandle(RECVINFO(m_hAttachmentEnts[0]))),
+RecvPropInt(RECVINFO(m_bActiveMerge)),
 #endif
 END_NETWORK_TABLE()
 
@@ -30,8 +35,6 @@ DEFINE_PRED_FIELD(m_flTimeWeaponIdle, FIELD_FLOAT, FTYPEDESC_OVERRIDE | FTYPEDES
 END_PREDICTION_DATA()
 #endif
 
-//LINK_ENTITY_TO_CLASS(weapon_base, CBaseModularWeapon);
-
 #ifdef GAME_DLL
 BEGIN_DATADESC(CBaseModularWeapon)
 END_DATADESC()
@@ -39,10 +42,49 @@ END_DATADESC()
 
 CBaseModularWeapon::CBaseModularWeapon()
 {
+	m_bActiveMerge = false;
+	m_Attachments.SetLessFunc(DefLessFunc(AttachmentType_t));
 }
 
 CBaseModularWeapon::~CBaseModularWeapon()
 {
+}
+
+#ifdef CLIENT_DLL
+void CBaseModularWeapon::ClientThink()
+{
+	CBasePlayer* pPlayer = CBasePlayer::GetLocalPlayer();
+	C_BaseViewModel* pVM = pPlayer->GetViewModel();
+	if (pVM)
+	{
+		for (int i = 0; i < (int)(m_hAttachmentEnts.Count()); i++)
+		{
+			CBaseWeaponAttachment* attachment = m_hAttachmentEnts[i].Get();
+			if (attachment) {
+				PrecacheModel(attachment->GetModel());
+				attachment->AddEffects(EF_BONEMERGE | EF_BONEMERGE_FASTCULL | EF_PARENT_ANIMATES);
+				attachment->InitializeAsClientEntity(attachment->GetModel(), RENDER_GROUP_VIEW_MODEL_TRANSLUCENT);
+				SetParent(pVM);
+				SetLocalOrigin(vec3_origin);
+				AddSolidFlags(FSOLID_NOT_SOLID);
+			}
+		}
+	}
+}
+
+void CBaseModularWeapon::OnDataChanged(DataUpdateType_t updateType)
+{
+	BaseClass::OnDataChanged(updateType);
+	if (updateType == DATA_UPDATE_CREATED)
+	{
+		SetNextClientThink(CLIENT_THINK_ALWAYS);
+	}
+}
+#endif // CLIENT_DLL
+
+void CBaseModularWeapon::ItemPreFrame(void)
+{
+	BaseClass::ItemPreFrame();
 }
 
 void CBaseModularWeapon::EquipAttachment(CBaseWeaponAttachment* pAttachment)
@@ -53,23 +95,11 @@ void CBaseModularWeapon::EquipAttachment(CBaseWeaponAttachment* pAttachment)
 		{
 		case ATTACHMENT_SILENCER:
 		{
-			m_Attachments[ATTACHMENT_SILENCER] = pAttachment;
 			if (pAttachment->IsCompatibleWithWeapon(this))
 			{
-#ifdef CLIENT_DLL
-				CBasePlayer* pPlayer = CBasePlayer::GetLocalPlayer();
-				C_BaseViewModel* pVM = pPlayer->GetViewModel();
-				if (pVM)
-				{
-					PrecacheModel(pAttachment->GetModel());
-					pAttachment->AddEffects(EF_BONEMERGE | EF_BONEMERGE_FASTCULL | EF_PARENT_ANIMATES);
-					pAttachment->InitializeAsClientEntity(pAttachment->GetModel(), RENDER_GROUP_VIEW_MODEL_TRANSLUCENT);
-					SetParent(pVM);
-					SetLocalOrigin(vec3_origin);
-					AddSolidFlags(FSOLID_NOT_SOLID);
-				}
-			
-#endif // CLIENT_DLL
+				
+				m_Attachments.Insert(ATTACHMENT_SILENCER, pAttachment);
+				m_hAttachmentEnts.Set(ATTACHMENT_SILENCER, pAttachment);
 			}
 			break;
 		}
