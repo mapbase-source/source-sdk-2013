@@ -29,7 +29,7 @@ enum AttachmentType_t
     ATTACHMENT_COUNT = ATTACHMENT_LAST - 1 
 };
 
-class CBaseWeaponAttachment : public CBaseEntity
+class CBaseWeaponAttachment : public CBaseAnimating
 {
 public:
     DECLARE_CLASS(CBaseWeaponAttachment, CBaseEntity)
