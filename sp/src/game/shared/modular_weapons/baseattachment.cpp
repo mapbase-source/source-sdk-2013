@@ -8,8 +8,20 @@ IMPLEMENT_NETWORKCLASS_ALIASED(BaseWeaponAttachment, DT_BaseWeaponAttachment)
 
 BEGIN_NETWORK_TABLE(CBaseWeaponAttachment, DT_BaseWeaponAttachment)
 #ifdef GAME_DLL
+SendPropInt(SENDINFO(m_AttachmentType)),
+SendPropFloat(SENDINFO(m_flDamageModifier)),
+SendPropFloat(SENDINFO(m_flFireRateModifier)),
+SendPropFloat(SENDINFO(m_flSpreadModifier)),
+SendPropString(SENDINFO(m_CompatibleWeaponList)),
+SendPropString(SENDINFO(m_szAttacmentModel)),
 #endif
 #ifdef CLIENT_DLL
+RecvPropInt(RECVINFO(m_AttachmentType)),
+RecvPropFloat(RECVINFO(m_flDamageModifier)),
+RecvPropFloat(RECVINFO(m_flFireRateModifier)),
+RecvPropFloat(RECVINFO(m_flSpreadModifier)),
+RecvPropString(RECVINFO(m_CompatibleWeaponList)),
+RecvPropString(RECVINFO(m_szAttacmentModel)),
 #endif // CLIENT_DLL
 END_NETWORK_TABLE()
 
@@ -30,7 +42,7 @@ bool CBaseWeaponAttachment::IsCompatibleWithWeapon(CBaseModularWeapon* pWeapon)
 {
     for (int i = 0; i < m_CompatibleWeapons.Count(); i++)
     {
-        if (!V_strcmp(m_CompatibleWeapons.Element(i), pWeapon->GetClassname()))
+        if (!V_strcmp(m_CompatibleWeapons[i], pWeapon->GetClassname()))
         {
             return true;
         }
@@ -39,13 +51,35 @@ bool CBaseWeaponAttachment::IsCompatibleWithWeapon(CBaseModularWeapon* pWeapon)
     return false;
 }
 
+CBaseWeaponAttachment::CBaseWeaponAttachment()
+{
+    m_AttachmentType = ATTACHMENT_NONE;
+    m_flDamageModifier.GetForModify() = 1.0f;
+    m_flFireRateModifier.GetForModify() = 1.0f;
+    m_flSpreadModifier.GetForModify() = 1.0f;
+}
+
+CBaseWeaponAttachment::~CBaseWeaponAttachment()
+{
+#ifdef CLIENT_DLL
+    for (int i = 0; i < m_CompatibleWeapons.Count(); i++)
+    {
+        if (m_CompatibleWeapons[i])
+        {
+            delete[] m_CompatibleWeapons[i];
+        }
+    }
+#endif // CLIENT_DLL
+    m_CompatibleWeapons.Purge();
+}
+
 void CBaseWeaponAttachment::Save(CSave& save)
 {
     // Save base properties
     save.WriteInt((int*)&m_AttachmentType);
-    save.WriteFloat(&m_flDamageModifier);
-    save.WriteFloat(&m_flFireRateModifier);
-    save.WriteFloat(&m_flSpreadModifier);
+    save.WriteFloat(&m_flDamageModifier.Get());
+    save.WriteFloat(&m_flFireRateModifier.Get());
+    save.WriteFloat(&m_flSpreadModifier.Get());
 
     // Save compatible weapons list
     int weaponCount = m_CompatibleWeapons.Count();
@@ -61,9 +95,9 @@ void CBaseWeaponAttachment::Restore(CRestore& restore)
 {
     // Restore base properties
     restore.ReadInt((int*)&m_AttachmentType);
-    restore.ReadFloat(&m_flDamageModifier);
-    restore.ReadFloat(&m_flFireRateModifier);
-    restore.ReadFloat(&m_flSpreadModifier);
+    restore.ReadFloat(&m_flDamageModifier.GetForModify());
+    restore.ReadFloat(&m_flFireRateModifier.GetForModify());
+    restore.ReadFloat(&m_flSpreadModifier.GetForModify());
 
     // Restore compatible weapons list
     int weaponCount;
@@ -81,6 +115,21 @@ void CBaseWeaponAttachment::Restore(CRestore& restore)
         restore.ReadString(buffer, sizeof(buffer), 0);
         m_CompatibleWeapons.AddToTail(strdup(buffer)); // Note: This allocates memory
     }
+}
+
+void CBaseWeaponAttachment::Spawn()
+{
+    Precache();
+#ifndef CLIENT_DLL
+    SetTransmitState(FL_EDICT_ALWAYS);
+#endif // CLIENT_DLL
+    BaseClass::Spawn();
+}
+
+void CBaseWeaponAttachment::Precache(void)
+{
+    BaseClass::Precache();
+    PrecacheModel(GetModel());
 }
 
 bool CBaseWeaponAttachment::IsCompatibleWithWeapon(const char* WeaponClassName)
@@ -113,6 +162,29 @@ void CBaseWeaponAttachment::AddCompatibleWeapon(const char* szWeaponClassName)
         AddWeapon(szWeaponClassName);
     }
 }
+#ifdef GAME_DLL
+void CBaseWeaponAttachment::UpdateCompatibleWeaponList()
+{
+    char buffer[512] = { 0 };  // Initialize with zeros
+
+    for (int i = 0; i < m_CompatibleWeapons.Count(); i++)
+    {
+        V_strcat(buffer, m_CompatibleWeapons[i], sizeof(buffer));  // Append weapon name
+
+        if (i < m_CompatibleWeapons.Count() - 1)
+        {
+            V_strcat(buffer, ",", sizeof(buffer));  // Separate with commas
+        }
+    }
+
+    // Ensure the string is null-terminated
+    // Find the length of the string in the buffer
+    size_t strLength = V_strlen(buffer);
+
+    // Ensure m_CompatibleWeaponList has enough space for the copied string
+    V_strncpy(m_CompatibleWeaponList.GetForModify(), buffer, strLength + 1);  // +1 to copy the null terminator
+}
+#endif // GAME_DLL
 
 template <typename... Args>
 void CBaseWeaponAttachment::AddCompatibleWeapons(Args... args)
@@ -128,6 +200,23 @@ void CBaseWeaponAttachment::AddWeapon(const char* szWeaponClassName)
     if (!IsDuplicate(m_CompatibleWeapons, szWeaponClassName))
     {
         m_CompatibleWeapons.AddToTail(szWeaponClassName);
+#ifdef GAME_DLL
+        UpdateCompatibleWeaponList(); // Update the networked string
+#endif // GAME_DLL
+    }
+}
+
+void CBaseWeaponAttachment::GetCompatibleWeapons(CUtlVector<const char*>& vec)
+{
+    char* buffer = new char[512];  // Ensure buffer is zero-initialized
+    const char* weaponlist = m_CompatibleWeaponList.Get();
+    V_strncpy(buffer, weaponlist, 512);  // Copy weapon list to buffer
+
+    char* token = strtok(buffer, ",");  // Tokenize based on commas
+    while (token)
+    {
+        vec.AddToTail(token);  // Add token to vector
+        token = strtok(nullptr, ",");  // Continue tokenizing
     }
 }
 

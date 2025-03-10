@@ -7,8 +7,9 @@ CSilencerAttachment::CSilencerAttachment()
 	AddCompatibleWeapon("weapon_glock18c");
 	SetAttachmentType(ATTACHMENT_SILENCER);
 	SetDamageModifier(0.5f);
-	SetFireRateModifier(0.0f);
-	SetSpreadModifier(0.0f);
+	SetFireRateModifier(1.0f);
+	SetSpreadModifier(1.0f);
+	SetModelPath("models/weapons/attachments/attachment_silencer.mdl");
 }
 
 CSilencerAttachment::~CSilencerAttachment()
@@ -18,11 +19,6 @@ CSilencerAttachment::~CSilencerAttachment()
 void CSilencerAttachment::Spawn(void)
 {
 	BaseClass::Spawn();
-}
-
-void CSilencerAttachment::Precache(void)
-{
-	BaseClass::Precache();
 }
 
 void CSilencerAttachment::Save(CSave& save)
@@ -47,6 +43,7 @@ CON_COMMAND_F(fp_give_silencer, "gives the silencer to the player", FCVAR_CHEAT)
 
 	if (pPlayer && pSilencer)
 	{
+		DispatchSpawn(pSilencer);
 		CBaseModularWeapon *pWeapon = (CBaseModularWeapon*)(pPlayer->Weapon_OwnsThisType("weapon_glock18c"));
 
 		if (pWeapon)

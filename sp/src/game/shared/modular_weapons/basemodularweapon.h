@@ -39,9 +39,7 @@ private:
     float m_flBaseDamage = 0.0f;
     CUtlMap<AttachmentType_t, CBaseWeaponAttachment*> m_Attachments;
 
-    typedef CHandle<CBaseWeaponAttachment> CWeaponAttachmentHandle;
-    CNetworkArray(CWeaponAttachmentHandle, m_hAttachmentEnts, (AttachmentType_t)ATTACHMENT_COUNT);
-    CNetworkVar(bool, m_bActiveMerge);
+    CNetworkHandle(CBaseWeaponAttachment, LastAttachment);
 };
 
 inline CBaseModularWeapon* ToModularWeapon(CBaseEntity* pEntity)

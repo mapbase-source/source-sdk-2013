@@ -39,26 +39,29 @@ public:
     DECLARE_NETWORKCLASS();
     DECLARE_PREDICTABLE();
 
+    CBaseWeaponAttachment();
+    ~CBaseWeaponAttachment();
+
     virtual const char* GetClassName() { return nullptr; }; // Each derived class must implement this
     virtual void Save(CSave& save);
     virtual void Restore(CRestore& restore);
+    virtual void Spawn();
+    virtual void Precache(void);
 
-    inline AttachmentType_t GetAttachmentType() const { return m_AttachmentType; };
-    inline void SetAttachmentType(AttachmentType_t type) { m_AttachmentType = type; };
+    inline AttachmentType_t GetAttachmentType() const { return m_AttachmentType.Get(); };
+    inline void SetAttachmentType(AttachmentType_t type) { m_AttachmentType.GetForModify() = type; };
 
-    inline float GetDamageModifier() const { return m_flDamageModifier; }
-    inline void SetDamageModifier(float damage) { m_flDamageModifier = damage; }
+    inline float GetDamageModifier() const { return m_flDamageModifier.Get(); }
+    inline void SetDamageModifier(float damage) { m_flDamageModifier.GetForModify() = damage; }
 
-    inline float GetFireRateModifier() const { return m_flFireRateModifier; }
-    inline void SetFireRateModifier(float fireRate) { m_flFireRateModifier = fireRate; }
+    inline float GetFireRateModifier() const { return m_flFireRateModifier.Get(); }
+    inline void SetFireRateModifier(float fireRate) { m_flFireRateModifier.GetForModify() = fireRate; }
 
-    inline float GetSpreadModifier() const { return m_flSpreadModifier; }
-    inline void SetSpreadModifier(float spread) { m_flSpreadModifier = spread; }
+    inline float GetSpreadModifier() const { return m_flSpreadModifier.Get(); }
+    inline void SetSpreadModifier(float spread) { m_flSpreadModifier.GetForModify() = spread; }
 
     bool IsCompatibleWithWeapon(const char* WeaponClassName);
     bool IsCompatibleWithWeapon(CBaseModularWeapon* pWeapon);
-
-    virtual const char* GetModel() { return ""; };
 
     // Method to add compatible weapons
     void AddCompatibleWeapon(CBaseModularWeapon* pWeapon);
@@ -66,12 +69,29 @@ public:
 
     template<typename ...Args>
     void AddCompatibleWeapons(Args ...args);
+#ifdef GAME_DLL
+    void UpdateCompatibleWeaponList();
+#endif // GAME_DLL
+
+    CUtlVector<const char*>& GetCompatibleWeaponsVec() {
+        return m_CompatibleWeapons;
+    };
+
+    virtual const char* GetModel() { return m_szAttacmentModel.Get(); };
+
+    void SetModelPath(const char* szMDLPath)
+    {
+        V_strcpy(m_szAttacmentModel.GetForModify(), szMDLPath);
+    }
+
+
+    void GetCompatibleWeapons(CUtlVector<const char*>& vec);
 
 private:
-    AttachmentType_t m_AttachmentType;
-    float m_flDamageModifier = 0.0f;
-    float m_flFireRateModifier = 0.0f;
-    float m_flSpreadModifier = 0.0f;
+    CNetworkVar(AttachmentType_t, m_AttachmentType);
+    CNetworkVar(float, m_flDamageModifier);
+    CNetworkVar(float, m_flFireRateModifier);
+    CNetworkVar(float, m_flSpreadModifier);
 
     bool IsDuplicate(CUtlVector<const char*>& vec, const char* str)
     {
@@ -88,6 +108,9 @@ private:
     void AddWeapon(const char* szWeaponClassName);
 
     CUtlVector<const char*> m_CompatibleWeapons;    // List of compatible weapons
+
+    CNetworkString(m_CompatibleWeaponList, 512);
+    CNetworkString(m_szAttacmentModel, MAX_PATH);
 };
 
 // Factory system for attachment registration

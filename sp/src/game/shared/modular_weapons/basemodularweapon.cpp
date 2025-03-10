@@ -21,11 +21,11 @@ BEGIN_NETWORK_TABLE(CBaseModularWeapon, DT_BaseModularWeapon)
 #ifdef GAME_DLL
 SendPropExclude("DT_AnimTimeMustBeFirst", "m_flAnimTime"),
 SendPropExclude("DT_BaseAnimating", "m_nSequence"),
-SendPropArray3(SENDINFO_ARRAY3(m_hAttachmentEnts), SendPropEHandle(SENDINFO_ARRAY(m_hAttachmentEnts))),
-SendPropInt(SENDINFO(m_bActiveMerge), 1, SPROP_UNSIGNED),
+//SendPropArray3(SENDINFO_ARRAY3(m_hAttachmentEnts), SendPropEHandle(SENDINFO_ARRAY(m_hAttachmentEnts))),
+SendPropEHandle(SENDINFO(LastAttachment))
 #else
-RecvPropArray3(RECVINFO_ARRAY(m_hAttachmentEnts), RecvPropEHandle(RECVINFO(m_hAttachmentEnts[0]))),
-RecvPropInt(RECVINFO(m_bActiveMerge)),
+//RecvPropArray3(RECVINFO_ARRAY(m_hAttachmentEnts), RecvPropEHandle(RECVINFO(m_hAttachmentEnts[0]))),
+RecvPropEHandle(RECVINFO(LastAttachment)),
 #endif
 END_NETWORK_TABLE()
 
@@ -42,7 +42,6 @@ END_DATADESC()
 
 CBaseModularWeapon::CBaseModularWeapon()
 {
-	m_bActiveMerge = false;
 	m_Attachments.SetLessFunc(DefLessFunc(AttachmentType_t));
 }
 
@@ -53,31 +52,41 @@ CBaseModularWeapon::~CBaseModularWeapon()
 #ifdef CLIENT_DLL
 void CBaseModularWeapon::ClientThink()
 {
-	CBasePlayer* pPlayer = CBasePlayer::GetLocalPlayer();
-	C_BaseViewModel* pVM = pPlayer->GetViewModel();
-	if (pVM)
-	{
-		for (int i = 0; i < (int)(m_hAttachmentEnts.Count()); i++)
-		{
-			CBaseWeaponAttachment* attachment = m_hAttachmentEnts[i].Get();
-			if (attachment) {
-				PrecacheModel(attachment->GetModel());
-				attachment->AddEffects(EF_BONEMERGE | EF_BONEMERGE_FASTCULL | EF_PARENT_ANIMATES);
-				attachment->InitializeAsClientEntity(attachment->GetModel(), RENDER_GROUP_VIEW_MODEL_TRANSLUCENT);
-				SetParent(pVM);
-				SetLocalOrigin(vec3_origin);
-				AddSolidFlags(FSOLID_NOT_SOLID);
-			}
-		}
-	}
+	//CBasePlayer* pPlayer = CBasePlayer::GetLocalPlayer();
+	//C_BaseViewModel* pVM = pPlayer->GetViewModel();
+	//if (pVM)
+	//{
+	//	for (int i = 0; i < (int)(m_hAttachmentEnts.Count()); i++)
+	//	{
+	//		CBaseWeaponAttachment* attachment = m_hAttachmentEnts[i].Get();
+	//		if (attachment) {
+	//			PrecacheModel(attachment->GetModel());
+	//			attachment->AddEffects(EF_BONEMERGE | EF_BONEMERGE_FASTCULL | EF_PARENT_ANIMATES);
+	//			attachment->InitializeAsClientEntity(attachment->GetModel(), RENDER_GROUP_VIEW_MODEL_TRANSLUCENT);
+	//			SetParent(pVM);
+	//			SetLocalOrigin(vec3_origin);
+	//			AddSolidFlags(FSOLID_NOT_SOLID);
+	//		}
+	//	}
+	//}
 }
 
 void CBaseModularWeapon::OnDataChanged(DataUpdateType_t updateType)
 {
 	BaseClass::OnDataChanged(updateType);
-	if (updateType == DATA_UPDATE_CREATED)
+
+	if (updateType == DATA_UPDATE_DATATABLE_CHANGED)
 	{
-		SetNextClientThink(CLIENT_THINK_ALWAYS);
+		if (LastAttachment.Get())
+		{
+			static CBaseHandle oldindex;
+			if (LastAttachment.m_Value != oldindex)
+			{
+				oldindex = LastAttachment.m_Value;
+				LastAttachment->GetCompatibleWeapons(LastAttachment->GetCompatibleWeaponsVec());
+				EquipAttachment(LastAttachment);
+			}
+		}
 	}
 }
 #endif // CLIENT_DLL
@@ -97,9 +106,29 @@ void CBaseModularWeapon::EquipAttachment(CBaseWeaponAttachment* pAttachment)
 		{
 			if (pAttachment->IsCompatibleWithWeapon(this))
 			{
-				
-				m_Attachments.Insert(ATTACHMENT_SILENCER, pAttachment);
-				m_hAttachmentEnts.Set(ATTACHMENT_SILENCER, pAttachment);
+#ifdef GAME_DLL
+				LastAttachment.GetForModify() = pAttachment;
+#endif // GAME_DLL
+
+
+				unsigned short index = m_Attachments.Insert(ATTACHMENT_SILENCER, pAttachment); 
+				if (m_Attachments[index])
+				{
+#ifdef CLIENT_DLL
+					CBaseViewModel* pVM = CBasePlayer::GetLocalPlayer()->GetViewModel();
+
+					if (pVM)
+					{
+						//PrecacheModel(pAttachment->GetModel());
+						pAttachment->AddFlag(EF_BONEMERGE | EF_BONEMERGE_FASTCULL | EF_PARENT_ANIMATES);
+						pAttachment->SetModel(pAttachment->GetModel());
+						pAttachment->AddToLeafSystem(RENDER_GROUP_VIEW_MODEL_TRANSLUCENT);
+						pAttachment->SetParent(pVM);
+						pAttachment->SetLocalOrigin(vec3_origin);
+						pAttachment->AddSolidFlags(FSOLID_NOT_SOLID);
+					}
+#endif // CLIENT_DLL
+				}
 			}
 			break;
 		}
@@ -112,6 +141,7 @@ void CBaseModularWeapon::EquipAttachment(CBaseWeaponAttachment* pAttachment)
 	return;
 }
 
+
 void CBaseModularWeapon::RemoveAttachment(AttachmentType_t type)
 {
 	return; //TODO: Implement
@@ -123,18 +153,22 @@ float CBaseModularWeapon::GetDamage()
 	// Start with the base damage from ammo settings
 	float totalDamage = GetAmmoDef()->GetAmmoOfIndex(this->GetPrimaryAmmoType())->pPlrDmgCVar->GetFloat();
 
-	for (int iter = m_Attachments.FirstInorder(); iter != m_Attachments.InvalidIndex(); iter = m_Attachments.NextInorder(iter))
+#ifdef GAME_DLL
+	// Server-side logic remains the same
+	for (int i = 0; i < ATTACHMENT_COUNT; i++)
 	{
-		// Access the attachment type (key) and attachment (value)
-		AttachmentType_t attachmentType = m_Attachments.Key(iter);
-		CBaseWeaponAttachment* pAttachment = m_Attachments[attachmentType];  // Access the attachment using the key
-
-		// If attachment is valid, apply its damage modifier
-		if (pAttachment)
+		AttachmentType_t attachmentType = static_cast<AttachmentType_t>(i);
+		int iAttachmentIndex = m_Attachments.Find(attachmentType);
+		if (iAttachmentIndex != m_Attachments.InvalidIndex())
 		{
-			totalDamage *= pAttachment->GetDamageModifier();  // Apply the damage modifier for this attachment
+			CBaseWeaponAttachment* pAttachment = m_Attachments[iAttachmentIndex];
+			if (pAttachment)
+			{
+ 				totalDamage *= pAttachment->GetDamageModifier();
+			}
 		}
 	}
+#endif // GAME_DLL
 
 	// Return the total calculated damage after applying all active attachments
 	return totalDamage;
@@ -204,7 +238,9 @@ void CBaseModularWeapon::PrimaryAttack(void)
 #if !defined( CLIENT_DLL )
 	// Fire the bullets
 	info.m_vecSpread = pPlayer->GetAttackSpread(this);
-	info.SetPlayerDamage(GetDamage());
+	float flDmg = GetDamage();
+	info.SetPlayerDamage(flDmg);
+	info.SetDamage(flDmg);
 #else
 	//!!!HACKHACK - what does the client want this function for? 
 	info.m_vecSpread = GetActiveWeapon()->GetBulletSpread();
