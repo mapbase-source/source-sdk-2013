@@ -47,6 +47,9 @@ public:
     virtual void Restore(CRestore& restore);
     virtual void Spawn();
     virtual void Precache(void);
+#ifdef CLIENT_DLL
+    virtual RenderGroup_t GetRenderGroup() { return RENDER_GROUP_VIEW_MODEL_TRANSLUCENT; };
+#endif // CLIENT_DLL
 
     inline AttachmentType_t GetAttachmentType() const { return m_AttachmentType.Get(); };
     inline void SetAttachmentType(AttachmentType_t type) { m_AttachmentType.GetForModify() = type; };

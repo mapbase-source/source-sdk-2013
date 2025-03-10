@@ -121,10 +121,16 @@ void CBaseModularWeapon::EquipAttachment(CBaseWeaponAttachment* pAttachment)
 					{
 						//PrecacheModel(pAttachment->GetModel());
 						pAttachment->AddFlag(EF_BONEMERGE | EF_BONEMERGE_FASTCULL | EF_PARENT_ANIMATES);
+						//pAttachment->AddEffects(EF_NODRAW);
+						//pAttachment->InitializeAsClientEntity(pAttachment->GetModel(), RENDER_GROUP_VIEW_MODEL_TRANSLUCENT);
 						pAttachment->SetModel(pAttachment->GetModel());
 						pAttachment->AddToLeafSystem(RENDER_GROUP_VIEW_MODEL_TRANSLUCENT);
 						pAttachment->SetParent(pVM);
+						pAttachment->FollowEntity(pVM);
 						pAttachment->SetLocalOrigin(vec3_origin);
+						pAttachment->UpdatePartitionListEntry();
+						pAttachment->CollisionProp()->MarkPartitionHandleDirty();
+						pAttachment->UpdateVisibility();
 						pAttachment->AddSolidFlags(FSOLID_NOT_SOLID);
 					}
 #endif // CLIENT_DLL

@@ -120,8 +120,11 @@ void CBaseWeaponAttachment::Restore(CRestore& restore)
 void CBaseWeaponAttachment::Spawn()
 {
     Precache();
-#ifndef CLIENT_DLL
+#ifdef GAME_DLL
     SetTransmitState(FL_EDICT_ALWAYS);
+#elif CLIENT_DLL
+    m_BoneAccessor.SetReadableBones(BONE_USED_BY_ANYTHING);
+    m_BoneAccessor.SetWritableBones(BONE_USED_BY_ANYTHING);
 #endif // CLIENT_DLL
     BaseClass::Spawn();
 }

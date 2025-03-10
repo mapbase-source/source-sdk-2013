@@ -2,6 +2,8 @@
 #include "attachment_silencer.h"
 #include "basemodularweapon.h"
 
+PRECACHE_REGISTER(silencerattachment);
+
 CSilencerAttachment::CSilencerAttachment()
 {
 	AddCompatibleWeapon("weapon_glock18c");
