@@ -66,7 +66,8 @@ CBaseWeaponAttachment::~CBaseWeaponAttachment()
     {
         if (m_CompatibleWeapons[i])
         {
-            delete[] m_CompatibleWeapons[i];
+            // TODO: i dont think source engine liked that o_o
+            //delete[] m_CompatibleWeapons[i];
         }
     }
 #endif // CLIENT_DLL
