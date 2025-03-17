@@ -70,8 +70,12 @@ public:
     void AddCompatibleWeapon(CBaseModularWeapon* pWeapon);
     void AddCompatibleWeapon(const char* szWeaponClassName);
 
-    template<typename ...Args>
-    void AddCompatibleWeapons(Args ...args);
+    void AddCompatibleWeapons(std::initializer_list<const char*> weapons) {
+        for (const auto& weapon : weapons) {
+            AddWeapon(weapon);
+        }
+    }
+
 #ifdef GAME_DLL
     void UpdateCompatibleWeaponList();
 #endif // GAME_DLL

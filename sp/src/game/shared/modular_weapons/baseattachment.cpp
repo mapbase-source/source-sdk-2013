@@ -53,22 +53,23 @@ bool CBaseWeaponAttachment::IsCompatibleWithWeapon(CBaseModularWeapon* pWeapon)
 
 CBaseWeaponAttachment::CBaseWeaponAttachment()
 {
-    m_AttachmentType = ATTACHMENT_NONE;
+    m_AttachmentType.GetForModify() = ATTACHMENT_NONE;
     m_flDamageModifier.GetForModify() = 1.0f;
     m_flFireRateModifier.GetForModify() = 1.0f;
     m_flSpreadModifier.GetForModify() = 1.0f;
+    AddEffects(EF_NOSHADOW);
 }
 
 CBaseWeaponAttachment::~CBaseWeaponAttachment()
 {
 #ifdef CLIENT_DLL
-    for (int i = 0; i < m_CompatibleWeapons.Count(); i++)
-    {
-        if (m_CompatibleWeapons[i])
-        {
-            delete[] m_CompatibleWeapons[i];
-        }
-    }
+   // for (int i = 0; i < m_CompatibleWeapons.Count(); i++)
+   // {
+   //     if (m_CompatibleWeapons.Element(i))
+   //     {
+   //         delete[] m_CompatibleWeapons[i];
+   //     }
+   // }
 #endif // CLIENT_DLL
     m_CompatibleWeapons.Purge();
 }
@@ -188,14 +189,6 @@ void CBaseWeaponAttachment::UpdateCompatibleWeaponList()
     V_strncpy(m_CompatibleWeaponList.GetForModify(), buffer, strLength + 1);  // +1 to copy the null terminator
 }
 #endif // GAME_DLL
-
-template <typename... Args>
-void CBaseWeaponAttachment::AddCompatibleWeapons(Args... args)
-{
-    static_assert((std::is_same_v<Args, const char*> && ...), "Only const char* strings are allowed!");
-
-    (AddWeapon(args), ...);  // Fold expression to call AddWeapon on each argument
-}
 
 void CBaseWeaponAttachment::AddWeapon(const char* szWeaponClassName)
 {

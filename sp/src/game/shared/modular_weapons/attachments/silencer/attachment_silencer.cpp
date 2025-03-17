@@ -6,7 +6,7 @@ PRECACHE_REGISTER(silencerattachment);
 
 CSilencerAttachment::CSilencerAttachment()
 {
-	AddCompatibleWeapon("weapon_glock18c");
+	AddCompatibleWeapons({ "weapon_glock18c" });
 	SetAttachmentType(ATTACHMENT_SILENCER);
 	SetDamageModifier(0.5f);
 	SetFireRateModifier(1.0f);
