@@ -37,6 +37,7 @@ END_PREDICTION_DATA()
 
 #ifdef GAME_DLL
 BEGIN_DATADESC(CBaseModularWeapon)
+DEFINE_UTLMAP(m_Attachments,FIELD_INTEGER, FIELD_CLASSPTR),
 END_DATADESC()
 #endif
 
@@ -90,6 +91,16 @@ void CBaseModularWeapon::OnDataChanged(DataUpdateType_t updateType)
 	}
 }
 #endif // CLIENT_DLL
+
+// TODO: use this somewhere
+////CBasePlayer* pOwner = ToBasePlayer(GetOwner());
+//BaseClass::SetWeaponVisible(visible);
+//for (int i = 0; i < (int)(m_Attachments.Count()); i++)
+//{
+//	if (m_Attachments.IsValidIndex(i)) {
+//		EquipAttachment(m_Attachments[i]);
+//	}
+//}
 
 void CBaseModularWeapon::ItemPreFrame(void)
 {
