@@ -152,12 +152,11 @@ void CBaseModularWeapon::EquipAttachment(CBaseWeaponAttachment* pAttachment)
 
 						if (pVM)
 						{
-#ifdef CLIENT_DLL
+
 							pAttachment->SetParent(pVM);
 							pAttachment->FollowEntity(pVM);
-							pAttachment->UpdateVisibility();
 							pAttachment->AddSolidFlags(FSOLID_NOT_SOLID);
-#elif GAME_DLL
+#ifdef GAME_DLL
 							pAttachment->SetLightingOrigin(pVM);
 #endif // CLIENT_DLL
 						}
