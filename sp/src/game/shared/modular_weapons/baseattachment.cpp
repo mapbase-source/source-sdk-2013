@@ -122,10 +122,15 @@ void CBaseWeaponAttachment::Spawn()
 {
     Precache();
 #ifdef GAME_DLL
+    DevMsg("Spawning attachment with model: %s\n", GetModel()); // Debug
     SetTransmitState(FL_EDICT_ALWAYS);
+    //AddFlag(EF_BONEMERGE | EF_BONEMERGE_FASTCULL | EF_PARENT_ANIMATES);
 #elif CLIENT_DLL
     m_BoneAccessor.SetReadableBones(BONE_USED_BY_ANYTHING);
     m_BoneAccessor.SetWritableBones(BONE_USED_BY_ANYTHING);
+    AddFlag(EF_BONEMERGE | EF_BONEMERGE_FASTCULL | EF_PARENT_ANIMATES);
+    SetModel(GetModel()); // Ensure the model path is correct
+    AddSolidFlags(FSOLID_NOT_SOLID);
 #endif // CLIENT_DLL
     BaseClass::Spawn();
 }
@@ -133,7 +138,46 @@ void CBaseWeaponAttachment::Spawn()
 void CBaseWeaponAttachment::Precache(void)
 {
     BaseClass::Precache();
-    PrecacheModel(GetModel());
+    SetModelIndex(PrecacheModel(GetModel()));
+    SetModelName(MAKE_STRING(GetModel()));
+}
+
+#ifdef CLIENT_DLL
+void CBaseWeaponAttachment::OnDataChanged(DataUpdateType_t updateType)
+{
+    BaseClass::OnDataChanged(updateType);
+    if (updateType == DATA_UPDATE_CREATED || updateType == DATA_UPDATE_DATATABLE_CHANGED)
+    {
+        UpdateAttachmentVisibility();
+    }
+}
+#endif // CLIENT_DLL
+#ifdef GAME_DLL
+int CBaseWeaponAttachment::ShouldTransmit(const CCheckTransmitInfo* pInfo)
+{
+    if (IsEffectActive(EF_NODRAW))
+    {
+        return FL_EDICT_DONTSEND;
+    }
+    return FL_EDICT_ALWAYS;
+}
+
+int CBaseWeaponAttachment::UpdateTransmitState(void)
+{
+   if (IsEffectActive(EF_NODRAW))
+   {
+       return SetTransmitState(FL_EDICT_DONTSEND);
+   }
+
+   return SetTransmitState(FL_EDICT_ALWAYS);
+}
+#endif // GAME_DLL
+
+void CBaseWeaponAttachment::UpdateAttachmentVisibility(void)
+{
+#ifdef CLIENT_DLL
+    UpdateVisibility();
+#endif // CLIENT_DLL
 }
 
 bool CBaseWeaponAttachment::IsCompatibleWithWeapon(const char* WeaponClassName)

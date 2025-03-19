@@ -29,6 +29,8 @@ public:
     virtual ~CBaseModularWeapon();
     virtual void EquipAttachment(CBaseWeaponAttachment* pAttachment);
     virtual void RemoveAttachment(AttachmentType_t type);
+    virtual void SetWeaponVisible(bool visible);
+    virtual bool Holster(CBaseCombatWeapon* pSwitchingTo);
 
     virtual float GetDamage();
 

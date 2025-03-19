@@ -87,7 +87,28 @@ void CBaseModularWeapon::OnDataChanged(DataUpdateType_t updateType)
 				LastAttachment->GetCompatibleWeapons(LastAttachment->GetCompatibleWeaponsVec());
 				EquipAttachment(LastAttachment);
 			}
+
+			//for (int i = m_Attachments.FirstInorder(); i != m_Attachments.InvalidIndex(); i = m_Attachments.NextInorder(i))
+			//{
+			//	CBaseWeaponAttachment* pAttachment = m_Attachments.Element(i);
+			//	if (pAttachment)
+			//	{
+			//
+			//		static bool weapon_visible = false;
+			//		if (IsWeaponVisible() && !weapon_visible)
+			//		{
+			//			pAttachment->FollowEntity(this);
+			//			pAttachment->SetParent(this);
+			//			weapon_visible = true;
+			//		}
+			//		else if (!IsWeaponVisible() && weapon_visible)
+			//		{
+			//			weapon_visible = false;
+			//		}
+			//	}
+			//}
 		}
+
 	}
 }
 #endif // CLIENT_DLL
@@ -121,26 +142,24 @@ void CBaseModularWeapon::EquipAttachment(CBaseWeaponAttachment* pAttachment)
 				LastAttachment.GetForModify() = pAttachment;
 #endif // GAME_DLL
 
-
 				unsigned short index = m_Attachments.Insert(ATTACHMENT_SILENCER, pAttachment); 
 				if (m_Attachments[index])
 				{
 #ifdef CLIENT_DLL
-					CBaseViewModel* pVM = CBasePlayer::GetLocalPlayer()->GetViewModel();
+					CBaseAnimating* pVM = CBasePlayer::GetLocalPlayer()->GetRenderedWeaponModel();
 
 					if (pVM)
 					{
 						//PrecacheModel(pAttachment->GetModel());
-						pAttachment->AddFlag(EF_BONEMERGE | EF_BONEMERGE_FASTCULL | EF_PARENT_ANIMATES);
+						//pAttachment->AddFlag(EF_BONEMERGE | EF_BONEMERGE_FASTCULL | EF_PARENT_ANIMATES);
 						//pAttachment->AddEffects(EF_NODRAW);
 						//pAttachment->InitializeAsClientEntity(pAttachment->GetModel(), RENDER_GROUP_VIEW_MODEL_TRANSLUCENT);
-						pAttachment->SetModel(pAttachment->GetModel());
-						pAttachment->AddToLeafSystem(RENDER_GROUP_VIEW_MODEL_TRANSLUCENT);
+						//pAttachment->SetModel(pAttachment->GetModel());
 						pAttachment->SetParent(pVM);
 						pAttachment->FollowEntity(pVM);
-						pAttachment->SetLocalOrigin(vec3_origin);
-						pAttachment->UpdatePartitionListEntry();
-						pAttachment->CollisionProp()->MarkPartitionHandleDirty();
+						//pAttachment->SetLocalOrigin(vec3_origin);
+						//pAttachment->UpdatePartitionListEntry();
+						//pAttachment->CollisionProp()->MarkPartitionHandleDirty();
 						pAttachment->UpdateVisibility();
 						pAttachment->AddSolidFlags(FSOLID_NOT_SOLID);
 					}
@@ -162,6 +181,36 @@ void CBaseModularWeapon::EquipAttachment(CBaseWeaponAttachment* pAttachment)
 void CBaseModularWeapon::RemoveAttachment(AttachmentType_t type)
 {
 	return; //TODO: Implement
+}
+
+void CBaseModularWeapon::SetWeaponVisible(bool visible)
+{
+	BaseClass::SetWeaponVisible(visible);
+	for (int i = m_Attachments.FirstInorder(); i != m_Attachments.InvalidIndex(); i = m_Attachments.NextInorder(i))
+	{
+		CBaseWeaponAttachment* pAttachment = m_Attachments.Element(i);
+		CBasePlayer* pPlayer = ToBasePlayer(GetOwnerEntity());
+		if (pAttachment && pPlayer)
+		{
+			if (visible)
+			{
+				pAttachment->RemoveEffects(EF_NODRAW);
+				pAttachment->SetParent(pPlayer->GetViewModel());
+				pAttachment->FollowEntity(pPlayer->GetViewModel());
+			}
+			else
+			{
+				pAttachment->AddEffects(EF_NODRAW);
+			}
+				
+		}
+	}
+}
+
+bool CBaseModularWeapon::Holster(CBaseCombatWeapon* pSwitchingTo)
+{
+	SetWeaponVisible(false);
+	return BaseClass::Holster(pSwitchingTo);
 }
 
 //Damage on Weapons is calculated using a multiplier from the attachment if you want to do more damage the attachment should do for example 1.1x the normal damage or if its less something like 0.9x damage

@@ -32,7 +32,7 @@ enum AttachmentType_t
 class CBaseWeaponAttachment : public CBaseAnimating
 {
 public:
-    DECLARE_CLASS(CBaseWeaponAttachment, CBaseEntity)
+    DECLARE_CLASS(CBaseWeaponAttachment, CBaseAnimating)
 #ifndef CLIENT_DLL
     DECLARE_DATADESC();
 #endif // !CLIENT_DLL
@@ -49,7 +49,15 @@ public:
     virtual void Precache(void);
 #ifdef CLIENT_DLL
     virtual RenderGroup_t GetRenderGroup() { return RENDER_GROUP_VIEW_MODEL_TRANSLUCENT; };
+    virtual void OnDataChanged(DataUpdateType_t updateType);
 #endif // CLIENT_DLL
+
+#ifdef GAME_DLL
+    virtual int				ShouldTransmit(const CCheckTransmitInfo* pInfo);
+    virtual int				UpdateTransmitState(void);
+#endif // GAME_DLL
+
+    virtual void            UpdateAttachmentVisibility(void);
 
     inline AttachmentType_t GetAttachmentType() const { return m_AttachmentType.Get(); };
     inline void SetAttachmentType(AttachmentType_t type) { m_AttachmentType.GetForModify() = type; };
