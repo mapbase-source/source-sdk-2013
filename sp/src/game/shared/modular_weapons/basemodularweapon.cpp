@@ -145,25 +145,23 @@ void CBaseModularWeapon::EquipAttachment(CBaseWeaponAttachment* pAttachment)
 				unsigned short index = m_Attachments.Insert(ATTACHMENT_SILENCER, pAttachment); 
 				if (m_Attachments[index])
 				{
-#ifdef CLIENT_DLL
-					CBaseAnimating* pVM = CBasePlayer::GetLocalPlayer()->GetRenderedWeaponModel();
-
-					if (pVM)
+					CBasePlayer* pPlayer = ToBasePlayer(GetOwnerEntity());
+					if (pPlayer)
 					{
-						//PrecacheModel(pAttachment->GetModel());
-						//pAttachment->AddFlag(EF_BONEMERGE | EF_BONEMERGE_FASTCULL | EF_PARENT_ANIMATES);
-						//pAttachment->AddEffects(EF_NODRAW);
-						//pAttachment->InitializeAsClientEntity(pAttachment->GetModel(), RENDER_GROUP_VIEW_MODEL_TRANSLUCENT);
-						//pAttachment->SetModel(pAttachment->GetModel());
-						pAttachment->SetParent(pVM);
-						pAttachment->FollowEntity(pVM);
-						//pAttachment->SetLocalOrigin(vec3_origin);
-						//pAttachment->UpdatePartitionListEntry();
-						//pAttachment->CollisionProp()->MarkPartitionHandleDirty();
-						pAttachment->UpdateVisibility();
-						pAttachment->AddSolidFlags(FSOLID_NOT_SOLID);
-					}
+						CBaseViewModel* pVM = pPlayer->GetViewModel();
+
+						if (pVM)
+						{
+#ifdef CLIENT_DLL
+							pAttachment->SetParent(pVM);
+							pAttachment->FollowEntity(pVM);
+							pAttachment->UpdateVisibility();
+							pAttachment->AddSolidFlags(FSOLID_NOT_SOLID);
+#elif GAME_DLL
+							pAttachment->SetLightingOrigin(pVM);
 #endif // CLIENT_DLL
+						}
+					}
 				}
 			}
 			break;
@@ -197,6 +195,10 @@ void CBaseModularWeapon::SetWeaponVisible(bool visible)
 				pAttachment->RemoveEffects(EF_NODRAW);
 				pAttachment->SetParent(pPlayer->GetViewModel());
 				pAttachment->FollowEntity(pPlayer->GetViewModel());
+#ifdef GAME_DLL
+				pAttachment->SetLightingOrigin(pPlayer->GetViewModel());
+#endif // GAME_DLL
+
 			}
 			else
 			{

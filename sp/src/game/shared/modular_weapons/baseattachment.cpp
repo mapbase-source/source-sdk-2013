@@ -175,10 +175,18 @@ int CBaseWeaponAttachment::UpdateTransmitState(void)
 
 void CBaseWeaponAttachment::UpdateAttachmentVisibility(void)
 {
+
 #ifdef CLIENT_DLL
     UpdateVisibility();
 #endif // CLIENT_DLL
 }
+
+#ifdef GAME_DLL
+void CBaseWeaponAttachment::SetLightingOrigin(CBaseEntity* pLightingOrigin)
+{
+    BaseClass::SetLightingOrigin(pLightingOrigin);
+}
+#endif // GAME_DLL
 
 bool CBaseWeaponAttachment::IsCompatibleWithWeapon(const char* WeaponClassName)
 {

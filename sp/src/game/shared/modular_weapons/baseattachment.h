@@ -53,11 +53,12 @@ public:
 #endif // CLIENT_DLL
 
 #ifdef GAME_DLL
-    virtual int				ShouldTransmit(const CCheckTransmitInfo* pInfo);
-    virtual int				UpdateTransmitState(void);
+    virtual int	ShouldTransmit(const CCheckTransmitInfo* pInfo);
+    virtual int	UpdateTransmitState(void);
+    virtual void SetLightingOrigin(CBaseEntity* pLightingOrigin);
 #endif // GAME_DLL
 
-    virtual void            UpdateAttachmentVisibility(void);
+    virtual void UpdateAttachmentVisibility(void);
 
     inline AttachmentType_t GetAttachmentType() const { return m_AttachmentType.Get(); };
     inline void SetAttachmentType(AttachmentType_t type) { m_AttachmentType.GetForModify() = type; };
