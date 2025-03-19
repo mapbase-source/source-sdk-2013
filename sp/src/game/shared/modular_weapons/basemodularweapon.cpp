@@ -219,22 +219,15 @@ float CBaseModularWeapon::GetDamage()
 	// Start with the base damage from ammo settings
 	float totalDamage = GetAmmoDef()->GetAmmoOfIndex(this->GetPrimaryAmmoType())->pPlrDmgCVar->GetFloat();
 
-#ifdef GAME_DLL
 	// Server-side logic remains the same
-	for (int i = 0; i < ATTACHMENT_COUNT; i++)
+	for (int i = m_Attachments.FirstInorder(); i != m_Attachments.InvalidIndex(); i = m_Attachments.NextInorder(i))
 	{
-		AttachmentType_t attachmentType = static_cast<AttachmentType_t>(i);
-		int iAttachmentIndex = m_Attachments.Find(attachmentType);
-		if (iAttachmentIndex != m_Attachments.InvalidIndex())
+		CBaseWeaponAttachment* pAttachment = m_Attachments.Element(i);
+		if (pAttachment)
 		{
-			CBaseWeaponAttachment* pAttachment = m_Attachments[iAttachmentIndex];
-			if (pAttachment)
-			{
- 				totalDamage *= pAttachment->GetDamageModifier();
-			}
+ 			totalDamage *= pAttachment->GetDamageModifier();
 		}
 	}
-#endif // GAME_DLL
 
 	// Return the total calculated damage after applying all active attachments
 	return totalDamage;
