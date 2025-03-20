@@ -1,6 +1,7 @@
 #include "cbase.h"
 #include "baseattachment.h"
 #include "basemodularweapon.h"  // Include the full definition here
+#include "debugoverlay_shared.h"
 
 #include "tier0/memdbgon.h"
 
@@ -151,7 +152,35 @@ void CBaseWeaponAttachment::OnDataChanged(DataUpdateType_t updateType)
         UpdateAttachmentVisibility();
     }
 }
+
+bool CBaseWeaponAttachment::OnInternalDrawModel(ClientModelRenderInfo_t* pInfo)
+{
+    if (!BaseClass::OnInternalDrawModel(pInfo))
+        return false;
+
+    if (GetMoveParent() && GetMoveParent()->GetBaseAnimating())
+    {
+        C_BaseAnimating* pParent = GetMoveParent()->GetBaseAnimating();
+        CStudioHdr* pParentHdr = pParent->GetModelPtr();
+
+        static Vector vecLightingOrigin = vec3_origin;
+        if (pParentHdr->IllumPositionAttachmentIndex() <= 0)
+        {
+            VectorTransform(pParentHdr->illumposition(), pParent->RenderableToWorldTransform(), vecLightingOrigin);
+        }
+        else
+        {
+            matrix3x4_t matAttachment;
+            GetAttachment(pParentHdr->IllumPositionAttachmentIndex(), matAttachment);
+            VectorTransform(pParentHdr->illumposition(), matAttachment, vecLightingOrigin);
+        }
+        pInfo->pLightingOrigin = &vecLightingOrigin;
+    }
+
+    return true;
+}
 #endif // CLIENT_DLL
+
 #ifdef GAME_DLL
 int CBaseWeaponAttachment::ShouldTransmit(const CCheckTransmitInfo* pInfo)
 {

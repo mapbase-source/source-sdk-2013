@@ -194,9 +194,6 @@ void CBaseModularWeapon::SetWeaponVisible(bool visible)
 				pAttachment->RemoveEffects(EF_NODRAW);
 				pAttachment->SetParent(pPlayer->GetViewModel());
 				pAttachment->FollowEntity(pPlayer->GetViewModel());
-#ifdef GAME_DLL
-				pAttachment->SetLightingOrigin(pPlayer->GetViewModel());
-#endif // GAME_DLL
 
 			}
 			else

@@ -50,6 +50,7 @@ public:
 #ifdef CLIENT_DLL
     virtual RenderGroup_t GetRenderGroup() { return RENDER_GROUP_VIEW_MODEL_TRANSLUCENT; };
     virtual void OnDataChanged(DataUpdateType_t updateType);
+    virtual bool OnInternalDrawModel(ClientModelRenderInfo_t* pInfo);
 #endif // CLIENT_DLL
 
 #ifdef GAME_DLL
