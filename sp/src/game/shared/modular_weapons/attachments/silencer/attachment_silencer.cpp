@@ -12,6 +12,7 @@ CSilencerAttachment::CSilencerAttachment()
 	SetFireRateModifier(1.0f);
 	SetSpreadModifier(1.0f);
 	SetModelPath("models/weapons/attachments/attachment_silencer.mdl");
+	SetFireSound("Weapon_Glock18c.Silenced");
 }
 
 CSilencerAttachment::~CSilencerAttachment()

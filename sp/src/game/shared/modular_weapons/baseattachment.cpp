@@ -23,6 +23,7 @@ RecvPropFloat(RECVINFO(m_flFireRateModifier)),
 RecvPropFloat(RECVINFO(m_flSpreadModifier)),
 RecvPropString(RECVINFO(m_CompatibleWeaponList)),
 RecvPropString(RECVINFO(m_szAttacmentModel)),
+
 #endif // CLIENT_DLL
 END_NETWORK_TABLE()
 
@@ -141,6 +142,7 @@ void CBaseWeaponAttachment::Precache(void)
     BaseClass::Precache();
     SetModelIndex(PrecacheModel(GetModel()));
     SetModelName(MAKE_STRING(GetModel()));
+    PrecacheScriptSound(GetFireSound());
 }
 
 #ifdef CLIENT_DLL

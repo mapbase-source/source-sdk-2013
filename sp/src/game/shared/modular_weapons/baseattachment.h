@@ -76,6 +76,10 @@ public:
     bool IsCompatibleWithWeapon(const char* WeaponClassName);
     bool IsCompatibleWithWeapon(CBaseModularWeapon* pWeapon);
 
+    inline const char* GetFireSound() { return m_szFireSound.Get(); };
+    inline void SetFireSound(const char* szFireSound) { V_strncpy(m_szFireSound.GetForModify(), szFireSound, V_strlen(szFireSound)+1); };
+
+
     // Method to add compatible weapons
     void AddCompatibleWeapon(CBaseModularWeapon* pWeapon);
     void AddCompatibleWeapon(const char* szWeaponClassName);
@@ -109,6 +113,7 @@ private:
     CNetworkVar(float, m_flDamageModifier);
     CNetworkVar(float, m_flFireRateModifier);
     CNetworkVar(float, m_flSpreadModifier);
+    CNetworkString(m_szFireSound, MAX_PATH);
 
     bool IsDuplicate(CUtlVector<const char*>& vec, const char* str)
     {

@@ -32,6 +32,8 @@ public:
     virtual void SetWeaponVisible(bool visible);
     virtual bool Holster(CBaseCombatWeapon* pSwitchingTo);
 
+    virtual char const* GetShootSound(int iIndex) const;
+
     virtual float GetDamage();
 
     virtual void PrimaryAttack(void);

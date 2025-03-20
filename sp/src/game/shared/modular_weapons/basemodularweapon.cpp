@@ -211,6 +211,27 @@ bool CBaseModularWeapon::Holster(CBaseCombatWeapon* pSwitchingTo)
 	return BaseClass::Holster(pSwitchingTo);
 }
 
+//Override this so we can have custom weapon sounds based on the equiped attachment
+char const* CBaseModularWeapon::GetShootSound(int iIndex) const
+{
+	if (iIndex == SINGLE)
+	{
+		int index = m_Attachments.Find(ATTACHMENT_SILENCER);
+		if (index != m_Attachments.InvalidIndex())
+		{
+			CBaseWeaponAttachment* pAttachment = m_Attachments.Element(index);
+			if (pAttachment)
+			{
+				return pAttachment->GetFireSound();
+			}
+		}
+	}
+
+	return BaseClass::GetShootSound(iIndex);
+}
+
+
+
 //Damage on Weapons is calculated using a multiplier from the attachment if you want to do more damage the attachment should do for example 1.1x the normal damage or if its less something like 0.9x damage
 float CBaseModularWeapon::GetDamage()
 {
