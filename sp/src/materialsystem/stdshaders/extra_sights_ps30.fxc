@@ -1,0 +1,104 @@
+// shadertype=hlsl
+//===================== File of the LUX Shader Project =====================//
+//
+//	Initial D.	:	24.03.2025 DMY
+//	Last Change :	24.03.2025 DMY
+//
+//	Purpose of this File :	$Bumpmap Materials
+//
+//==========================================================================//
+
+//==========================================================================//
+//	Declare Static Combos
+//==========================================================================//
+// STATIC: "DETAILTEXTURE"	"0..1"
+
+//==========================================================================//
+//	Declare Dynamic Combos
+//==========================================================================//
+
+//==========================================================================//
+//	Skipping combos that are unneeded
+//	GIGA IMPORTANT :	The order of the STATIC:'s and the order of the skips
+//						will DRASTICALLY affect compiletime!
+//==========================================================================//
+
+//==========================================================================//
+//	Common Definitions
+//==========================================================================//
+const float4 g_EyePos_Depth						: register(c0);
+#define g_EyePos								(g_EyePos_Depth.xyz)
+#define g_ParallaxDepth							(g_EyePos_Depth.w)
+
+const float3 g_DetailTint						: register(c1);
+const float3 g_ColorTint						: register(c2);
+
+const float4 cLightScale						: register(c30);
+sampler Sampler_BaseTexture						: register(s0);
+sampler Sampler_DetailTexture					: register(s1);
+
+//==========================================================================//
+//	Everything Vertex Shader is outputting, enters here
+//==========================================================================//
+struct PS_INPUT
+{
+	// HACKHACK: For some reason Scell's compiler allows the use of SV_POSITION
+	// We can abuse this so we don't need to pass ProjPos separately!!
+	float2 ProjPos					:	SV_POSITION;
+	float3x3 TBN_Matrix				:	TEXCOORD0;
+	//								:	TEXCOORD1;
+	//								:	TEXCOORD2;
+
+	float4	WorldPos_ProjPosZ		:	TEXCOORD3;
+
+	#if DETAILTEXTURE
+		float4	TexCoords			:	TEXCOORD4;
+	#else
+		float2	TexCoords			:	TEXCOORD4;
+	#endif
+};
+ 
+//==========================================================================//
+//	Rendering Start - Entry point
+//==========================================================================//
+float4 main(PS_INPUT i) : COLOR
+{
+	//	Getting our PS_INPUT
+	//==========================================================================//
+	float3x3 TBN_Matrix	= i.TBN_Matrix;
+	float3 f3WorldPos = i.WorldPos_ProjPosZ.xyz;
+
+	// Time to get Displacing
+	float3 f3ViewDir = normalize(f3WorldPos - g_EyePos);
+	float3 f3TangentSpaceViewDir = normalize(mul(TBN_Matrix, f3ViewDir));
+
+	// ====================
+	// Sample BaseTexture
+	// ====================
+	float2 f2BaseUV = i.TexCoords.xy + f3TangentSpaceViewDir.xy * g_ParallaxDepth;
+
+	// Sample Holographic Sight Texture
+	float4 f4BaseTexture = tex2D(Sampler_BaseTexture, f2BaseUV); // $BaseTexture
+	f4BaseTexture.rgb *= g_ColorTint; // $Color, $Color2, $sRGBTint
+
+	// Prepare float in case we get Detail
+	float4 f4Result = f4BaseTexture;
+
+	// ====================
+	// Get DetailTexture
+	// ====================
+	#if DETAILTEXTURE
+
+	float4 f4DetailTexture = tex2D(Sampler_DetailTexture, i.TexCoords.zw);
+
+	f4DetailTexture.xyz = f4DetailTexture.xxx * g_DetailTint;
+	f4Result.xyz += f4DetailTexture.xyz;
+	f4Result.w += dot(f4DetailTexture.xyz, float3(0.2126f, 0.7152f, 0.0722f));
+
+	#endif
+
+	// ====================
+	// Return Results, but apply LightScale
+	// ====================
+	return float4(f4Result.xyz * cLightScale.xxx, f4Result.a);
+}

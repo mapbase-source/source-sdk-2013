@@ -1,0 +1,324 @@
+//===================== File of the LUX Shader Project =====================//
+//
+//	Initial D.	:	24.03.2025 DMY
+//	Last Change :	24.03.2025 DMY
+//
+//	Purpose of this File :	VertexShader for vs30, to be used on Models
+//
+//==========================================================================//
+
+// STATIC:		"DETAILUV"				"0..1"
+// DYNAMIC:		"SKINNING"				"0..1"
+
+const float4		cBaseTexCoordTransform[2]		: register(c223); // Shader specific const 13 & 14
+const float4		cDetailTexCoordTransform[2]		: register(c225); // Shader specific const 15 & 16
+const float4x4		cViewProj						: register(c8);
+const float4		cViewProjZ						: register(c13);
+const float4x3		cModel[53]						: register(c58);
+
+//-----------------------------------------------------------------------------
+// Input vertex format
+//-----------------------------------------------------------------------------
+struct VS_INPUT
+{
+    // This is all of the stuff that we ever use
+    float4 vPos                     : POSITION;
+	float4 vBoneWeights             : BLENDWEIGHT;	//	Despite no bones,
+	float4 vBoneIndices             : BLENDINDICES; //	we use these in SkinPositionAndNormal()
+    float4 vNormal                  : NORMAL;
+    float2 vTexCoord0               : TEXCOORD0;
+    float4 vUnusedTexCoord	        : TEXCOORD1;
+    float4 vMorphTexCoord			: TEXCOORD2;
+	float4 vColor                   : COLOR0;
+	float3 vSpecular				: COLOR1;
+
+	// Useless to this Shader
+	float4 vUserData				: TANGENT;
+
+	// Position and normal/tangent deltas
+	float4 vPosFlex					: POSITION1;
+	float4 vNormalFlex				: NORMAL1;
+
+	float vVertexID					: POSITION2;
+};
+
+struct VS_OUTPUT
+{
+	// ProjPos is used by the GPU to determine where to draw Pixel Shader results to
+	// ( The actual screenspace position of our triangles )
+    float4 ProjPosSetup				:	POSITION; 
+
+	// We remove vertex shader fog. You can thank me for another interpo*lator* ( hehe )
+//  float  Fog						:	FOG;
+	float3x3 TBN_Matrix				:	TEXCOORD0;
+	//								:	TEXCOORD1;
+	//								:	TEXCOORD2;
+
+	float4	WorldPos_ProjPosZ		:	TEXCOORD3;
+
+#if !DETAILUV
+	float2	TexCoords				:	TEXCOORD4;
+#else
+	float4	TexCoords				:	TEXCOORD4;
+#endif
+};
+
+float3 mul4x3(float4 v, float4x3 m)
+{
+	return float3(dot(v, transpose(m)[0]), dot(v, transpose(m)[1]), dot(v, transpose(m)[2]));
+}
+
+float3 mul3x3(float3 v, float3x3 m)
+{
+	return float3(dot(v, transpose(m)[0]), dot(v, transpose(m)[1]), dot(v, transpose(m)[2]));
+}
+
+// Just ripped from lux_common_vs_fxc.h
+// so this Shader works on stock SDK, Mapbase and LUX
+
+float4 DecompressBoneWeights(const float4 f4Weights)
+{
+	float4 f4Result = f4Weights;
+
+//	if ( COMPRESSED_VERTS ) // Not needed, models always have this.
+	{
+		// Decompress from SHORT2 to float. In our case, [-1, +32767] -> [0, +1]
+		// NOTE: we add 1 here so we can divide by 32768 - which is exact (divide by 32767 is not).
+		//       This avoids cracking between meshes with different numbers of bone weights.
+		//       We use SHORT2 instead of SHORT2N for a similar reason - the GPU's conversion
+		//       from [-32768,+32767] to [-1,+1] is imprecise in the same way.
+		f4Result += 1;
+		f4Result /= 32768;
+	}
+
+	return f4Result;
+}
+
+void SkinPositionAndNormal(const bool bSkinning, const float4 f4ModelPos, const float3 f3ModelNormal,
+	const float4 f4BoneWeights, float4 f4BoneIndices,
+	out float3 f3WorldPos, out float3 f3WorldNormal)
+{
+	// Note : The GPU just uses floats for ints
+	int3 boneIndices = D3DCOLORtoUBYTE4(f4BoneIndices);
+
+	if (!bSkinning)
+	{
+		f3WorldPos = mul4x3(f4ModelPos, cModel[0]);
+		f3WorldNormal = mul3x3(f3ModelNormal, (const float3x3)cModel[0]);
+	}
+	else // skinning - always three bones
+	{
+		float4x3 mat1 = cModel[boneIndices[0]];
+		float4x3 mat2 = cModel[boneIndices[1]];
+		float4x3 mat3 = cModel[boneIndices[2]];
+
+		float3 weights = DecompressBoneWeights(f4BoneWeights).xyz;
+		weights[2] = 1 - (weights[0] + weights[1]);
+
+		float4x3 blendMatrix = mat1 * weights[0] + mat2 * weights[1] + mat3 * weights[2];
+		f3WorldPos = mul4x3(f4ModelPos, blendMatrix);
+		f3WorldNormal = mul3x3(f3ModelNormal, (float3x3)blendMatrix);
+	}
+}
+
+void SkinPositionAndNormalAndTangents(const bool bSkinning, const float4 f4ModelPos, const float3 f3ModelNormal, const float4 TangentS,
+	const float4 boneWeights, float4 f4BoneIndices,
+	out float3 f3WorldPos, out float3 f3WorldNormal, out float3 f3Tangent)
+{
+	// Note : The GPU just uses floats for ints
+	int3 boneIndices = D3DCOLORtoUBYTE4(f4BoneIndices);
+
+	if (!bSkinning)
+	{
+		f3WorldPos = mul4x3(f4ModelPos, cModel[0]);
+		f3WorldNormal = mul3x3(f3ModelNormal, (const float3x3)cModel[0]);
+		f3Tangent = mul3x3(TangentS.xyz, (const float3x3)cModel[0] );
+	}
+	else // skinning - 'always three bones'
+	{
+		float4x3 mat1 = cModel[boneIndices[0]];
+		float4x3 mat2 = cModel[boneIndices[1]];
+		float4x3 mat3 = cModel[boneIndices[2]];
+
+		float3 weights = DecompressBoneWeights(boneWeights).xyz;
+		weights[2] = 1 - (weights[0] + weights[1]);
+
+		float4x3 blendMatrix = mat1 * weights[0] + mat2 * weights[1] + mat3 * weights[2];
+		f3WorldPos = mul4x3(f4ModelPos, blendMatrix);
+		f3WorldNormal = mul3x3(f3ModelNormal, (const float3x3)blendMatrix);
+		f3Tangent = mul3x3(TangentS.xyz, (const float3x3)blendMatrix ); // Why const?
+	}
+
+	// NOTE: This is now done in AlignVertexInputs
+	// That is because sometimes we don't actually need the Binormal, only its sign value
+
+	// Create the Binormal by taking the Cross-Product of Normal and Tangent
+	// We do it now because we already rotated those two above and that way they only had to compress the Tangent
+	// TangentS.w here is the Binormals sign, which determines what direction on its axis it should be pointing
+//	f3Binormal = cross(f3WorldNormal, f3Tangent) * TangentS.w;
+}
+
+// This one handles : WorldPos, WorldNormal, Tangent, Binormal
+void AlignVertexInputs(const bool bSkinning, const float4 f4ModelPos, const float3 f3ModelNormal, const float4 f4TangentS,
+	const float4 f4BoneWeights, float4 f4BoneIndices,
+	out float3 f3oWorldPos, out float3 f3oWorldNormal, out float3 f3oTangent, out float3 f3oBinormal)
+{
+	// Prepare variables
+	float3 f3WorldPos, f3WorldNormal, f3Tangent;
+
+	// Apply Skinning/Rotation
+	SkinPositionAndNormalAndTangents(bSkinning, f4ModelPos, f3ModelNormal, f4TangentS, f4BoneWeights, f4BoneIndices, f3WorldPos, f3WorldNormal, f3Tangent);
+
+	// Apply outputs
+	f3oWorldPos = f3WorldPos;
+	f3oWorldNormal = f3WorldNormal;
+	f3oTangent = f3Tangent;
+	f3oBinormal = cross(f3WorldNormal, f3Tangent) * f4TangentS.www; // Construct Binormal and apply sign
+}
+
+//==========================================================================//
+// From common_vs_fxc.h, We can't really change Vertex-Compression.
+// So we are forced to do exactly what Valve did originally. Which is this function.
+// Unmodified function from common_vs_fxc.h
+// Vertex Compression is used to reduce the memory bandwidth and increase performance.
+// Original comment :
+// "Decompress just a normal from four-component compressed format (same as above)
+// We expect this data to come from an unsigned UBYTE4 stream in the range of 0..255
+// [ When compiled, this works out to approximately 17 asm instructions ]"
+//==========================================================================//
+
+//=======================================================================================
+// Decompress a normal and tangent from four-component compressed format
+// We expect this data to come from an unsigned UBYTE4 stream in the range of 0..255
+// The final Tangent.w contains the sign of the  binormal
+//=======================================================================================
+void _DecompressUByte4NormalTangent(float4 f4CompressedInputNormal,
+	out float3 f3OutputNormal,	// {nX, nY, nZ}
+	out float4 f4OutputTangent)   // {tX, tY, tZ, sign of binormal}
+{
+	float fOne = 1.0f;
+
+	float4 ztztSignBits = (f4CompressedInputNormal - 128.0f) < 0;			// sign bits for zs and binormal (1 or 0)  set-less-than (slt) asm instruction
+	float4 xyxyAbs = abs(f4CompressedInputNormal - 128.0f) - ztztSignBits;	// 0..127
+	float4 xyxySignBits = (xyxyAbs - 64.0f) < 0;							// sign bits for xs and ys (1 or 0)
+	float4 normTan = (abs(xyxyAbs - 64.0f) - xyxySignBits) / 63.0f;			// abs({nX, nY, tX, tY})
+	f3OutputNormal.xy = normTan.xy;											// abs({nX, nY, __, __})
+	f4OutputTangent.xy = normTan.zw;										// abs({tX, tY, __, __})
+
+	float4 xyxySigns = 1 - 2 * xyxySignBits;						// Convert sign bits to signs
+	float4 ztztSigns = 1 - 2 * ztztSignBits;						// ( [1,0] -> [-1,+1] )
+
+	f3OutputNormal.z = 1.0f - f3OutputNormal.x - f3OutputNormal.y;	// Project onto x+y+z=1
+	f3OutputNormal.xyz = normalize(f3OutputNormal.xyz);				// Normalize onto unit sphere
+	f3OutputNormal.xy *= xyxySigns.xy;								// Restore x and y signs
+	f3OutputNormal.z *= ztztSigns.x;								// Restore z sign
+
+	f4OutputTangent.z = 1.0f - f4OutputTangent.x - f4OutputTangent.y;	// Project onto x+y+z=1
+	f4OutputTangent.xyz = normalize(f4OutputTangent.xyz);				// Normalize onto unit sphere
+	f4OutputTangent.xy *= xyxySigns.zw;									// Restore x and y signs
+	f4OutputTangent.z *= ztztSigns.z;									// Restore z sign
+	f4OutputTangent.w = ztztSigns.w;									// Binormal sign
+}
+
+// Overloaded Function of DecompressVertex_Normal, for use with Tangents
+void DecompressVertex_Normal(float4 f4InputNormal, out float3 f4OutputNormal, out float4 f4OutputTangent)
+{
+// Models always use vertex compression on the SDK!
+// So good bye two useless if statements!
+/*
+	if (COMPRESSED_VERTS == 1)
+	{
+		if (COMPRESSED_NORMALS_TYPE == COMPRESSED_NORMALS_SEPARATETANGENTS_SHORT2)
+		{
+			_DecompressShort2NormalTangent(inputNormal.xy, inputTangent.xy, outputNormal, outputTangent);
+		}
+		else // ( COMPRESSED_NORMALS_TYPE == COMPRESSED_NORMALS_COMBINEDTANGENTS_UBYTE4 )
+		{
+*/
+			_DecompressUByte4NormalTangent(f4InputNormal, f4OutputNormal, f4OutputTangent);
+/*
+		}
+	}
+	else
+	{
+		outputNormal = inputNormal.xyz;
+		outputTangent = inputTangent;
+	}
+*/
+}
+
+//-----------------------------------------------------------------------------
+// Main shader entry point
+//-----------------------------------------------------------------------------
+VS_OUTPUT main( const VS_INPUT v )
+{
+	VS_OUTPUT o = ( VS_OUTPUT )0;
+
+	//==========================================================================//
+	//	Get the basic Vertex Shader Inputs
+	//==========================================================================//
+
+	// Tangents are also compressed onto the Normal
+	// Brushes use TangentS and TangentT Vertex Inputs, Models don't.
+	// TODO: Does this apply to all types of models?
+	float3 vNormal;
+	float4 vTangent_Binormal;
+	DecompressVertex_Normal(v.vNormal, vNormal, vTangent_Binormal);
+
+	// WorldPos is simply Input Pos
+	float3 vPos = v.vPos.xyz;
+
+	// We use this overloaded function to handle various cases of required outputs
+	// TANGENTS == 0, WorldPos & WorldNormal
+	// TANGENTS == 1, WorldPos & TBN Matrix
+	// TANGENTS == 2, WorldPos & WorldNormal, Tangent + Binormal
+	// 2 is required in case we ever run out of Interpolators
+	// the 1.0f on the vPos f4 here is important for the distance component in the cModel/Blend Matrix
+	float3 WorldNormal, WorldPos, Tangent, Binormal;
+	AlignVertexInputs(SKINNING, float4(vPos, 1.0f), vNormal, vTangent_Binormal, v.vBoneWeights, v.vBoneIndices, WorldPos, WorldNormal, Tangent, Binormal);
+
+	// IMPORTANT NOTE
+	// Valve does this on the skin shader :
+	// [0] = float3( TangentS.x, TangentT.x, Normal.x )
+	// [1] = float3( TangentS.y, TangentT.y, Normal.y )
+	// [2] = float3( TangentS.z, TangentT.z, Normal.z )
+	// I have a bunch of theories why they did this
+	// Its important because of the input order in mul()
+	// If you do this to a matrix and don't adjust your mul()
+	// It will mean you try to convert it into the opposite space than the one you actually want
+	o.TBN_Matrix = float3x3(Tangent, Binormal, WorldNormal);
+
+	// Transform into Projection Space ( Clip Space )
+	// This will flatten the geometrical Position into a 2D-Plane
+	float4 vProjPos = mul(float4(WorldPos, 1), cViewProj);
+	o.ProjPosSetup = vProjPos;
+	
+	// Set WorldPos and compute Depth
+	o.WorldPos_ProjPosZ.xyz = WorldPos;
+	o.WorldPos_ProjPosZ.w = dot(float4(WorldPos, 1), cViewProjZ);
+
+//==========================================================================//
+// Calculations for UV's and their Transforms. This includes Seamless Mapping
+//==========================================================================//
+
+	// Previously : 
+	// o.BaseDetailTexCoord.x = dot( v.vTexCoord0, cBaseTexCoordTransform[0] ) + cBaseTexCoordTransform[0].w;
+	// o.BaseDetailTexCoord.y = dot( v.vTexCoord0, cBaseTexCoordTransform[1] ) + cBaseTexCoordTransform[1].w;
+	// Also Previously, because I assumed it would be cheaper :
+	// o.BaseDetailTexCoord.x = v.vTexCoord0.x * cBaseTexCoordTransform[0].x + cBaseTexCoordTransform[0].w;
+	// o.BaseDetailTexCoord.y = v.vTexCoord0.y * cBaseTexCoordTransform[1].y + cBaseTexCoordTransform[1].w;
+	// Now because I want to make sure that if anything ever lands on [].z it actually gets used...
+	// DP4, ADD -> MAD with data loss? -> DP4
+	// TODO: Run this through fxc.exe and see what happens. The goal here is least amount of instructions
+	float4 UV = float4(v.vTexCoord0, 1.0f, 1.0f);
+
+	o.TexCoords.x = dot(UV, cBaseTexCoordTransform[0]);
+	o.TexCoords.y = dot(UV, cBaseTexCoordTransform[1]);
+
+	#if DETAILUV
+		o.TexCoords.z = dot(UV, cDetailTexCoordTransform[0]);
+		o.TexCoords.w = dot(UV, cDetailTexCoordTransform[1]);
+	#endif
+
+    return o;
+}
