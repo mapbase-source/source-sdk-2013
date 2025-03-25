@@ -75,7 +75,7 @@ float4 main(PS_INPUT i) : COLOR
 	// ====================
 	// Sample BaseTexture
 	// ====================
-	float2 f2BaseUV = i.TexCoords.xy + f3TangentSpaceViewDir.xy * g_ParallaxDepth;
+	float2 f2BaseUV = i.TexCoords.xy + -f3TangentSpaceViewDir.xy * g_ParallaxDepth;
 
 	// Sample Holographic Sight Texture
 	float4 f4BaseTexture = tex2D(Sampler_BaseTexture, f2BaseUV); // $BaseTexture
