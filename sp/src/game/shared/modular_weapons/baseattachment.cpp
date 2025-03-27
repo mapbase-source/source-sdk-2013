@@ -143,6 +143,7 @@ void CBaseWeaponAttachment::Precache(void)
     SetModelIndex(PrecacheModel(GetModel()));
     SetModelName(MAKE_STRING(GetModel()));
     PrecacheScriptSound(GetFireSound());
+    ParseAttachmentScript(GetClassname());
 }
 
 #ifdef CLIENT_DLL
@@ -204,9 +205,26 @@ int CBaseWeaponAttachment::UpdateTransmitState(void)
 }
 #endif // GAME_DLL
 
+void CBaseWeaponAttachment::ParseAttachmentScript(const char* Attachment_classname)
+{
+    char szPath[MAX_PATH];
+    V_snprintf(szPath, sizeof(szPath), "scripts/attachment_scripts/%s", Attachment_classname);
+    if (filesystem->FileExists(szPath))
+    {
+        KeyValues *kv = new KeyValues(GetClassname());
+        if (kv->LoadFromFile(filesystem, szPath, "GAME"))
+        {
+            AtchData.Damage = kv->GetFloat("damage_modifier", 1.0f);
+            AtchData.FireRate = kv->GetFloat("firerate_modifier", 1.0f);
+            AtchData.Spread = kv->GetFloat("spread_modifier", 1.0f);
+            AtchData.VM_offset_x = kv->GetFloat("ads_offset_x", 0.0f);
+            AtchData.VM_offset_y = kv->GetFloat("ads_offset_y", 0.0f);
+        }
+    }
+}
+
 void CBaseWeaponAttachment::UpdateAttachmentVisibility(void)
 {
-
 #ifdef CLIENT_DLL
     UpdateVisibility();
 #endif // CLIENT_DLL

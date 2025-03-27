@@ -2,6 +2,7 @@
 #define BASE_WEAPON_ATTACHMENT_H
 #include "cbase.h"
 #include "saverestore.h"
+#include "KeyValues.h"
 
 #ifdef CLIENT_DLL
 #define CBaseModularWeapon C_BaseModularWeapon
@@ -29,6 +30,18 @@ enum AttachmentType_t
     ATTACHMENT_COUNT = ATTACHMENT_LAST - 1 
 };
 
+struct Attachment_Data
+{
+    float FireRate;
+    float Damage;
+    float Spread;
+    
+    //these are only used if the attachment has a scope for example
+    float VM_offset_x;
+    float VM_offset_y;
+};
+
+
 class CBaseWeaponAttachment : public CBaseAnimating
 {
 public:
@@ -42,7 +55,7 @@ public:
     CBaseWeaponAttachment();
     ~CBaseWeaponAttachment();
 
-    virtual const char* GetClassName() { return nullptr; }; // Each derived class must implement this
+    virtual const char* GetClassName() { return ""; }; // Each derived class must implement this
     virtual void Save(CSave& save);
     virtual void Restore(CRestore& restore);
     virtual void Spawn();
@@ -58,6 +71,8 @@ public:
     virtual int	UpdateTransmitState(void);
     virtual void SetLightingOrigin(CBaseEntity* pLightingOrigin);
 #endif // GAME_DLL
+    
+    virtual void ParseAttachmentScript(const char* Attachment_classname);
 
     virtual void UpdateAttachmentVisibility(void);
 
@@ -90,6 +105,8 @@ public:
         }
     }
 
+    Attachment_Data GetWPNAttachmentData() { return AtchData; };
+
 #ifdef GAME_DLL
     void UpdateCompatibleWeaponList();
 #endif // GAME_DLL
@@ -114,6 +131,8 @@ private:
     CNetworkVar(float, m_flFireRateModifier);
     CNetworkVar(float, m_flSpreadModifier);
     CNetworkString(m_szFireSound, MAX_PATH);
+
+    Attachment_Data AtchData;
 
     bool IsDuplicate(CUtlVector<const char*>& vec, const char* str)
     {
