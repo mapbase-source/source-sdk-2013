@@ -78,7 +78,7 @@ public:
 
 	virtual float GetFireRate(void)
 	{
-		switch (m_nFireMode)
+		switch (m_nFireMode.Get())
 		{
 		case FM_FULLAUTO:
 			return 0.05f;
@@ -113,7 +113,5 @@ private:
 	float	m_flAccuracyPenalty;
 	int		m_nNumShotsFired;
 	bool	m_bFullAutoMode;
-
-	int burstFire = 0;
 };
 #endif //WEAPON_GLOCK18C_H

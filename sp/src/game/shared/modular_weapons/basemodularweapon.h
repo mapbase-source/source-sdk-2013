@@ -37,7 +37,16 @@ public:
     virtual float GetDamage();
 
     virtual void PrimaryAttack(void);
+    virtual void ToggleFireMode(void);
     virtual void ItemPreFrame(void);
+    virtual void ItemPostFrame(void);
+    virtual void HandleBurstFire(void);
+
+
+    //Some weapons can have the burst fire mode
+    //this is used to track how many bullets we fired durring the burst mode
+    //this is usualy a max of 3 but it can be anything you want
+    int burstFire = 0;
 
 private:
     float m_flBaseDamage = 0.0f;

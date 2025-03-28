@@ -47,6 +47,11 @@
 #define IN_VGUIMODE		(1 << 26)
 #endif // MAPBASE
 
+#ifdef FP
+#define IN_FIREMODE		(1 << 27)
+#endif // FP
+
+
 #ifdef VGUI_SCREEN_FIX
 #define IN_VALIDVGUIINPUT		    (1 << 23) //bitflag for vgui fix
 #endif

@@ -14,6 +14,7 @@
 #include "ammodef.h"
 
 #include "tier0/memdbgon.h"
+#include "in_buttons.h"
 
 IMPLEMENT_NETWORKCLASS_ALIASED(BaseModularWeapon, DT_BaseModularWeapon)
 
@@ -126,6 +127,74 @@ void CBaseModularWeapon::OnDataChanged(DataUpdateType_t updateType)
 void CBaseModularWeapon::ItemPreFrame(void)
 {
 	BaseClass::ItemPreFrame();
+
+	CBasePlayer* pOwner = ToBasePlayer(GetOwner());
+
+	if (pOwner == NULL)
+		return;
+
+	//Handle FireMode toggling
+	//using secondary attack timer for this will probably change in the future
+	//-Nbc66
+	if (m_flNextSecondaryAttack < gpGlobals->curtime && (pOwner->m_nButtons & IN_FIREMODE))
+	{
+
+		//CBasePlayer* pPlayer = ToBasePlayer(GetOwner());
+
+		ToggleFireMode();
+
+		switch (m_nFireMode)
+		{
+		case FM_SINGLE:
+			//(pPlayer, HUD_PRINTCENTER, FIREMODE_STRING, "Single");
+			break;
+		case FM_BURST:
+			//ClientPrint(pPlayer, HUD_PRINTCENTER, FIREMODE_STRING, "Burst");
+			break;
+		case FM_FULLAUTO:
+			//ClientPrint(pPlayer, HUD_PRINTCENTER, FIREMODE_STRING, "Full Auto");
+			break;
+		default:
+			break;
+		}
+
+		m_flNextSecondaryAttack = gpGlobals->curtime + 1.0f;
+	}
+}
+
+void CBaseModularWeapon::ItemPostFrame(void)
+{
+	BaseClass::ItemPostFrame();
+
+	if (m_bInReload)
+		return;
+
+	// Burst firing timing control
+	HandleBurstFire();
+}
+
+//Used to handle how burst fire works on a weapon
+void CBaseModularWeapon::HandleBurstFire(void)
+{
+	CBasePlayer* pOwner = ToBasePlayer(GetOwner());
+
+	if (pOwner == NULL)
+		return;
+
+	if (m_nFireMode == FM_BURST && burstFire > 0)
+	{
+		if (gpGlobals->curtime > m_flNextPrimaryAttack && (pOwner->m_nButtons & IN_ATTACK) == false) // Check for fire rate timing
+		{
+			if (burstFire < 3 && m_iClip1 > 0) // Ensure burst has not reached max shots
+			{
+				PrimaryAttack(); // Fire the next burst shot
+			}
+			else
+			{
+				burstFire = 0; // Reset burst counter after the burst is complete
+			}
+		}
+	}
 }
 
 void CBaseModularWeapon::EquipAttachment(CBaseWeaponAttachment* pAttachment)
@@ -232,7 +301,8 @@ char const* CBaseModularWeapon::GetShootSound(int iIndex) const
 
 
 
-//Damage on Weapons is calculated using a multiplier from the attachment if you want to do more damage the attachment should do for example 1.1x the normal damage or if its less something like 0.9x damage
+//Damage on Weapons is calculated using a multiplier from the attachment
+//if you want to do more damage the attachment should do for example 1.1x the normal damage or if its less something like 0.9x damage
 float CBaseModularWeapon::GetDamage()
 {
 	// Start with the base damage from ammo settings
@@ -334,4 +404,18 @@ void CBaseModularWeapon::PrimaryAttack(void)
 
 	//Add our view kick in
 	AddViewKick();
+}
+
+void CBaseModularWeapon::ToggleFireMode(void)
+{
+	if (m_nFireMode < FM_MAX_FIREMODE - 1)
+	{
+		m_nFireMode++;
+	}
+	else
+	{
+		m_nFireMode = 0;
+	}
+	EmitSound("Weapon.FireModeSwitch");
+	burstFire = 0;
 }

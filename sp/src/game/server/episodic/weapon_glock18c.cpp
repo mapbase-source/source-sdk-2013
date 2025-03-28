@@ -342,43 +342,11 @@ void CWeaponGlock18C::PrimaryAttack(void)
 
 void CWeaponGlock18C::SecondaryAttack(void)
 {
-	if (m_flNextSecondaryAttack > gpGlobals->curtime)
-		return;
-
-	//CBasePlayer* pPlayer = ToBasePlayer(GetOwner());
-
-	ToggleFireMode();
-
-	switch (m_nFireMode)
-	{
-	case FM_SINGLE:
-		//(pPlayer, HUD_PRINTCENTER, FIREMODE_STRING, "Single");
-		break;
-	case FM_BURST:
-		//ClientPrint(pPlayer, HUD_PRINTCENTER, FIREMODE_STRING, "Burst");
-		break;
-	case FM_FULLAUTO:
-		//ClientPrint(pPlayer, HUD_PRINTCENTER, FIREMODE_STRING, "Full Auto");
-		break;
-	default:
-		break;
-	}
-
-	m_flNextSecondaryAttack = gpGlobals->curtime + 1.0f;
 }
 
 void CWeaponGlock18C::ToggleFireMode(void)
 {
-	if (m_nFireMode < FM_MAX_FIREMODE - 1)
-	{
-		m_nFireMode++;
-	}
-	else
-	{
-		m_nFireMode = 0;
-	}
-	EmitSound("Weapon.FireModeSwitch");
-	burstFire = 0;
+	BaseClass::ToggleFireMode();
 }
 
 //-----------------------------------------------------------------------------
@@ -433,22 +401,6 @@ void CWeaponGlock18C::ItemPostFrame(void)
 
 	if (pOwner == NULL)
 		return;
-
-	// Burst firing timing control
-	if (m_nFireMode == FM_BURST && burstFire > 0)
-	{
-		if (gpGlobals->curtime > m_flNextPrimaryAttack && (pOwner->m_nButtons & IN_ATTACK) == false) // Check for fire rate timing
-		{
-			if (burstFire < 3 && m_iClip1 > 0) // Ensure burst has not reached max shots
-			{
-				PrimaryAttack(); // Fire the next burst shot
-			}
-			else
-			{
-				burstFire = 0; // Reset burst counter after the burst is complete
-			}
-		}
-	}
 
 	//Allow a refire as fast as the player can click
 	if (((pOwner->m_nButtons & IN_ATTACK) == false) && (m_flSoonestPrimaryAttack < gpGlobals->curtime) 
