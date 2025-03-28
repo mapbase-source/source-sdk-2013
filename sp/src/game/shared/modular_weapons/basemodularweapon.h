@@ -31,6 +31,17 @@ public:
     virtual void RemoveAttachment(AttachmentType_t type);
     virtual void SetWeaponVisible(bool visible);
     virtual bool Holster(CBaseCombatWeapon* pSwitchingTo);
+    virtual bool DefaultReload(int iClipSize1, int iClipSize2, int iActivity);
+
+    virtual Vector	GetIronsightPositionOffset(void) const;
+    virtual QAngle	GetIronsightAngleOffset(void) const;
+    virtual float	GetIronsightFOVOffset(void) const;
+    virtual bool    HasIronsights(void) { return true; } //default yes; override and return false for weapons with no ironsights (like weapon_crowbar)
+    bool		    IsIronsighted(void);
+    void		    ToggleIronsights(void);
+    void		    EnableIronsights(void);
+    void		    DisableIronsights(void);
+    void		    SetIronsightTime(void);
 
     virtual char const* GetShootSound(int iIndex) const;
 
@@ -41,6 +52,9 @@ public:
     virtual void ItemPreFrame(void);
     virtual void ItemPostFrame(void);
     virtual void HandleBurstFire(void);
+
+    CNetworkVar(bool, m_bIsIronsighted);
+    CNetworkVar(float, m_flIronsightedTime);
 
 
     //Some weapons can have the burst fire mode

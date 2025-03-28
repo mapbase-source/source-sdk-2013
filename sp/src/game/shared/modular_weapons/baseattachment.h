@@ -37,8 +37,9 @@ struct Attachment_Data
     float Spread;
     
     //these are only used if the attachment has a scope for example
-    float VM_offset_x;
-    float VM_offset_y;
+    float VM_offset_forward;
+    float VM_offset_right;
+    float VM_offset_up;
 };
 
 
@@ -105,7 +106,7 @@ public:
         }
     }
 
-    Attachment_Data GetWPNAttachmentData() { return AtchData; };
+    Attachment_Data GetAttachmentData() { return AtchData; };
 
 #ifdef GAME_DLL
     void UpdateCompatibleWeaponList();

@@ -217,8 +217,9 @@ void CBaseWeaponAttachment::ParseAttachmentScript(const char* Attachment_classna
             AtchData.Damage = kv->GetFloat("damage_modifier", 1.0f);
             AtchData.FireRate = kv->GetFloat("firerate_modifier", 1.0f);
             AtchData.Spread = kv->GetFloat("spread_modifier", 1.0f);
-            AtchData.VM_offset_x = kv->GetFloat("ads_offset_x", 0.0f);
-            AtchData.VM_offset_y = kv->GetFloat("ads_offset_y", 0.0f);
+            AtchData.VM_offset_forward = kv->GetFloat("ads_offset_foward", 0.0f);
+            AtchData.VM_offset_right = kv->GetFloat("ads_offset_right", 0.0f);
+            AtchData.VM_offset_up = kv->GetFloat("ads_offset_up", 0.0f);
         }
     }
 }

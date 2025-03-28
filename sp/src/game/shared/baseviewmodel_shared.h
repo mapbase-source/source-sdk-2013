@@ -152,6 +152,11 @@ public:
 #endif
 	}
 
+#ifdef FP
+	void		CalcIronsights(Vector& pos, QAngle& ang);
+#endif // FP
+
+
 	// Add entity to visible view models list?
 	virtual void			AddEntity( void );
 

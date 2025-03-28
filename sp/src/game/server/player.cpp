@@ -94,6 +94,11 @@
 #include "mapbase/vscript_funcs_shared.h"
 #endif
 
+#ifdef FP
+#include "basemodularweapon.h"
+#endif // FP
+
+
 ConVar autoaim_max_dist( "autoaim_max_dist", "2160" ); // 2160 = 180 feet
 ConVar autoaim_max_deflect( "autoaim_max_deflect", "0.99" );
 
@@ -6952,6 +6957,17 @@ bool CBasePlayer::ClientCommand( const CCommand &args )
 		}
 		return true;
 	}
+#ifdef FP
+	else if (stricmp(cmd, "toggle_ironsight") == 0)
+	{
+		CBaseModularWeapon* pWeapon = ToModularWeapon(GetActiveWeapon());
+		if (pWeapon != NULL)
+			pWeapon->ToggleIronsights();
+
+		return true;
+}
+#endif // FP
+
 
 	return false;
 }
