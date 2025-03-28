@@ -81,6 +81,10 @@ public:
 	
 	virtual CBaseEntity	*GetOwnerViaInterface( void ) { return GetOwner(); }
 
+#ifdef FP
+	void		CalcIronsights(Vector& pos, QAngle& ang);
+#endif // FP
+
 	virtual bool			IsSelfAnimating()
 	{
 		return true;
@@ -152,9 +156,7 @@ public:
 #endif
 	}
 
-#ifdef FP
-	void		CalcIronsights(Vector& pos, QAngle& ang);
-#endif // FP
+
 
 
 	// Add entity to visible view models list?
