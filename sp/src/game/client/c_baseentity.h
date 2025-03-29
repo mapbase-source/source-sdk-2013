@@ -1063,6 +1063,10 @@ public:
 	// TF2 specific
 	virtual bool					IsBaseObject( void ) const { return false; }
 	virtual bool					IsBaseCombatWeapon( void ) const { return false; }
+#ifdef FP
+	virtual bool					IsBaseModularWeapon( void ) const { return false; }
+#endif // FP
+
 	virtual class C_BaseCombatWeapon		*MyCombatWeaponPointer() { return NULL; }
 	virtual bool					IsCombatItem( void ) const { return false; }
 

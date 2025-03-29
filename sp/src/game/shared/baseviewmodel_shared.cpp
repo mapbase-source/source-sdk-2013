@@ -455,10 +455,10 @@ void CBaseViewModel::CalcViewModelView( CBasePlayer *owner, const Vector& eyePos
 #endif
 		}
 	}
-#ifndef FP
+
 	// Add model-specific bob even if no weapon associated (for head bob for off hand models)
 	AddViewModelBob(owner, vmorigin, vmangles);
-#endif // FP
+
 
 #if defined( CLIENT_DLL )
 	if ( !prediction->InPrediction() 

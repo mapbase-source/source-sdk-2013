@@ -43,6 +43,11 @@ public:
     void		    DisableIronsights(void);
     void		    SetIronsightTime(void);
 
+    virtual void	AddViewmodelBob(CBaseViewModel* viewmodel, Vector& origin, QAngle& angles);
+    virtual	float	CalcViewmodelBob(void);
+
+    virtual bool	IsBaseModularWeapon(void) const { return true; }
+
     virtual char const* GetShootSound(int iIndex) const;
 
     virtual float GetDamage();
@@ -71,7 +76,7 @@ private:
 
 inline CBaseModularWeapon* ToModularWeapon(CBaseEntity* pEntity)
 {
-    if (!pEntity || !pEntity->IsBaseCombatWeapon())
+    if (!pEntity || !pEntity->IsBaseModularWeapon())
         return NULL;
     return static_cast<CBaseModularWeapon*>(pEntity);
 }

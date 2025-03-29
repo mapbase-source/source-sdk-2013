@@ -1139,6 +1139,9 @@ public:
 	virtual bool	IsCombatItem( void ) const { return false; }
 
 	virtual bool	IsBaseCombatWeapon( void ) const { return false; }
+#ifdef FP
+	virtual bool	IsBaseModularWeapon( void ) const { return false; }
+#endif // FP
 	virtual bool	IsWearable( void ) const { return false; }
 	virtual CBaseCombatWeapon *MyCombatWeaponPointer( void ) { return NULL; }
 

@@ -481,6 +481,24 @@ void CBaseModularWeapon::SetIronsightTime(void)
 	m_flIronsightedTime = gpGlobals->curtime;
 }
 
+void CBaseModularWeapon::AddViewmodelBob(CBaseViewModel* viewmodel, Vector& origin, QAngle& angles)
+{
+	if (!IsIronsighted())
+	{
+		BaseClass::AddViewmodelBob(viewmodel, origin, angles);
+	}
+}
+
+float CBaseModularWeapon::CalcViewmodelBob(void)
+{
+	if (!IsIronsighted())
+	{
+		return BaseClass::CalcViewmodelBob();
+	}
+	
+	return 0.0f;
+}
+
 //Override this so we can have custom weapon sounds based on the equiped attachment
 char const* CBaseModularWeapon::GetShootSound(int iIndex) const
 {
