@@ -13,6 +13,12 @@ $Project
 					$File "$ATTACHMENTDIR\silencer\attachment_silencer.h"
 					$File "$ATTACHMENTDIR\silencer\attachment_silencer.cpp"
 				}
+				
+				$Folder "Sights"
+				{
+					$File "$ATTACHMENTDIR\sight\attachment_sight.cpp"
+					$File "$ATTACHMENTDIR\sight\attachment_sight.h"
+				}
 			}
 		}
 	}

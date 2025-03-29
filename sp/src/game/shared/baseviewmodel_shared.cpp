@@ -440,7 +440,7 @@ void CBaseViewModel::CalcViewModelView( CBasePlayer *owner, const Vector& eyePos
 	//Allow weapon lagging
 	if ( pWeapon != NULL
 #ifdef FP
-		|| !pModWeapon->IsIronsighted()
+		|| pModWeapon && !pModWeapon->IsIronsighted()
 #endif // FP
 		)
 	{
@@ -455,11 +455,17 @@ void CBaseViewModel::CalcViewModelView( CBasePlayer *owner, const Vector& eyePos
 #endif
 		}
 	}
+#ifndef FP
 	// Add model-specific bob even if no weapon associated (for head bob for off hand models)
-	AddViewModelBob( owner, vmorigin, vmangles );
+	AddViewModelBob(owner, vmorigin, vmangles);
+#endif // FP
 
 #if defined( CLIENT_DLL )
-	if ( !prediction->InPrediction() )
+	if ( !prediction->InPrediction() 
+#ifdef FP
+		&& pModWeapon && !pModWeapon->IsIronsighted()
+#endif // FP
+		)
 	{
 		// Add lag
 		CalcViewModelLag( vmorigin, vmangles, vmangoriginal );
@@ -489,7 +495,10 @@ void CBaseViewModel::CalcViewModelView( CBasePlayer *owner, const Vector& eyePos
 	}
 #endif
 
-	CalcIronsights(vmorigin, vmangles);
+	if (pModWeapon)
+	{
+		CalcIronsights(vmorigin, vmangles);
+	}
 
 	SetLocalOrigin( vmorigin );
 	SetLocalAngles( vmangles );

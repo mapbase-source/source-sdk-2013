@@ -58,10 +58,13 @@ static ConCommand toggle_ironsight("toggle_ironsight", CC_ToggleIronSights);
 void RecvProxy_ToggleSights(const CRecvProxyData* pData, void* pStruct, void* pOut)
 {
 	CBaseModularWeapon* pWeapon = ToModularWeapon((CBaseEntity*)pStruct);
-	if (pData->m_Value.m_Int)
-		pWeapon->EnableIronsights();
-	else
-		pWeapon->DisableIronsights();
+	if (pWeapon)
+	{
+		if (pData->m_Value.m_Int)
+			pWeapon->EnableIronsights();
+		else
+			pWeapon->DisableIronsights();
+	}
 }
 #endif
 
@@ -102,8 +105,8 @@ END_DATADESC()
 CBaseModularWeapon::CBaseModularWeapon()
 {
 	m_Attachments.SetLessFunc(DefLessFunc(AttachmentType_t));
-	m_bIsIronsighted = false;
-	m_flIronsightedTime = 0.0f;
+	m_bIsIronsighted.GetForModify() = false;
+	m_flIronsightedTime.GetForModify() = 0.0f;
 }
 
 CBaseModularWeapon::~CBaseModularWeapon()
@@ -263,6 +266,7 @@ void CBaseModularWeapon::EquipAttachment(CBaseWeaponAttachment* pAttachment)
 		switch (pAttachment->GetAttachmentType())
 		{
 		case ATTACHMENT_SILENCER:
+		case ATTACHMENT_SCOPE:
 		{
 			if (pAttachment->IsCompatibleWithWeapon(this))
 			{
@@ -270,7 +274,7 @@ void CBaseModularWeapon::EquipAttachment(CBaseWeaponAttachment* pAttachment)
 				LastAttachment.GetForModify() = pAttachment;
 #endif // GAME_DLL
 
-				unsigned short index = m_Attachments.Insert(ATTACHMENT_SILENCER, pAttachment); 
+				unsigned short index = m_Attachments.Insert(pAttachment->GetAttachmentType(), pAttachment);
 				if (m_Attachments[index])
 				{
 					CBasePlayer* pPlayer = ToBasePlayer(GetOwnerEntity());
