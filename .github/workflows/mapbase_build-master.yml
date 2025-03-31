@@ -30,6 +30,6 @@ jobs:
       configuration: ${{ matrix.configuration }}
       branch: 'sp'
       project-group: 'game'
-      solution-name: 'everything'
+      solution-name: 'games'
       game: 'fp'
       build-on-linux: true # Disable this if you don't want to compile for Linux
