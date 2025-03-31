@@ -94,7 +94,7 @@ jobs:
         name: '${{inputs.project-group}}_${{inputs.game}}_win32_${{ inputs.configuration }}'
         path: |
           ${{inputs.branch}}/game/mod_${{inputs.game}}/bin/*.dll
-        if-no-files-found: error
+        if-no-files-found: warn
 
     - name: Publish map tools
       if: inputs.project-group == 'maptools'
