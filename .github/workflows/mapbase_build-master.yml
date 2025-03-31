@@ -13,6 +13,9 @@
 name: Build All Projects #(SP Release)
 
 on:
+  push:
+    branches:
+      - fracture_main
   pull_request:
     branches:
       - fracture_main
