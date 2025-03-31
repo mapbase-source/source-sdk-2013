@@ -165,7 +165,7 @@ jobs:
         path: |
           ${{inputs.branch}}/game/mod_${{inputs.game}}/bin/*.so
           !${{inputs.branch}}/game/mod_${{inputs.game}}/bin/*_srv.so
-        if-no-files-found: error
+        if-no-files-found: warn
 
     #- name: Publish map tools
     #  if: inputs.project-group == 'maptools'
