@@ -87,7 +87,7 @@ install_path = find_game_install_path(steam_install_path, target_appid)
 
 if install_path:
     print(f"AppID {target_appid} is installed in: {install_path}")
-    debugger_args = r"-console -toconsole -condebug -allowdebug -dev -w 1920 -h 1080 -noborder -window -debug -dev -game 'E:\projects\mapbase-extras\sp\game\fracture_point'"
+    debugger_args = r'-console -toconsole -condebug -allowdebug -dev -w 1920 -h 1080 -noborder -window -debug -dev -game "E:\projects\mapbase-extras\sp\game\fracture_point"'
     debugger_command = fr"{install_path}\steamapps\common\Source SDK Base 2013 Singleplayer\hl2.exe"
     create_vcxproj_user("client_fp", debugger_command, debugger_args)
 else:
