@@ -2014,7 +2014,11 @@ void C_BaseAnimating::MaintainSequenceTransitions( IBoneSetup &boneSetup, float 
 	if ( !boneSetup.GetStudioHdr() )
 		return;
 
-	if ( prediction->InPrediction() )
+	if ( prediction->InPrediction()
+#ifdef FP
+		|| IsAboutToRagdoll()
+#endif // FP
+		)
 	{
 		m_nPrevNewSequenceParity = m_nNewSequenceParity;
 		return;
