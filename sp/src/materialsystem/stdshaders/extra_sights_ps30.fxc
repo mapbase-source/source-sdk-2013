@@ -2,7 +2,7 @@
 //===================== File of the LUX Shader Project =====================//
 //
 //	Initial D.	:	24.03.2025 DMY
-//	Last Change :	24.03.2025 DMY
+//	Last Change :	31.03.2025 DMY
 //
 //	Purpose of this File :	$Bumpmap Materials
 //
@@ -28,7 +28,7 @@
 //==========================================================================//
 const float4 g_EyePos_Depth						: register(c0);
 #define g_EyePos								(g_EyePos_Depth.xyz)
-#define g_ParallaxDepth							(g_EyePos_Depth.w)
+#define g_ReticleScale							(g_EyePos_Depth.w)
 
 const float3 g_DetailTint						: register(c1);
 const float3 g_ColorTint						: register(c2);
@@ -68,17 +68,20 @@ float4 main(PS_INPUT i) : COLOR
 	float3x3 TBN_Matrix	= i.TBN_Matrix;
 	float3 f3WorldPos = i.WorldPos_ProjPosZ.xyz;
 
-	// Time to get Displacing
+	// TangentSpaceViewDir as UV
 	float3 f3ViewDir = normalize(f3WorldPos - g_EyePos);
 	float3 f3TangentSpaceViewDir = normalize(mul(TBN_Matrix, f3ViewDir));
+
+	//	float DistanceFactor = clamp(i.WorldPos_ProjPosZ.w / 300.0f, 0.0f, 1.0f);
+	//	f3TangentSpaceViewDir.xy *= DistanceFactor;
 
 	// ====================
 	// Sample BaseTexture
 	// ====================
-	float2 f2BaseUV = i.TexCoords.xy + -f3TangentSpaceViewDir.xy * g_ParallaxDepth;
+	float2 ReticleUV = f3TangentSpaceViewDir.xy * g_ReticleScale + 0.5f; // x * scale + coordinate fixup
 
 	// Sample Holographic Sight Texture
-	float4 f4BaseTexture = tex2D(Sampler_BaseTexture, f2BaseUV); // $BaseTexture
+	float4 f4BaseTexture = tex2D(Sampler_BaseTexture, ReticleUV); // $BaseTexture
 	f4BaseTexture.rgb *= g_ColorTint; // $Color, $Color2, $sRGBTint
 
 	// Prepare float in case we get Detail
@@ -89,12 +92,11 @@ float4 main(PS_INPUT i) : COLOR
 	// ====================
 	#if DETAILTEXTURE
 
-	float4 f4DetailTexture = tex2D(Sampler_DetailTexture, i.TexCoords.zw);
+		float4 f4DetailTexture = tex2D(Sampler_DetailTexture, i.TexCoords.zw);
 
-	f4DetailTexture.xyz = f4DetailTexture.xxx * g_DetailTint;
-	f4Result.xyz += f4DetailTexture.xyz;
-	f4Result.w += dot(f4DetailTexture.xyz, float3(0.2126f, 0.7152f, 0.0722f));
-
+		f4DetailTexture.xyz = f4DetailTexture.xxx * g_DetailTint;
+		f4Result.xyz += f4DetailTexture.xyz;
+		f4Result.w += dot(f4DetailTexture.xyz, float3(0.2126f, 0.7152f, 0.0722f));
 	#endif
 
 	// ====================
