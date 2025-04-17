@@ -18,6 +18,11 @@ $Configuration
 		$AdditionalIncludeDirectories	"$BASE;$SRCDIR\game\shared\hl2;$SRCDIR\game\shared\episodic;$SRCDIR\game\shared\modular_weapons;.\hl2;.\episodic"
 		$PreprocessorDefinitions		"$BASE;HL2_DLL;HL2_EPISODIC;USES_SAVERESTORE"
 		$PreprocessorDefinitions		"$BASE;FP_SERVER;FP" //Fracture Point Definitions
+		//Use c++ 17 for now it will not show as being used in the project c++ lang setting in vs
+		//but it will compile using the c++17 standard
+		$AdditionalOptions				"$BASE /std:c++17"
+		//warning C5033: register keyword deprication ignore this
+		$DisableSpecificWarnings		"$BASE;5033"
 	}
 }
 
