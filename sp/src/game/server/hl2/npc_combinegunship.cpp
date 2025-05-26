@@ -564,11 +564,11 @@ void CNPC_CombineGunship::Spawn( void )
 
 	if ( HasSpawnFlags( SF_GUNSHIP_USE_CHOPPER_MODEL ) )
 	{
-		SetModel( "models/combine_helicopter.mdl" );
+		SetModel( DefaultOrCustomModel( "models/combine_helicopter.mdl" ) );
 	}
 	else
 	{
-		SetModel( "models/gunship.mdl" );
+		SetModel( DefaultOrCustomModel( "models/gunship.mdl" ) );
 	}
 	
 	ExtractBbox( SelectHeaviestSequence( ACT_GUNSHIP_PATROL ), m_cullBoxMins, m_cullBoxMaxs ); 
@@ -690,12 +690,12 @@ void CNPC_CombineGunship::Precache( void )
 {
 	if ( HasSpawnFlags( SF_GUNSHIP_USE_CHOPPER_MODEL ) )
 	{
-		PrecacheModel( "models/combine_helicopter.mdl" );
+		PrecacheModel( DefaultOrCustomModel( "models/combine_helicopter.mdl" ) );
 		Chopper_PrecacheChunks( this );
 	}
 	else
 	{
-		PrecacheModel("models/gunship.mdl");
+		PrecacheModel( DefaultOrCustomModel( "models/gunship.mdl" ) );
 	}
 
 	PrecacheModel("sprites/lgtning.vmt");
@@ -725,7 +725,7 @@ void CNPC_CombineGunship::Precache( void )
 		g_iGunshipEffectIndex = PrecacheModel( "sprites/physbeam.vmt" );
 	}
 
-	PropBreakablePrecacheAll( MAKE_STRING("models/gunship.mdl") );
+	PropBreakablePrecacheAll( MAKE_STRING( DefaultOrCustomModel( "models/gunship.mdl" ) ) );
 
 	BaseClass::Precache();
 }

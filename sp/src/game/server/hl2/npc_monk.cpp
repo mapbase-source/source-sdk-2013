@@ -299,7 +299,7 @@ Activity CNPC_Monk::NPC_TranslateActivity( Activity eNewActivity )
 //-----------------------------------------------------------------------------
 void CNPC_Monk::Precache()
 {
-	PrecacheModel( "models/Monk.mdl" );
+	PrecacheModel( DefaultOrCustomModel( "models/Monk.mdl" ) );
 	
 	PrecacheScriptSound( "NPC_Citizen.FootstepLeft" );
 	PrecacheScriptSound( "NPC_Citizen.FootstepRight" );
@@ -317,7 +317,7 @@ void CNPC_Monk::Spawn()
 
 	BaseClass::Spawn();
 
-	SetModel( "models/Monk.mdl" );
+	SetModel( DefaultOrCustomModel( "models/Monk.mdl" ) );
 
 	SetHullType(HULL_HUMAN);
 	SetHullSizeNormal();
