@@ -1127,7 +1127,7 @@ WeaponClass_t CBaseCombatWeapon::WeaponClassFromString(const char *str)
 		return WEPCLASS_RIFLE;
 	else if (FStrEq(str, "WEPCLASS_SHOTGUN"))
 		return WEPCLASS_SHOTGUN;
-	else if (FStrEq(str, "WEPCLASS_HEAY"))
+	else if (FStrEq(str, "WEPCLASS_HEAVY"))
 		return WEPCLASS_HEAVY;
 
 	else if (FStrEq(str, "WEPCLASS_MELEE"))
