@@ -41,6 +41,8 @@ public:
 
 	void	UpdateLight( void );
 
+	void UpdateProjectedLightAnimation(void);
+
 	C_EnvProjectedTexture();
 	~C_EnvProjectedTexture();
 
@@ -84,6 +86,7 @@ private:
 	float		m_flNearZ;
 	float		m_flFarZ;
 	char		m_SpotlightTextureName[ MAX_PATH ];
+	CMaterialReference m_SpotlightMaterial;
 	CTextureReference m_SpotlightTexture;
 	int			m_nSpotlightTextureFrame;
 	int			m_nShadowQuality;
@@ -95,6 +98,7 @@ private:
 	float		m_flShadowFilter;
 
 	bool		m_bAlwaysDraw;
+	bool		m_bEnableTextureAnimation;
 	//bool		m_bProjectedTextureVersion;
 #endif
 

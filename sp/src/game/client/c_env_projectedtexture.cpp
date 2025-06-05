@@ -15,6 +15,7 @@
 #include "shareddefs.h"
 #include "materialsystem/imesh.h"
 #include "materialsystem/imaterial.h"
+#include "materialsystem/imaterialvar.h"
 #include "view.h"
 #include "iviewrender.h"
 #include "view_shared.h"
@@ -62,6 +63,7 @@ IMPLEMENT_CLIENTCLASS_DT( C_EnvProjectedTexture, DT_EnvProjectedTexture, CEnvPro
 	RecvPropFloat(	 RECVINFO( m_flShadowAtten ) ),
 	RecvPropFloat(   RECVINFO( m_flShadowFilter )  ),
 	RecvPropBool(	 RECVINFO( m_bAlwaysDraw )	),
+	RecvPropBool(RECVINFO(m_bEnableTextureAnimation)),
 
 	// Not needed on the client right now, change when it actually is needed
 	//RecvPropBool(	 RECVINFO( m_bProjectedTextureVersion )	),
@@ -99,6 +101,7 @@ C_EnvProjectedTexture *C_EnvProjectedTexture::Create( )
 	pEnt->m_flQuadraticAtten = 0.0f;
 	pEnt->m_flShadowAtten = 0.0f;
 	pEnt->m_flShadowFilter = 0.5f;
+	pEnt->m_bEnableTextureAnimation = false;
 	//pEnt->m_bProjectedTextureVersion = 1;
 #endif
 
@@ -146,15 +149,17 @@ void C_EnvProjectedTexture::OnDataChanged( DataUpdateType_t updateType )
 {
 	if ( updateType == DATA_UPDATE_CREATED )
 	{
-		m_SpotlightTexture.Init( m_SpotlightTextureName, TEXTURE_GROUP_OTHER, true );
+		m_SpotlightMaterial.Init(m_SpotlightTextureName, TEXTURE_GROUP_OTHER, true);
+		m_SpotlightTexture.Init(m_SpotlightTextureName, TEXTURE_GROUP_OTHER, true);
 	}
 #ifdef MAPBASE
 	else //if ( updateType == DATA_UPDATE_DATATABLE_CHANGED )
 	{
 		// It could've been changed via input
-		if( !FStrEq(m_SpotlightTexture->GetName(), m_SpotlightTextureName) )
+		if (!FStrEq(m_SpotlightTexture->GetName(), m_SpotlightTextureName) || !FStrEq(m_SpotlightMaterial->GetName(), m_SpotlightTextureName))
 		{
-			m_SpotlightTexture.Init( m_SpotlightTextureName, TEXTURE_GROUP_OTHER, true );
+			m_SpotlightMaterial.Init(m_SpotlightTextureName, TEXTURE_GROUP_OTHER, true);
+			m_SpotlightTexture.Init(m_SpotlightTextureName, TEXTURE_GROUP_OTHER, true);
 		}
 	}
 #endif
@@ -165,6 +170,34 @@ void C_EnvProjectedTexture::OnDataChanged( DataUpdateType_t updateType )
 }
 
 static ConVar asw_perf_wtf("asw_perf_wtf", "0", FCVAR_DEVELOPMENTONLY, "Disable updating of projected shadow textures from UpdateLight" );
+
+ConVar r_flashlightenabletextureanimation("r_flashlightenabletextureanimation", "1", FCVAR_ARCHIVE, "Enable/Disable Projected Texture Animation Support");
+
+static ITexture* GetBaseProjectedTexture(IMaterial* pMaterial, ITexture *fallback_texture)
+{
+	bool foundVar;
+	IMaterialVar* pTextureVar = pMaterial->FindVar("$basetexture", &foundVar, false);
+
+	if (!foundVar)
+		return fallback_texture;
+
+	return pTextureVar->GetTextureValue();
+}
+
+static int GetProjectedTextureAnimationFrame(IMaterial* pMaterial)
+{
+	if (pMaterial->GetNumAnimationFrames() <= 1 || !r_flashlightenabletextureanimation.GetBool())
+		return 0;
+
+	bool foundVar;
+	IMaterialVar* pTextureVar = pMaterial->FindVar("$frame", &foundVar, false);
+
+	if (!foundVar)
+		return 0;
+
+	return pTextureVar->GetIntValue();
+}
+
 void C_EnvProjectedTexture::UpdateLight( void )
 {
 	VPROF("C_EnvProjectedTexture::UpdateLight");
@@ -173,7 +206,7 @@ void C_EnvProjectedTexture::UpdateLight( void )
 	Vector vLinearFloatLightColor( m_LightColor.r, m_LightColor.g, m_LightColor.b );
 	float flLinearFloatLightAlpha = m_LightColor.a;
 
-	if ( m_bAlwaysUpdate )
+	if (m_bAlwaysUpdate || (r_flashlightenabletextureanimation.GetBool() && m_bEnableTextureAnimation))
 	{
 		m_bForceUpdate = true;
 	}
@@ -420,8 +453,8 @@ void C_EnvProjectedTexture::UpdateLight( void )
 		state.m_flShadowDepthBias = g_pMaterialSystemHardwareConfig->GetShadowDepthBias();
 #endif
 		state.m_bEnableShadows = m_bEnableShadows;
-		state.m_pSpotlightTexture = m_SpotlightTexture;
-		state.m_nSpotlightTextureFrame = m_nSpotlightTextureFrame;
+		state.m_pSpotlightTexture = GetBaseProjectedTexture(m_SpotlightMaterial, m_SpotlightTexture);
+		state.m_nSpotlightTextureFrame = m_bEnableTextureAnimation ? GetProjectedTextureAnimationFrame(m_SpotlightMaterial) : m_nSpotlightTextureFrame;
 
 		state.m_nShadowQuality = m_nShadowQuality; // Allow entity to affect shadow quality
 
@@ -464,6 +497,17 @@ void C_EnvProjectedTexture::UpdateLight( void )
 	if ( !asw_perf_wtf.GetBool() && !m_bForceUpdate )
 	{
 		g_pClientShadowMgr->UpdateProjectedTexture( m_LightHandle, true );
+		UpdateProjectedLightAnimation();
+	}
+}
+
+void C_EnvProjectedTexture::UpdateProjectedLightAnimation(void)
+{
+	if (r_flashlightenabletextureanimation.GetBool() && m_SpotlightMaterial.IsValid() && m_bEnableTextureAnimation)
+	{
+		//Note: This Bind Method Activte Linked Material Proxy
+		CMatRenderContextPtr pRenderContext(materials);
+		pRenderContext->Bind(m_SpotlightMaterial);
 	}
 }
 

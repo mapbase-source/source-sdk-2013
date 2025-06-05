@@ -66,6 +66,8 @@ public:
 	void InputStartFollowingTarget( inputdata_t &inputdata ) { m_bDontFollowTarget = false; }
 	void InputSetFilter( inputdata_t &inputdata );
 
+	void InputSetTextureAnimationState(inputdata_t &inputdata) { m_bEnableTextureAnimation = inputdata.value.Bool(); }
+
 	// Corrects keyvalue/input attenuation for internal FlashlightEffect_t attenuation.
 	float CorrectConstantAtten( float fl ) { return fl * 0.5f; }
 	float CorrectLinearAtten( float fl ) { return fl * 100.0f; }
@@ -109,6 +111,8 @@ private:
 	CNetworkVar( float, m_flShadowFilter );
 
 	CNetworkVar( bool, m_bAlwaysDraw );
+
+	CNetworkVar( bool, m_bEnableTextureAnimation );
 
 	// 1 = New projected texture
 	// 0 = Non-Mapbase projected texture, e.g. one that uses the VDC parenting fix instead of the spawnflag
