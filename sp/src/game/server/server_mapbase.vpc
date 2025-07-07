@@ -50,6 +50,8 @@ $Project
 			$File	"$SRCDIR\game\shared\mapbase\mapbase_playeranimstate.h"
 			$File	"$SRCDIR\game\shared\mapbase\protagonist_system.cpp"
 			$File	"$SRCDIR\game\shared\mapbase\protagonist_system.h"
+			$File	"$SRCDIR\game\shared\mapbase\game_timer.cpp"
+			$File	"$SRCDIR\game\shared\mapbase\game_timer.h"
 			$File	"$SRCDIR\game\shared\mapbase\vscript_funcs_shared.cpp" [$MAPBASE_VSCRIPT]
 			$File	"$SRCDIR\game\shared\mapbase\vscript_funcs_shared.h" [$MAPBASE_VSCRIPT]
 			$File	"$SRCDIR\game\shared\mapbase\vscript_singletons.cpp" [$MAPBASE_VSCRIPT]
