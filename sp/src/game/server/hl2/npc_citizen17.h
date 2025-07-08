@@ -340,6 +340,10 @@ private:
 	bool			m_bAlternateAiming;
 #endif
 
+#ifdef MAPBASE
+	bool			m_bIsHostile;
+#endif
+
 	CSimpleSimTimer	m_AutoSummonTimer;
 	Vector			m_vAutoSummonAnchor;
 
