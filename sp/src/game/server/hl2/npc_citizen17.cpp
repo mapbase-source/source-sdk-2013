@@ -368,10 +368,6 @@ BEGIN_DATADESC( CNPC_Citizen )
 	DEFINE_KEYFIELD(	m_bAlternateAiming,			FIELD_BOOLEAN, "AlternateAiming" ),
 #endif
 
-#ifdef MAPBASE
-	DEFINE_KEYFIELD(m_bIsHostile, FIELD_BOOLEAN, "hostile"), // Add compatibility to Gmod's hostile KV
-#endif
-
 	DEFINE_OUTPUT(		m_OnJoinedPlayerSquad,	"OnJoinedPlayerSquad" ),
 	DEFINE_OUTPUT(		m_OnLeftPlayerSquad,	"OnLeftPlayerSquad" ),
 	DEFINE_OUTPUT(		m_OnFollowOrder,		"OnFollowOrder" ),
@@ -993,11 +989,6 @@ string_t CNPC_Citizen::GetModelName() const
 //-----------------------------------------------------------------------------
 Class_T	CNPC_Citizen::Classify()
 {
-#ifdef MAPBASE
-	if (m_bIsHostile)
-		return CLASS_COMBINE;
-#endif
-
 	if (GlobalEntity_GetState("gordon_precriminal") == GLOBAL_ON)
 		return CLASS_CITIZEN_PASSIVE;
 
