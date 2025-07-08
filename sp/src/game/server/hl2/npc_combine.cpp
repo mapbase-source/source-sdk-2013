@@ -49,6 +49,48 @@ ConVar npc_combine_altfire_not_allies_only( "npc_combine_altfire_not_allies_only
 ConVar npc_combine_new_cover_behavior( "npc_combine_new_cover_behavior", "1", FCVAR_NONE, "Mapbase: Toggles small patches for parts of npc_combine AI related to soldiers failing to take cover. These patches are minimal and only change cases where npc_combine would otherwise look at an enemy without shooting or run up to the player to melee attack when they don't have to. Consult the Mapbase wiki for more information." );
 
 ConVar npc_combine_fixed_shootpos( "npc_combine_fixed_shootpos", "0", FCVAR_NONE, "Mapbase: Toggles fixed Combine soldier shoot position." );
+
+// Un-hardcode grenade stuff, they marked with FCVAR_HIDDEN because constant stuff prob can't be altered at run-time
+ConVar npc_combine_grenade_throw_speed("npc_combine_grenade_throw_speed", "650", FCVAR_HIDDEN);
+ConVar npc_combine_grenade_timer("npc_combine_grenade_timer", "3.5", FCVAR_HIDDEN);
+ConVar npc_combine_grenade_flush_time("npc_combine_grenade_flush_time", "3.0", FCVAR_HIDDEN);
+ConVar npc_combine_grenade_flush_dist("npc_combine_grenade_flush_dist", "256.0", FCVAR_HIDDEN);
+ConVar npc_combine_grenade_min_clear_dist("npc_combine_grenade_min_clear_dist", "250", FCVAR_HIDDEN);
+
+ConVar npc_combine_limp_health("npc_combine_limp_health", "20", FCVAR_HIDDEN);
+
+ConVar npc_combine_min_crouch_dist("npc_combine_min_crouch_dist", "256.0", FCVAR_HIDDEN);
+
+// Not sure if necessary but it's good to have
+ConVar npc_combine_eye_standing_position_posX("npc_combine_eye_standing_position_posX", "0", FCVAR_HIDDEN);
+ConVar npc_combine_eye_standing_position_posY("npc_combine_eye_standing_position_posY", "0", FCVAR_HIDDEN);
+ConVar npc_combine_eye_standing_position_posZ("npc_combine_eye_standing_position_posZ", "66", FCVAR_HIDDEN);
+
+ConVar npc_combine_gun_standing_position_posX("npc_combine_gun_standing_position_posX", "0", FCVAR_HIDDEN);
+ConVar npc_combine_gun_standing_position_posY("npc_combine_gun_standing_position_posY", "0", FCVAR_HIDDEN);
+ConVar npc_combine_gun_standing_position_posZ("npc_combine_gun_standing_position_posZ", "57", FCVAR_HIDDEN);
+
+ConVar npc_combine_eye_crouching_position_posX("npc_combine_eye_crouching_position_posX", "0", FCVAR_HIDDEN);
+ConVar npc_combine_eye_crouching_position_posY("npc_combine_eye_crouching_position_posY", "0", FCVAR_HIDDEN);
+ConVar npc_combine_eye_crouching_position_posZ("npc_combine_eye_crouching_position_posZ", "40", FCVAR_HIDDEN);
+
+ConVar npc_combine_gun_crouching_position_posX("npc_combine_gun_crouching_position_posX", "0", FCVAR_HIDDEN);
+ConVar npc_combine_gun_crouching_position_posY("npc_combine_gun_crouching_position_posY", "0", FCVAR_HIDDEN);
+ConVar npc_combine_gun_crouching_position_posZ("npc_combine_gun_crouching_position_posZ", "36", FCVAR_HIDDEN);
+
+ConVar npc_combine_shotgun_standing_position_posX("npc_combine_shotgun_standing_position_posX", "0", FCVAR_HIDDEN);
+ConVar npc_combine_shotgun_standing_position_posY("npc_combine_shotgun_standing_position_posY", "0", FCVAR_HIDDEN);
+ConVar npc_combine_shotgun_standing_position_posZ("npc_combine_shotgun_standing_position_posZ", "36", FCVAR_HIDDEN);
+
+ConVar npc_combine_shotgun_crouching_position_posX("npc_combine_shotgun_crouching_position_posX", "0", FCVAR_HIDDEN);
+ConVar npc_combine_shotgun_crouching_position_posY("npc_combine_shotgun_crouching_position_posY", "0", FCVAR_HIDDEN);
+ConVar npc_combine_shotgun_crouching_position_posZ("npc_combine_shotgun_crouching_position_posZ", "36", FCVAR_HIDDEN);
+
+ConVar npc_combine_hacked_gunpos_position_posX("npc_combine_hacked_gunpos_position_posX", "0", FCVAR_HIDDEN);
+ConVar npc_combine_hacked_gunpos_position_posY("npc_combine_hacked_gunpos_position_posY", "0", FCVAR_HIDDEN);
+ConVar npc_combine_hacked_gunpos_position_posZ("npc_combine_hacked_gunpos_position_posZ", "55", FCVAR_HIDDEN);
+
+ConVar npc_combine_move_and_shoot_delay("npc_combine_move_and_shoot_delay", "0.75", FCVAR_HIDDEN);
 #endif
 
 #define COMBINE_SKIN_DEFAULT		0
@@ -56,24 +98,24 @@ ConVar npc_combine_fixed_shootpos( "npc_combine_fixed_shootpos", "0", FCVAR_NONE
 
 
 #ifndef MAPBASE
-#define COMBINE_GRENADE_THROW_SPEED 650
-#define COMBINE_GRENADE_TIMER		3.5
-#define COMBINE_GRENADE_FLUSH_TIME	3.0		// Don't try to flush an enemy who has been out of sight for longer than this.
-#define COMBINE_GRENADE_FLUSH_DIST	256.0	// Don't try to flush an enemy who has moved farther than this distance from the last place I saw him.
+#define COMBINE_GRENADE_THROW_SPEED npc_combine_grenade_throw_speed.GetFloat()
+#define COMBINE_GRENADE_TIMER		npc_combine_grenade_timer.GetFloat()
+#define COMBINE_GRENADE_FLUSH_TIME	npc_combine_grenade_flush_time.GetFloat()		// Don't try to flush an enemy who has been out of sight for longer than this.
+#define COMBINE_GRENADE_FLUSH_DIST	npc_combine_grenade_flush_dist.GetFloat()	// Don't try to flush an enemy who has moved farther than this distance from the last place I saw him.
 #endif
 
-#define COMBINE_LIMP_HEALTH				20
+#define COMBINE_LIMP_HEALTH				npc_combine_limp_health.GetInt()
 #ifndef MAPBASE
-#define	COMBINE_MIN_GRENADE_CLEAR_DIST	250
+#define	COMBINE_MIN_GRENADE_CLEAR_DIST	npc_combine_grenade_min_clear_dist.GetInt()
 #endif
 
-#define COMBINE_EYE_STANDING_POSITION	Vector( 0, 0, 66 )
-#define COMBINE_GUN_STANDING_POSITION	Vector( 0, 0, 57 )
-#define COMBINE_EYE_CROUCHING_POSITION	Vector( 0, 0, 40 )
-#define COMBINE_GUN_CROUCHING_POSITION	Vector( 0, 0, 36 )
-#define COMBINE_SHOTGUN_STANDING_POSITION	Vector( 0, 0, 36 )
-#define COMBINE_SHOTGUN_CROUCHING_POSITION	Vector( 0, 0, 36 )
-#define COMBINE_MIN_CROUCH_DISTANCE		256.0
+#define COMBINE_EYE_STANDING_POSITION	Vector( npc_combine_eye_standing_position_posX.GetFloat(), npc_combine_eye_standing_position_posY.GetFloat(), npc_combine_eye_standing_position_posZ.GetFloat() )
+#define COMBINE_GUN_STANDING_POSITION	Vector( npc_combine_gun_standing_position_posX.GetFloat(), npc_combine_gun_standing_position_posY.GetFloat(), npc_combine_gun_standing_position_posZ.GetFloat() )
+#define COMBINE_EYE_CROUCHING_POSITION	Vector( npc_combine_eye_crouching_position_posX.GetFloat(), npc_combine_eye_crouching_position_posY.GetFloat(), npc_combine_eye_crouching_position_posZ.GetFloat() )
+#define COMBINE_GUN_CROUCHING_POSITION	Vector( npc_combine_gun_crouching_position_posX.GetFloat(), npc_combine_gun_crouching_position_posY.GetFloat(), npc_combine_gun_crouching_position_posZ.GetFloat() )
+#define COMBINE_SHOTGUN_STANDING_POSITION	Vector( npc_combine_shotgun_standing_position_posX.GetFloat(), npc_combine_shotgun_standing_position_posY.GetFloat(), npc_combine_shotgun_standing_position_posZ.GetFloat() )
+#define COMBINE_SHOTGUN_CROUCHING_POSITION	Vector( npc_combine_shotgun_crouching_position_posX.GetFloat(), npc_combine_shotgun_crouching_position_posY.GetFloat(), npc_combine_shotgun_crouching_position_posZ.GetFloat() )
+#define COMBINE_MIN_CROUCH_DISTANCE		npc_combine_min_crouch_dist.GetFloat()
 
 //-----------------------------------------------------------------------------
 // Static stuff local to this file.
@@ -479,10 +521,10 @@ void CNPC_Combine::Spawn( void )
 
 	m_bFirstEncounter	= true;// this is true when the grunt spawns, because he hasn't encountered an enemy yet.
 
-	m_HackedGunPos = Vector ( 0, 0, 55 );
+	m_HackedGunPos = Vector (npc_combine_hacked_gunpos_position_posX.GetFloat(), npc_combine_hacked_gunpos_position_posY.GetFloat(), npc_combine_hacked_gunpos_position_posZ.GetFloat());
 
 	m_flStopMoveShootTime = FLT_MAX; // Move and shoot defaults on.
-	m_MoveAndShootOverlay.SetInitialDelay( 0.75 ); // But with a bit of a delay.
+	m_MoveAndShootOverlay.SetInitialDelay(npc_combine_move_and_shoot_delay.GetFloat()); // But with a bit of a delay.
 
 	m_flNextLostSoundTime		= 0;
 	m_flAlertPatrolTime			= 0;
@@ -909,7 +951,7 @@ void CNPC_Combine::RunTaskChaseEnemyContinuously( const Task_t *pTask )
 void CNPC_Combine::StartTask( const Task_t *pTask )
 {
 	// NOTE: This reset is required because we change it in TASK_COMBINE_CHASE_ENEMY_CONTINUOUSLY
-	m_MoveAndShootOverlay.SetInitialDelay( 0.75 );
+	m_MoveAndShootOverlay.SetInitialDelay(npc_combine_move_and_shoot_delay.GetFloat());
 
 	switch ( pTask->iTask )
 	{
