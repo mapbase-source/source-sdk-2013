@@ -996,6 +996,9 @@ public:
 
 	bool PassesFilterImpl( CBaseEntity *pCaller, CBaseEntity *pEntity )
 	{
+		if (!pEntity)
+			return false;
+
 		if (FStrEq(STRING(m_strFilterSkin), "-1") /*m_strFilterSkin == NULL_STRING|| FStrEq(STRING(m_strFilterSkin), "")*/)
 			return Matcher_NamesMatch(STRING(m_iFilterModel), STRING(pEntity->GetModelName()));
 		else if (pEntity->GetBaseAnimating())
@@ -1011,6 +1014,17 @@ public:
 		inputdata.value.Convert(FIELD_STRING);
 		m_iFilterModel = inputdata.value.StringID();
 	}
+
+	bool KeyValue( const char *szKeyName, const char *szValue )
+	{
+		if (FStrEq( szKeyName, "filtername" ))
+		{
+			m_iFilterModel = AllocPooledString( szValue );
+			return true;
+		}
+		else
+			return BaseClass::KeyValue( szKeyName, szValue );
+	}
 };
 
 LINK_ENTITY_TO_CLASS( filter_activator_model, CFilterModel );
@@ -1019,7 +1033,6 @@ BEGIN_DATADESC( CFilterModel )
 
 	// Keyfields
 	DEFINE_KEYFIELD( m_iFilterModel,	FIELD_STRING,	"filtermodel" ),
-	DEFINE_KEYFIELD( m_iFilterModel,	FIELD_STRING,	"filtername" ),
 	DEFINE_KEYFIELD( m_strFilterSkin,	FIELD_STRING,	"skin" ),
 
 END_DATADESC()

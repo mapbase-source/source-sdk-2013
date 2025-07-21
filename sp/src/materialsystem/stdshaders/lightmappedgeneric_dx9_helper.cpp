@@ -1537,7 +1537,7 @@ void DrawLightmappedGeneric_DX9_Internal(CBaseVSShader *pShader, IMaterialVar** 
 				float envMapOrigin[4] = {0,0,0,0};
 				params[info.m_nEnvmapOrigin]->GetVecValue( envMapOrigin, 3 );
 #ifdef MAPBASE
-				envMapOrigin[4] = bEditorBlend ? 1.0f : 0.0f;
+				envMapOrigin[3] = bEditorBlend ? 1.0f : 0.0f;
 #endif
 				pContextData->m_SemiStaticCmdsOut.SetPixelShaderConstant( 21, envMapOrigin );
 

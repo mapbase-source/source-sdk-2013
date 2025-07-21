@@ -30,6 +30,8 @@
 #ifdef MAPBASE
 ConVar ragdoll_autointeractions("ragdoll_autointeractions", "1", FCVAR_NONE, "Controls whether we should rely on hardcoded keyvalues or automatic flesh checks for ragdoll physgun interactions.");
 #define IsBody() VPhysicsIsFlesh()
+
+ConVar ragdoll_always_allow_use( "ragdoll_always_allow_use", "0", FCVAR_NONE, "Allows all ragdolls to be used and, if they aren't explicitly set to prevent pickup, picked up." );
 #endif
 
 //-----------------------------------------------------------------------------
@@ -58,6 +60,8 @@ const float ATTACHED_DAMPING_SCALE = 50.0f;
 #define	SF_RAGDOLLPROP_STARTASLEEP			0x10000
 #ifdef MAPBASE
 #define	SF_RAGDOLLPROP_FIXED_CONSTRAINTS	0x20000
+#define	SF_RAGDOLLPROP_ALLOW_USE			0x40000
+#define	SF_RAGDOLLPROP_PREVENT_PICKUP		0x80000
 #endif
 
 //-----------------------------------------------------------------------------
@@ -104,6 +108,8 @@ BEGIN_DATADESC(CRagdollProp)
 #ifdef MAPBASE
 	DEFINE_INPUTFUNC( FIELD_VOID, "Wake", InputWake ),
 	DEFINE_INPUTFUNC( FIELD_VOID, "Sleep", InputSleep ),
+	DEFINE_INPUTFUNC( FIELD_VOID, "AddToLRU", InputAddToLRU ),
+	DEFINE_INPUTFUNC( FIELD_VOID, "RemoveFromLRU", InputRemoveFromLRU ),
 #endif
 	DEFINE_INPUTFUNC( FIELD_VOID, "Enable",		InputTurnOn ),
 	DEFINE_INPUTFUNC( FIELD_VOID, "Disable",	InputTurnOff ),
@@ -124,6 +130,10 @@ BEGIN_DATADESC(CRagdollProp)
 	DEFINE_FIELD( m_flFadeTime,	FIELD_FLOAT),
 	DEFINE_FIELD( m_strSourceClassName, FIELD_STRING ),
 	DEFINE_FIELD( m_bHasBeenPhysgunned, FIELD_BOOLEAN ),
+
+#ifdef MAPBASE
+	DEFINE_OUTPUT( m_OnPlayerUse, "OnPlayerUse" ),
+#endif
 
 	// think functions
 	DEFINE_THINKFUNC( SetDebrisThink ),
@@ -334,8 +344,38 @@ void CRagdollProp::Precache( void )
 
 int CRagdollProp::ObjectCaps()
 {
-	return BaseClass::ObjectCaps() | FCAP_WCEDIT_POSITION;
+	int caps = FCAP_WCEDIT_POSITION;
+
+#ifdef MAPBASE
+	if (HasSpawnFlags( SF_RAGDOLLPROP_ALLOW_USE ) || ragdoll_always_allow_use.GetBool())
+		caps |= FCAP_IMPULSE_USE;
+#endif
+
+	return BaseClass::ObjectCaps() | caps;
 }
+
+#ifdef MAPBASE
+//-----------------------------------------------------------------------------
+// Purpose: 
+// Input  : *pActivator - 
+//			*pCaller - 
+//			useType - 
+//			value - 
+//-----------------------------------------------------------------------------
+void CRagdollProp::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
+{
+	CBasePlayer *pPlayer = ToBasePlayer( pActivator );
+	if (pPlayer)
+	{
+		m_OnPlayerUse.FireOutput( pActivator, this );
+
+		if (!HasSpawnFlags( SF_RAGDOLLPROP_PREVENT_PICKUP ))
+		{
+			pPlayer->PickupObject( this, false );
+		}
+	}
+}
+#endif
 
 //-----------------------------------------------------------------------------
 // Purpose: 
@@ -405,7 +445,7 @@ void CRagdollProp::OnPhysGunPickup( CBasePlayer *pPhysGunUser, PhysGunPickup_t r
 	m_bHasBeenPhysgunned = true;
 
 #ifdef MAPBASE
-	if( (ragdoll_autointeractions.GetBool() == true && IsBody()) || HasPhysgunInteraction( "onpickup", "boogie" ) )
+	if( ((ragdoll_autointeractions.GetBool() == true && IsBody()) || HasPhysgunInteraction( "onpickup", "boogie" )) && reason != PICKED_UP_BY_PLAYER )
 #else
 	if( HasPhysgunInteraction( "onpickup", "boogie" ) )
 #endif
@@ -447,7 +487,7 @@ void CRagdollProp::OnPhysGunDrop( CBasePlayer *pPhysGunUser, PhysGunDrop_t Reaso
 	m_flLastPhysicsInfluenceTime = gpGlobals->curtime;
 
 #ifdef MAPBASE
-	if( (ragdoll_autointeractions.GetBool() == true && IsBody()) || HasPhysgunInteraction( "onpickup", "boogie" ) )
+	if( ((ragdoll_autointeractions.GetBool() == true && IsBody()) || HasPhysgunInteraction( "onpickup", "boogie" )) && (Reason != DROPPED_BY_PLAYER && Reason != THROWN_BY_PLAYER) )
 #else
 	if( HasPhysgunInteraction( "onpickup", "boogie" ) )
 #endif
@@ -1843,6 +1883,24 @@ void CRagdollProp::InputSleep( inputdata_t &inputdata )
 			pPhysicsObject->Sleep();
 		}
 	}
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: Adds ragdoll to LRU.
+//-----------------------------------------------------------------------------
+void CRagdollProp::InputAddToLRU( inputdata_t &inputdata )
+{
+	AddSpawnFlags( SF_RAGDOLLPROP_USE_LRU_RETIREMENT );
+	s_RagdollLRU.MoveToTopOfLRU( this );
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: Removes ragdoll from LRU.
+//-----------------------------------------------------------------------------
+void CRagdollProp::InputRemoveFromLRU( inputdata_t &inputdata )
+{
+	RemoveSpawnFlags( SF_RAGDOLLPROP_USE_LRU_RETIREMENT );
+	s_RagdollLRU.RemoveFromLRU( this );
 }
 #endif
 

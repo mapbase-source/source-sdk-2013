@@ -14,7 +14,13 @@
 #include "ammodef.h"
 #include "tier1/utlcommon.h"
 
+#include "soundenvelope.h"
+#include "saverestore_utlvector.h"
+#include "stdstring.h"
+
 #ifndef CLIENT_DLL
+#include "ai_speech.h"
+#include "ai_memory.h"
 #include "ai_squad.h"
 #endif // !CLIENT_DLL
 
@@ -44,285 +50,2492 @@
 
 extern IScriptManager *scriptmanager;
 
+
+#ifdef GAME_DLL
+	extern void SendProxy_StringT_To_String(const SendProp*, const void*, const void*, DVariant*, int, int);
+	extern void SendProxy_UtlVectorLength(const SendProp*, const void*, const void*, DVariant*, int, int);
+	class CSendProxyRecipients;
+	extern void* SendProxy_LengthTable(const SendProp*, const void*, const void* pData, CSendProxyRecipients*, int);
+	#define DataTableProxy_EHandle SendProxy_EHandleToInt
+	#define DataTableProxy_String SendProxy_StringToString
+	#define DataTableProxy_TableLength SendProxy_LengthTable
+	#define DataTableProxy_UtlVectorLength SendProxy_UtlVectorLength
+#else
+	extern void RecvProxy_UtlVectorLength(const CRecvProxyData*, void*, void*);
+	extern void DataTableRecvProxy_LengthProxy(const RecvProp*, void**, void*, int);
+	#define DataTableProxy_EHandle RecvProxy_IntToEHandle
+	#define DataTableProxy_String RecvProxy_StringToString
+	#define DataTableProxy_TableLength DataTableRecvProxy_LengthProxy
+	#define DataTableProxy_UtlVectorLength RecvProxy_UtlVectorLength
+#endif
+extern ISaveRestoreOps* GetPhysObjSaveRestoreOps( PhysInterfaceId_t );
+extern ISaveRestoreOps* ActivityDataOps();
+extern ISaveRestoreOps* GetSoundSaveRestoreOps();
+extern ISaveRestoreOps* GetStdStringDataOps();
+#ifdef GAME_DLL
+	#define UTLVECTOR_DATAOPS( fieldType, dataType )\
+		CUtlVectorDataopsInstantiator< fieldType >::GetDataOps( (CUtlVector< dataType >*)0 )
+	#define IS_EHANDLE_UTLVECTOR( td )\
+		td->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_EHANDLE, CHandle< CBaseEntity > ) ||\
+		td->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_EHANDLE, CHandle< CBaseFlex > ) ||\
+		td->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_EHANDLE, CHandle< CBaseAnimating > ) ||\
+		td->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_EHANDLE, CHandle< CBaseCombatWeapon > ) ||\
+		td->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_EHANDLE, CHandle< CBasePlayer > ) ||\
+		td->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_EHANDLE, CHandle< CAI_BaseNPC > ) ||\
+		td->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_EHANDLE, CHandle< CSceneEntity > ) ||\
+		td->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_EHANDLE, CHandle< CSceneListManager > ) ||\
+		td->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_EHANDLE, CHandle< CRagdollBoogie > ) ||\
+		td->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_EHANDLE, CHandle< CFish > ) ||\
+		td->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_EHANDLE, CHandle< CVGuiScreen > )
+
+	class CSceneListManager;
+	class CRagdollBoogie;
+	class CFish;
+	#ifdef _DEBUG
+		class CStringTableSaveRestoreOps;
+		extern CStringTableSaveRestoreOps g_VguiScreenStringOps;
+		extern INetworkStringTable *g_pStringTableVguiScreen;
+		extern ISaveRestoreOps *thinkcontextFuncs;
+		class CAI_EnemiesListSaveRestoreOps;
+		extern CAI_EnemiesListSaveRestoreOps g_AI_MemoryListSaveRestoreOps;
+		class CConceptHistoriesDataOps;
+		extern CConceptHistoriesDataOps g_ConceptHistoriesSaveDataOps;
+	#endif
+#endif
+
 //=============================================================================
 // Net Prop Manager
 // Based on L4D2 API
 //=============================================================================
 class CScriptNetPropManager
 {
-public:
+private:
+#if GAME_DLL
+	typedef SendProp NetProp;
+	typedef SendTable NetTable;
+	typedef ServerClass NetworkClass;
 
-#ifdef CLIENT_DLL
-	RecvProp *RecurseTable( RecvTable *pTable, const char *pszPropName )
+	NetworkClass *GetNetworkClass( CBaseEntity* p ) { return p->GetServerClass(); }
+	NetTable *GetNetTable( NetworkClass* p ) { return p->m_pTable; }
+
+	void NetworkStateChanged( CBaseEntity* p, int o ) { p->NetworkProp()->NetworkStateChanged( o ); }
 #else
-	SendProp *RecurseTable( SendTable *pTable, const char *pszPropName )
+	typedef RecvProp NetProp;
+	typedef RecvTable NetTable;
+	typedef ClientClass NetworkClass;
+
+	NetworkClass *GetNetworkClass( CBaseEntity* p ) { return p->GetClientClass(); }
+	NetTable *GetNetTable( NetworkClass* p ) { return p->m_pRecvTable; }
+
+	void NetworkStateChanged( CBaseEntity*, int ) {}
 #endif
+
+	int GetClassID( CBaseEntity *p )
 	{
-#ifdef CLIENT_DLL
-		RecvProp *pProp = NULL;
+		return GetNetworkClass( p )->m_ClassID;
+	}
+
+	int GetIntPropSize( NetProp *pProp )
+	{
+		Assert( pProp->GetType() == DPT_Int );
+
+#ifdef GAME_DLL
+		extern void SendProxy_UInt8ToInt32( const SendProp*, const void*, const void*, DVariant*, int, int );
+		extern void SendProxy_UInt16ToInt32( const SendProp*, const void*, const void*, DVariant*, int, int );
+		extern void SendProxy_UInt32ToInt32( const SendProp*, const void*, const void*, DVariant*, int, int );
+
+		SendVarProxyFn proxy = pProp->GetProxyFn();
+
+		if ( proxy == SendProxy_Int8ToInt32 || proxy == SendProxy_UInt8ToInt32 )
+			return 8;
+		if ( proxy == SendProxy_Int16ToInt32 || proxy == SendProxy_UInt16ToInt32 )
+			return 16;
+		if ( proxy == SendProxy_Int32ToInt32 || proxy == SendProxy_UInt32ToInt32 )
+			return 32;
+
+		return pProp->m_nBits;
 #else
-		SendProp *pProp = NULL;
+		RecvVarProxyFn proxy = pProp->GetProxyFn();
+
+		if ( proxy == RecvProxy_Int32ToInt8 )
+			return 8;
+		if ( proxy == RecvProxy_Int32ToInt16 )
+			return 16;
+		if ( proxy == RecvProxy_Int32ToInt32 )
+			return 32;
+
+		return 0;
 #endif
-		for (int i = 0; i < pTable->GetNumProps(); i++)
+	}
+
+	bool IsEHandle( NetProp *pProp )
+	{
+		return ( pProp->GetProxyFn() == DataTableProxy_EHandle );
+	}
+
+	bool IsUtlVector( NetProp *pProp )
+	{
+#ifdef GAME_DLL
+		SendVarProxyFn proxy = pProp->GetProxyFn();
+#else
+		RecvVarProxyFn proxy = pProp->GetProxyFn();
+#endif
+
+		return ( proxy == DataTableProxy_UtlVectorLength );
+	}
+
+private:
+	enum types
+	{
+		_INT1			= ( 1 << 0 ),
+		_INT8			= ( 1 << 1 ),
+		_INT16			= ( 1 << 2 ),
+		_INT32			= ( 1 << 3 ),
+		_FLOAT			= ( 1 << 4 ),
+		_VEC3			= ( 1 << 5 ),
+		_VEC2			= ( 1 << 6 ),
+		_EHANDLE		= ( 1 << 7 ),
+		_CLASSPTR		= ( 1 << 8 ),
+		_EDICT			= ( 1 << 9 ),
+		_CSTRING		= ( 1 << 10 ),
+		_STRING_T		= ( 1 << 11 ),
+		_ARRAY			= ( 1 << 12 ),
+		_DATATABLE		= ( 1 << 13 ),
+
+		_PHYS			= ( 1 << 14 ),
+		_STDSTRING		= _CSTRING | _STRING_T,
+
+		_DAR_EHANDLE	= _EHANDLE | _ARRAY,
+		_DAR_CLASSPTR	= _CLASSPTR | _ARRAY,
+		_DAR_INT		= _INT32 | _ARRAY,
+		_DAR_FLOAT		= _FLOAT | _ARRAY,
+
+		//_MAX			= ( 1 << 15 )
+	};
+
+	// UNDONE: Special case for GetPropType() to be able to return the table/array itself
+	#define INDEX_GET_TYPE 0
+
+	#define MASK_INT_SIZE( _size ) ( ( 1 << (_size - 1) ) | ( (1 << (_size - 1)) - 1 ) )
+	#define MASK_NEAREST_BYTE( _bits ) ( ( (1 << ALIGN_TO_NEAREST_BYTE(_bits)) - 1 ) & ~((1 << _bits) - 1) )
+	#define ALIGN_TO_NEAREST_BYTE( _bits ) ( (_bits + 7) & ~7 )
+	#define VARINFO_ARRAYSIZE_BITS 12
+
+	struct varinfo_t
+	{
+		int offset : 32; // actually a short
+
+		union
 		{
-			pProp = pTable->GetProp( i );
-			if (pProp->GetType() == DPT_DataTable)
+			int mask : 32;
+			int stringsize : 32;
+		};
+
+		enum types datatype : 16;
+
+		// element size in bytes
+		unsigned int elemsize : 8;
+		unsigned int arraysize : VARINFO_ARRAYSIZE_BITS;
+
+		// Following are only used in integer netprops to handle unsigned and size casting
+		bool isUnsigned : 1;
+		bool isNotNetworked : 1;
+
+		int GetOffset( int index )
+		{
+			return offset + index * elemsize;
+		}
+	};
+
+	// Wrapper to be able to set case sensitive comparator in node insertion
+	class vardict_t : public CUtlDict< varinfo_t >
+	{
+	public:
+		vardict_t() : CUtlDict< varinfo_t >( k_eDictCompareTypeCaseSensitive ) {}
+	};
+
+	// NOTE: This is lazy and inefficient.
+	// Simply map highest level class id to unique caches.
+	CUtlVector< int > m_EntMap;
+	CUtlVector< vardict_t > m_VarDicts;
+
+	varinfo_t* CacheNew( CBaseEntity *pEnt, const char *szProp )
+	{
+		int idx = m_EntMap.Find( GetClassID( pEnt ) );
+		if ( idx == m_EntMap.InvalidIndex() )
+		{
+			// Vector indices are kept in parallel as a workaround for encapsulating maps
+			idx = m_EntMap.AddToTail( GetClassID( pEnt ) );
+			m_VarDicts.AddToTail();
+		}
+
+		vardict_t &dict = m_VarDicts.Element( idx );
+
+		idx = dict.Find( szProp );
+		if ( idx == dict.InvalidIndex() )
+			idx = dict.Insert( szProp );
+
+		varinfo_t *pInfo = &dict.Element( idx );
+		V_memset( pInfo, 0, sizeof( varinfo_t ) );
+		return pInfo;
+	}
+
+	varinfo_t* CacheFetch( CBaseEntity *pEnt, const char *szProp )
+	{
+		int idx = m_EntMap.Find( GetClassID( pEnt ) );
+		if ( idx == m_EntMap.InvalidIndex() )
+			return NULL;
+
+		vardict_t &dict = m_VarDicts.Element( idx );
+		idx = dict.Find( szProp );
+		if ( idx == dict.InvalidIndex() )
+			return NULL;
+
+		varinfo_t *pInfo = &dict.Element( idx );
+		return pInfo;
+	}
+
+public:
+	~CScriptNetPropManager()
+	{
+		PurgeCache();
+	}
+
+	void PurgeCache()
+	{
+		m_EntMap.Purge();
+		m_VarDicts.Purge();
+	}
+
+private:
+	typedescription_t *FindField( char *pBase, datamap_t *map, const char *szName, int *offset )
+	{
+		if ( map->baseMap )
+		{
+			typedescription_t* p = FindField( pBase, map->baseMap, szName, offset );
+			if ( p )
+				return p;
+		}
+
+		typedescription_t *pFields = map->dataDesc;
+		int numFields = map->dataNumFields;
+
+		for ( int i = 0; i < numFields; i++ )
+		{
+			typedescription_t* td = &pFields[i];
+			int fieldType = td->fieldType;
+			int fieldOffset = td->fieldOffset[ TD_OFFSET_NORMAL ];
+
+			if ( td->flags & (FTYPEDESC_FUNCTIONTABLE | FTYPEDESC_INPUT | FTYPEDESC_OUTPUT) )
+				continue;
+
+			if ( fieldType == FIELD_VOID || fieldType == FIELD_FUNCTION )
+				continue;
+
+			if ( !V_strcmp( td->fieldName, szName ) )
 			{
-				pProp = RecurseTable(pProp->GetDataTable(), pszPropName);
-				if (pProp)
-					return pProp;
-			}
-			else
-			{
-				if (FStrEq( pProp->GetName(), pszPropName ))
-					return pProp;
+				*offset += fieldOffset;
+
+				if ( td->flags & FTYPEDESC_PTR )
+				{
+					// Follow the pointer
+					char * const pRef = *(char**)( pBase + *offset );
+					Assert( pRef );
+					*offset = pRef - pBase;
+				}
+
+				return td;
 			}
 		}
 
 		return NULL;
 	}
 
-#ifdef CLIENT_DLL
-	RecvProp *RecurseNetworkClass( ClientClass *pClass, const char *pszPropName )
-#else
-	SendProp *RecurseNetworkClass( ServerClass *pClass, const char *pszPropName )
-#endif
+	NetProp *FindProp( char *pBase, NetTable *pTable, const char *szName, int *offset )
 	{
-#ifdef CLIENT_DLL
-		RecvProp *pProp = RecurseTable( pClass->m_pRecvTable, pszPropName );
-#else
-		SendProp *pProp = RecurseTable( pClass->m_pTable, pszPropName );
-#endif
-		if (pProp)
+		int numProps = pTable->GetNumProps();
+
+		for ( int i = 0; i < numProps; i++ )
+		{
+			NetProp* pProp = pTable->GetProp(i);
+
+			if ( pProp->IsInsideArray() )
+				continue;
+
+			if ( !V_strcmp( pProp->GetName(), szName ) )
+			{
+				*offset += pProp->GetOffset();
+				return pProp;
+			}
+
+			// Go into inherited fields but not member tables, they are looked up explicitly
+			// This is only a problem with m_AnimOverlay
+			if ( ( pProp->GetFlags() & SPROP_COLLAPSIBLE ) ||
+					( pProp->GetType() == DPT_DataTable && pProp->GetOffset() == 0 ) )
+			{
+				// Don't go into lengthproxy
+				if ( pProp->GetDataTableProxyFn() == DataTableProxy_TableLength )
+					continue;
+
+				NetProp *p = FindProp( pBase + pProp->GetOffset(), pProp->GetDataTable(), szName, offset );
+				if ( p )
+				{
+					*offset += pProp->GetOffset();
+					return p;
+				}
+			}
+		}
+
+		return NULL;
+	}
+
+	typedescription_t *FindInDataMap( char * const pBase, datamap_t *map, const char *szFullProp, int *offset )
+	{
+		*offset = 0;
+
+		// Look for exact match
+		typedescription_t *pField = FindField( pBase, map, szFullProp, offset );
+		if ( pField )
+			return pField;
+
+		// Look for members
+		const char *pszProp = szFullProp;
+		const char *pszPropEnd = V_strnchr( pszProp, '.', 512 );
+		if ( !pszPropEnd )
+			return NULL;
+		do
+		{
+			// this string comes from squirrel stringtable, it can be modified
+			*((char*)pszPropEnd) = 0;
+			pField = FindField( pBase, map, pszProp, offset );
+			*((char*)pszPropEnd) = '.';
+			pszProp = pszPropEnd + 1;
+
+			if ( !pField || ( map = pField->td ) == NULL )
+				return NULL;
+
+			// Look for exact match again, just in case
+			pField = FindField( pBase, map, pszProp, offset );
+			if ( pField )
+				return pField;
+		} while ( ( pszPropEnd = V_strnchr( pszProp, '.', 512 ) ) != NULL );
+
+		return FindField( pBase, map, pszProp, offset );
+	}
+
+	NetProp *FindInNetTable( char * const pBase, NetTable *pTable, const char *szFullProp, int *offset )
+	{
+		*offset = 0;
+
+		// Look for exact match
+		NetProp *pProp = FindProp( pBase, pTable, szFullProp, offset );
+		if ( pProp )
 			return pProp;
 
-		if (pClass->m_pNext)
-			return RecurseNetworkClass( pClass->m_pNext, pszPropName );
-		else
+		// Look for members
+		const char *pszProp = szFullProp;
+		const char *pszPropEnd = V_strnchr( pszProp, '.', 512 );
+		if ( !pszPropEnd )
 			return NULL;
+		do
+		{
+			// this string comes from squirrel stringtable, it can be modified
+			*((char*)pszPropEnd) = 0;
+			pProp = FindProp( pBase, pTable, pszProp, offset );
+			*((char*)pszPropEnd) = '.';
+			pszProp = pszPropEnd + 1;
+
+			if ( !pProp || ( pTable = pProp->GetDataTable() ) == NULL )
+				return NULL;
+
+			// Look for exact match again for fields such as m_Local{m_skybox3d.scale}
+			pProp = FindProp( pBase, pTable, pszProp, offset );
+			if ( pProp )
+				return pProp;
+		} while ( ( pszPropEnd = V_strnchr( pszProp, '.', 512 ) ) != NULL );
+
+		return FindProp( pBase, pTable, pszProp, offset );
 	}
 
+	// Searches NetTable first to handle overwritten member network variables - see
+	// CPlayerResource::m_iHealth and CBaseEntity::m_iHealth
+	varinfo_t *GetVarInfo( CBaseEntity *pEnt, const char *szProp, int index )
+	{
+		int offset = 0;
+		NetTable *pTable = GetNetTable( GetNetworkClass( pEnt ) );
+		NetProp *pProp = FindInNetTable( (char*)pEnt, pTable, szProp, &offset );
+		if ( pProp )
+		{
+
+#define SetVarInfo()\
+				varinfo_t *pInfo = CacheNew( pEnt, szProp );\
+				pInfo->isNotNetworked = 0;\
+				pInfo->elemsize = pProp->GetElementStride();\
+				pInfo->arraysize = pProp->GetNumElements();\
+				pInfo->offset = offset;
+
+			switch ( pProp->GetType() )
+			{
+			case DPT_Int:
+			{
+				if ( IsUtlVector( pProp ) )
+				{
+					return NULL;
+				}
+
+				if ( index < 0 || index >= pProp->GetNumElements() )
+				{
+					Warning( "NetProp element index out of range! %s[%d]\n", szProp, index );
+					return NULL;
+				}
+
+				Assert( index == 0 || pProp->GetElementStride() > 0 );
+
+				if ( IsEHandle( pProp ) )
+				{
+					Assert( pProp->GetElementStride() == sizeof(int) || pProp->GetElementStride() < 0 );
+
+					SetVarInfo();
+					pInfo->datatype = types::_EHANDLE;
+					return pInfo;
+				}
+				else
+				{
+					const int size = GetIntPropSize( pProp );
 #ifdef CLIENT_DLL
-	RecvProp *GetPropByName( CBaseEntity *pEnt, const char *pszPropName )
-	{
-		if (pEnt)
-		{
-			return RecurseNetworkClass( pEnt->GetClientClass(), pszPropName );
-		}
-
-		return NULL;
-	}
-#else
-	SendProp *GetPropByName( CBaseEntity *pEnt, const char *pszPropName )
-	{
-		if (pEnt)
-		{
-			return RecurseNetworkClass( pEnt->GetServerClass(), pszPropName );
-		}
-
-		return NULL;
-	}
+					// Client might be reading any amount of bits in a custom RecvProxy
+					// Break and check the datamaps
+					if ( size == 0 )
+						break;
 #endif
+					Assert( size <= pProp->GetElementStride() || pProp->GetElementStride() < 0 );
 
-	int GetPropArraySize( HSCRIPT hEnt, const char *pszPropName )
+					SetVarInfo();
+					pInfo->mask = MASK_INT_SIZE( size );
+					pInfo->datatype = types::_INT32;
+					return pInfo;
+				}
+			}
+			case DPT_Float:
+			{
+				if ( index < 0 || index >= pProp->GetNumElements() )
+				{
+					Warning( "NetProp element index out of range! %s[%d]\n", szProp, index );
+					return NULL;
+				}
+
+				Assert( index == 0 || pProp->GetElementStride() > 0 );
+				Assert( pProp->GetElementStride() == sizeof(float) || pProp->GetElementStride() < 0 );
+
+				SetVarInfo();
+				pInfo->datatype = types::_FLOAT;
+				return pInfo;
+			}
+			case DPT_Vector:
+			{
+				if ( index < 0 || index >= pProp->GetNumElements() )
+				{
+					Warning( "NetProp element index out of range! %s[%d]\n", szProp, index );
+					return NULL;
+				}
+
+				Assert( index == 0 || pProp->GetElementStride() > 0 );
+				Assert( pProp->GetElementStride() == sizeof(float)*3 || pProp->GetElementStride() < 0 );
+
+				SetVarInfo();
+				pInfo->datatype = types::_VEC3;
+				return pInfo;
+			}
+			case DPT_VectorXY:
+			{
+				if ( index < 0 || index >= pProp->GetNumElements() )
+				{
+					Warning( "NetProp element index out of range! %s[%d]\n", szProp, index );
+					return NULL;
+				}
+
+				Assert( index == 0 || pProp->GetElementStride() > 0 );
+				Assert( pProp->GetElementStride() == sizeof(float)*2 || pProp->GetElementStride() < 0 );
+
+				SetVarInfo();
+				pInfo->datatype = types::_VEC2;
+				return pInfo;
+			}
+			case DPT_String:
+			{
+				if ( index < 0 || index >= pProp->GetNumElements() )
+				{
+					Warning( "NetProp element index out of range! %s[%d]\n", szProp, index );
+					return NULL;
+				}
+
+				Assert( index == 0 || pProp->GetElementStride() > 0 );
+
+				SetVarInfo();
+#ifdef GAME_DLL
+				pInfo->stringsize = 0;
+#else
+				pInfo->stringsize = pProp->m_StringBufferSize;
+#endif
+#ifdef GAME_DLL
+				if ( pProp->GetProxyFn() == SendProxy_StringT_To_String )
+				{
+					pInfo->datatype = types::_STRING_T;
+				}
+				else
+#endif
+				{
+					Assert( pProp->GetProxyFn() == DataTableProxy_String );
+					pInfo->datatype = types::_CSTRING;
+				}
+				return pInfo;
+			}
+			case DPT_DataTable:
+			{
+				NetTable* pArray = pProp->GetDataTable();
+
+				if ( V_strcmp( pProp->GetName(), pArray->GetName() ) != 0 )
+				{
+					Warning( "DT is not an array! %s(%s)\n", pProp->GetName(), pArray->GetName() );
+					return NULL;
+				}
+
+				if ( index < 0 || index >= pArray->GetNumProps() )
+				{
+					Warning( "NetProp element index out of range! %s[%d]\n", szProp, index );
+					return NULL;
+				}
+
+				pProp = pArray->GetProp( index );
+
+				switch ( pProp->GetType() )
+				{
+				case DPT_Int:
+				{
+					if ( IsEHandle( pProp ) )
+					{
+						varinfo_t *pInfo = CacheNew( pEnt, szProp );
+						pInfo->elemsize = sizeof(int);
+						pInfo->arraysize = pArray->GetNumProps();
+						pInfo->offset = offset;
+						pInfo->datatype = types::_EHANDLE;
+						return pInfo;
+					}
+					else
+					{
+						const int size = GetIntPropSize( pProp );
+#ifdef CLIENT_DLL
+						// Client might be reading any amount of bits in a custom RecvProxy
+						// Break and check the datamaps
+						if ( size == 0 )
+							break;
+#endif
+						varinfo_t *pInfo = CacheNew( pEnt, szProp );
+
+						if ( pArray->GetNumProps() > 1 )
+						{
+							pInfo->elemsize = pArray->GetProp(1)->GetOffset() - pArray->GetProp(0)->GetOffset();
+						}
+						else
+						{
+							// Doesn't matter for an array of a single element
+							pInfo->elemsize = 0;
+						}
+
+						pInfo->arraysize = pArray->GetNumProps();
+						pInfo->offset = offset;
+						pInfo->mask = MASK_INT_SIZE( size );
+						pInfo->datatype = types::_INT32;
+						return pInfo;
+					}
+				}
+				case DPT_Float:
+				{
+					varinfo_t *pInfo = CacheNew( pEnt, szProp );
+					pInfo->elemsize = sizeof(float);
+					pInfo->arraysize = pArray->GetNumProps();
+					pInfo->offset = offset;
+					pInfo->datatype = types::_FLOAT;
+					return pInfo;
+				}
+				case DPT_Vector:
+				{
+					varinfo_t *pInfo = CacheNew( pEnt, szProp );
+					pInfo->elemsize = sizeof(float)*3;
+					pInfo->arraysize = pArray->GetNumProps();
+					pInfo->offset = offset;
+					pInfo->datatype = types::_VEC3;
+					return pInfo;
+				}
+				case DPT_VectorXY:
+				{
+					varinfo_t *pInfo = CacheNew( pEnt, szProp );
+					pInfo->elemsize = sizeof(float)*2;
+					pInfo->arraysize = pArray->GetNumProps();
+					pInfo->offset = offset;
+					pInfo->datatype = types::_VEC2;
+					return pInfo;
+				}
+				case DPT_DataTable:
+				{
+					AssertMsg( 0, "DT in DT" );
+					return NULL;
+				}
+				case DPT_Array:
+				{
+					AssertMsg( 0, "Array in DT" );
+					return NULL;
+				}
+				case DPT_String:
+				{
+					AssertMsg( 0, "String in DT" );
+					return NULL;
+				}
+				default: UNREACHABLE();
+				}
+#ifdef CLIENT_DLL
+				// DPT_Int can break into here for datamap fallback
+				break;
+#else
+				UNREACHABLE();
+#endif
+			} // DPT_DataTable
+			case DPT_Array:
+			{
+				Assert( pProp->GetArrayProp() );
+
+				NetProp *pArray = pProp->GetArrayProp();
+				offset += pArray->GetOffset();
+
+				if ( index < 0 || index >= pProp->GetNumElements() )
+				{
+					Warning( "NetProp element index out of range! %s[%d]\n", szProp, index );
+					return NULL;
+				}
+
+				switch ( pArray->GetType() )
+				{
+				case DPT_Int:
+				{
+					Assert( index == 0 || pProp->GetElementStride() > 0 );
+
+					if ( IsEHandle( pArray ) )
+					{
+						SetVarInfo();
+						pInfo->datatype = types::_EHANDLE;
+						return pInfo;
+					}
+					else
+					{
+						const int size = GetIntPropSize( pArray );
+#ifdef CLIENT_DLL
+						// Client might be reading any amount of bits in a custom RecvProxy
+						// Break and check the datamaps
+						if ( size == 0 )
+							break;
+#endif
+						SetVarInfo();
+						pInfo->mask = MASK_INT_SIZE( size );
+						pInfo->datatype = types::_INT32;
+						return pInfo;
+					}
+				}
+				case DPT_Float:
+				{
+					SetVarInfo();
+					pInfo->datatype = types::_FLOAT;
+					return pInfo;
+				}
+				case DPT_Vector:
+				{
+					SetVarInfo();
+					pInfo->datatype = types::_VEC3;
+					return pInfo;
+				}
+				case DPT_VectorXY:
+				{
+					SetVarInfo();
+					pInfo->datatype = types::_VEC2;
+					return pInfo;
+				}
+				case DPT_String:
+				{
+					AssertMsg( 0, "String array not implemented" );
+					return NULL;
+				}
+				case DPT_Array:
+				case DPT_DataTable: AssertMsg( 0, "DT in array" );
+				default: UNREACHABLE();
+				}
+#ifdef CLIENT_DLL
+				// DPT_Int can break into here for datamap fallback
+				break;
+#else
+				UNREACHABLE();
+#endif
+			} // DPT_Array
+			default: UNREACHABLE();
+			}
+			// ambigious int size on client, check the datamaps
+#undef SetVarInfo
+		}
+
+		datamap_t *map = pEnt->GetDataDescMap();
+		typedescription_t *pField = FindInDataMap( (char*)pEnt, map, szProp, &offset );
+		if ( pField )
+		{
+#ifdef CLIENT_DLL
+find_field:
+#endif
+			if ( index < 0 || index >= pField->fieldSize )
+			{
+				Warning( "NetProp element index out of range! %s[%d]\n", szProp, index );
+				return NULL;
+			}
+
+#define SetVarInfo()\
+				varinfo_t *pInfo = CacheNew( pEnt, szProp );\
+				pInfo->isNotNetworked = 1;\
+				pInfo->elemsize = pField->fieldSizeInBytes / pField->fieldSize;\
+				pInfo->arraysize = pField->fieldSize;\
+				pInfo->offset = offset;
+
+			switch ( pField->fieldType )
+			{
+			case FIELD_INTEGER:
+			case FIELD_MATERIALINDEX:
+			case FIELD_MODELINDEX:
+			case FIELD_COLOR32:
+			case FIELD_TICK:
+			case FIELD_BOOLEAN:
+			case FIELD_CHARACTER:
+			case FIELD_SHORT:
+			{
+				SetVarInfo();
+				pInfo->isUnsigned = ( pField->flags & SPROP_UNSIGNED ) != 0;
+				pInfo->isNotNetworked = 1;
+				switch ( pField->fieldType )
+				{
+					case FIELD_INTEGER:
+					case FIELD_MATERIALINDEX:
+					case FIELD_MODELINDEX:
+					case FIELD_COLOR32:
+					case FIELD_TICK:
+						pInfo->datatype = types::_INT32; break;
+					case FIELD_BOOLEAN:
+						pInfo->datatype = types::_INT1; break;
+					case FIELD_CHARACTER:
+						Assert( pField->fieldSizeInBytes == pField->fieldSize );
+						pInfo->stringsize = pField->fieldSizeInBytes;
+						pInfo->datatype = types::_INT8; break;
+					case FIELD_SHORT:
+						pInfo->datatype = types::_INT16; break;
+					default: UNREACHABLE();
+				}
+				return pInfo;
+			}
+			case FIELD_FLOAT:
+			case FIELD_TIME:
+			{
+				Assert( sizeof(float) == pField->fieldSizeInBytes / pField->fieldSize );
+
+				SetVarInfo();
+				pInfo->datatype = types::_FLOAT;
+				return pInfo;
+			}
+			case FIELD_EHANDLE:
+			{
+				Assert( sizeof(int) == pField->fieldSizeInBytes / pField->fieldSize );
+
+				SetVarInfo();
+				pInfo->datatype = types::_EHANDLE;
+				return pInfo;
+			}
+#ifdef GAME_DLL
+			case FIELD_CLASSPTR:
+			{
+				Assert( sizeof(int*) == pField->fieldSizeInBytes / pField->fieldSize );
+
+				SetVarInfo();
+				pInfo->datatype = types::_CLASSPTR;
+				return pInfo;
+			}
+			case FIELD_EDICT:
+			{
+				Assert( sizeof(int*) == pField->fieldSizeInBytes / pField->fieldSize );
+
+				SetVarInfo();
+				pInfo->datatype = types::_EDICT;
+				return pInfo;
+			}
+#endif
+			case FIELD_VECTOR:
+			case FIELD_POSITION_VECTOR:
+			{
+				Assert( sizeof(float)*3 == pField->fieldSizeInBytes / pField->fieldSize );
+
+				SetVarInfo();
+				pInfo->datatype = types::_VEC3;
+				return pInfo;
+			}
+			case FIELD_STRING:
+			case FIELD_MODELNAME:
+			case FIELD_SOUNDNAME:
+			{
+				SetVarInfo();
+				pInfo->stringsize = 0;
+				pInfo->datatype = types::_STRING_T;
+				return pInfo;
+			}
+			case FIELD_CUSTOM:
+			{
+				if ( pField->pSaveRestoreOps == GetPhysObjSaveRestoreOps( PIID_IPHYSICSOBJECT ) )
+				{
+					SetVarInfo();
+					pInfo->datatype = types::_PHYS;
+					return pInfo;
+				}
+				else if ( pField->pSaveRestoreOps == ActivityDataOps() )
+				{
+					SetVarInfo();
+					pInfo->datatype = types::_INT32;
+					return pInfo;
+				}
+#ifdef GAME_DLL
+				else if ( IS_EHANDLE_UTLVECTOR( pField ) )
+				{
+					SetVarInfo();
+					pInfo->arraysize = ( 1 << VARINFO_ARRAYSIZE_BITS ) - 1; // dynamic, check on get
+					pInfo->datatype = types::_DAR_EHANDLE;
+				}
+				else if ( pField->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_CLASSPTR, CBaseEntity* ) )
+				{
+					SetVarInfo();
+					pInfo->arraysize = ( 1 << VARINFO_ARRAYSIZE_BITS ) - 1; // dynamic, check on get
+					pInfo->datatype = types::_DAR_CLASSPTR;
+				}
+				else if ( pField->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_INTEGER, int ) )
+				{
+					SetVarInfo();
+					pInfo->arraysize = ( 1 << VARINFO_ARRAYSIZE_BITS ) - 1; // dynamic, check on get
+					pInfo->datatype = types::_DAR_INT;
+				}
+				else if ( pField->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_FLOAT, float ) ||
+						pField->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_TIME, float ) )
+				{
+					SetVarInfo();
+					pInfo->arraysize = ( 1 << VARINFO_ARRAYSIZE_BITS ) - 1; // dynamic, check on get
+					pInfo->datatype = types::_DAR_FLOAT;
+				}
+				// Only used by CAI_PlayerAlly::m_PendingConcept
+				else if ( pField->pSaveRestoreOps == GetStdStringDataOps() )
+				{
+					SetVarInfo();
+					pInfo->datatype = types::_STDSTRING;
+					return pInfo;
+				}
+#endif
+				return NULL;
+			}
+			case FIELD_EMBEDDED:
+				return NULL;
+			default:
+				AssertMsg( 0, "Unknown type %d\n", pField->fieldType );
+				return NULL;
+			}
+			UNREACHABLE();
+#undef SetVarInfo
+		}
+#ifdef CLIENT_DLL
+		else
+		{
+			map = pEnt->GetPredDescMap();
+			pField = FindInDataMap( (char*)pEnt, map, szProp, &offset );
+			if ( pField )
+			{
+				goto find_field;
+			}
+		}
+#endif
+		return NULL;
+	}
+
+public:
+	// FIXME: Cannot get datatable/arrays at the moment
+	bool HasProp( HSCRIPT hEnt, const char *szProp )
 	{
 		CBaseEntity *pEnt = ToEnt( hEnt );
-		auto *pProp = GetPropByName( pEnt, pszPropName );
-		if (pProp)
+		if ( !pEnt )
+			return false;
+
+		varinfo_t *pInfo = CacheFetch( pEnt, szProp );
+		if ( !pInfo )
 		{
-			// TODO: Is this what this function wants?
-			return pProp->GetNumElements();
+			pInfo = GetVarInfo( pEnt, szProp, INDEX_GET_TYPE );
+
+			if ( !pInfo )
+				return false;
+		}
+
+		return true;
+	}
+
+	// FIXME: Cannot get datatable/arrays at the moment
+	const char *GetPropType( HSCRIPT hEnt, const char *szProp )
+	{
+		CBaseEntity *pEnt = ToEnt( hEnt );
+		if ( !pEnt )
+			return NULL;
+
+		varinfo_t *pInfo = CacheFetch( pEnt, szProp );
+		if ( !pInfo )
+		{
+			pInfo = GetVarInfo( pEnt, szProp, INDEX_GET_TYPE );
+
+			if ( !pInfo )
+				return NULL;
+		}
+
+		switch ( pInfo->datatype )
+		{
+			case types::_INT1:
+			case types::_INT8:
+			case types::_INT16:
+			case types::_INT32:
+				return "integer";
+			case types::_FLOAT:
+				return "float";
+			case types::_VEC3:
+				return "vector";
+			case types::_VEC2:
+				return "vector2d";
+			case types::_CSTRING:
+			case types::_STRING_T:
+			case types::_STDSTRING:
+				return "string";
+			case types::_EHANDLE:
+			case types::_CLASSPTR:
+			case types::_EDICT:
+				return "entity";
+			case types::_PHYS:
+				return "phys";
+			case types::_ARRAY:
+				return "array";
+			case types::_DATATABLE:
+				return "datatable";
+		}
+
+		if ( pInfo->arraysize > 1 )
+			return "array";
+
+		return "<unknown>";
+	}
+
+	int GetPropArraySize( HSCRIPT hEnt, const char *szProp )
+	{
+		CBaseEntity *pEnt = ToEnt( hEnt );
+		if ( !pEnt )
+			return -1;
+
+		varinfo_t *pInfo = CacheFetch( pEnt, szProp );
+		if ( !pInfo )
+		{
+			pInfo = GetVarInfo( pEnt, szProp, INDEX_GET_TYPE );
+
+			if ( !pInfo )
+				return -1;
+		}
+#ifdef GAME_DLL
+		switch ( pInfo->datatype )
+		{
+			case types::_DAR_EHANDLE:
+			{
+				CUtlVector< EHANDLE > &vec = *(CUtlVector< EHANDLE >*)((char*)pEnt + pInfo->offset);
+				if ( !vec.Base() )
+					return -1;
+				return vec.Count();
+			}
+			case types::_DAR_CLASSPTR:
+			{
+				CUtlVector< CBaseEntity* > &vec = *(CUtlVector< CBaseEntity* >*)((char*)pEnt + pInfo->offset);
+				if ( !vec.Base() )
+					return -1;
+				return vec.Count();
+			}
+			case types::_DAR_INT:
+			{
+				CUtlVector< int > &vec = *(CUtlVector< int >*)((char*)pEnt + pInfo->offset);
+				if ( !vec.Base() )
+					return -1;
+				return vec.Count();
+			}
+			case types::_DAR_FLOAT:
+			{
+				CUtlVector< float > &vec = *(CUtlVector< float >*)((char*)pEnt + pInfo->offset);
+				if ( !vec.Base() )
+					return -1;
+				return vec.Count();
+			}
+		}
+#endif
+		return pInfo->arraysize;
+	}
+
+public:
+	int GetPropIntArray( HSCRIPT hEnt, const char *szProp, int index )
+	{
+		CBaseEntity *pEnt = ToEnt( hEnt );
+		if ( !pEnt )
+			return -1;
+
+		varinfo_t *pInfo = CacheFetch( pEnt, szProp );
+		if ( !pInfo )
+		{
+			pInfo = GetVarInfo( pEnt, szProp, index );
+
+			if ( !pInfo )
+				return -1;
+		}
+
+		if ( index < 0 || (unsigned int)index >= pInfo->arraysize )
+			return -1;
+
+		if ( pInfo->isNotNetworked )
+		{
+			switch ( pInfo->datatype )
+			{
+			case types::_INT32:
+				if ( pInfo->isUnsigned )
+					return *(unsigned int*)((char*)pEnt + pInfo->GetOffset( index ));
+				return *(int*)((char*)pEnt + pInfo->GetOffset( index ));
+			case types::_INT1:
+				return *(bool*)((char*)pEnt + pInfo->GetOffset( index ));
+			case types::_INT8:
+				if ( pInfo->isUnsigned )
+					return *(unsigned char*)((char*)pEnt + pInfo->GetOffset( index ));
+				return *(char*)((char*)pEnt + pInfo->GetOffset( index ));
+			case types::_INT16:
+				if ( pInfo->isUnsigned )
+					return *(unsigned short*)((char*)pEnt + pInfo->GetOffset( index ));
+				return *(short*)((char*)pEnt + pInfo->GetOffset( index ));
+#ifdef GAME_DLL
+			case types::_DAR_INT:
+			{
+				CUtlVector< int > &vec = *(CUtlVector< int >*)((char*)pEnt + pInfo->offset);
+				if ( !vec.Base() )
+					return -1;
+				if ( index >= vec.Count() )
+					return -1;
+				return vec[ index ];
+			}
+#endif
+			}
+		}
+		else
+		{
+			switch ( pInfo->datatype )
+			{
+			case types::_INT32:
+				return (*(int*)((char*)pEnt + pInfo->GetOffset( index ))) & pInfo->mask;
+			}
 		}
 
 		return -1;
 	}
 
-	#define GetPropFunc( name, varType, propType, defaultval ) \
-	varType name( HSCRIPT hEnt, const char *pszPropName ) \
-	{ \
-		CBaseEntity *pEnt = ToEnt( hEnt ); \
-		auto *pProp = GetPropByName( pEnt, pszPropName ); \
-		if (pProp && pProp->GetType() == propType) \
-		{ \
-			return *(varType*)((char *)pEnt + pProp->GetOffset()); \
-		} \
-		return defaultval; \
-	} \
-
-	#define GetPropFuncArray( name, varType, propType, defaultval ) \
-	varType name( HSCRIPT hEnt, const char *pszPropName, int iArrayElement ) \
-	{ \
-		CBaseEntity *pEnt = ToEnt( hEnt ); \
-		auto *pProp = GetPropByName( pEnt, pszPropName ); \
-		if (pProp && pProp->GetType() == propType) \
-		{ \
-			return ((varType*)((char *)pEnt + pProp->GetOffset()))[iArrayElement]; \
-		} \
-		return defaultval; \
-	} \
-
-	GetPropFunc( GetPropFloat, float, DPT_Float, -1 );
-	GetPropFuncArray( GetPropFloatArray, float, DPT_Float, -1 );
-	GetPropFunc( GetPropInt, int, DPT_Int, -1 );
-	GetPropFuncArray( GetPropIntArray, int, DPT_Int, -1 );
-	GetPropFunc( GetPropVector, Vector, DPT_Vector, vec3_invalid );
-	GetPropFuncArray( GetPropVectorArray, Vector, DPT_Vector, vec3_invalid );
-
-	HSCRIPT GetPropEntity( HSCRIPT hEnt, const char *pszPropName )
+	void SetPropIntArray( HSCRIPT hEnt, const char *szProp, int value, int index )
 	{
 		CBaseEntity *pEnt = ToEnt( hEnt );
-		auto *pProp = GetPropByName( pEnt, pszPropName );
-		if (pProp && pProp->GetType() == DPT_Int)
+		if ( !pEnt )
+			return;
+
+		varinfo_t *pInfo = CacheFetch( pEnt, szProp );
+		if ( !pInfo )
 		{
-			return ToHScript( *(CHandle<CBaseEntity>*)((char *)pEnt + pProp->GetOffset()) );
+			pInfo = GetVarInfo( pEnt, szProp, index );
+
+			if ( !pInfo )
+				return;
 		}
 
-		return NULL;
-	}
+		if ( index < 0 || (unsigned int)index >= pInfo->arraysize )
+			return;
 
-	HSCRIPT GetPropEntityArray( HSCRIPT hEnt, const char *pszPropName, int iArrayElement )
-	{
-		CBaseEntity *pEnt = ToEnt( hEnt );
-		auto *pProp = GetPropByName( pEnt, pszPropName );
-		if (pProp && pProp->GetType() == DPT_Int)
+		if ( pInfo->isNotNetworked )
 		{
-			return ToHScript( ((CHandle<CBaseEntity>*)((char *)pEnt + pProp->GetOffset()))[iArrayElement] );
-		}
-
-		return NULL;
-	}
-
-	const char *GetPropString( HSCRIPT hEnt, const char *pszPropName )
-	{
-		CBaseEntity *pEnt = ToEnt( hEnt );
-		auto *pProp = GetPropByName( pEnt, pszPropName );
-		if (pProp && pProp->GetType() == DPT_Int)
-		{
-			return (const char*)((char *)pEnt + pProp->GetOffset());
-		}
-
-		return NULL;
-	}
-
-	const char *GetPropStringArray( HSCRIPT hEnt, const char *pszPropName, int iArrayElement )
-	{
-		CBaseEntity *pEnt = ToEnt( hEnt );
-		auto *pProp = GetPropByName( pEnt, pszPropName );
-		if (pProp && pProp->GetType() == DPT_Int)
-		{
-			return ((const char**)((char *)pEnt + pProp->GetOffset()))[iArrayElement];
-		}
-
-		return NULL;
-	}
-
-	const char *GetPropType( HSCRIPT hEnt, const char *pszPropName )
-	{
-		CBaseEntity *pEnt = ToEnt( hEnt );
-		auto *pProp = GetPropByName( pEnt, pszPropName );
-		if (pProp)
-		{
-			switch (pProp->GetType())
+			switch ( pInfo->datatype )
 			{
-			case DPT_Int:		return "integer";
-			case DPT_Float:		return "float";
-			case DPT_Vector:	return "vector";
-			case DPT_VectorXY:	return "vector2d";
-			case DPT_String:	return "string";
-			case DPT_Array:		return "array";
-			case DPT_DataTable:	return "datatable";
+			case types::_INT32:
+				if ( pInfo->isUnsigned )
+				{
+					*(unsigned int*)((char*)pEnt + pInfo->GetOffset( index )) = value;
+					NetworkStateChanged( pEnt, pInfo->GetOffset( index ) );
+					break;
+				}
+				*(int*)((char*)pEnt + pInfo->GetOffset( index )) = value;
+				NetworkStateChanged( pEnt, pInfo->GetOffset( index ) );
+				break;
+			case types::_INT1:
+				*(bool*)((char*)pEnt + pInfo->GetOffset( index )) = value;
+				NetworkStateChanged( pEnt, pInfo->GetOffset( index ) );
+				break;
+			case types::_INT8:
+				if ( pInfo->isUnsigned )
+				{
+					*(unsigned char*)((char*)pEnt + pInfo->GetOffset( index )) = value;
+					NetworkStateChanged( pEnt, pInfo->GetOffset( index ) );
+					break;
+				}
+				*(char*)((char*)pEnt + pInfo->GetOffset( index )) = value;
+				NetworkStateChanged( pEnt, pInfo->GetOffset( index ) );
+				break;
+			case types::_INT16:
+				if ( pInfo->isUnsigned )
+				{
+					*(unsigned short*)((char*)pEnt + pInfo->GetOffset( index )) = value;
+					NetworkStateChanged( pEnt, pInfo->GetOffset( index ) );
+					break;
+				}
+				*(short*)((char*)pEnt + pInfo->GetOffset( index )) = value;
+				NetworkStateChanged( pEnt, pInfo->GetOffset( index ) );
+				break;
+#ifdef GAME_DLL
+			case types::_DAR_INT:
+			{
+				CUtlVector< int > &vec = *(CUtlVector< int >*)((char*)pEnt + pInfo->offset);
+				if ( !vec.Base() )
+					return;
+				if ( index >= vec.Count() )
+					return;
+				vec[ index ] = value;
+				NetworkStateChanged( pEnt, pInfo->offset );
+				break;
+			}
+#endif
+			}
+		}
+		else
+		{
+			switch ( pInfo->datatype )
+			{
+			case types::_INT32:
+			{
+				int *dest = (int*)((char*)pEnt + pInfo->GetOffset( index ));
+				*dest = (*dest & ~pInfo->mask) | (value & pInfo->mask);
+				NetworkStateChanged( pEnt, pInfo->GetOffset( index ) );
+				break;
+			}
+			}
+		}
+	}
+
+	float GetPropFloatArray( HSCRIPT hEnt, const char *szProp, int index )
+	{
+		CBaseEntity *pEnt = ToEnt( hEnt );
+		if ( !pEnt )
+			return -1;
+
+		varinfo_t *pInfo = CacheFetch( pEnt, szProp );
+		if ( !pInfo )
+		{
+			pInfo = GetVarInfo( pEnt, szProp, index );
+
+			if ( !pInfo )
+				return -1;
+		}
+
+		if ( pInfo->datatype == types::_VEC3 )
+			index /= 3;
+
+		if ( index < 0 || (unsigned int)index >= pInfo->arraysize )
+			return -1;
+
+		switch ( pInfo->datatype )
+		{
+		case types::_VEC3:
+		case types::_FLOAT:
+			return *(float*)((char*)pEnt + pInfo->GetOffset( index ));
+#ifdef GAME_DLL
+		case types::_DAR_FLOAT:
+		{
+			CUtlVector< float > &vec = *(CUtlVector< float >*)((char*)pEnt + pInfo->offset);
+			if ( !vec.Base() )
+				return -1;
+			if ( index >= vec.Count() )
+				return -1;
+			return vec[ index ];
+		}
+#endif
+		}
+
+		return -1;
+	}
+
+	void SetPropFloatArray( HSCRIPT hEnt, const char *szProp, float value, int index )
+	{
+		CBaseEntity *pEnt = ToEnt( hEnt );
+		if ( !pEnt )
+			return;
+
+		varinfo_t *pInfo = CacheFetch( pEnt, szProp );
+		if ( !pInfo )
+		{
+			pInfo = GetVarInfo( pEnt, szProp, index );
+
+			if ( !pInfo )
+				return;
+		}
+
+		if ( pInfo->datatype == types::_VEC3 )
+			index /= 3;
+
+		if ( index < 0 || (unsigned int)index >= pInfo->arraysize )
+			return;
+
+		switch ( pInfo->datatype )
+		{
+		case types::_VEC3:
+		case types::_FLOAT:
+			*(float*)((char*)pEnt + pInfo->GetOffset( index )) = value;
+			NetworkStateChanged( pEnt, pInfo->GetOffset( index ) );
+			break;
+#ifdef GAME_DLL
+		case types::_DAR_FLOAT:
+		{
+			CUtlVector< float > &vec = *(CUtlVector< float >*)((char*)pEnt + pInfo->offset);
+			if ( !vec.Base() )
+				return;
+			if ( index >= vec.Count() )
+				return;
+			vec[ index ] = value;
+			NetworkStateChanged( pEnt, pInfo->offset );
+			break;
+		}
+#endif
+		}
+	}
+
+	HSCRIPT GetPropEntityArray( HSCRIPT hEnt, const char *szProp, int index )
+	{
+		CBaseEntity *pEnt = ToEnt( hEnt );
+		if ( !pEnt )
+			return NULL;
+
+		varinfo_t *pInfo = CacheFetch( pEnt, szProp );
+		if ( !pInfo )
+		{
+			pInfo = GetVarInfo( pEnt, szProp, index );
+
+			if ( !pInfo )
+				return NULL;
+		}
+
+		if ( index < 0 || (unsigned int)index >= pInfo->arraysize )
+			return NULL;
+
+		switch ( pInfo->datatype )
+		{
+		case types::_EHANDLE:
+		{
+			EHANDLE &iEHandle = *(EHANDLE*)((char*)pEnt + pInfo->GetOffset( index ));
+			return ToHScript( iEHandle );
+		}
+#ifdef GAME_DLL
+		case types::_CLASSPTR:
+		{
+			CBaseEntity* ptr = *(CBaseEntity**)((char*)pEnt + pInfo->GetOffset( index ));
+			return ToHScript( ptr );
+		}
+		case types::_EDICT:
+		{
+			edict_t* ptr = *(edict_t**)((char*)pEnt + pInfo->GetOffset( index ));
+			return ToHScript( GetContainingEntity( ptr ) );
+		}
+		case types::_DAR_EHANDLE:
+		{
+			CUtlVector< EHANDLE > &vec = *(CUtlVector< EHANDLE >*)((char*)pEnt + pInfo->offset);
+			if ( !vec.Base() )
+				return NULL;
+			if ( index >= vec.Count() )
+				return NULL;
+			return ToHScript( vec[ index ] );
+		}
+		case types::_DAR_CLASSPTR:
+		{
+			CUtlVector< CBaseEntity* > &vec = *(CUtlVector< CBaseEntity* >*)((char*)pEnt + pInfo->offset);
+			if ( !vec.Base() )
+				return NULL;
+			if ( index >= vec.Count() )
+				return NULL;
+			return ToHScript( vec[ index ] );
+		}
+#endif
+		case types::_PHYS:
+		{
+			IPhysicsObject* ptr = *(IPhysicsObject**)((char*)pEnt + pInfo->GetOffset( index ));
+			return ptr ? g_pScriptVM->RegisterInstance( ptr ) : NULL;
+		}
+		}
+
+		return NULL;
+	}
+
+	void SetPropEntityArray( HSCRIPT hEnt, const char *szProp, HSCRIPT value, int index )
+	{
+		CBaseEntity *pEnt = ToEnt( hEnt );
+		if ( !pEnt )
+			return;
+
+		varinfo_t *pInfo = CacheFetch( pEnt, szProp );
+		if ( !pInfo )
+		{
+			pInfo = GetVarInfo( pEnt, szProp, index );
+
+			if ( !pInfo )
+				return;
+		}
+
+		if ( index < 0 || (unsigned int)index >= pInfo->arraysize )
+			return;
+
+		switch ( pInfo->datatype )
+		{
+		case types::_EHANDLE:
+			*(EHANDLE*)((char*)pEnt + pInfo->GetOffset( index )) = ToEnt( value );
+			NetworkStateChanged( pEnt, pInfo->GetOffset( index ) );
+			break;
+#ifdef GAME_DLL
+		case types::_CLASSPTR:
+			*(CBaseEntity**)((char*)pEnt + pInfo->GetOffset( index )) = ToEnt( value );
+			NetworkStateChanged( pEnt, pInfo->GetOffset( index ) );
+			break;
+		case types::_EDICT:
+		{
+			CBaseEntity* ptr = ToEnt( value );
+			*(edict_t**)((char*)pEnt + pInfo->GetOffset( index )) = ptr ? ptr->edict() : NULL;
+			NetworkStateChanged( pEnt, pInfo->GetOffset( index ) );
+			break;
+		}
+		case types::_DAR_EHANDLE:
+		{
+			CUtlVector< EHANDLE > &vec = *(CUtlVector< EHANDLE >*)((char*)pEnt + pInfo->offset);
+			if ( !vec.Base() )
+				return;
+			if ( index >= vec.Count() )
+				return;
+			vec[ index ] = ToEnt( value );
+			NetworkStateChanged( pEnt, pInfo->offset );
+			break;
+		}
+		case types::_DAR_CLASSPTR:
+		{
+			CUtlVector< CBaseEntity* > &vec = *(CUtlVector< CBaseEntity* >*)((char*)pEnt + pInfo->offset);
+			if ( !vec.Base() )
+				return;
+			if ( index >= vec.Count() )
+				return;
+			vec[ index ] = ToEnt( value );
+			NetworkStateChanged( pEnt, pInfo->offset );
+			break;
+		}
+#endif
+		}
+	}
+
+	const Vector &GetPropVectorArray( HSCRIPT hEnt, const char *szProp, int index )
+	{
+		CBaseEntity *pEnt = ToEnt( hEnt );
+		if ( !pEnt )
+			return vec3_invalid;
+
+		varinfo_t *pInfo = CacheFetch( pEnt, szProp );
+		if ( !pInfo )
+		{
+			pInfo = GetVarInfo( pEnt, szProp, index );
+
+			if ( !pInfo )
+				return vec3_invalid;
+		}
+
+		if ( index < 0 || (unsigned int)index >= pInfo->arraysize )
+			return vec3_invalid;
+
+		switch ( pInfo->datatype )
+		{
+		case types::_VEC3:
+			return *(Vector*)((char*)pEnt + pInfo->GetOffset( index ));
+		}
+
+		return vec3_invalid;
+	}
+
+	void SetPropVectorArray( HSCRIPT hEnt, const char *szProp, const Vector &value, int index )
+	{
+		CBaseEntity *pEnt = ToEnt( hEnt );
+		if ( !pEnt )
+			return;
+
+		varinfo_t *pInfo = CacheFetch( pEnt, szProp );
+		if ( !pInfo )
+		{
+			pInfo = GetVarInfo( pEnt, szProp, index );
+
+			if ( !pInfo )
+				return;
+		}
+
+		if ( index < 0 || (unsigned int)index >= pInfo->arraysize )
+			return;
+
+		switch ( pInfo->datatype )
+		{
+		case types::_VEC3:
+			*(Vector*)((char*)pEnt + pInfo->GetOffset( index )) = value;
+			NetworkStateChanged( pEnt, pInfo->GetOffset( index ) );
+			break;
+		}
+	}
+
+	const char *GetPropStringArray( HSCRIPT hEnt, const char *szProp, int index )
+	{
+		CBaseEntity *pEnt = ToEnt( hEnt );
+		if ( !pEnt )
+			return NULL;
+
+		varinfo_t *pInfo = CacheFetch( pEnt, szProp );
+		if ( !pInfo )
+		{
+			pInfo = GetVarInfo( pEnt, szProp, index );
+
+			if ( !pInfo )
+				return NULL;
+		}
+
+		if ( index < 0 || (unsigned int)index >= pInfo->arraysize )
+			return NULL;
+
+		switch ( pInfo->datatype )
+		{
+		case types::_CSTRING:
+			return (const char*)((char*)pEnt + pInfo->GetOffset( index ));
+		case types::_STRING_T: // Identical to _CSTRING on client
+			return STRING( *(string_t*)((char*)pEnt + pInfo->GetOffset( index )) );
+		case types::_INT8:
+		{
+			if ( !pInfo->stringsize )
+				return NULL;
+
+			char * const pVar = ((char*)pEnt + pInfo->GetOffset( index ));
+
+			// Is this null terminated?
+			int i = 0;
+			char *c = pVar;
+			while ( *(c++) && i++ < pInfo->stringsize );
+
+			if ( i >= pInfo->stringsize )
+			{
+				// Not a null terminated string, don't talk to me ever again
+				pInfo->stringsize = 0;
+				return NULL;
+			}
+
+			return pVar;
+		}
+#ifdef GAME_DLL
+		case types::_STDSTRING:
+			return ( (std::string*)((char*)pEnt + pInfo->GetOffset( index )) )->c_str();
+#endif
+		}
+
+		return NULL;
+	}
+
+	void SetPropStringArray( HSCRIPT hEnt, const char *szProp, const char *value, int index )
+	{
+		CBaseEntity *pEnt = ToEnt( hEnt );
+		if ( !pEnt )
+			return;
+
+		varinfo_t *pInfo = CacheFetch( pEnt, szProp );
+		if ( !pInfo )
+		{
+			pInfo = GetVarInfo( pEnt, szProp, index );
+
+			if ( !pInfo )
+				return;
+		}
+
+		if ( index < 0 || (unsigned int)index >= pInfo->arraysize )
+			return;
+
+		switch ( pInfo->datatype )
+		{
+		case types::_CSTRING:
+		case types::_INT8:
+		{
+			if ( pInfo->stringsize )
+			{
+				V_strncpy( (char*)pEnt + pInfo->GetOffset( index ), value, pInfo->stringsize );
+				NetworkStateChanged( pEnt, pInfo->GetOffset( index ) );
+				break;
+			}
+		}
+		case types::_STRING_T:
+		{
+			extern string_t FindPooledString( const char* );
+			extern string_t AllocPooledString( const char* );
+
+			string_t src = FindPooledString( value );
+			if ( src == NULL_STRING )
+				src = AllocPooledString( value );
+#ifdef GAME_DLL
+			*(string_t*)((char*)pEnt + pInfo->GetOffset( index )) = src;
+#else
+			V_strcpy( (char*)pEnt + pInfo->GetOffset( index ), src );
+#endif
+			NetworkStateChanged( pEnt, pInfo->GetOffset( index ) );
+			break;
+		}
+#ifdef GAME_DLL
+		case types::_STDSTRING:
+		{
+			( (std::string*)((char*)pEnt + pInfo->GetOffset( index )) )->assign( value, V_strlen(value) );
+			NetworkStateChanged( pEnt, pInfo->GetOffset( index ) );
+			break;
+		}
+#endif
+		}
+	}
+
+#define GetProp( type, name )\
+	type GetProp##name( HSCRIPT hEnt, const char* szProp )\
+	{\
+		return GetProp##name##Array( hEnt, szProp, 0 );\
+	}
+
+#define SetProp( type, name )\
+	void SetProp##name( HSCRIPT hEnt, const char* szProp, type value )\
+	{\
+		SetProp##name##Array( hEnt, szProp, value, 0 );\
+	}
+
+	GetProp( int, Int );
+	SetProp( int, Int );
+	GetProp( float, Float );
+	SetProp( float, Float );
+	GetProp( HSCRIPT, Entity );
+	SetProp( HSCRIPT, Entity );
+	GetProp( const Vector&, Vector );
+	SetProp( const Vector&, Vector );
+	GetProp( const char*, String );
+	SetProp( const char*, String );
+
+#undef GetProp
+#undef SetProp
+
+#ifdef _DEBUG
+private:
+	CUtlBuffer m_output;
+	CUtlString m_indent;
+	int m_indent_level;
+
+	void IndentStart()
+	{
+		m_indent = "";
+		m_indent_level = 0;
+	}
+
+	void Indent1()
+	{
+		m_indent_level++;
+		m_indent.Append("\t");
+	}
+
+	void Indent0()
+	{
+		m_indent_level--;
+		m_indent = m_indent.Slice( 0, m_indent_level );
+	}
+
+	void PrintVec3( float *pVar )
+	{
+		if ( *(Vector*)pVar != vec3_invalid )
+		{
+			Print( "[%f %f %f]", pVar[0], pVar[1], pVar[2] );
+		}
+		else
+		{
+			Print("vec3_invalid");
+		}
+	}
+
+	void PrintVec2( float *pVar )
+	{
+		Print( "[%f %f]", pVar[0], pVar[1] );
+	}
+
+	void PrintEntity( EHANDLE* pVar )
+	{
+		CBaseEntity* ent = *pVar;
+		if ( ent )
+		{
+			Print("[%d]%s", ent->entindex(), ent->GetDebugName());
+		}
+		else
+		{
+			Print("null");
+		}
+	}
+#ifdef GAME_DLL
+	void PrintEntity( CBaseEntity* pVar )
+	{
+		CBaseEntity* ent = pVar;
+		if ( ent )
+		{
+			Print("[%d]%s", ent->entindex(), ent->GetDebugName());
+		}
+		else
+		{
+			Print("null");
+		}
+	}
+
+	void PrintEntity( edict_t* pVar )
+	{
+		CBaseEntity* ent = GetContainingEntity( pVar );
+		if ( ent )
+		{
+			Print("[%d]%s", ent->entindex(), ent->GetDebugName());
+		}
+		else
+		{
+			Print("null");
+		}
+	}
+#endif
+#ifdef GAME_DLL
+	void PrintString( string_t pVar )
+	{
+		if ( STRING(pVar) )
+		{
+			Print("\"%s\"", STRING(pVar));
+		}
+		else
+		{
+			Print("null");
+		}
+	}
+#endif
+	void PrintString( const char *pVar )
+	{
+		if ( pVar )
+		{
+			Print("\"%s\"", pVar);
+		}
+		else
+		{
+			Print("null");
+		}
+	}
+
+	void PrintPropType( NetProp *pProp )
+	{
+		switch ( pProp->GetType() )
+		{
+			case DPT_Int:
+				if ( IsUtlVector( pProp ) )
+				{
+					Print("UtlVector");
+				}
+				else if ( IsEHandle( pProp ) )
+				{
+					Print( "entity" );
+				}
+				else
+				{
+					Print( "int" );
+				}
+				break;
+#ifdef SUPPORTS_INT64
+			case DPT_Int64:
+				AssertMsg( 0, "not implemented" );
+				Print( "int64" );
+				break;
+#endif
+			case DPT_Float:
+				Print( "float" );
+				break;
+			case DPT_Vector:
+				Print( "vec3" );
+				break;
+			case DPT_VectorXY:
+				Print( "vec2" );
+				break;
+			case DPT_String:
+			{
+#ifdef GAME_DLL
+				if ( pProp->GetProxyFn() == SendProxy_StringT_To_String )
+				{
+					Print("string_t");
+				}
+				else
+#endif
+				{
+#ifdef CLIENT_DLL
+					Print("string[%d]", pProp->m_StringBufferSize);
+#else
+					Print("string");
+#endif
+				}
+				break;
+			}
+			case DPT_Array:
+			case DPT_DataTable:
+				break;
+			default: UNREACHABLE();
+		}
+	}
+
+	void PrintProp_r( char *pVar, NetProp *pProp )
+	{
+		switch ( pProp->GetType() )
+		{
+			case DPT_Int:
+			{
+				if ( IsUtlVector( pProp ) )
+				{
+				}
+				else if ( IsEHandle( pProp ) )
+				{
+					PrintEntity( (EHANDLE*)pVar );
+				}
+				else
+				{
+#ifdef GAME_DLL
+					// Is this value larger than networked size?
+					AssertMsg( (*(int*)pVar & MASK_NEAREST_BYTE( pProp->m_nBits )) == 0,
+							"%s(%i) %d bits doesn't fit networked %d bits",
+							pProp->GetName(), *(int*)pVar & MASK_NEAREST_BYTE( pProp->m_nBits ), ALIGN_TO_NEAREST_BYTE(pProp->m_nBits), pProp->m_nBits );
+#endif
+					int size = GetIntPropSize( pProp );
+					if ( size )
+					{
+						Print( "%i", *(int*)pVar & MASK_INT_SIZE( size ) );
+					}
+					else
+					{
+						Print( "<unknown size> 0x%08x", *(int*)pVar );
+					}
+				}
+				break;
+			}
+#ifdef SUPPORTS_INT64
+			case DPT_Int64:
+			{
+				Print( "%lli", *(int64*)pVar );
+				break;
+			}
+#endif
+			case DPT_Float:
+			{
+				Assert( pProp->GetElementStride() == sizeof(float) || pProp->GetElementStride() < 0 );
+				if ( *(float*)pVar == FLT_MAX )
+				{
+					Print("FLT_MAX");
+				}
+				else
+				{
+					Print("%f", *(float*)pVar);
+				}
+				break;
+			}
+			case DPT_Vector:
+			{
+				PrintVec3( (float*)pVar );
+				break;
+			}
+			case DPT_VectorXY:
+			{
+				PrintVec2( (float*)pVar );
+				break;
+			}
+			case DPT_String:
+			{
+#ifdef GAME_DLL
+				if ( pProp->GetProxyFn() == SendProxy_StringT_To_String )
+				{
+					PrintString( *(string_t*)pVar );
+				}
+				else
+#endif
+				{
+					Assert( pProp->GetProxyFn() == DataTableProxy_String );
+					PrintString( (char*)pVar );
+				}
+				break;
+			}
+			case DPT_DataTable:
+			{
+				NetTable* pArray = pProp->GetDataTable();
+				Assert( pArray->GetNumProps() );
+
+				if ( V_strcmp( pProp->GetName(), pArray->GetName() ) != 0 )
+				{
+					Print( " -> (%s)\n", pArray->GetName() );
+					DumpNetTable_r( pVar, pArray );
+					break;
+				}
+
+				// Double check that each element is the same size
+				// Array indexing ints gets element size from this
+				int diff1 = pArray->GetProp(1)->GetOffset() - pArray->GetProp(0)->GetOffset();
+				for ( int k = 0; k < pArray->GetNumProps()-1; k++ )
+				{
+					int diff2 = pArray->GetProp(k+1)->GetOffset() - pArray->GetProp(k)->GetOffset();
+					Assert( diff1 == diff2 );
+				}
+
+				Print(" <");
+				PrintPropType( pArray->GetProp(0) );
+				Print(" array> #%d", pArray->GetNumProps());
+				Print("\n%s[", m_indent.Get());
+				Indent1();
+
+				for ( int j = 0; j < pArray->GetNumProps(); j++ )
+				{
+					Print("\n%s", m_indent.Get());
+					PrintProp_r( pVar + pArray->GetProp(j)->GetOffset(), pArray->GetProp(j) );
+				}
+
+				Indent0();
+				Print( "\n%s]", m_indent.Get() );
+
+				break;
+			}
+			case DPT_Array:
+			{
+				Assert( pProp->GetArrayProp() );
+				NetProp *pArray = pProp->GetArrayProp();
+				pVar += pArray->GetOffset();
+
+				int numElements = pProp->GetNumElements();
+				int elementStride = pProp->GetElementStride();
+
+				Print(" <");
+				PrintPropType( pArray );
+				Print(" array> #%d", numElements);
+				Print("\n%s[", m_indent.Get());
+				Indent1();
+
+				for ( int j = 0; j < numElements; j++ )
+				{
+					Print("\n%s", m_indent.Get());
+					PrintProp_r( pVar + j * elementStride, pArray );
+				}
+
+				Indent0();
+				Print( "\n%s]", m_indent.Get() );
+
+				break;
+			}
+			default: UNREACHABLE();
+		}
+	}
+
+	void DumpNetTable_r( void *pEnt, NetTable *pTable )
+	{
+		Print("%s{\n", m_indent.Get());
+		Indent1();
+
+		int numProps = pTable->GetNumProps();
+
+		for ( int i = 0; i < numProps; i++ )
+		{
+			NetProp* pProp = pTable->GetProp(i);
+			char* pVar = (char*)pEnt + pProp->GetOffset();
+
+			if ( pProp->IsInsideArray() )
+				continue;
+
+			Print( "%s%s", m_indent.Get(), pProp->GetName() );
+
+			if ( pProp->GetOffset() == 0 )
+				Print("<0>");
+
+			if ( pProp->GetType() != DPT_DataTable )
+				Print(" <");
+			PrintPropType( pProp );
+			if ( pProp->GetType() != DPT_DataTable )
+				Print("> ");
+			PrintProp_r( pVar, pProp );
+			Print("\n");
+		}
+
+		Indent0();
+		Print("%s}", m_indent.Get());
+	}
+
+	void PrintFieldType( char *pVar, typedescription_t *td )
+	{
+		switch ( td->fieldType )
+		{
+			case FIELD_INTEGER:
+			case FIELD_MATERIALINDEX:
+			case FIELD_MODELINDEX:
+			case FIELD_TICK:
+				Print( "int" );
+				break;
+			case FIELD_SHORT:
+				Print( "short" );
+				break;
+			case FIELD_CHARACTER:
+				Print( "char" );
+				break;
+			case FIELD_BOOLEAN:
+				Print( "bool" );
+				break;
+			case FIELD_COLOR32:
+				Print( "clr32" );
+				break;
+			case FIELD_FLOAT:
+			case FIELD_TIME:
+				Print( "float" );
+				break;
+			case FIELD_VECTOR:
+			case FIELD_POSITION_VECTOR:
+				Print( "vec3" );
+				break;
+			case FIELD_VECTOR2D:
+				Print( "vec2" );
+				break;
+			case FIELD_STRING:
+			case FIELD_MODELNAME:
+			case FIELD_SOUNDNAME:
+				Print( "string" );
+				break;
+			case FIELD_EHANDLE:
+#ifdef GAME_DLL
+			case FIELD_CLASSPTR:
+			case FIELD_EDICT:
+#endif
+				Print( "entity" );
+				break;
+			case FIELD_VMATRIX:
+				Print( "VMatrix" );
+				break;
+			case FIELD_VMATRIX_WORLDSPACE:
+				Print( "VMatrix WORLDSPACE" );
+				break;
+			case FIELD_MATRIX3X4_WORLDSPACE:
+				Print( "matrix3x4 WORLDSPACE" );
+				break;
+			case FIELD_INTERVAL:
+				Print( "interval_t" );
+				break;
+			case FIELD_CUSTOM:
+				PrintCustomFieldType( pVar, td );
+				break;
+			case FIELD_EMBEDDED:
+				if ( td->fieldSize > 1 )
+					Print( "DT" );
+				break;
+			default:
+				Print( "unknown %d", td->fieldType );
+		}
+	}
+
+	void PrintCustomFieldType( char *pVar, typedescription_t *td )
+	{
+		Assert( td->fieldType == FIELD_CUSTOM );
+
+		const char *g_ppszPhysTypeNames[PIID_NUM_TYPES] =
+		{
+			"Unknown Phys",
+			"IPhysicsObject",
+			"IPhysicsFluidController",
+			"IPhysicsSpring",
+			"IPhysicsConstraintGroup",
+			"IPhysicsConstraint",
+			"IPhysicsShadowController",
+			"IPhysicsPlayerController",
+			"IPhysicsMotionController",
+			"IPhysicsVehicleController",
+		};
+
+		for ( int i = 0; i < PIID_NUM_TYPES; i++ )
+		{
+			if ( td->pSaveRestoreOps == GetPhysObjSaveRestoreOps( (PhysInterfaceId_t)i ) )
+			{
+				Print("%s", g_ppszPhysTypeNames[i]);
+				return;
 			}
 		}
 
-		return NULL;
-	}
-
-	bool HasProp( HSCRIPT hEnt, const char *pszPropName )
-	{
-		CBaseEntity *pEnt = ToEnt( hEnt );
-		return GetPropByName( pEnt, pszPropName ) != NULL;
-	}
-
-	#define SetPropFunc( name, varType, propType ) \
-	void name( HSCRIPT hEnt, const char *pszPropName, varType value ) \
-	{ \
-		CBaseEntity *pEnt = ToEnt( hEnt ); \
-		auto *pProp = GetPropByName( pEnt, pszPropName ); \
-		if (pProp && pProp->GetType() == propType) \
-		{ \
-			*(varType*)((char *)pEnt + pProp->GetOffset()) = value; \
-		} \
-	} \
-
-	#define SetPropFuncArray( name, varType, propType ) \
-	void name( HSCRIPT hEnt, const char *pszPropName, varType value, int iArrayElement ) \
-	{ \
-		CBaseEntity *pEnt = ToEnt( hEnt ); \
-		auto *pProp = GetPropByName( pEnt, pszPropName ); \
-		if (pProp && pProp->GetType() == propType) \
-		{ \
-			((varType*)((char *)pEnt + pProp->GetOffset()))[iArrayElement] = value; \
-		} \
-	} \
-
-	SetPropFunc( SetPropFloat, float, DPT_Float );
-	SetPropFuncArray( SetPropFloatArray, float, DPT_Float );
-	SetPropFunc( SetPropInt, int, DPT_Int );
-	SetPropFuncArray( SetPropIntArray, int, DPT_Int );
-	SetPropFunc( SetPropVector, Vector, DPT_Vector );
-	SetPropFuncArray( SetPropVectorArray, Vector, DPT_Vector );
-	SetPropFunc( SetPropString, const char*, DPT_String );
-	SetPropFuncArray( SetPropStringArray, const char*, DPT_String );
-
-	void SetPropEntity( HSCRIPT hEnt, const char *pszPropName, HSCRIPT value )
-	{
-		CBaseEntity *pEnt = ToEnt( hEnt );
-		auto *pProp = GetPropByName( pEnt, pszPropName );
-		if (pProp && pProp->GetType() == DPT_Int)
+		if ( td->pSaveRestoreOps == ActivityDataOps() )
 		{
-			*((CHandle<CBaseEntity>*)((char *)pEnt + pProp->GetOffset())) = ToEnt(value);
+			Print("int");
+		}
+		else if ( td->pSaveRestoreOps == GetSoundSaveRestoreOps() )
+		{
+			Print("CSoundPatch");
+		}
+		else if ( td->pSaveRestoreOps == GetStdStringDataOps() )
+		{
+			Print("stdstring");
+		}
+#ifdef GAME_DLL
+		else if ( IS_EHANDLE_UTLVECTOR( td ) )
+		{
+			CUtlVector< EHANDLE > &vec = *(CUtlVector< EHANDLE >*)pVar;
+			if ( vec.Base() )
+				Print("entity utlvector #%d", vec.Count());
+			else
+				Print("entity utlvector");
+		}
+		else if ( td->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_INTEGER, int ) )
+		{
+			CUtlVector< int > &vec = *(CUtlVector< int >*)pVar;
+			if ( vec.Base() )
+				Print("int utlvector #%d", vec.Count());
+			else
+				Print("int utlvector");
+		}
+		else if ( td->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_FLOAT, float ) ||
+				td->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_TIME, float ) )
+		{
+			CUtlVector< float > &vec = *(CUtlVector< float >*)pVar;
+			if ( vec.Base() )
+				Print("float utlvector #%d", vec.Count());
+			else
+				Print("float utlvector");
+		}
+		else if ( td->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_STRING, string_t ) )
+		{
+			CUtlVector< string_t > &vec = *(CUtlVector< string_t >*)pVar;
+			if ( vec.Base() )
+				Print("string utlvector #%d", vec.Count());
+			else
+				Print("string utlvector");
+		}
+		else if ( td->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_CLASSPTR, CBaseEntity* ) )
+		{
+			CUtlVector< CBaseEntity* > &vec = *(CUtlVector< CBaseEntity* >*)pVar;
+			if ( vec.Base() )
+				Print("entity utlvector #%d", vec.Count());
+			else
+				Print("entity utlvector");
+		}
+		else if ( td->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_VECTOR, Vector ) )
+		{
+			AssertMsg( 0, "Implement me" );
+			CUtlVector< Vector > &vec = *(CUtlVector< Vector >*)pVar;
+			if ( vec.Base() )
+				Print("Vector utlvector #%d", vec.Count());
+			else
+				Print("Vector utlvector");
+		}
+		else if ( !V_strcmp( td->fieldName, "m_pIk" ) )
+		{
+			Print("IK");
+		}
+		else if ( td->pSaveRestoreOps == thinkcontextFuncs )
+		{
+			Print("thinkfunc");
+		}
+		else if ( td->pSaveRestoreOps == (ISaveRestoreOps*)(&g_AI_MemoryListSaveRestoreOps) )
+		{
+			Print("AI memory map");
+		}
+		else if ( td->pSaveRestoreOps == (ISaveRestoreOps*)(&g_VguiScreenStringOps))
+		{
+			Print("string (vgui screen)");
+		}
+		else if ( td->pSaveRestoreOps == (ISaveRestoreOps*)(&g_ConceptHistoriesSaveDataOps) )
+		{
+			Print("concept histories");
+		}
+#endif // GAME_DLL
+		else
+		{
+			Print("custom");
 		}
 	}
 
-	HSCRIPT SetPropEntityArray( HSCRIPT hEnt, const char *pszPropName, HSCRIPT value, int iArrayElement )
+	void PrintCustomField( char *pVar, typedescription_t *td )
 	{
-		CBaseEntity *pEnt = ToEnt( hEnt );
-		auto *pProp = GetPropByName( pEnt, pszPropName );
-		if (pProp && pProp->GetType() == DPT_Int)
+		Assert( td->fieldType == FIELD_CUSTOM );
+
+		for ( int i = 0; i < PIID_NUM_TYPES; i++ )
 		{
-			((CHandle<CBaseEntity>*)((char *)pEnt + pProp->GetOffset()))[iArrayElement] = ToEnt(value);
+			if ( td->pSaveRestoreOps == GetPhysObjSaveRestoreOps( (PhysInterfaceId_t)i ) )
+			{
+				Print("0x%x", pVar);
+				return;
+			}
 		}
 
-		return NULL;
+		if ( td->pSaveRestoreOps == ActivityDataOps() )
+		{
+			Print("%i", *(int*)pVar);
+		}
+		else if ( td->pSaveRestoreOps == GetSoundSaveRestoreOps() )
+		{
+			if ( *pVar )
+			{
+				CSoundPatch *pSound = *(CSoundPatch**)pVar;
+				PrintString( CSoundEnvelopeController::GetController().SoundGetName( pSound ) );
+			}
+			else
+			{
+				Print( "null" );
+			}
+		}
+		else if ( td->pSaveRestoreOps == GetStdStringDataOps() )
+		{
+			Print("%s", ((std::string*)pVar)->c_str());
+		}
+#ifdef GAME_DLL
+		else if ( IS_EHANDLE_UTLVECTOR( td ) )
+		{
+			CUtlVector< EHANDLE > &vec = *(CUtlVector< EHANDLE >*)pVar;
+			if ( !vec.Base() )
+			{
+				Print("null");
+				return;
+			}
+			Print("\n%s[", m_indent.Get());
+			Indent1();
+			FOR_EACH_VEC( vec, i )
+			{
+				Print("\n%s", m_indent.Get());
+				PrintEntity( vec[i] );
+			}
+			Indent0();
+			Print("\n%s]", m_indent.Get());
+		}
+		else if ( td->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_INTEGER, int ) )
+		{
+			CUtlVector< int > &vec = *(CUtlVector< int >*)pVar;
+			if ( !vec.Base() )
+			{
+				Print("null");
+				return;
+			}
+			Print("\n%s[", m_indent.Get());
+			Indent1();
+			FOR_EACH_VEC( vec, i )
+			{
+				Print("\n%s", m_indent.Get());
+				Print( "%i", vec[i] );
+			}
+			Indent0();
+			Print("\n%s]", m_indent.Get());
+		}
+		else if ( td->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_FLOAT, float ) ||
+				td->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_TIME, float ) )
+		{
+			CUtlVector< float > &vec = *(CUtlVector< float >*)pVar;
+			if ( !vec.Base() )
+			{
+				Print("null");
+				return;
+			}
+			Print("\n%s[", m_indent.Get());
+			Indent1();
+			FOR_EACH_VEC( vec, i )
+			{
+				Print("\n%s", m_indent.Get());
+				Print( "%f", vec[i] );
+			}
+			Indent0();
+			Print("\n%s]", m_indent.Get());
+		}
+		else if ( td->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_STRING, string_t ) )
+		{
+			CUtlVector< string_t > &vec = *(CUtlVector< string_t >*)pVar;
+			if ( !vec.Base() )
+			{
+				Print("null");
+				return;
+			}
+			Print("\n%s[", m_indent.Get());
+			Indent1();
+			FOR_EACH_VEC( vec, i )
+			{
+				Print("\n%s", m_indent.Get());
+				PrintString( vec[i] );
+			}
+			Indent0();
+			Print("\n%s]", m_indent.Get());
+		}
+		else if ( td->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_CLASSPTR, CBaseEntity* ) )
+		{
+			CUtlVector< CBaseEntity* > &vec = *(CUtlVector< CBaseEntity* >*)pVar;
+			if ( !vec.Base() )
+			{
+				Print("null");
+				return;
+			}
+			Print("\n%s[", m_indent.Get());
+			Indent1();
+			FOR_EACH_VEC( vec, i )
+			{
+				Print("\n%s", m_indent.Get());
+				PrintEntity( vec[i] );
+			}
+			Indent0();
+			Print("\n%s]", m_indent.Get());
+		}
+		else if ( td->pSaveRestoreOps == (ISaveRestoreOps*)(&g_VguiScreenStringOps) )
+		{
+			const char *pString = g_pStringTableVguiScreen->GetString( *(int*)pVar );
+			PrintString( (char*)pString );
+		}
+#endif // GAME_DLL
+		else
+		{
+			Print("0x%x", pVar);
+		}
 	}
 
-private:
+	void PrintField_r( char *pVar, typedescription_t *td )
+	{
+		switch ( td->fieldType )
+		{
+		case FIELD_INTEGER:
+		case FIELD_MATERIALINDEX:
+		case FIELD_MODELINDEX:
+		case FIELD_TICK:
+			if ( td->flags & SPROP_UNSIGNED )
+			{
+				Print("%u", *(unsigned int*)pVar);
+			}
+			else
+			{
+				Print("%i", *(int*)pVar);
+			}
+			break;
+		case FIELD_COLOR32:
+			Print("0x%08x", *(int*)pVar);
+			break;
+		case FIELD_BOOLEAN:
+			Print("%i", *(bool*)pVar & 1);
+			break;
+		case FIELD_CHARACTER:
+			if ( *pVar < 0x20 )
+			{
+				Print("%i (0x%x)", *pVar, *pVar);
+			}
+			else
+			{
+				Print("%i '%c'", *pVar, *pVar);
+			}
+			break;
+		case FIELD_SHORT:
+			if ( td->flags & SPROP_UNSIGNED )
+			{
+				Print("%u", *(unsigned short*)pVar);
+			}
+			else
+			{
+				Print("%i", *(short*)pVar);
+			}
+			break;
+		case FIELD_FLOAT:
+		case FIELD_TIME:
+			if ( *(float*)pVar == FLT_MAX )
+			{
+				Print("FLT_MAX");
+			}
+			else
+			{
+				Print("%f", *(float*)pVar);
+			}
+			break;
+		case FIELD_VECTOR:
+		case FIELD_POSITION_VECTOR:
+			PrintVec3( (float*)pVar );
+			break;
+		case FIELD_VECTOR2D:
+			PrintVec2( (float*)pVar );
+			break;
+		case FIELD_STRING:
+		case FIELD_MODELNAME:
+		case FIELD_SOUNDNAME:
+#ifdef GAME_DLL
+			PrintString( *(string_t*)pVar );
+#else
+			PrintString( *(char**)pVar );
+#endif
+			break;
+		case FIELD_EHANDLE:
+			PrintEntity( (EHANDLE*)pVar );
+			break;
+#ifdef GAME_DLL
+		case FIELD_CLASSPTR:
+			PrintEntity( *(CBaseEntity**)pVar );
+			break;
+		case FIELD_EDICT:
+			PrintEntity( *(edict_t**)pVar );
+			break;
+#endif
+		case FIELD_EMBEDDED:
+			Print(" -> (%s)\n", td->td->dataClassName);
+			DumpDataFields_r( pVar, td->td );
+			break;
+		case FIELD_CUSTOM:
+			PrintCustomField( pVar, td );
+			break;
+		default:
+			Print( "<unknown field %d>", td->fieldType );
+		}
+	}
+
+	void DumpDataFields_r( void *pEnt, datamap_t *map )
+	{
+		Print("%s{\n", m_indent.Get());
+		Indent1();
+
+		if ( map->baseMap )
+		{
+			Print("%sbaseclass -> (%s)\n", m_indent.Get(), map->baseMap->dataClassName);
+			DumpDataFields_r( pEnt, map->baseMap );
+			Print("\n");
+		}
+
+		typedescription_t *pFields = map->dataDesc;
+		int numFields = map->dataNumFields;
+
+		for ( int i = 0; i < numFields; i++ )
+		{
+			typedescription_t* td = &pFields[i];
+
+			if ( td->flags & (FTYPEDESC_FUNCTIONTABLE | FTYPEDESC_INPUT | FTYPEDESC_OUTPUT) )
+				continue;
+
+			if ( td->fieldType == FIELD_VOID || td->fieldType == FIELD_FUNCTION )
+				continue;
+
+			char *pVar = (char*)pEnt + td->fieldOffset[ TD_OFFSET_NORMAL ];
+
+			if ( td->flags & FTYPEDESC_PTR )
+			{
+				AssertMsg( *(char**)pVar, "NULL ptr ref" );
+				pVar = *(char**)pVar;
+			}
+
+			Print( "%s%s", m_indent.Get(), td->fieldName );
+
+			if ( td->fieldSize == 1 )
+			{
+				if ( td->fieldType != FIELD_EMBEDDED )
+					Print(" <");
+				PrintFieldType( pVar, td );
+				if ( td->fieldType != FIELD_EMBEDDED )
+					Print("> ");
+				PrintField_r( pVar, td );
+			}
+			else
+			{
+				Print(" <");
+				PrintFieldType( pVar, td );
+				Print(" array> #%d", td->fieldSize);
+
+				Print("\n%s[", m_indent.Get());
+				Indent1();
+
+				for ( int j = 0; j < td->fieldSize; j++ )
+				{
+					Print("\n%s", m_indent.Get());
+					PrintField_r( pVar + j * td->fieldSizeInBytes / td->fieldSize, td );
+				}
+
+				Indent0();
+				Print("\n%s]", m_indent.Get());
+			}
+
+			Print("\n");
+		}
+
+		Indent0();
+		Print("%s}", m_indent.Get());
+	}
+
+	void Print( const char *fmt, ... )
+	{
+		char buf[2048];
+		va_list va;
+		va_start( va, fmt );
+		V_vsnprintf( buf, sizeof(buf) - 1, fmt, va );
+		va_end( va );
+
+		m_output.PutString( buf );
+	}
+
+public:
+	void Dump( HSCRIPT hEnt, const char* filename )
+	{
+		CBaseEntity *pEnt = ToEnt( hEnt );
+		if ( !pEnt )
+			return;
+
+		if ( !filename || !*filename )
+			return;
+
+		m_output.SetBufferType( true, false );
+		IndentStart();
+
+		Print( "<NetTable>\n" );
+		Print( "(%s)\n", GetNetTable( GetNetworkClass(pEnt) )->GetName() );
+		DumpNetTable_r( pEnt, GetNetTable( GetNetworkClass(pEnt) ) );
+		Print( "\n</NetTable>\n" );
+
+		Print( "<DataDesc>\n" );
+		Print( "(%s)\n", pEnt->GetDataDescMap()->dataClassName );
+		DumpDataFields_r( pEnt, pEnt->GetDataDescMap() );
+		Print( "\n</DataDesc>\n" );
+#ifdef CLIENT_DLL
+		Print( "<PredDesc>\n" );
+		Print( "(%s)\n", pEnt->GetPredDescMap()->dataClassName );
+		DumpDataFields_r( pEnt, pEnt->GetPredDescMap() );
+		Print( "\n</PredDesc>\n" );
+#endif
+		const char *pszFile = V_GetFileName( filename );
+		filesystem->WriteFile( pszFile, "MOD", m_output );
+
+		m_indent.Purge();
+		m_output.Purge();
+	}
+#endif // _DEBUG
 } g_ScriptNetPropManager;
 
-BEGIN_SCRIPTDESC_ROOT_NAMED( CScriptNetPropManager, "CNetPropManager", SCRIPT_SINGLETON "Allows reading and updating the network properties of an entity." )
-	DEFINE_SCRIPTFUNC( GetPropArraySize, "Returns the size of an netprop array, or -1." )
-	DEFINE_SCRIPTFUNC( GetPropEntity, "Reads an EHANDLE valued netprop (21 bit integer). Returns the script handle of the entity." )
-	DEFINE_SCRIPTFUNC( GetPropEntityArray, "Reads an EHANDLE valued netprop (21 bit integer) from an array. Returns the script handle of the entity." )
-	DEFINE_SCRIPTFUNC( GetPropFloat, "Reads a float valued netprop." )
-	DEFINE_SCRIPTFUNC( GetPropFloatArray, "Reads a float valued netprop from an array." )
-	DEFINE_SCRIPTFUNC( GetPropInt, "Reads an integer valued netprop." )
-	DEFINE_SCRIPTFUNC( GetPropIntArray, "Reads an integer valued netprop from an array." )
-	DEFINE_SCRIPTFUNC( GetPropString, "Reads a string valued netprop." )
-	DEFINE_SCRIPTFUNC( GetPropStringArray, "Reads a string valued netprop from an array." )
-	DEFINE_SCRIPTFUNC( GetPropVector, "Reads a 3D vector valued netprop." )
-	DEFINE_SCRIPTFUNC( GetPropVectorArray, "Reads a 3D vector valued netprop from an array." )
-	DEFINE_SCRIPTFUNC( GetPropType, "Returns the name of the netprop type as a string." )
-	DEFINE_SCRIPTFUNC( HasProp, "Checks if a netprop exists." )
-	DEFINE_SCRIPTFUNC( SetPropEntity, "Sets an EHANDLE valued netprop (21 bit integer) to reference the specified entity." )
-	DEFINE_SCRIPTFUNC( SetPropEntityArray, "Sets an EHANDLE valued netprop (21 bit integer) from an array to reference the specified entity." )
-	DEFINE_SCRIPTFUNC( SetPropFloat, "Sets a netprop to the specified float." )
-	DEFINE_SCRIPTFUNC( SetPropFloatArray, "Sets a netprop from an array to the specified float." )
-	DEFINE_SCRIPTFUNC( SetPropInt, "Sets a netprop to the specified integer." )
-	DEFINE_SCRIPTFUNC( SetPropIntArray, "Sets a netprop from an array to the specified integer." )
-	DEFINE_SCRIPTFUNC( SetPropString, "Sets a netprop to the specified string." )
-	DEFINE_SCRIPTFUNC( SetPropStringArray, "Sets a netprop from an array to the specified string." )
-	DEFINE_SCRIPTFUNC( SetPropVector, "Sets a netprop to the specified vector." )
-	DEFINE_SCRIPTFUNC( SetPropVectorArray, "Sets a netprop from an array to the specified vector." )
+BEGIN_SCRIPTDESC_ROOT_NAMED( CScriptNetPropManager, "CNetPropManager", SCRIPT_SINGLETON "Allows reading and updating the network properties and data fields of an entity." )
+	DEFINE_SCRIPTFUNC( GetPropArraySize, "Returns the size of an array." )
+	DEFINE_SCRIPTFUNC( GetPropEntity, "Reads an entity." )
+	DEFINE_SCRIPTFUNC( GetPropEntityArray, "Reads an entity from an array." )
+	DEFINE_SCRIPTFUNC( GetPropFloat, "Reads a float." )
+	DEFINE_SCRIPTFUNC( GetPropFloatArray, "Reads a float from an array." )
+	DEFINE_SCRIPTFUNC( GetPropInt, "Reads an integer." )
+	DEFINE_SCRIPTFUNC( GetPropIntArray, "Reads an integer from an array." )
+	DEFINE_SCRIPTFUNC( GetPropString, "Reads a string." )
+	DEFINE_SCRIPTFUNC( GetPropStringArray, "Reads a string from an array." )
+	DEFINE_SCRIPTFUNC( GetPropVector, "Reads a 3D vector." )
+	DEFINE_SCRIPTFUNC( GetPropVectorArray, "Reads a 3D vector from an array." )
+	DEFINE_SCRIPTFUNC( GetPropType, "Returns the netprop type as a string." )
+	DEFINE_SCRIPTFUNC( HasProp, "Checks if netprop/datafield exists." )
+	DEFINE_SCRIPTFUNC( SetPropEntity, "Sets an entity." )
+	DEFINE_SCRIPTFUNC( SetPropEntityArray, "Sets an entity in an array." )
+	DEFINE_SCRIPTFUNC( SetPropFloat, "Sets to the specified float." )
+	DEFINE_SCRIPTFUNC( SetPropFloatArray, "Sets a float in an array." )
+	DEFINE_SCRIPTFUNC( SetPropInt, "Sets to the specified integer." )
+	DEFINE_SCRIPTFUNC( SetPropIntArray, "Sets an integer in an array." )
+	DEFINE_SCRIPTFUNC( SetPropString, "Sets to the specified string." )
+	DEFINE_SCRIPTFUNC( SetPropStringArray, "Sets a string in an array." )
+	DEFINE_SCRIPTFUNC( SetPropVector, "Sets to the specified vector." )
+	DEFINE_SCRIPTFUNC( SetPropVectorArray, "Sets a 3D vector in an array." )
+#ifdef _DEBUG
+	DEFINE_SCRIPTFUNC( Dump, "Dump all readable netprop and datafield values of this entity. Pass in file name to write into." );
+#endif
 END_SCRIPTDESC();
 
 //=============================================================================

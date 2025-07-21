@@ -107,7 +107,7 @@ public:
 
 	virtual void ReleaseData(const void* pData) const
 	{
-		delete pData;
+		delete (Data*)pData;
 	}
 };
 

@@ -152,6 +152,9 @@ BEGIN_DATADESC( CNPC_FloorTurret )
 	DEFINE_OUTPUT( m_OnTipped, "OnTipped" ),
 	DEFINE_OUTPUT( m_OnPhysGunPickup, "OnPhysGunPickup" ),
 	DEFINE_OUTPUT( m_OnPhysGunDrop, "OnPhysGunDrop" ),
+#ifdef MAPBASE
+	DEFINE_OUTPUT( m_OnStartTipped, "OnStartTipped" ),
+#endif
 
 	DEFINE_BASENPCINTERACTABLE_DATADESC(),
 
@@ -1525,6 +1528,10 @@ bool CNPC_FloorTurret::PreThink( turretState_e state )
 				SetThink( &CNPC_FloorTurret::InactiveThink );
 				SetEyeState( TURRET_EYE_DEAD );
 			}
+
+#ifdef MAPBASE
+			m_OnStartTipped.FireOutput( this, this );
+#endif
 
 			//Stop being targetted
 			SetState( NPC_STATE_DEAD );

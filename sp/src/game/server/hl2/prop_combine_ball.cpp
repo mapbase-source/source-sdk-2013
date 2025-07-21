@@ -1080,6 +1080,113 @@ void CPropCombineBall::OnPhysGunDrop( CBasePlayer *pPhysGunUser, PhysGunDrop_t R
 	StopAnimating();
 }
 
+#ifdef MAPBASE
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+void CPropCombineBall::SpawnerDestroyed( CBaseEntity *pActivator, bool *bSeekEnemy )
+{
+	SetState( STATE_THROWN );
+	WhizSoundThink();
+
+	m_bHeld = false;
+	m_bLaunched = true;
+
+	// Stop with the dissolving
+	SetContextThink( NULL, gpGlobals->curtime, s_pHoldDissolveContext );
+
+	// We're ready to start colliding again.
+	SetCollisionGroup( HL2COLLISION_GROUP_COMBINE_BALL );
+
+	if ( m_pGlowTrail )
+	{
+		m_pGlowTrail->TurnOn();
+		m_pGlowTrail->SetRenderColor( 255, 255, 255, 255 );
+	}
+
+	// Set our desired speed to be launched at
+	SetSpeed( 1500.0f );
+
+	SetOwnerEntity( pActivator );
+	SetWeaponLaunched( false );
+
+	if (!VPhysicsGetObject())
+		return;
+
+	if (pActivator->IsPlayer())
+	{
+		PhysClearGameFlags( VPhysicsGetObject(), FVPHYSICS_NO_NPC_IMPACT_DMG );
+		PhysSetGameFlags( VPhysicsGetObject(), FVPHYSICS_DMG_DISSOLVE | FVPHYSICS_HEAVY_OBJECT );
+	}
+	else
+	{
+		// Don't do impact damage. Just touch them and do your dissolve damage and move on.
+		PhysSetGameFlags( VPhysicsGetObject(), FVPHYSICS_NO_NPC_IMPACT_DMG );
+	}
+
+	//if (pActivator->IsPlayer())
+	//{
+	//	SetPlayerLaunched( ToBasePlayer( pActivator ) );
+	//}
+
+	Vector vecVelocity;
+
+	if (bSeekEnemy)
+	{
+		CBaseEntity *pBestTarget = NULL;
+		CBaseEntity *list[256];
+
+		float	distance;
+		float	flBestDist = MAX_COORD_FLOAT;
+		int nCount = UTIL_EntitiesInSphere( list, 256, GetAbsOrigin(), sk_combine_ball_search_radius.GetFloat(), FL_NPC | FL_CLIENT );
+		
+		for ( int i = 0; i < nCount; i++ )
+		{
+			if ( !IsAttractiveTarget( list[i] ) )
+				continue;
+
+			distance = (list[i]->WorldSpaceCenter() - GetAbsOrigin()).LengthSqr();
+			if ( distance < flBestDist )
+			{
+				pBestTarget = list[i];
+				flBestDist = distance;
+			}
+		}
+
+		if ( pBestTarget )
+		{
+			VectorSubtract( pBestTarget->WorldSpaceCenter(), GetAbsOrigin(), vecVelocity );
+			VectorNormalize( vecVelocity );
+		}
+
+		*bSeekEnemy = (pBestTarget != NULL);
+	}
+
+	if (bSeekEnemy == NULL || *bSeekEnemy == false)
+	{
+		// Choose a random direction based on current velocity
+		VPhysicsGetObject()->GetVelocity( &vecVelocity, NULL );
+		VectorNormalize( vecVelocity );
+
+		QAngle shotAng;
+		VectorAngles( vecVelocity, shotAng );
+
+		// Offset by some small cone
+		shotAng[PITCH] += random->RandomInt( -75, 75 );
+		shotAng[YAW] += random->RandomInt( -75, 75 );
+
+		AngleVectors( shotAng, &vecVelocity, NULL, NULL );
+	}
+
+	vecVelocity *= GetSpeed();
+
+	VPhysicsGetObject()->SetVelocity( &vecVelocity, &vec3_origin );
+
+	SetBallAsLaunched();
+	StopAnimating();
+}
+#endif
+
 //------------------------------------------------------------------------------
 // Stop looping sounds
 //------------------------------------------------------------------------------
@@ -1849,6 +1956,9 @@ BEGIN_DATADESC( CFuncCombineBallSpawner )
 
 	DEFINE_INPUTFUNC( FIELD_VOID, "Enable", InputEnable ),
 	DEFINE_INPUTFUNC( FIELD_VOID, "Disable", InputDisable ),
+#ifdef MAPBASE
+	DEFINE_INPUTFUNC( FIELD_VOID, "Destroy", InputDestroy ),
+#endif
 
 	DEFINE_OUTPUT( m_OnBallGrabbed, "OnBallGrabbed" ),
 	DEFINE_OUTPUT( m_OnBallReinserted, "OnBallReinserted" ),
@@ -2000,6 +2110,35 @@ void CFuncCombineBallSpawner::InputDisable( inputdata_t &inputdata )
 
 	SetThink( NULL );
 }
+
+#ifdef MAPBASE
+void CFuncCombineBallSpawner::InputDestroy( inputdata_t &inputdata )
+{
+	if ( !m_bEnabled )
+	{
+		UTIL_Remove( this );
+		return;
+	}
+
+	// One ball always seeks the nearest enemy
+	bool bSoughtEnemy = false;
+
+	CBaseEntity *pEnt = gEntList.FindEntityByClassname( NULL, "prop_combine_ball" );
+	while (pEnt)
+	{
+		CPropCombineBall *pBall = static_cast<CPropCombineBall*>(pEnt);
+		if (pBall && pBall->GetSpawner() == this)
+		{
+			BallGrabbed( pBall );
+			pBall->SpawnerDestroyed( inputdata.pActivator, bSoughtEnemy ? NULL : &bSoughtEnemy );
+		}
+
+		pEnt = gEntList.FindEntityByClassname( pEnt, "prop_combine_ball" );
+	}
+
+	UTIL_Remove( this );
+}
+#endif
 
 	
 //-----------------------------------------------------------------------------

@@ -181,8 +181,13 @@ public:
 #endif
 	void			IdleSound( void );
 	void			AlertSound( void );
+#ifdef MAPBASE
+	void			LostEnemySound( CBaseEntity *pEnemy );
+	void			FoundEnemySound( CBaseEntity *pEnemy );
+#else
 	void			LostEnemySound( void );
 	void			FoundEnemySound( void );
+#endif
 	void			AnnounceAssault( void );
 	void			AnnounceEnemyType( CBaseEntity *pEnemy );
 	void			AnnounceEnemyKill( CBaseEntity *pEnemy );

@@ -178,7 +178,12 @@ public:
 	//Allow thirdperson camera.
 	virtual bool AllowThirdPersonCamera( void ) { return false; }
 
-	virtual void ClientCommandKeyValues( edict_t *pEntity, KeyValues *pKeyValues ) {} 
+#ifdef MAPBASE
+	virtual void ClientCommandKeyValues(edict_t* pEntity, KeyValues* pKeyValues);
+#else
+	virtual void ClientCommandKeyValues(edict_t* pEntity, KeyValues* pKeyValues) {}
+#endif // MAPBASE
+
 
 	// IsConnectedUserInfoChangeAllowed allows the clients to change
 	// cvars with the FCVAR_NOT_CONNECTED rule if it returns true

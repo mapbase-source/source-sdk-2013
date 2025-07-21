@@ -938,7 +938,7 @@ void CAmbientGeneric::SendSound( SoundFlags_t flags)
 {
 #ifdef MAPBASE
 	int iFlags = flags != SND_STOP ? ((int)flags | m_iSoundFlags) : flags;
-	char *szSoundFile = (char *)STRING( m_iszSound );
+	const char *szSoundFile = STRING( m_iszSound );
 	CBaseEntity* pSoundSource = m_hSoundSource;
 	if ( pSoundSource )
 	{

@@ -5298,6 +5298,23 @@ float GetSceneDuration( char const *pszScene )
 	{
 		msecs = cachedData.msecs;
 	}
+#ifdef MAPBASE
+	else
+	{
+		// Raw scene file support
+		void *pBuffer = NULL;
+		if (filesystem->ReadFileEx( pszScene, "MOD", &pBuffer, true ))
+		{
+			g_TokenProcessor.SetBuffer((char*)pBuffer);
+			CChoreoScene *pScene = ChoreoLoadScene( pszScene, NULL, &g_TokenProcessor, LocalScene_Printf );
+			g_TokenProcessor.SetBuffer(NULL);
+
+			float flDuration = pScene->GetDuration();
+			delete pScene;
+			return flDuration;
+		}
+	}
+#endif
 
 	return (float)msecs * 0.001f;
 }

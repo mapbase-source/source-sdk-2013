@@ -1401,6 +1401,11 @@ public:
 	virtual void		FearSound( void )				 			{ return; };
 	virtual void		LostEnemySound( void ) 						{ return; };
 	virtual void		FoundEnemySound( void ) 					{ return; };
+#ifdef MAPBASE
+	// New versions of the above functions which pass the enemy in question as a parameter. Chains to the original by default
+	virtual void		LostEnemySound( CBaseEntity *pEnemy )		{ LostEnemySound(); };
+	virtual void		FoundEnemySound( CBaseEntity *pEnemy )		{ FoundEnemySound(); };
+#endif
 	virtual void		BarnacleDeathSound( void )					{ CTakeDamageInfo info;	PainSound( info ); }
 
 	virtual void		SpeakSentence( int sentenceType ) 			{ return; };

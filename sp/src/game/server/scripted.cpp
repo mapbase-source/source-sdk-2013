@@ -113,6 +113,9 @@ BEGIN_DATADESC( CAI_ScriptedSequence )
 	DEFINE_INPUTFUNC( FIELD_VOID, "MoveToPosition", InputMoveToPosition ),
 	DEFINE_INPUTFUNC( FIELD_VOID, "BeginSequence", InputBeginSequence ),
 	DEFINE_INPUTFUNC( FIELD_VOID, "CancelSequence", InputCancelSequence ),
+#ifdef MAPBASE
+	DEFINE_INPUTFUNC( FIELD_VOID, "StopActionLoop", InputStopActionLoop ),
+#endif
 
 	DEFINE_KEYFIELD( m_iPlayerDeathBehavior, FIELD_INTEGER, "onplayerdeath" ),
 	DEFINE_INPUTFUNC( FIELD_VOID, "ScriptPlayerDeath", InputScriptPlayerDeath ),
@@ -381,6 +384,14 @@ void CAI_ScriptedSequence::InputSetTarget( inputdata_t &inputdata )
 	m_hActivator = inputdata.pActivator;
 	m_iszEntity = AllocPooledString(inputdata.value.String());
 	m_hTargetEnt = NULL;
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+void CAI_ScriptedSequence::InputStopActionLoop( inputdata_t &inputdata )
+{
+	StopActionLoop( false );
 }
 #endif
 

@@ -3145,13 +3145,22 @@ void CNPC_Combine::PainSound ( void )
 // Input  :
 // Output :
 //-----------------------------------------------------------------------------
+#ifdef MAPBASE
+void CNPC_Combine::LostEnemySound( CBaseEntity *pEnemy )
+#else
 void CNPC_Combine::LostEnemySound( void)
+#endif
 {
 	if ( gpGlobals->curtime <= m_flNextLostSoundTime )
 		return;
 
 #ifdef COMBINE_SOLDIER_USES_RESPONSE_SYSTEM
-	if (SpeakIfAllowed( TLK_CMB_LOSTENEMY, UTIL_VarArgs("lastseenenemy:%d", GetEnemyLastTimeSeen()) ))
+	AI_CriteriaSet modifiers;
+	ModifyOrAppendEnemyCriteria( modifiers, pEnemy );
+
+	modifiers.AppendCriteria( "lastseenenemy", gpGlobals->curtime - GetEnemies()->LastTimeSeen( pEnemy ) );
+
+	if (SpeakIfAllowed( TLK_CMB_LOSTENEMY, modifiers ))
 	{
 		m_flNextLostSoundTime = gpGlobals->curtime + random->RandomFloat(5.0,15.0);
 	}
@@ -3179,10 +3188,17 @@ void CNPC_Combine::LostEnemySound( void)
 // Input  :
 // Output :
 //-----------------------------------------------------------------------------
+#ifdef MAPBASE
+void CNPC_Combine::FoundEnemySound( CBaseEntity *pEnemy )
+#else
 void CNPC_Combine::FoundEnemySound( void)
+#endif
 {
 #ifdef COMBINE_SOLDIER_USES_RESPONSE_SYSTEM
-	SpeakIfAllowed( TLK_CMB_REFINDENEMY, SENTENCE_PRIORITY_HIGH );
+	AI_CriteriaSet modifiers;
+	ModifyOrAppendEnemyCriteria( modifiers, pEnemy );
+
+	SpeakIfAllowed( TLK_CMB_REFINDENEMY, modifiers, SENTENCE_PRIORITY_HIGH );
 #else
 	m_Sentences.Speak( "COMBINE_REFIND_ENEMY", SENTENCE_PRIORITY_HIGH );
 #endif

@@ -963,3 +963,28 @@ CTacticalMissionManager *CGameRules::TacticalMissionManagerFactory( void )
 }
 
 #endif
+
+#ifdef MAPBASE
+void CGameRules::ClientCommandKeyValues(edict_t* pEntity, KeyValues* pKeyValues)
+{
+#ifndef CLIENT_DLL
+	static int s_nEntityCommandSymbol = KeyValues::CallGetSymbolForString("EntityCommand");
+	static int s_nEntIndexSymbol = KeyValues::CallGetSymbolForString("entindex");
+	static int s_nCommandDataSymbol = KeyValues::CallGetSymbolForString("command_data");
+
+	CBasePlayer* pPlayer = (CBasePlayer*)GetContainingEntity(pEntity);
+	if (!pPlayer)
+		return;
+
+	if (pKeyValues->GetNameSymbol() == s_nEntityCommandSymbol)
+	{
+		CBaseEntity* pEntity = CBaseEntity::Instance(pKeyValues->GetInt(s_nEntIndexSymbol));
+		KeyValues* pkvCommand = pKeyValues->FindKey(s_nCommandDataSymbol);
+		if (pEntity && pkvCommand)
+		{
+			pEntity->HandleEntityCommand(pPlayer, pkvCommand);
+		}
+	}
+#endif // GAME_DLL
+}
+#endif // MAPBASE

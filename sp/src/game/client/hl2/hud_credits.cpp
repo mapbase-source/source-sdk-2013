@@ -35,8 +35,7 @@ struct creditname_t
 
 #ifdef MAPBASE
 	// New credits stuff
-
-	Color cColorOverride;
+	CCopyableUtlVector<int> cColorOverride;
 
 	// Images
 	int iImageID = -1;
@@ -408,8 +407,8 @@ void CHudCredits::DrawOutroCreditsName( void )
 		Color cColor = m_TextColor;
 
 #ifdef MAPBASE
-		if (pCredit->cColorOverride.a() > 0)
-			cColor = pCredit->cColorOverride;
+		if (pCredit->cColorOverride.Count() > 0)
+			cColor.SetRawColor( pCredit->cColorOverride[0] );
 
 		// Some lines should stick around and fade out
 		if ( i >= m_CreditsList.Count()-m_iEndLines )
@@ -473,6 +472,12 @@ void CHudCredits::DrawOutroCreditsName( void )
 			{
 				FOR_EACH_VEC( outStrings, i )
 				{
+					if (i < pCredit->cColorOverride.Count())
+					{
+						// Change color to this particular column's color
+						cColor.SetRawColor( pCredit->cColorOverride[i] );
+					}
+
 					int iImageID = GetOrAllocateImageID( outStrings[i] );
 
 					// Center the image if needed
@@ -492,6 +497,12 @@ void CHudCredits::DrawOutroCreditsName( void )
 			{
 				FOR_EACH_VEC( outStrings, i )
 				{
+					if (i < pCredit->cColorOverride.Count())
+					{
+						// Change color to this particular column's color
+						cColor.SetRawColor( pCredit->cColorOverride[i] );
+					}
+
 					DrawOutroCreditFont( outStrings[i], pCredit->flYPos, m_hTFont, cColor, iWidth*(i + 1), iDivisor );
 				}
 			}
@@ -768,8 +779,8 @@ void CHudCredits::DrawIntroCreditsName( void )
 		surface()->DrawSetTextFont( m_hTFont );
 #ifdef MAPBASE
 		Color cColor = m_cColor;
-		if (pCredit->cColorOverride.a() > 0)
-			cColor = pCredit->cColorOverride;
+		if (pCredit->cColorOverride.Count() > 0)
+			cColor.SetRawColor( pCredit->cColorOverride[0] );
 
 		surface()->DrawSetTextColor( cColor[0], cColor[1], cColor[2], FadeBlend( m_flFadeInTime, m_flFadeOutTime, m_flFadeHoldTime + pCredit->flTimeAdd, localTime ) * cColor[3] );
 #else
@@ -941,9 +952,25 @@ void CHudCredits::PrepareOutroCredits( void )
 
 							// Get color
 							case 2:
-								int tmp[4];
-								UTIL_StringToIntArray( tmp, 4, outStrings[i] );
-								pCredit->cColorOverride = Color( tmp[0], tmp[1], tmp[2], tmp[3] );
+								char *pToken = strtok( outStrings[i], "," );
+								if (pToken)
+								{
+									// Multiple colors for multiple columns
+									while (pToken != NULL)
+									{
+										int tmp[4];
+										UTIL_StringToIntArray( tmp, 4, pToken );
+										pCredit->cColorOverride.AddToTail( Color( tmp[0], tmp[1], tmp[2], tmp[3] ).GetRawColor() );
+
+										pToken = strtok( NULL, "," );
+									}
+								}
+								else
+								{
+									int tmp[4];
+									UTIL_StringToIntArray( tmp, 4, outStrings[i] );
+									pCredit->cColorOverride.AddToTail( Color( tmp[0], tmp[1], tmp[2], tmp[3] ).GetRawColor() );
+								}
 								break;
 						}
 					}
@@ -999,9 +1026,25 @@ void CHudCredits::PrepareOutroCredits( void )
 					{
 						// Get color
 						case 1:
-							int tmp[4];
-							UTIL_StringToIntArray( tmp, 4, outStrings[i] );
-							pCredit->cColorOverride = Color( tmp[0], tmp[1], tmp[2], tmp[3] );
+							char *pToken = strtok( outStrings[i], "," );
+							if (pToken)
+							{
+								// Multiple colors for multiple columns
+								while (pToken != NULL)
+								{
+									int tmp[4];
+									UTIL_StringToIntArray( tmp, 4, pToken );
+									pCredit->cColorOverride.AddToTail( Color( tmp[0], tmp[1], tmp[2], tmp[3] ).GetRawColor() );
+
+									pToken = strtok( NULL, "," );
+								}
+							}
+							else
+							{
+								int tmp[4];
+								UTIL_StringToIntArray( tmp, 4, outStrings[i] );
+								pCredit->cColorOverride.AddToTail( Color( tmp[0], tmp[1], tmp[2], tmp[3] ).GetRawColor() );
+							}
 							break;
 					}
 				}
@@ -1024,8 +1067,12 @@ void CHudCredits::PrepareOutroCredits( void )
 
 #ifdef MAPBASE
 	// Check if the last line has a color override. If it does, use that as the alpha for the fadeout
-	if (m_CreditsList.Tail().cColorOverride.a() != 0)
-		m_Alpha = m_CreditsList.Tail().cColorOverride.a();
+	if (m_CreditsList.Tail().cColorOverride.Count() > 0)
+	{
+		Color clr;
+		clr.SetRawColor( m_CreditsList.Tail().cColorOverride[0] );
+		m_Alpha = clr.a();
+	}
 #endif
 
 	SetActive( true );
@@ -1057,9 +1104,10 @@ void CHudCredits::PrepareIntroCredits( void )
 				{
 					// Get color
 					case 1:
+						// TODO: Columns?
 						int tmp[4];
 						UTIL_StringToIntArray( tmp, 4, outStrings[i] );
-						pCredit->cColorOverride = Color( tmp[0], tmp[1], tmp[2], tmp[3] );
+						pCredit->cColorOverride.AddToTail( Color( tmp[0], tmp[1], tmp[2], tmp[3] ).GetRawColor() );
 						break;
 				}
 			}

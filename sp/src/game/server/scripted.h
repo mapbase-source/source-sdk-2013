@@ -112,6 +112,7 @@ public:
 	void InputCancelSequence( inputdata_t &inputdata );
 	void InputMoveToPosition( inputdata_t &inputdata );
 #ifdef MAPBASE
+	void InputStopActionLoop( inputdata_t &inputdata );
 	void InputSetTarget( inputdata_t &inputdata );
 #endif
 

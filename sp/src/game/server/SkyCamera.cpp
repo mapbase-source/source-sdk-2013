@@ -211,6 +211,11 @@ void CSkyCamera::Activate( )
 		}
 	}
 #endif
+
+#ifdef MAPBASE
+	if (HasSpawnFlags( SF_SKY_MASTER ))
+		g_hActiveSkybox = this;
+#endif
 }
 
 #ifdef MAPBASE
@@ -368,9 +373,11 @@ void CSkyCamera::InputActivateSkybox( inputdata_t &inputdata )
 		// Deactivate that skybox
 		pActiveSky->SetThink( NULL );
 		pActiveSky->SetNextThink( TICK_NEVER_THINK );
+		pActiveSky->RemoveSpawnFlags( SF_SKY_MASTER );
 	}
 
 	g_hActiveSkybox = this;
+	AddSpawnFlags( SF_SKY_MASTER );
 
 	if (HasSpawnFlags( SF_SKY_START_UPDATING ))
 		InputStartUpdating( inputdata );
@@ -384,6 +391,7 @@ void CSkyCamera::InputDeactivateSkybox( inputdata_t &inputdata )
 	if (GetCurrentSkyCamera() == this)
 	{
 		g_hActiveSkybox = NULL;
+		RemoveSpawnFlags( SF_SKY_MASTER );
 
 		// ClientData doesn't catch this immediately
 		CBasePlayer *pPlayer = NULL;

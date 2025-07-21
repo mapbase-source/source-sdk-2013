@@ -414,6 +414,9 @@ public:
 	const Vector&			ScriptGetEyeUp() { static Vector vecUp; EyeVectors( NULL, NULL, &vecUp ); return vecUp; }
 
 	HSCRIPT					ScriptGetViewModel( int viewmodelindex );
+
+	HSCRIPT					ScriptGetUseEntity() { return ToHScript( GetUseEntity() ); }
+	HSCRIPT					ScriptGetHeldObject() { return ToHScript( GetHeldObject() ); }
 #endif
 
 	// View model prediction setup

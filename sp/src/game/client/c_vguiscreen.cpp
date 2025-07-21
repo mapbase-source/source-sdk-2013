@@ -38,10 +38,14 @@ extern vgui::IInputInternal *g_InputInternal;
 #define VGUI_SCREEN_MODE_RADIUS	80
 
 //Precache the materials
-CLIENTEFFECT_REGISTER_BEGIN( PrecacheEffectVGuiScreen )
-CLIENTEFFECT_MATERIAL( "engine/writez" )
+CLIENTEFFECT_REGISTER_BEGIN(PrecacheEffectVGuiScreen)
+CLIENTEFFECT_MATERIAL("engine/writez")
 CLIENTEFFECT_REGISTER_END()
 
+#ifdef MAPBASE
+C_EntityClassList<C_VGuiScreen> g_VGUIScreenList;
+template <> C_VGuiScreen* C_EntityClassList<C_VGuiScreen>::m_pClassList = NULL;
+#endif // MAPBASE
 
 // ----------------------------------------------------------------------------- //
 // This is a cache of preloaded keyvalues.
@@ -102,11 +106,19 @@ C_VGuiScreen::C_VGuiScreen()
 
 	m_WriteZMaterial.Init( "engine/writez", TEXTURE_GROUP_VGUI );
 	m_OverlayMaterial.Init( m_WriteZMaterial );
+
+#ifdef MAPBASE
+	g_VGUIScreenList.Insert(this);
+#endif // MAPBASE
 }
 
 C_VGuiScreen::~C_VGuiScreen()
 {
 	DestroyVguiScreen();
+
+#ifdef MAPBASE
+	g_VGUIScreenList.Remove(this);
+#endif // MAPBASE
 }
 
 //-----------------------------------------------------------------------------
@@ -416,34 +428,69 @@ void C_VGuiScreen::ClientThink( void )
 	int px = (int)(u * m_nPixelWidth + 0.5f);
 	int py = (int)(v * m_nPixelHeight + 0.5f);
 
+#ifndef MAPBASE
 	// Generate mouse input commands
 	if ((px != m_nOldPx) || (py != m_nOldPy))
 	{
-		g_InputInternal->InternalCursorMoved( px, py );
+		g_InputInternal->InternalCursorMoved(px, py);
+
 		m_nOldPx = px;
 		m_nOldPy = py;
 	}
 
 	if (m_nButtonPressed & IN_ATTACK)
 	{
-		g_InputInternal->SetMouseCodeState( MOUSE_LEFT, vgui::BUTTON_PRESSED );
+		g_InputInternal->SetMouseCodeState(MOUSE_LEFT, vgui::BUTTON_PRESSED);
 		g_InputInternal->InternalMousePressed(MOUSE_LEFT);
 	}
 	if (m_nButtonPressed & IN_ATTACK2)
 	{
-		g_InputInternal->SetMouseCodeState( MOUSE_RIGHT, vgui::BUTTON_PRESSED );
-		g_InputInternal->InternalMousePressed( MOUSE_RIGHT );
+		g_InputInternal->SetMouseCodeState(MOUSE_RIGHT, vgui::BUTTON_PRESSED);
+		g_InputInternal->InternalMousePressed(MOUSE_RIGHT);
 	}
-	if ( (m_nButtonReleased & IN_ATTACK) || m_bLoseThinkNextFrame) // for a button release on loosing focus
+	if ((m_nButtonReleased & IN_ATTACK) || m_bLoseThinkNextFrame) // for a button release on loosing focus
 	{
-		g_InputInternal->SetMouseCodeState( MOUSE_LEFT, vgui::BUTTON_RELEASED );
-		g_InputInternal->InternalMouseReleased( MOUSE_LEFT );
+		g_InputInternal->SetMouseCodeState(MOUSE_LEFT, vgui::BUTTON_RELEASED);
+		g_InputInternal->InternalMouseReleased(MOUSE_LEFT);
 	}
 	if (m_nButtonReleased & IN_ATTACK2)
 	{
-		g_InputInternal->SetMouseCodeState( MOUSE_RIGHT, vgui::BUTTON_RELEASED );
-		g_InputInternal->InternalMouseReleased( MOUSE_RIGHT );
+		g_InputInternal->SetMouseCodeState(MOUSE_RIGHT, vgui::BUTTON_RELEASED);
+		g_InputInternal->InternalMouseReleased(MOUSE_RIGHT);
 	}
+#else
+	vgui::VPANEL focus = g_InputInternal->GetMouseOver();
+	// Generate mouse input commands
+	if ((px != m_nOldPx) || (py != m_nOldPy))
+	{
+		g_InputInternal->UpdateCursorPosInternal(px, py);
+
+		m_nOldPx = px;
+		m_nOldPy = py;
+
+		focus = pPanel->IsWithinTraverse(px, py, true);
+		g_InputInternal->SetMouseFocus(focus);
+		vgui::ivgui()->PostMessage(focus, new KeyValues("CursorMoved", "xpos", px, "ypos", py), NULL);
+	}
+
+	for (int i = 0; i < 2; i++)
+	{
+		const int nBit = i ? IN_ATTACK2 : (IN_ATTACK | IN_USE);
+		const vgui::MouseCode nButton = i ? MOUSE_RIGHT : MOUSE_LEFT;
+
+		if ((m_nButtonReleased & nBit) || ((m_nButtonState & nBit) && m_bLoseThinkNextFrame)) // for a button release on loosing focus
+		{
+			g_InputInternal->SetMouseCodeState(nButton, vgui::BUTTON_RELEASED);
+			vgui::ivgui()->PostMessage(focus, new KeyValues("MouseReleased", "code", nButton), NULL);
+		}
+		else if (m_nButtonPressed & nBit)
+		{
+			g_InputInternal->SetMouseCodeState(nButton, vgui::BUTTON_PRESSED);
+			vgui::ivgui()->PostMessage(focus, new KeyValues("MousePressed", "code", nButton), NULL);
+		}
+	}
+#endif // !MAPBASE
+
 
 	if ( m_bLoseThinkNextFrame == true )
 	{
@@ -627,6 +674,7 @@ bool C_VGuiScreen::IsInputOnlyToOwner( void )
 	return (m_fScreenFlags & VGUI_SCREEN_ONLY_USABLE_BY_OWNER) != 0;
 }
 
+#ifndef MAPBASE
 //-----------------------------------------------------------------------------
 //
 // Enumator class for finding vgui screens close to the local player
@@ -634,29 +682,29 @@ bool C_VGuiScreen::IsInputOnlyToOwner( void )
 //-----------------------------------------------------------------------------
 class CVGuiScreenEnumerator : public IPartitionEnumerator
 {
-	DECLARE_CLASS_GAMEROOT( CVGuiScreenEnumerator, IPartitionEnumerator );
+	DECLARE_CLASS_GAMEROOT(CVGuiScreenEnumerator, IPartitionEnumerator);
 public:
-	virtual IterationRetval_t EnumElement( IHandleEntity *pHandleEntity );
+	virtual IterationRetval_t EnumElement(IHandleEntity* pHandleEntity);
 
 	int	GetScreenCount();
-	C_VGuiScreen *GetVGuiScreen( int index );
+	C_VGuiScreen* GetVGuiScreen(int index);
 
 private:
 	CUtlVector< CHandle< C_VGuiScreen > > m_VguiScreens;
 };
 
-IterationRetval_t CVGuiScreenEnumerator::EnumElement( IHandleEntity *pHandleEntity )
+IterationRetval_t CVGuiScreenEnumerator::EnumElement(IHandleEntity* pHandleEntity)
 {
-	C_BaseEntity *pEnt = ClientEntityList().GetBaseEntityFromHandle( pHandleEntity->GetRefEHandle() );
-	if ( pEnt == NULL )
+	C_BaseEntity* pEnt = ClientEntityList().GetBaseEntityFromHandle(pHandleEntity->GetRefEHandle());
+	if (pEnt == NULL)
 		return ITERATION_CONTINUE;
 
 	// FIXME.. pretty expensive...
-	C_VGuiScreen *pScreen = dynamic_cast<C_VGuiScreen*>(pEnt); 
-	if ( pScreen )
+	C_VGuiScreen* pScreen = dynamic_cast<C_VGuiScreen*>(pEnt);
+	if (pScreen)
 	{
-		int i = m_VguiScreens.AddToTail( );
-		m_VguiScreens[i].Set( pScreen );
+		int i = m_VguiScreens.AddToTail();
+		m_VguiScreens[i].Set(pScreen);
 	}
 
 	return ITERATION_CONTINUE;
@@ -667,10 +715,12 @@ int	CVGuiScreenEnumerator::GetScreenCount()
 	return m_VguiScreens.Count();
 }
 
-C_VGuiScreen *CVGuiScreenEnumerator::GetVGuiScreen( int index )
+C_VGuiScreen* CVGuiScreenEnumerator::GetVGuiScreen(int index)
 {
 	return m_VguiScreens[index].Get();
-}	
+}
+#endif // !MAPBASE
+
 
 
 //-----------------------------------------------------------------------------
@@ -704,18 +754,29 @@ C_BaseEntity *FindNearbyVguiScreen( const Vector &viewPosition, const QAngle &vi
 	Ray_t lookRay;
 	lookRay.Init( viewPosition, lookEnd );
 
+#ifndef MAPBASE
 	// Look for vgui screens that are close to the player
 	CVGuiScreenEnumerator localScreens;
-	partition->EnumerateElementsInSphere( PARTITION_CLIENT_NON_STATIC_EDICTS, viewPosition, VGUI_SCREEN_MODE_RADIUS, false, &localScreens );
+	partition->EnumerateElementsInSphere(PARTITION_CLIENT_NON_STATIC_EDICTS, viewPosition, VGUI_SCREEN_MODE_RADIUS, false, &localScreens);
+#endif // !MAPBASE
 
 	Vector vecOut, vecViewDelta;
 
 	float flBestDist = 2.0f;
 	C_VGuiScreen *pBestScreen = NULL;
+#ifndef MAPBASE
 	for (int i = localScreens.GetScreenCount(); --i >= 0; )
+#else
+	for (C_VGuiScreen* pScreen = g_VGUIScreenList.m_pClassList; pScreen != NULL; pScreen = pScreen->m_pNext)
+#endif // !MAPBASE
 	{
-		C_VGuiScreen *pScreen = localScreens.GetVGuiScreen(i);
-
+#ifndef MAPBASE
+		C_VGuiScreen* pScreen = localScreens.GetVGuiScreen(i);
+#else
+		// Skip if out of PVS
+		if (pScreen->IsDormant())
+			continue;
+#endif
 		if ( pScreen->IsAttachedToViewModel() )
 			continue;
 
@@ -865,11 +926,21 @@ vgui::Panel *CVGuiScreenPanel::CreateControlByName(const char *controlName)
 //-----------------------------------------------------------------------------
 // Purpose: Called when the user presses a button
 //-----------------------------------------------------------------------------
-void CVGuiScreenPanel::OnCommand( const char *command)
+void CVGuiScreenPanel::OnCommand(const char* command)
 {
-	if ( Q_stricmp( command, "vguicancel" ) )
+	if (Q_stricmp(command, "vguicancel"))
 	{
-		engine->ClientCmd( const_cast<char *>( command ) );
+#ifdef MAPBASE
+		if (m_hEntity && m_hEntity->IsServerEntity())
+		{
+			KeyValues* pCommand = new KeyValues("EntityCommand");
+			pCommand->SetInt("entindex", m_hEntity->index);
+			pCommand->SetString("command_data", command);
+			engine->ServerCmdKeyValues(pCommand);
+		}
+		else
+#endif
+			engine->ClientCmd(const_cast<char*>(command));
 	}
 
 	BaseClass::OnCommand(command);

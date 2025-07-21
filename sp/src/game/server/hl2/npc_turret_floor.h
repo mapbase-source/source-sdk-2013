@@ -265,6 +265,9 @@ protected:
 	COutputEvent m_OnTipped;
 	COutputEvent m_OnPhysGunPickup;
 	COutputEvent m_OnPhysGunDrop;
+#ifdef MAPBASE
+	COutputEvent m_OnStartTipped;
+#endif
 
 	bool	m_bHackedByAlyx;
 	HSOUNDSCRIPTHANDLE			m_ShotSounds;

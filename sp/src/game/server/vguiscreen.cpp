@@ -35,21 +35,21 @@ PRECACHE_REGISTER( vgui_screen );
 //-----------------------------------------------------------------------------
 // Save/load
 //-----------------------------------------------------------------------------
-BEGIN_DATADESC( CVGuiScreen )
+BEGIN_DATADESC(CVGuiScreen)
 
-	DEFINE_CUSTOM_FIELD( m_nPanelName, &g_VguiScreenStringOps ),
-	DEFINE_FIELD( m_nAttachmentIndex, FIELD_INTEGER ),
+DEFINE_CUSTOM_FIELD(m_nPanelName, &g_VguiScreenStringOps),
+DEFINE_FIELD(m_nAttachmentIndex, FIELD_INTEGER),
 //	DEFINE_FIELD( m_nOverlayMaterial, FIELD_INTEGER ),
-	DEFINE_FIELD( m_fScreenFlags, FIELD_INTEGER ),
-	DEFINE_KEYFIELD( m_flWidth, FIELD_FLOAT, "width" ),
-	DEFINE_KEYFIELD( m_flHeight, FIELD_FLOAT, "height" ),
-	DEFINE_KEYFIELD( m_strOverlayMaterial, FIELD_STRING, "overlaymaterial" ),
-	DEFINE_FIELD( m_hPlayerOwner, FIELD_EHANDLE ),
+DEFINE_FIELD(m_fScreenFlags, FIELD_INTEGER),
+DEFINE_KEYFIELD(m_flWidth, FIELD_FLOAT, "width"),
+DEFINE_KEYFIELD(m_flHeight, FIELD_FLOAT, "height"),
+DEFINE_KEYFIELD(m_strOverlayMaterial, FIELD_STRING, "overlaymaterial"),
+DEFINE_FIELD(m_hPlayerOwner, FIELD_EHANDLE),
 
-	DEFINE_INPUTFUNC( FIELD_VOID, "SetActive", InputSetActive ),
-	DEFINE_INPUTFUNC( FIELD_VOID, "SetInactive", InputSetInactive ),
+DEFINE_INPUTFUNC(FIELD_VOID, "SetActive", InputSetActive),
+DEFINE_INPUTFUNC(FIELD_VOID, "SetInactive", InputSetInactive),
 
-END_DATADESC()
+END_DATADESC();
 
 
 //-----------------------------------------------------------------------------
@@ -74,6 +74,24 @@ bool CVGuiScreen::KeyValue( const char *szKeyName, const char *szValue )
 	{
 		*s = '\0';
 	}
+
+#ifdef MAPBASE
+	// Named command outputs
+	if (szKeyName[0] == '~' && szKeyName[1])
+	{
+		const char* pszOutputName = szKeyName + 1;
+		int i = m_PanelOutputs.Find(pszOutputName);
+		if (!m_PanelOutputs.IsValidIndex(i))
+		{
+			auto pMem = new COutputEvent;
+			V_memset(pMem, 0, sizeof(COutputEvent));
+			i = m_PanelOutputs.Insert(pszOutputName, pMem);
+		}
+
+		m_PanelOutputs[i]->ParseEventAction(szValue);
+		return true;
+	}
+#endif // MAPBASE
 
 	if ( FStrEq( szKeyName, "panelname" ))
 	{
@@ -157,6 +175,106 @@ void CVGuiScreen::OnRestore()
 
 	BaseClass::OnRestore();
 }
+
+#ifdef MAPBASE
+CVGuiScreen::~CVGuiScreen()
+{
+	m_PanelOutputs.PurgeAndDeleteElements();
+}
+
+int CVGuiScreen::Save(ISave& save)
+{
+#if MAPBASE_VER_INT < 8000
+	// HACKHACK: Until v8.0, mark this screen as using the new save system to prevent existing saves with vgui_screen from crashing
+	AddContext( "uses_new_save", "1" );
+#endif
+
+	int status = BaseClass::Save(save);
+	if (!status)
+		return 0;
+
+	const int iCount = m_PanelOutputs.Count();
+	save.WriteInt(&iCount);
+	for (int i = 0; i < iCount; i++)
+	{
+		CBaseEntityOutput* output = m_PanelOutputs[i];
+		const int nElems = output->NumberOfElements();
+		save.WriteString(m_PanelOutputs.GetElementName(i));
+		save.WriteInt(&nElems);
+		if (!output->Save(save))
+			return 0;
+	}
+
+	return status;
+}
+
+int CVGuiScreen::Restore(IRestore& restore)
+{
+	int status = BaseClass::Restore(restore);
+	if (!status)
+		return 0;
+
+#if MAPBASE_VER_INT < 8000
+	// HACKHACK: Until v8.0, mark this screen as using the new save system to prevent existing saves with vgui_screen from crashing
+	if (!HasContext( "uses_new_save", "1" ))
+		return status;
+#endif
+
+	const int iCount = restore.ReadInt();
+	m_PanelOutputs.EnsureCapacity(iCount);
+	for (int i = 0; i < iCount; i++)
+	{
+		char cName[MAX_KEY];
+		restore.ReadString(cName, MAX_KEY, 0);
+		const int iIndex = m_PanelOutputs.Insert(cName, new COutputEvent);
+		const int nElems = restore.ReadInt();
+		if (!m_PanelOutputs[iIndex]->Restore(restore, nElems))
+			return 0;
+	}
+
+	return status;
+}
+
+// Handle a command from the client-side vgui panel.
+bool CVGuiScreen::HandleEntityCommand(CBasePlayer* pClient, KeyValues* pKeyValues)
+{
+#if defined(HL2MP) // Enable this in multiplayer.
+	// Restrict to commands from our owning player.
+	if ((m_fScreenFlags & VGUI_SCREEN_ONLY_USABLE_BY_OWNER) && pClient != m_hPlayerOwner.Get())
+		return false;
+#endif
+	
+	// Give the owning entity a chance to handle the command.
+	if (GetOwnerEntity() && GetOwnerEntity()->HandleEntityCommand(pClient, pKeyValues))
+		return true;
+
+	// See if we have an output for this command.
+	const int i = m_PanelOutputs.Find(pKeyValues->GetString());
+	if (m_PanelOutputs.IsValidIndex(i))
+	{
+		variant_t Val;
+		Val.Set(FIELD_VOID, NULL);
+		m_PanelOutputs[i]->FireOutput(Val, pClient, this);
+		return true;
+	}
+
+	return false;
+}
+
+CBaseEntityOutput* CVGuiScreen::FindNamedOutput(const char* pszOutput)
+{
+	if (pszOutput && pszOutput[0] == '~' && pszOutput[1])
+	{
+		const int i = m_PanelOutputs.Find(pszOutput + 1);
+		if (m_PanelOutputs.IsValidIndex(i))
+			return m_PanelOutputs[i];
+
+		return NULL;
+	}
+
+	return BaseClass::FindNamedOutput(pszOutput);
+}
+#endif // MAPBASE
 
 void CVGuiScreen::SetAttachmentIndex( int nIndex )
 {

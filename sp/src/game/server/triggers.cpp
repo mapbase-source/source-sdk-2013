@@ -47,6 +47,7 @@
 
 #define DEBUG_TRANSITIONS_VERBOSE	2
 ConVar g_debug_transitions( "g_debug_transitions", "0", FCVAR_NONE, "Set to 1 and restart the map to be warned if the map has no trigger_transition volumes. Set to 2 to see a dump of all entities & associated results during a transition." );
+ConVar noclip_changelevel("noclip_changelevel", "0", FCVAR_CHEAT);
 
 // Global list of triggers that care about weapon fire
 // Doesn't need saving, the triggers re-add themselves on restore.
@@ -1848,7 +1849,8 @@ void CChangeLevel::TouchChangeLevel( CBaseEntity *pOther )
 		return;
 	}
 
-	if ( !pPlayer->IsInAVehicle() && pPlayer->GetMoveType() == MOVETYPE_NOCLIP )
+	
+	if ( !pPlayer->IsInAVehicle() && pPlayer->GetMoveType() == MOVETYPE_NOCLIP && !noclip_changelevel.GetBool())
 	{
 		DevMsg("In level transition: %s %s\n", st_szNextMap, st_szNextSpot );
 		return;

@@ -568,10 +568,13 @@ void CFlare::Start( float lifeTime )
 //-----------------------------------------------------------------------------
 void CFlare::Die( float fadeTime )
 {
-	m_flTimeBurnOut = gpGlobals->curtime + fadeTime;
+	if (m_bInActiveList)
+	{
+		m_flTimeBurnOut = gpGlobals->curtime + fadeTime;
 
-	SetThink( &CFlare::FlareThink );
-	SetNextThink( gpGlobals->curtime + 0.1f );
+		SetThink(&CFlare::FlareThink);
+		SetNextThink(gpGlobals->curtime + 0.1f);
+	}
 }
 
 //-----------------------------------------------------------------------------

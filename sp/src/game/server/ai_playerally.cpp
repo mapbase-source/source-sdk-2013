@@ -14,6 +14,7 @@
 #include "gameinterface.h"
 #ifdef MAPBASE
 #include "mapbase/matchers.h"
+#include "ai_memory.h"
 #endif
 
 // memdbgon must be the last include file in a .cpp file!!!
@@ -133,6 +134,8 @@ ConceptInfo_t g_ConceptInfos[] =
 	{ 	TLK_TAKING_FIRE,		SPEECH_IMPORTANT,-1,	-1,		-1,		-1,		 -1,	-1,		AICF_DEFAULT,	},
 	{ 	TLK_NEW_ENEMY,			SPEECH_IMPORTANT,-1,	-1,		-1,		-1,		 -1,	-1,		AICF_DEFAULT,	},
 	{ 	TLK_COMBAT_IDLE,		SPEECH_IMPORTANT,-1,	-1,		-1,		-1,		 -1,	-1,		AICF_DEFAULT,	},
+	{ 	TLK_LOSTENEMY,			SPEECH_IMPORTANT,-1,	-1,		-1,		-1,		 -1,	-1,		AICF_DEFAULT,	},
+	{ 	TLK_REFINDENEMY,		SPEECH_IMPORTANT,-1,	-1,		-1,		-1,		 -1,	-1,		AICF_DEFAULT,	},
 #endif
 };
 
@@ -1425,6 +1428,28 @@ void CAI_PlayerAlly::PainSound( const CTakeDamageInfo &info )
 {
 	SpeakIfAllowed( TLK_WOUND );
 }
+
+#ifdef MAPBASE
+//-----------------------------------------------------------------------------
+void CAI_PlayerAlly::LostEnemySound( CBaseEntity *pEnemy )
+{
+	AI_CriteriaSet modifiers;
+	ModifyOrAppendEnemyCriteria( modifiers, pEnemy );
+
+	modifiers.AppendCriteria( "lastseenenemy", gpGlobals->curtime - GetEnemies()->LastTimeSeen( pEnemy ) );
+
+	SpeakIfAllowed( TLK_LOSTENEMY, modifiers );
+}
+
+//-----------------------------------------------------------------------------
+void CAI_PlayerAlly::FoundEnemySound( CBaseEntity *pEnemy )
+{
+	AI_CriteriaSet modifiers;
+	ModifyOrAppendEnemyCriteria( modifiers, pEnemy );
+
+	SpeakIfAllowed( TLK_REFINDENEMY, modifiers );
+}
+#endif
 
 //-----------------------------------------------------------------------------
 // Purpose: Implemented to look at talk target

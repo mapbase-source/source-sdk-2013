@@ -54,7 +54,7 @@ jobs:
     - uses: actions/checkout@v4
 
     - name: Add MSBuild to PATH
-      uses: microsoft/setup-msbuild@v1.1
+      uses: compnerd/gha-setup-vsdevenv@v6
 
     - name: Enable VS2022
       working-directory: '${{inputs.branch}}/src/vpc_scripts'
@@ -77,107 +77,40 @@ jobs:
 
       # --------------------------------------------------------------------
 
-      # "I'm invoking msbuild for each project individually, which looks a bit odd considering there is a solution file which should be able to invoke the builds in their proper order automatically, but passing the solution to msbuild doesn't seem to work."
-      # https://github.com/mapbase-source/source-sdk-2013/pull/162
-
-    - name: Build mathlib
+    - name: Build
       #if: steps.filter.outputs.game == 'true'
       working-directory: '${{inputs.branch}}/src'
       shell: cmd
       run: |
-        msbuild -m -p:Configuration=${{inputs.configuration}} mathlib\mathlib.vcxproj
-
-    - name: Build Base Libraries
-      if: inputs.project-group == 'all' || inputs.project-group == 'game' || inputs.project-group == 'maptools'
-      working-directory: '${{inputs.branch}}/src'
-      shell: cmd
-      run: |
-        msbuild -m -p:Configuration=${{inputs.configuration}} raytrace\raytrace.vcxproj
-        msbuild -m -p:Configuration=${{inputs.configuration}} tier1\tier1.vcxproj
-        msbuild -m -p:Configuration=${{inputs.configuration}} vgui2\vgui_controls\vgui_controls.vcxproj
-        msbuild -m -p:Configuration=${{inputs.configuration}} vscript\vscript.vcxproj
-
-    - name: Build Map Tools
-      if: inputs.project-group == 'all' || inputs.project-group == 'maptools'
-      working-directory: '${{inputs.branch}}/src'
-      shell: cmd
-      run: |
-        msbuild -m -p:Configuration=${{inputs.configuration}} fgdlib\fgdlib.vcxproj
-        msbuild -m -p:Configuration=${{inputs.configuration}} utils\vbsp\vbsp.vcxproj
-        msbuild -m -p:Configuration=${{inputs.configuration}} utils\vvis\vvis_dll.vcxproj
-        msbuild -m -p:Configuration=${{inputs.configuration}} utils\vvis_launcher\vvis_launcher.vcxproj
-        msbuild -m -p:Configuration=${{inputs.configuration}} utils\vrad\vrad_dll.vcxproj
-        msbuild -m -p:Configuration=${{inputs.configuration}} utils\vrad_launcher\vrad_launcher.vcxproj
-
-    - name: Build Shaders
-      if: inputs.project-group == 'shaders'
-      working-directory: '${{inputs.branch}}/src'
-      shell: cmd
-      run: |
-        msbuild -m -p:Configuration=${{inputs.configuration}} materialsystem\stdshaders\game_shader_dx9_${{inputs.game}}.vcxproj
-
-    - name: Build Game
-      if: inputs.project-group == 'game'
-      working-directory: '${{inputs.branch}}/src'
-      shell: cmd
-      run: |
-        msbuild -m -p:Configuration=${{inputs.configuration}} responserules\runtime\responserules.vcxproj
-        msbuild -m -p:Configuration=${{inputs.configuration}} game\client\client_${{inputs.game}}.vcxproj
-        msbuild -m -p:Configuration=${{inputs.configuration}} game\server\server_${{inputs.game}}.vcxproj
-
-    # TODO: Hook to game naming?
-    - name: Build everything
-      if: inputs.project-group == 'all'
-      working-directory: '${{inputs.branch}}/src'
-      shell: cmd
-      run: |
-        msbuild -m -p:Configuration=${{inputs.configuration}} responserules\runtime\responserules.vcxproj
-        msbuild -m -p:Configuration=${{inputs.configuration}} materialsystem\stdshaders\game_shader_dx9_episodic.vcxproj
-        msbuild -m -p:Configuration=${{inputs.configuration}} materialsystem\stdshaders\game_shader_dx9_hl2.vcxproj
-        msbuild -m -p:Configuration=${{inputs.configuration}} game\client\client_episodic.vcxproj
-        msbuild -m -p:Configuration=${{inputs.configuration}} game\client\client_hl2.vcxproj
-        msbuild -m -p:Configuration=${{inputs.configuration}} game\server\server_episodic.vcxproj
-        msbuild -m -p:Configuration=${{inputs.configuration}} game\server\server_hl2.vcxproj
+        devenv ${{inputs.solution-name}}.sln /upgrade
+        msbuild -m -t:Rebuild -p:Configuration=${{inputs.configuration}};Platform=x86 ${{inputs.solution-name}}.sln
 
       # --------------------------------------------------------------------
 
-    - name: Publish Windows game DLLs
-      if: inputs.project-group == 'game'
-      uses: actions/upload-artifact@v3
+    - name: Publish game binaries
+      if: inputs.project-group == 'game' || inputs.project-group == 'shaders'
+      uses: actions/upload-artifact@v4
       with:
-        name: 'Windows Game DLLs (server & client.dll) [${{ inputs.configuration }}]'
+        name: '${{inputs.project-group}}_${{inputs.game}}_win32_${{ inputs.configuration }}'
         path: |
-          ${{inputs.branch}}/game/mod_${{inputs.game}}/bin/client.dll
-          ${{inputs.branch}}/game/mod_${{inputs.game}}/bin/server.dll
+          ${{inputs.branch}}/game/mod_${{inputs.game}}/bin/*.dll
         if-no-files-found: error
 
-    - name: Publish Windows shader DLL
-      if: inputs.project-group == 'shaders'
-      uses: actions/upload-artifact@v3
-      with:
-        name: 'Windows Shader DLL (game_shader_dx9.dll) [${{ inputs.configuration }}]'
-        path: |
-          ${{inputs.branch}}/game/mod_${{inputs.game}}/bin/game_shader_dx9.dll
-        if-no-files-found: error
-
-    - name: Publish Windows map tools
+    - name: Publish map tools
       if: inputs.project-group == 'maptools'
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
-        name: 'Windows Map Tools [${{ inputs.configuration }}]'
+        name: '${{inputs.project-group}}_win32_${{ inputs.configuration }}'
         path: |
-          ${{inputs.branch}}/game/bin/vbsp.exe
-          ${{inputs.branch}}/game/bin/vvis.exe
-          ${{inputs.branch}}/game/bin/vvis_dll.dll
-          ${{inputs.branch}}/game/bin/vrad.exe
-          ${{inputs.branch}}/game/bin/vrad_dll.dll
+          ${{inputs.branch}}/game/bin/*.exe
+          ${{inputs.branch}}/game/bin/*.dll
         if-no-files-found: error
 
-    - name: Publish everything (Windows)
+    - name: Publish everything
       if: inputs.project-group == 'all'
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
-        name: 'Everything (Windows) [${{ inputs.configuration }}]'
+        name: 'everything_win32_${{ inputs.configuration }}'
         path: |
           ${{inputs.branch}}/game/bin
           ${{inputs.branch}}/game/mod_*/bin
@@ -224,30 +157,21 @@ jobs:
 
       # --------------------------------------------------------------------
 
-    - name: Publish Linux game SOs
-      if: inputs.project-group == 'game'
-      uses: actions/upload-artifact@v3
+    - name: Publish game binaries
+      if: inputs.project-group == 'game' || inputs.project-group == 'shaders'
+      uses: actions/upload-artifact@v4
       with:
-        name: 'Linux Game SOs (server & client.so) [${{ inputs.configuration }}]'
+        name: '${{inputs.project-group}}_${{inputs.game}}_linux32_${{ inputs.configuration }}'
         path: |
-          ${{inputs.branch}}/game/mod_${{inputs.game}}/bin/client.so
-          ${{inputs.branch}}/game/mod_${{inputs.game}}/bin/server.so
+          ${{inputs.branch}}/game/mod_${{inputs.game}}/bin/*.so
+          !${{inputs.branch}}/game/mod_${{inputs.game}}/bin/*_srv.so
         if-no-files-found: error
 
-    - name: Publish Linux shader SO
-      if: inputs.project-group == 'shaders'
-      uses: actions/upload-artifact@v3
-      with:
-        name: 'Linux Shader SO (game_shader_dx9.so) [${{ inputs.configuration }}]'
-        path: |
-          ${{inputs.branch}}/game/mod_${{inputs.game}}/bin/game_shader_dx9.so
-        if-no-files-found: error
-
-    #- name: Publish Linux map tools
+    #- name: Publish map tools
     #  if: inputs.project-group == 'maptools'
-    #  uses: actions/upload-artifact@v3
+    #  uses: actions/upload-artifact@v4
     #  with:
-    #    name: 'Linux Map Tools [${{ inputs.configuration }}]'
+    #    name: '${{inputs.project-group}}_linux32_${{ inputs.configuration }}'
     #    path: |
     #      ${{inputs.branch}}/game/bin/vbsp
     #      ${{inputs.branch}}/game/bin/vvis
@@ -258,11 +182,11 @@ jobs:
 
     # For now, don't publish the .dbg files even though we publish .pdb files on Windows
     # (they're too big)
-    - name: Publish everything (Linux)
+    - name: Publish everything
       if: inputs.project-group == 'all'
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
-        name: 'Everything (Linux) [${{ inputs.configuration }}]'
+        name: 'everything_linux32_${{ inputs.configuration }}'
         path: |
           ${{inputs.branch}}/game/bin/*.so
           !${{inputs.branch}}/game/bin/*_srv.so

@@ -1178,6 +1178,32 @@ void CRagdollLRURetirement::MoveToTopOfLRU( CBaseAnimating *pRagdoll, bool bImpo
 #endif
 }
 
+#ifdef MAPBASE
+//-----------------------------------------------------------------------------
+// Remove it from the LRU
+//-----------------------------------------------------------------------------
+void CRagdollLRURetirement::RemoveFromLRU( CBaseAnimating *pRagdoll )
+{
+	for (int i = 0; i < m_LRU.Count(); i++)
+	{
+		if (m_LRU[i].Get() == pRagdoll)
+		{
+			m_LRU.Remove( i );
+			return;
+		}
+	}
+	
+	for (int i = 0; i < m_LRUImportantRagdolls.Count(); i++)
+	{
+		if (m_LRUImportantRagdolls[i].Get() == pRagdoll)
+		{
+			m_LRUImportantRagdolls.Remove( i );
+			return;
+		}
+	}
+}
+#endif
+
 
 //EFFECT/ENTITY TRANSFERS
 

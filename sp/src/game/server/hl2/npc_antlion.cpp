@@ -378,13 +378,14 @@ void CNPC_Antlion::Spawn( void )
 
 		sInteraction01.vecRelativeOrigin = Vector(224, 0, 0);
 		sInteraction01.angRelativeAngles = QAngle(0, 180, 0);
-		//sInteraction01.iFlags |= SCNPC_FLAG_TEST_OTHER_ANGLES;
+		sInteraction01.iFlags |= SCNPC_FLAG_TEST_OTHER_ANGLES;
 		sInteraction01.iFlags |= SCNPC_FLAG_TEST_END_POSITION;
 		sInteraction01.vecRelativeEndPos = Vector(312, -10, 0);
 		sInteraction01.iTriggerMethod = SNPCINT_AUTOMATIC_IN_COMBAT;
 		sInteraction01.flDelay = 15.0f;
 		sInteraction01.iFlags |= SCNPC_FLAG_MAPBASE_ADDITION;
 		sInteraction01.flDistSqr = (8 * 8);
+		sInteraction01.flMaxAngleDiff = 180.0f; // Initiate from any angle
 
 
 		ScriptedNPCInteraction_t sInteraction02;
@@ -393,11 +394,12 @@ void CNPC_Antlion::Spawn( void )
 
 		sInteraction02.vecRelativeOrigin = Vector(64, 0, 0);
 		sInteraction02.angRelativeAngles = QAngle(0, 180, 0);
-		//sInteraction01.iFlags |= SCNPC_FLAG_TEST_OTHER_ANGLES;
+		sInteraction02.iFlags |= SCNPC_FLAG_TEST_OTHER_ANGLES;
 		sInteraction02.iTriggerMethod = SNPCINT_AUTOMATIC_IN_COMBAT;
 		sInteraction02.flDelay = 7.5f;
 		sInteraction02.iFlags |= SCNPC_FLAG_MAPBASE_ADDITION;
 		sInteraction02.flDistSqr = (8 * 8);
+		sInteraction02.flMaxAngleDiff = 180.0f; // Initiate from any angle
 
 
 		AddScriptedNPCInteraction(&sInteraction01);

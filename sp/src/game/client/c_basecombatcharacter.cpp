@@ -34,6 +34,10 @@ C_BaseCombatCharacter::C_BaseCombatCharacter()
 	m_pGlowEffect = NULL;
 	m_bGlowEnabled = false;
 	m_bOldGlowEnabled = false;
+	m_GlowColor.Init( 0.76f, 0.76f, 0.76f );
+	m_OldGlowColor = m_GlowColor;
+	m_GlowAlpha = 1.0f;
+	m_OldGlowAlpha = 1.0f;
 #endif // GLOWS_ENABLE
 }
 
@@ -66,6 +70,8 @@ void C_BaseCombatCharacter::OnPreDataChanged( DataUpdateType_t updateType )
 
 #ifdef GLOWS_ENABLE
 	m_bOldGlowEnabled = m_bGlowEnabled;
+	m_OldGlowColor = m_GlowColor;
+	m_OldGlowAlpha = m_GlowAlpha;
 #endif // GLOWS_ENABLE
 }
 
@@ -77,7 +83,7 @@ void C_BaseCombatCharacter::OnDataChanged( DataUpdateType_t updateType )
 	BaseClass::OnDataChanged( updateType );
 
 #ifdef GLOWS_ENABLE
-	if ( m_bOldGlowEnabled != m_bGlowEnabled )
+	if ( m_bOldGlowEnabled != m_bGlowEnabled || m_OldGlowColor != m_GlowColor || m_OldGlowAlpha != m_GlowAlpha )
 	{
 		UpdateGlowEffect();
 	}
@@ -106,11 +112,13 @@ void C_BaseCombatCharacter::DoMuzzleFlash()
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void C_BaseCombatCharacter::GetGlowEffectColor( float *r, float *g, float *b )
+void C_BaseCombatCharacter::GetGlowEffectColor( float *r, float *g, float *b, float *a )
 {
-	*r = 0.76f;
-	*g = 0.76f;
-	*b = 0.76f;
+	*r = m_GlowColor.x;
+	*g = m_GlowColor.y;
+	*b = m_GlowColor.z;
+	if (a)
+		*a = m_GlowAlpha;
 }
 
 //-----------------------------------------------------------------------------
@@ -127,10 +135,10 @@ void C_BaseCombatCharacter::UpdateGlowEffect( void )
 	// create a new effect
 	if ( m_bGlowEnabled )
 	{
-		float r, g, b;
-		GetGlowEffectColor( &r, &g, &b );
+		float r, g, b, a;
+		GetGlowEffectColor( &r, &g, &b, &a );
 
-		m_pGlowEffect = new CGlowObject( this, Vector( r, g, b ), 1.0, true );
+		m_pGlowEffect = new CGlowObject( this, Vector( r, g, b ), a, true );
 	}
 }
 
@@ -161,6 +169,8 @@ BEGIN_RECV_TABLE(C_BaseCombatCharacter, DT_BaseCombatCharacter)
 	RecvPropArray3( RECVINFO_ARRAY(m_hMyWeapons), RecvPropEHandle( RECVINFO( m_hMyWeapons[0] ) ) ),
 #ifdef GLOWS_ENABLE
 	RecvPropBool( RECVINFO( m_bGlowEnabled ) ),
+	RecvPropVector( RECVINFO( m_GlowColor ) ),
+	RecvPropFloat( RECVINFO( m_GlowAlpha ) ),
 #endif // GLOWS_ENABLE
 
 #ifdef INVASION_CLIENT_DLL

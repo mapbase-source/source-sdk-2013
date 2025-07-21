@@ -114,8 +114,9 @@ public:
 	virtual void FrameUpdatePostEntityThink( void );
 
 	// Move it to the top of the LRU
-#ifdef MAPBASE // From Alien Swarm SDK
-	void MoveToTopOfLRU( CBaseAnimating *pRagdoll, bool bImportant = false, float flForcedRetireTime = 0.0f );
+#ifdef MAPBASE
+	void MoveToTopOfLRU( CBaseAnimating *pRagdoll, bool bImportant = false, float flForcedRetireTime = 0.0f ); // From Alien Swarm SDK
+	void RemoveFromLRU( CBaseAnimating *pRagdoll );
 #else
 	void MoveToTopOfLRU( CBaseAnimating *pRagdoll, bool bImportant = false );
 #endif

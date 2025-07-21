@@ -6110,7 +6110,11 @@ bool CAI_BaseNPC::UpdateEnemyMemory( CBaseEntity *pEnemy, const Vector &position
 		// If the was eluding me and allow the NPC to play a sound
 		if (GetEnemies()->HasEludedMe(pEnemy))
 		{
+#ifdef MAPBASE
+			FoundEnemySound( pEnemy );
+#else
 			FoundEnemySound();
+#endif
 		}
 		float reactionDelay = ( !pInformer || pInformer == this ) ? GetReactionDelay( pEnemy ) : 0.0;
 		bool result = GetEnemies()->UpdateMemory(GetNavigator()->GetNetwork(), pEnemy, position, reactionDelay, firstHand);
@@ -8045,10 +8049,13 @@ int CAI_BaseNPC::UnholsterWeapon( void )
 	if (i == -1)
 	{
 		// Set i to the first weapon you can find
-		for (i = 0; i < WeaponCount(); i++)
+		for (i = 0;;)
 		{
 			if (GetWeapon(i))
 				break;
+
+			if (++i >= WeaponCount())
+				return -1;
 		}
 	}
 #else
@@ -11731,7 +11738,11 @@ bool CAI_BaseNPC::ChooseEnemy( void )
 			if ( fEnemyEluded )
 			{
 				SetCondition( COND_LOST_ENEMY );
+#ifdef MAPBASE
+				LostEnemySound( pInitialEnemy );
+#else
 				LostEnemySound();
+#endif
 			}
 
 			if ( fEnemyWasPlayer )
@@ -14895,22 +14906,39 @@ void CAI_BaseNPC::ParseScriptedNPCInteractions(void)
 						else if (!Q_strncmp(szName, "their_", 6))
 						{
 							const char *szTheirName = szName + 6;
-							sInteraction.bHasSeparateSequenceNames = true;
 
 							if (!Q_strncmp(szTheirName, "entry_sequence", 14))
+							{
+								sInteraction.bHasSeparateSequenceNames = true;
 								sInteraction.sTheirPhases[SNPCINT_ENTRY].iszSequence = AllocPooledString(szValue);
+							}
 							else if (!Q_strncmp(szTheirName, "entry_activity", 14))
+							{
+								sInteraction.bHasSeparateSequenceNames = true;
 								sInteraction.sTheirPhases[SNPCINT_ENTRY].iActivity = GetOrRegisterActivity(szValue);
+							}
 
 							else if (!Q_strncmp(szTheirName, "sequence", 8))
+							{
+								sInteraction.bHasSeparateSequenceNames = true;
 								sInteraction.sTheirPhases[SNPCINT_SEQUENCE].iszSequence = AllocPooledString(szValue);
+							}
 							else if (!Q_strncmp(szTheirName, "activity", 8))
+							{
+								sInteraction.bHasSeparateSequenceNames = true;
 								sInteraction.sTheirPhases[SNPCINT_SEQUENCE].iActivity = GetOrRegisterActivity(szValue);
+							}
 
 							else if (!Q_strncmp(szTheirName, "exit_sequence", 13))
+							{
+								sInteraction.bHasSeparateSequenceNames = true;
 								sInteraction.sTheirPhases[SNPCINT_EXIT].iszSequence = AllocPooledString(szValue);
+							}
 							else if (!Q_strncmp(szTheirName, "exit_activity", 13))
+							{
+								sInteraction.bHasSeparateSequenceNames = true;
 								sInteraction.sTheirPhases[SNPCINT_EXIT].iActivity = GetOrRegisterActivity(szValue);
+							}
 
 							// Add anything else to our miscellaneous criteria
 							else
@@ -15890,12 +15918,11 @@ bool CAI_BaseNPC::InteractionIsAllowed( CAI_BaseNPC *pOtherNPC, ScriptedNPCInter
 	if (pOtherNPC->Classify() == CLASS_PLAYER_ALLY_VITAL)
 		return false;
 
-	// This convar allows all NPCs to perform Mapbase interactions for both testing and player fun.
-	if (ai_dynint_always_enabled.GetBool() && m_iDynamicInteractionsAllowed != TRS_FALSE)
-		return true;
+	if (m_iDynamicInteractionsAllowed == TRS_FALSE)
+		return false;
 
-	// m_iDynamicInteractionsAllowed == TRS_FALSE case is already handled in CanRunAScriptedNPCInteraction().
-	if (pInteraction->iFlags & SCNPC_FLAG_MAPBASE_ADDITION && m_iDynamicInteractionsAllowed == TRS_NONE)
+	// To maintain existing behavior, Mapbase additions require either explicit TRS_YES or ai_dynint_always_enabled.
+	if (pInteraction->iFlags & SCNPC_FLAG_MAPBASE_ADDITION && m_iDynamicInteractionsAllowed == TRS_NONE && !ai_dynint_always_enabled.GetBool())
 		return false;
 	
 	// Test misc. criteria here since some of it may not have been valid on initial calculation, but could be now
