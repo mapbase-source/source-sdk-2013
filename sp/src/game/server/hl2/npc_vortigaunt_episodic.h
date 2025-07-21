@@ -12,16 +12,16 @@
 
 #include "ai_basenpc.h"
 #include "ai_behavior.h"
-//#include "ai_behavior_lead.h"
+#include "ai_behavior_lead.h"
 #include "ai_behavior_standoff.h"
 #include "ai_behavior_assault.h"
-//#include "npc_playercompanion.h"
+#include "npc_playercompanion.h"
 
 #define		VORTIGAUNT_MAX_BEAMS				8
 
 #define VORTIGAUNT_BEAM_ALL		-1
 #define	VORTIGAUNT_BEAM_ZAP		0
-//#define	VORTIGAUNT_BEAM_HEAL	1
+#define	VORTIGAUNT_BEAM_HEAL	1
 #define VORTIGAUNT_BEAM_DISPEL	2
 
 class CBeam;
@@ -31,20 +31,20 @@ class CVortigauntEffectDispel;
 
 extern ConVar sk_vortigaunt_zap_range;
 
-/*enum VortigauntHealState_t
+enum VortigauntHealState_t
 {
 	HEAL_STATE_NONE,		// Not trying to heal
 	HEAL_STATE_WARMUP,		// In the "warm-up" phase of healing
 	HEAL_STATE_HEALING,		// In the process of healing
 	HEAL_STATE_COOLDOWN,	// in the "cooldown" phase of healing
-};*/
+};
 
 //=========================================================
 //	>> CNPC_Vortigaunt
 //=========================================================
-class CNPC_Vortigaunt : public CAI_BaseNPC
+class CNPC_Vortigaunt : public CNPC_PlayerCompanion
 {
-	DECLARE_CLASS( CNPC_Vortigaunt, CAI_BaseNPC);
+	DECLARE_CLASS( CNPC_Vortigaunt, CNPC_PlayerCompanion );
 
 public:
 					CNPC_Vortigaunt( void );
@@ -56,8 +56,8 @@ public:
 	virtual	Vector  FacingPosition( void );
 	virtual Vector	BodyTarget( const Vector &posSrc, bool bNoisy = true );
 
-//	virtual void	PrescheduleThink( void );
-//	virtual void	BuildScheduleTestBits( void );
+	virtual void	PrescheduleThink( void );
+	virtual void	BuildScheduleTestBits( void );
 	virtual void	OnScheduleChange( void );
 
 	virtual int		RangeAttack1Conditions( float flDot, float flDist );	// Primary zap
@@ -66,67 +66,67 @@ public:
 	virtual int		MeleeAttack1Conditions( float flDot, float flDist );	// Dispel
 	virtual float	InnateRange1MinRange( void ) { return 0.0f; }
 	virtual float	InnateRange1MaxRange( void ) { return sk_vortigaunt_zap_range.GetFloat()*12; }
-//	virtual int		OnTakeDamage_Alive( const CTakeDamageInfo &info );
+	virtual int		OnTakeDamage_Alive( const CTakeDamageInfo &info );
 	virtual bool	FInViewCone( CBaseEntity *pEntity );
-//	virtual bool	ShouldMoveAndShoot( void );
+	virtual bool	ShouldMoveAndShoot( void );
 
 	// vorts have a very long head/neck swing, so debounce heavily
 	virtual	float	GetHeadDebounce( void ) { return 0.7; } // how much of previous head turn to use
 
-//	virtual void		Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
-//	virtual void		AlertSound( void );
-	/*virtual*/ Class_T		Classify(void); //{ return IsGameEndAlly() ? CLASS_PLAYER_ALLY_VITAL : CLASS_VORTIGAUNT; }
+	virtual void		Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
+	virtual void		AlertSound( void );
+	virtual Class_T		Classify ( void ) { return IsGameEndAlly() ? CLASS_PLAYER_ALLY_VITAL : CLASS_VORTIGAUNT; }
 	virtual void		HandleAnimEvent( animevent_t *pEvent );
-//	virtual Activity	NPC_TranslateActivity( Activity eNewActivity );
+	virtual Activity	NPC_TranslateActivity( Activity eNewActivity );
 
 	virtual void	UpdateOnRemove( void );
 	virtual void	Event_Killed( const CTakeDamageInfo &info );
-//	virtual	void	GatherConditions( void );
+	virtual	void	GatherConditions( void );
 	virtual void	RunTask( const Task_t *pTask );
-//	virtual void	StartTask( const Task_t *pTask );
+	virtual void	StartTask( const Task_t *pTask );
 	virtual void	ClearSchedule( const char *szReason );
 
-//	virtual void	DeclineFollowing( void );
-//	virtual bool	CanBeUsedAsAFriend( void );
-//	virtual bool	IsPlayerAlly( void ) { return true; }
+	virtual void	DeclineFollowing( void );
+	virtual bool	CanBeUsedAsAFriend( void );
+	virtual bool	IsPlayerAlly( void ) { return true; }
 
 	// Override these to set behavior
 	virtual int		TranslateSchedule( int scheduleType );
 	virtual int		SelectSchedule( void );
 	virtual int		SelectFailSchedule( int failedSchedule, int failedTask, AI_TaskFailureCode_t taskFailCode );
-//	virtual bool	IsValidEnemy( CBaseEntity *pEnemy );
-//	bool			IsLeading( void ) { return ( GetRunningBehavior() == &m_LeadBehavior && m_LeadBehavior.HasGoal() ); }
+	virtual bool	IsValidEnemy( CBaseEntity *pEnemy );
+	bool			IsLeading( void ) { return ( GetRunningBehavior() == &m_LeadBehavior && m_LeadBehavior.HasGoal() ); }
 
 	void			DeathSound( const CTakeDamageInfo &info );
 	void			PainSound( const CTakeDamageInfo &info );
 	
 	virtual void	TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator );
-//	virtual void	SpeakSentence( int sentType );
+	virtual void	SpeakSentence( int sentType );
 
-//	virtual int		IRelationPriority( CBaseEntity *pTarget );
-//	virtual Disposition_t 	IRelationType( CBaseEntity *pTarget );
+	virtual int		IRelationPriority( CBaseEntity *pTarget );
+	virtual Disposition_t 	IRelationType( CBaseEntity *pTarget );
 	virtual bool	IsReadinessCapable( void ) { return true; }
 	virtual float	GetReadinessDecay() { return 30.0f; }
-//	virtual bool	ShouldRegenerateHealth( void ) { return m_bRegenerateHealth; }
+	virtual bool	ShouldRegenerateHealth( void ) { return m_bRegenerateHealth; }
 	virtual bool	CanRunAScriptedNPCInteraction( bool bForced = false );
 	virtual void	AimGun( void );
 	virtual void	OnUpdateShotRegulator( void );
 
-//	void	InputEnableArmorRecharge( inputdata_t &data );
-//	void	InputDisableArmorRecharge( inputdata_t &data );
-//	void	InputExtractBugbait( inputdata_t &data );
-//	void	InputChargeTarget( inputdata_t &data );
+	void	InputEnableArmorRecharge( inputdata_t &data );
+	void	InputDisableArmorRecharge( inputdata_t &data );
+	void	InputExtractBugbait( inputdata_t &data );
+	void	InputChargeTarget( inputdata_t &data );
 	void	InputDispel( inputdata_t &data );
-//	void	InputBeginCarryNPC( inputdata_t &indputdata );
-//	void	InputEndCarryNPC( inputdata_t &indputdata );
+	void	InputBeginCarryNPC( inputdata_t &indputdata );
+	void	InputEndCarryNPC( inputdata_t &indputdata );
 
 	// Health regeneration
-//	void	InputEnableHealthRegeneration( inputdata_t &data );
-//	void	InputDisableHealthRegeneration( inputdata_t &data );
+	void	InputEnableHealthRegeneration( inputdata_t &data );
+	void	InputDisableHealthRegeneration( inputdata_t &data );
 
 	// color
-	//void	InputTurnBlue( inputdata_t &data );
-	//void	InputTurnBlack( inputdata_t &data );
+	void	InputTurnBlue( inputdata_t &data );
+	void	InputTurnBlack( inputdata_t &data );
 
 	virtual void	SetScriptedScheduleIgnoreConditions( Interruptability_t interrupt );
 	virtual void    OnRestore( void );
@@ -136,26 +136,26 @@ public:
 	virtual bool	CanFlinch( void );
 
 	// used so a grub can notify me that I stepped on it. Says a line.
-//	void	OnSquishedGrub( const CBaseEntity *pGrub );
+	void	OnSquishedGrub( const CBaseEntity *pGrub );
 
-/*#ifdef MAPBASE
+#ifdef MAPBASE
 	// Use the vortigaunts' default subtitle color (188,241,174)
 	bool	GetGameTextSpeechParams( hudtextparms_t &params ) { params.r1 = 188; params.g1 = 241; params.b1 = 174; return BaseClass::GetGameTextSpeechParams( params ); }
 	
 	const char*		GetGrenadeAttachment() { return "rightclaw"; }
-#endif*/
+#endif
 
 private:
 
 	int		NumAntlionsInRadius( float flRadius );
 	void	DispelAntlions( const Vector &vecOrigin, float flRadius, bool bDispel = true );
-//	bool	HealGestureHasLOS( void );
-//	bool	PlayerBelowHealthPercentage( CBasePlayer *pPlayer, float flPerc );
-//	void	StartHealing( void );
-//	void	StopHealing( bool bInterrupt = false );
-//	void	MaintainHealSchedule( void );
-//	bool	ShouldHealTarget( CBaseEntity *pTarget );
-//	int		SelectHealSchedule( void );
+	bool	HealGestureHasLOS( void );
+	bool	PlayerBelowHealthPercentage( CBasePlayer *pPlayer, float flPerc );
+	void	StartHealing( void );
+	void	StopHealing( bool bInterrupt = false );
+	void	MaintainHealSchedule( void );
+	bool	ShouldHealTarget( CBaseEntity *pTarget );
+	int		SelectHealSchedule( void );
 
 	void	CreateBeamBlast( const Vector &vecOrigin );
 
@@ -167,10 +167,10 @@ private:
 	{
 		SCHED_VORTIGAUNT_STAND = BaseClass::NEXT_SCHEDULE,
 		SCHED_VORTIGAUNT_RANGE_ATTACK,
-//		SCHED_VORTIGAUNT_HEAL,
-//		SCHED_VORTIGAUNT_EXTRACT_BUGBAIT,
-//		SCHED_VORTIGAUNT_FACE_PLAYER,
-//		SCHED_VORTIGAUNT_RUN_TO_PLAYER,
+		SCHED_VORTIGAUNT_HEAL,
+		SCHED_VORTIGAUNT_EXTRACT_BUGBAIT,
+		SCHED_VORTIGAUNT_FACE_PLAYER,
+		SCHED_VORTIGAUNT_RUN_TO_PLAYER,
 		SCHED_VORTIGAUNT_DISPEL_ANTLIONS,
 		SCHED_VORT_FLEE_FROM_BEST_SOUND,
 		SCHED_VORT_ALERT_FACE_BESTSOUND,
@@ -181,14 +181,14 @@ private:
 	//=========================================================
 	enum 
 	{
-//		TASK_VORTIGAUNT_HEAL_WARMUP = BaseClass::NEXT_TASK,
-//		TASK_VORTIGAUNT_HEAL,
-//		TASK_VORTIGAUNT_EXTRACT_WARMUP,
-//		TASK_VORTIGAUNT_EXTRACT,
-//		TASK_VORTIGAUNT_EXTRACT_COOLDOWN,
-//		TASK_VORTIGAUNT_FIRE_EXTRACT_OUTPUT,
-//		TASK_VORTIGAUNT_WAIT_FOR_PLAYER,
-//		TASK_VORTIGAUNT_GET_HEAL_TARGET,
+		TASK_VORTIGAUNT_HEAL_WARMUP = BaseClass::NEXT_TASK,
+		TASK_VORTIGAUNT_HEAL,
+		TASK_VORTIGAUNT_EXTRACT_WARMUP,
+		TASK_VORTIGAUNT_EXTRACT,
+		TASK_VORTIGAUNT_EXTRACT_COOLDOWN,
+		TASK_VORTIGAUNT_FIRE_EXTRACT_OUTPUT,
+		TASK_VORTIGAUNT_WAIT_FOR_PLAYER,
+		TASK_VORTIGAUNT_GET_HEAL_TARGET,
 		TASK_VORTIGAUNT_DISPEL_ANTLIONS
 	};
 
@@ -197,11 +197,11 @@ private:
 	//=========================================================
 	enum
 	{
-//		COND_VORTIGAUNT_CAN_HEAL = BaseClass::NEXT_CONDITION,
-//		COND_VORTIGAUNT_HEAL_TARGET_TOO_FAR,	// Outside or heal range
-//		COND_VORTIGAUNT_HEAL_TARGET_BLOCKED,	// Blocked by an obstruction
-//		COND_VORTIGAUNT_HEAL_TARGET_BEHIND_US,	// Not within our "forward" range
-//		COND_VORTIGAUNT_HEAL_VALID,				// All conditions satisfied	
+		COND_VORTIGAUNT_CAN_HEAL = BaseClass::NEXT_CONDITION,
+		COND_VORTIGAUNT_HEAL_TARGET_TOO_FAR,	// Outside or heal range
+		COND_VORTIGAUNT_HEAL_TARGET_BLOCKED,	// Blocked by an obstruction
+		COND_VORTIGAUNT_HEAL_TARGET_BEHIND_US,	// Not within our "forward" range
+		COND_VORTIGAUNT_HEAL_VALID,				// All conditions satisfied	
 		COND_VORTIGAUNT_DISPEL_ANTLIONS,		// Repulse all antlions around us
 	};
 
@@ -221,7 +221,7 @@ private:
 	float			m_fGlowAge;
 	float			m_fGlowChangeTime;
 	bool			m_bGlowTurningOn;
-//	int				m_nCurGlowIndex;
+	int				m_nCurGlowIndex;
 	
 	CHandle<CVortigauntEffectDispel>	m_hHandEffect[2];
 	
@@ -232,36 +232,36 @@ private:
 	// ----------------
 	//  Healing
 	// ----------------
-//	bool				m_bRegenerateHealth;
-//	float				m_flNextHealTime;		// Next time allowed to heal player
-//	EHANDLE				m_hHealTarget;			// The person that I'm going to heal.
-//	bool				m_bPlayerRequestedHeal;	// This adds some priority to our heal (allows it to happen in combat, etc)
-//	float				m_flNextHealTokenTime;
+	bool				m_bRegenerateHealth;
+	float				m_flNextHealTime;		// Next time allowed to heal player
+	EHANDLE				m_hHealTarget;			// The person that I'm going to heal.
+	bool				m_bPlayerRequestedHeal;	// This adds some priority to our heal (allows it to happen in combat, etc)
+	float				m_flNextHealTokenTime;
 	
-//	VortigauntHealState_t	m_eHealState;
+	VortigauntHealState_t	m_eHealState;
 	
-//	CBaseEntity		*FindHealTarget( void );
-//	bool			HealBehaviorAvailable( void );
-//	void			SetHealTarget( CBaseEntity *pTarget, bool bPlayerRequested );
-//	void			GatherHealConditions( void );
+	CBaseEntity		*FindHealTarget( void );
+	bool			HealBehaviorAvailable( void );
+	void			SetHealTarget( CBaseEntity *pTarget, bool bPlayerRequested );
+	void			GatherHealConditions( void );
 
-//	int				m_nNumTokensToSpawn;
-//	float			m_flHealHinderedTime;
+	int				m_nNumTokensToSpawn;
+	float			m_flHealHinderedTime;
 	float			m_flPainTime;
 	float			m_nextLineFireTime;
 
-//	bool			m_bArmorRechargeEnabled;
-//	bool			m_bForceArmorRecharge;
+	bool			m_bArmorRechargeEnabled;
+	bool			m_bForceArmorRecharge;
 	float			m_flDispelTestTime;
 	
-//	bool			m_bExtractingBugbait;
+	bool			m_bExtractingBugbait;
 	
-//	bool			IsCarryingNPC( void ) const { return m_bCarryingNPC; }
-//	bool			m_bCarryingNPC;
+	bool			IsCarryingNPC( void ) const { return m_bCarryingNPC; }
+	bool			m_bCarryingNPC;
 
-//	COutputEvent	m_OnFinishedExtractingBugbait;
-//	COutputEvent	m_OnFinishedChargingTarget;
-//	COutputEvent	m_OnPlayerUse;
+	COutputEvent	m_OnFinishedExtractingBugbait;
+	COutputEvent	m_OnFinishedChargingTarget;
+	COutputEvent	m_OnPlayerUse;
 	
 	//Adrian: Let's do it the right way!
 	int				m_iLeftHandAttachment;
@@ -270,11 +270,11 @@ private:
 	float			m_flAimDelay;			// Amount of time to suppress aiming
 
 	// used for fading from green vort to blue vort
-	//CNetworkVar( bool,  m_bIsBlue );
-	//CNetworkVar( float, m_flBlueEndFadeTime );
+	CNetworkVar( bool,  m_bIsBlue );
+	CNetworkVar( float, m_flBlueEndFadeTime );
 
 	// used for fading to black
-	//CNetworkVar( bool, m_bIsBlack );
+	CNetworkVar( bool, m_bIsBlack );
 
 public:
 	DECLARE_SERVERCLASS();
@@ -288,7 +288,7 @@ public:
 //	
 //=============================================================================
 
-/*class CVortigauntChargeToken : public CBaseEntity
+class CVortigauntChargeToken : public CBaseEntity
 {
 	DECLARE_CLASS( CVortigauntChargeToken, CBaseEntity );
 
@@ -318,7 +318,7 @@ private:
 
 	DECLARE_SERVERCLASS();
 	DECLARE_DATADESC();
-};*/
+};
 
 //=============================================================================
 // 
