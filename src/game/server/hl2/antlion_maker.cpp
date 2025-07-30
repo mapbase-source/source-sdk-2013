@@ -1172,7 +1172,11 @@ void CAntlionTemplateMaker::FindNodesCloseToPlayer( void )
 {
 	SetContextThink( &CAntlionTemplateMaker::FindNodesCloseToPlayer, gpGlobals->curtime + random->RandomFloat( 0.75, 1.75 ), s_pBlockedEffectsThinkContext );
 
+#ifdef MAPBASE_MP // From SecobMod
+	CBasePlayer *pPlayer = UTIL_GetNearestPlayer( GetAbsOrigin() ); // dubious
+#else
 	CBasePlayer *pPlayer = AI_GetSinglePlayer();
+#endif
 
 	if ( pPlayer == NULL )
 		 return;
@@ -1259,7 +1263,11 @@ void CAntlionTemplateMaker::BlockedCheckFunc( void )
 			if ( pNode )
 			{
 				Vector vHintPos;
+#ifdef MAPBASE_MP // From SecobMod
+				pNode->GetPosition( UTIL_GetNearestPlayer( GetAbsOrigin() ), &vHintPos );
+#else
 				pNode->GetPosition( AI_GetSinglePlayer(), &vHintPos );
+#endif
 
 				CBaseEntity*	pList[20];
 				int count = UTIL_EntitiesInBox( pList, 20, vHintPos + NAI_Hull::Mins( HULL_MEDIUM ), vHintPos + NAI_Hull::Maxs( HULL_MEDIUM ), 0 );

@@ -70,6 +70,9 @@ including radial fog, rope code, and treesway)
 - https://github.com/entropy-zero/source-sdk-2013 (skill_changed game event)
 - https://github.com/Nbc66/source-sdk-2013-ce/tree/v142 (Base for VS2019 toolset support)
 
+Mapbase also contains parts of Source Engine Co-Operative Base Modification (SecobMod), mainly the multiplayer NPC support by Winston.
+- https://developer.valvesoftware.com/wiki/Co-Operative_Base_(Mod)
+
 //-------------------------------------------------------------------------------------------------------------------------
 
 Valve Developer Community (VDC) sources:

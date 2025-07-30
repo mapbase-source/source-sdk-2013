@@ -232,7 +232,11 @@ CEntityDissolve *CEntityDissolve::Create( CBaseEntity *pTarget, const char *pMat
 			// Necessary to cause it to do the appropriate death cleanup
 			if ( pTarget->m_lifeState == LIFE_ALIVE )
 			{
+#ifdef MAPBASE_MP // From SecobMod
+				CBasePlayer *pPlayer = UTIL_GetLocalPlayer();
+#else
 				CBasePlayer *pPlayer = UTIL_PlayerByIndex( 1 );
+#endif
 				CTakeDamageInfo ragdollInfo( pPlayer, pPlayer, 10000.0, DMG_SHOCK | DMG_REMOVENORAGDOLL | DMG_PREVENT_PHYSICS_FORCE );
 				pTarget->TakeDamage( ragdollInfo );
 			}
@@ -347,7 +351,11 @@ void CEntityDissolve::DissolveThink( void )
 		// Necessary to cause it to do the appropriate death cleanup
 		// Yeah, the player may have nothing to do with it, but
 		// passing NULL to TakeDamage causes bad things to happen
+#ifdef MAPBASE_MP // From SecobMod
+		CBasePlayer *pPlayer = UTIL_GetNearestPlayer( GetAbsOrigin() );
+#else
 		CBasePlayer *pPlayer = UTIL_PlayerByIndex( 1 );
+#endif
 		int iNoPhysicsDamage = g_pGameRules->Damage_GetNoPhysicsForce();
 		CTakeDamageInfo info( pPlayer, pPlayer, 10000.0, DMG_GENERIC | DMG_REMOVENORAGDOLL | iNoPhysicsDamage );
 		pTarget->TakeDamage( info );

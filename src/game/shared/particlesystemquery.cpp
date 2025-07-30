@@ -579,7 +579,11 @@ Vector CParticleSystemQuery::GetLocalPlayerPos( void )
 		return vec3_origin;
 	return pPlayer->WorldSpaceCenter();
 #else
+#ifdef MAPBASE_MP // From SecobMod
+	CBasePlayer *pPlayer = UTIL_GetLocalPlayer();
+#else
 	CBasePlayer *pPlayer = AI_GetSinglePlayer();	
+#endif
 	if ( !pPlayer )
 		return vec3_origin;
 	return pPlayer->WorldSpaceCenter();
@@ -599,7 +603,11 @@ void CParticleSystemQuery::GetLocalPlayerEyeVectors( Vector *pForward, Vector *p
 	}
 	pPlayer->EyeVectors( pForward, pRight, pUp );
 #else
+#ifdef MAPBASE_MP // From SecobMod
+	CBasePlayer *pPlayer = UTIL_GetLocalPlayer();
+#else
 	CBasePlayer *pPlayer = AI_GetSinglePlayer();	
+#endif
 	if ( !pPlayer )
 	{
 		*pForward = vec3_origin;

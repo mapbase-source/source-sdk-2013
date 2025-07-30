@@ -1342,7 +1342,11 @@ void CBaseHeadcrab::DropFromCeiling( void )
 				{
 					SetSchedule( SCHED_HEADCRAB_CEILING_DROP );
 
+#ifdef MAPBASE_MP // From SecobMod
+					CBasePlayer *pPlayer = UTIL_GetNearestPlayer( GetAbsOrigin() );
+#else
 					CBaseEntity *pPlayer = AI_GetSinglePlayer();
+#endif
 
 					if ( pPlayer )
 					{

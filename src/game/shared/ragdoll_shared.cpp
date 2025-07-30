@@ -788,7 +788,9 @@ bool ShouldRemoveThisRagdoll( CBaseAnimating *pRagdoll )
 	}
 
 #else
+#ifndef MAPBASE_MP // From SecobMod
 	CBasePlayer *pPlayer = UTIL_GetLocalPlayer();
+#endif
 
 	if( !UTIL_FindClientInPVS( pRagdoll->edict() ) )
 	{
@@ -797,6 +799,7 @@ bool ShouldRemoveThisRagdoll( CBaseAnimating *pRagdoll )
 
 		return true;
 	}
+#ifndef MAPBASE_MP // From SecobMod
 	else if( !pPlayer->FInViewCone( pRagdoll ) )
 	{
 		if ( g_debug_ragdoll_removal.GetBool() )
@@ -804,6 +807,7 @@ bool ShouldRemoveThisRagdoll( CBaseAnimating *pRagdoll )
 		
 		return true;
 	}
+#endif
 
 #endif
 

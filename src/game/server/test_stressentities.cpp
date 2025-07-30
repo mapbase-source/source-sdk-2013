@@ -26,6 +26,9 @@ CBaseEntity* MoveToRandomSpot( CBaseEntity *pEnt )
 {
 	if ( pEnt )
 	{
+#ifdef MAPBASE_MP // From SecobMod
+		UTIL_SetOrigin( pEnt, GetRandomSpot() );
+#else
 		CBasePlayer *pLocalPlayer = UTIL_GetLocalPlayer();
 		if ( pLocalPlayer )
 		{			
@@ -34,6 +37,7 @@ CBaseEntity* MoveToRandomSpot( CBaseEntity *pEnt )
 
 			UTIL_SetOrigin( pEnt, GetRandomSpot() );
 		}
+#endif
 	}
 
 	return pEnt;

@@ -3532,7 +3532,11 @@ void CAI_BaseNPC::RunTask( const Task_t *pTask )
 	case TASK_FACE_PLAYER:
 		{
 			// Get edict for one player
+#ifdef MAPBASE_MP // From SecobMod
+			CBasePlayer *pPlayer = UTIL_GetNearestVisiblePlayer( this );
+#else
 			CBasePlayer *pPlayer = AI_GetSinglePlayer();
+#endif
 			if ( pPlayer )
 			{
 				GetMotor()->SetIdealYawToTargetAndUpdate( pPlayer->GetAbsOrigin(), AI_KEEP_YAW_SPEED );
@@ -3866,7 +3870,11 @@ void CAI_BaseNPC::RunTask( const Task_t *pTask )
 
 						if( pHint )
 						{
+#ifdef MAPBASE_MP // From SecobMod
+							CBasePlayer *pPlayer = UTIL_GetNearestPlayer( GetAbsOrigin() );
+#else
 							CBasePlayer *pPlayer = AI_GetSinglePlayer();
+#endif
 							Vector vecGoal = pHint->GetAbsOrigin();
 
 							if( vecGoal.DistToSqr(GetAbsOrigin()) < vecGoal.DistToSqr(pPlayer->GetAbsOrigin()) )

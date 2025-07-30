@@ -75,6 +75,9 @@ public:
 	// interpolation will be done correctly on the client.
 	// This defaults to off.
 	void	UseClientSideAnimation();
+#ifdef MAPBASE
+	void	SetClientSideAnimation( bool val ) { m_bClientSideAnimation = val; };
+#endif
 
 	// Tells whether or not we're using client-side animation. Used for controlling
 	// the transmission of animtime.

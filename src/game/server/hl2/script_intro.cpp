@@ -248,7 +248,11 @@ void CScriptIntro::InputSetFOVBlendTime( inputdata_t &inputdata )
 	else
 	{
 		// If we weren't blending, then we need to construct a proper starting point from scratch
+#ifdef MAPBASE_MP // From SecobMod
+		CBasePlayer *pPlayer = UTIL_GetNearestPlayer( GetAbsOrigin() );
+#else
 		CBasePlayer *pPlayer = AI_GetSinglePlayer();
+#endif
 		if ( pPlayer )
 		{
 			m_iStartFOV = ( m_iFOV ) ? m_iFOV : pPlayer->GetFOV();

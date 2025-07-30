@@ -366,9 +366,17 @@ void CNPC_EnemyFinder::StartNPC ( void )
 											// the ground just because it's not MOVETYPE_FLY
 	BaseClass::StartNPC();
 
+#ifdef MAPBASE_MP // From SecobMod
+	if ( m_PlayerFreePass.GetParams().duration > 0.1 )
+#else
 	if ( AI_IsSinglePlayer() && m_PlayerFreePass.GetParams().duration > 0.1 )
+#endif
 	{
+#ifdef MAPBASE_MP // From SecobMod
+		m_PlayerFreePass.SetPassTarget( UTIL_GetNearestPlayer( GetAbsOrigin() ) );
+#else
 		m_PlayerFreePass.SetPassTarget( UTIL_PlayerByIndex(1) );
+#endif
 
 		AI_FreePassParams_t freePassParams = m_PlayerFreePass.GetParams();
 
@@ -437,8 +445,13 @@ bool CNPC_EnemyFinder::ShouldAlwaysThink()
 {
 	if ( BaseClass::ShouldAlwaysThink() )
 		return true;
-		
+
+#ifdef MAPBASE_MP // From SecobMod
+	CBasePlayer *pPlayer = UTIL_GetNearestPlayer( GetAbsOrigin() );
+#else
 	CBasePlayer *pPlayer = AI_GetSinglePlayer();
+#endif
+
 #ifdef MAPBASE
 	if ( pPlayer && IRelationType( pPlayer ) <= D_FR )
 #else

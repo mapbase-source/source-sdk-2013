@@ -1142,7 +1142,11 @@ Vector CBlood::BloodPosition( CBaseEntity *pActivator )
 		}
 		else
 		{
+#ifdef MAPBASE_MP
+			player = UTIL_GetNearestVisiblePlayer( this );
+#else
 			player = UTIL_GetLocalPlayer();
+#endif
 		}
 
 		if ( player )

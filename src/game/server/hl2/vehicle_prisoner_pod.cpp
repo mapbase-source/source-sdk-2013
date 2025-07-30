@@ -596,7 +596,11 @@ void CPropVehiclePrisonerPod::InputEnterVehicle( inputdata_t &inputdata )
 	if ( pPassenger == NULL )
 	{
 		// Activator was not a player, just grab the singleplayer player.
+#ifdef MAPBASE_MP // From SecobMod
+		pPassenger = UTIL_GetNearestPlayer( GetAbsOrigin() );
+#else
 		pPassenger = UTIL_PlayerByIndex( 1 );
+#endif
 		if ( pPassenger == NULL )
 			return;
 	}
@@ -623,7 +627,11 @@ void CPropVehiclePrisonerPod::InputEnterVehicleImmediate( inputdata_t &inputdata
 	if ( pPassenger == NULL )
 	{
 		// Activator was not a player, just grab the singleplayer player.
+#ifdef MAPBASE_MP // From SecobMod
+		pPassenger = UTIL_GetNearestPlayer( GetAbsOrigin() );
+#else
 		pPassenger = UTIL_PlayerByIndex( 1 );
+#endif
 		if ( pPassenger == NULL )
 			return;
 	}

@@ -653,11 +653,19 @@ void CNPC_Citizen::PostNPCInit()
 	}
 	else
 	{
+#ifdef MAPBASE_MP
+		if ( ( m_spawnflags & SF_CITIZEN_FOLLOW ) )
+		{
+			m_FollowBehavior.SetFollowTarget( UTIL_GetNearestPlayer( GetAbsOrigin() ) );
+			m_FollowBehavior.SetParameters( AIF_SIMPLE );
+		}
+#else
 		if ( ( m_spawnflags & SF_CITIZEN_FOLLOW ) && AI_IsSinglePlayer() )
 		{
 			m_FollowBehavior.SetFollowTarget( UTIL_GetLocalPlayer() );
 			m_FollowBehavior.SetParameters( AIF_SIMPLE );
 		}
+#endif
 	}
 
 	BaseClass::PostNPCInit();
@@ -1101,7 +1109,11 @@ void CNPC_Citizen::GatherConditions()
 	// assume the player is 'staring' and wants health.
 	if( CanHeal() )
 	{
+#ifdef MAPBASE_MP
+		CBasePlayer *pPlayer = UTIL_GetNearestPlayer( GetAbsOrigin() );
+#else
 		CBasePlayer *pPlayer = AI_GetSinglePlayer();
+#endif
 
 		if ( !pPlayer )
 		{
@@ -1154,8 +1166,10 @@ void CNPC_Citizen::GatherConditions()
 //-----------------------------------------------------------------------------
 void CNPC_Citizen::PredictPlayerPush()
 {
+#ifndef MAPBASE_MP
 	if ( !AI_IsSinglePlayer() )
 		return;
+#endif
 
 	if ( HasCondition( COND_CIT_PLAYERHEALREQUEST ) )
 		return;
@@ -1164,7 +1178,13 @@ void CNPC_Citizen::PredictPlayerPush()
 
 	BaseClass::PredictPlayerPush();
 
+#ifdef MAPBASE_MP
+	CBasePlayer *pPlayer = UTIL_GetNearestPlayer( GetAbsOrigin() );
+	if ( !pPlayer )
+		return;
+#else
 	CBasePlayer *pPlayer = UTIL_GetLocalPlayer();
+#endif
 	if ( !bHadPlayerPush && HasCondition( COND_PLAYER_PUSHING ) && 
 		 pPlayer->FInViewCone( this ) && CanHeal() )
 	{
@@ -1637,12 +1657,15 @@ bool CNPC_Citizen::ShouldDeferToFollowBehavior()
 //-----------------------------------------------------------------------------
 int CNPC_Citizen::TranslateSchedule( int scheduleType ) 
 {
+#ifndef MAPBASE_MP
 	CBasePlayer *pLocalPlayer = AI_GetSinglePlayer();
+#endif
 
 	switch( scheduleType )
 	{
 	case SCHED_IDLE_STAND:
 	case SCHED_ALERT_STAND:
+#ifndef MAPBASE_MP
 		if( m_NPCState != NPC_STATE_COMBAT && pLocalPlayer && !pLocalPlayer->IsAlive() && CanJoinPlayerSquad() )
 		{
 			// Player is dead! 
@@ -1655,6 +1678,7 @@ int CNPC_Citizen::TranslateSchedule( int scheduleType )
 				return SCHED_CITIZEN_MOURN_PLAYER;
 			}
 		}
+#endif
 		break;
 
 	case SCHED_ESTABLISH_LINE_OF_FIRE:
@@ -3234,10 +3258,18 @@ struct SquadCandidate_t
 
 void CNPC_Citizen::UpdatePlayerSquad()
 {
+#ifndef MAPBASE_MP
 	if ( !AI_IsSinglePlayer() )
 		return;
+#endif
 
+#ifdef MAPBASE_MP
+	CBasePlayer *pPlayer = UTIL_GetNearestPlayer( GetAbsOrigin() );
+	if ( !pPlayer )
+		return;
+#else
 	CBasePlayer *pPlayer = UTIL_GetLocalPlayer();
+#endif
 	if ( ( pPlayer->GetAbsOrigin().AsVector2D() - GetAbsOrigin().AsVector2D() ).LengthSqr() < Square(20*12) )
 		m_flTimeLastCloseToPlayer = gpGlobals->curtime;
 

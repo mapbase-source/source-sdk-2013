@@ -5995,7 +5995,11 @@ void CGrenadeHelicopter::OnPhysGunDrop( CBasePlayer *pPhysGunUser, PhysGunDrop_t
 bool CGrenadeHelicopter::IsThrownByPlayer()
 {
 	// if player is the owner and we're set to explode on contact, then the player threw this grenade.
+#ifdef MAPBASE_MP // From SecobMod
+	return ( m_bExplodeOnContact && GetOwnerEntity() && GetOwnerEntity()->IsPlayer() );
+#else
 	return ( ( GetOwnerEntity() == UTIL_GetLocalPlayer() ) && m_bExplodeOnContact );
+#endif
 }
 
 //-----------------------------------------------------------------------------

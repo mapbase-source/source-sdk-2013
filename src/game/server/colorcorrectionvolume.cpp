@@ -175,7 +175,11 @@ void CColorCorrectionVolume::Spawn( void )
 
 bool CColorCorrectionVolume::PassesTriggerFilters( CBaseEntity *pEntity )
 {
+#ifdef MAPBASE_MP // From SecobMod
+	if( pEntity->IsPlayer() ) 
+#else
 	if( pEntity == UTIL_GetLocalPlayer() )
+#endif
 		return true;
 
 	return false;

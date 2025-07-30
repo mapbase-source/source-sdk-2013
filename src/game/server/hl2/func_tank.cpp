@@ -923,6 +923,15 @@ void CFuncTank::Spawn( void )
 		AddSolidFlags( FSOLID_NOT_SOLID );
 	}
 
+#ifdef MAPBASE_MP // From SecobMod
+//SecobMod__Information: This is code added from DutchMegas' Collaborate source mod to fix func_tank for hl2mp usage.
+	CDynamicProp *pProp = dynamic_cast<CDynamicProp*>(GetParent());
+	if (pProp)
+	{
+		pProp->SetClientSideAnimation( false );
+	}
+#endif
+
 	m_hControlVolume	= NULL;
 
 	if ( GetParent() && GetParent()->GetBaseAnimating() )
@@ -1220,6 +1229,13 @@ bool CFuncTank::StartControl( CBaseCombatCharacter *pController )
 	{
 		m_hController->GetActiveWeapon()->Holster();
 	}
+
+#ifdef MAPBASE_MP // From SecobMod
+//SecobMod__Information: Here we add code from DutchMegas' Collaborate source mod.
+	if (pController->IsPlayer())
+		pController->SetNextAttack( gpGlobals->curtime + 1.0f );
+/**/
+#endif
 
 	// Set the controller's position to be the use position.
 	m_vecControllerUsePos = m_hController->GetLocalOrigin();
@@ -1773,7 +1789,11 @@ void CFuncTank::Think( void )
 		}
 
 #ifdef FUNCTANK_AUTOUSE
+#ifdef MAPBASE_MP // From SecobMod
+		CBasePlayer *pPlayer = UTIL_GetNearestPlayer( GetAbsOrigin() );
+#else
 		CBasePlayer *pPlayer = UTIL_PlayerByIndex(1);
+#endif
 		bool bThinkFast = false;
 
 		if( pPlayer )
@@ -2422,6 +2442,11 @@ void CFuncTank::DoMuzzleFlash( void )
 			CEffectData data;
 			data.m_nAttachmentIndex = m_nBarrelAttachment;
 			data.m_nEntIndex = pAnim->entindex();
+
+#ifdef MAPBASE_MP // From SecobMod
+			//SecobMod__Information: Here we add code from DutchMegas' Collaborate source mode.
+			pAnim->GetAttachment( m_nBarrelAttachment, data.m_vOrigin );
+#endif
 			
 			// FIXME: Create a custom entry here!
 			DispatchEffect( "ChopperMuzzleFlash", data );
@@ -2433,6 +2458,11 @@ void CFuncTank::DoMuzzleFlash( void )
 			data.m_nAttachmentIndex = m_nBarrelAttachment;
 			data.m_flScale = 1.0f;
 			data.m_fFlags = MUZZLEFLASH_COMBINE;
+
+#ifdef MAPBASE_MP // From SecobMod
+			//SecobMod__Information: Here we add code from DutchMegas' Collaborate source mode.
+			pAnim->GetAttachment( m_nBarrelAttachment, data.m_vOrigin );
+#endif
 
 			DispatchEffect( "MuzzleFlash", data );
 		}
@@ -2556,7 +2586,11 @@ void CFuncTank::Fire( int bulletCount, const Vector &barrelEnd, const Vector &fo
 	{
 		if ( IsX360() )
 		{
+#ifdef MAPBASE_MP // From SecobMod
+			UTIL_GetNearestPlayer( GetAbsOrigin() )->RumbleEffect( RUMBLE_AR2, 0, RUMBLE_FLAG_RESTART | RUMBLE_FLAG_RANDOM_AMPLITUDE );
+#else
 			UTIL_PlayerByIndex(1)->RumbleEffect( RUMBLE_AR2, 0, RUMBLE_FLAG_RESTART | RUMBLE_FLAG_RANDOM_AMPLITUDE );
+#endif
 		}
 		else
 		{
@@ -2902,6 +2936,11 @@ bool CFuncTankGun::KeyValue( const char *szKeyName, const char *szValue )
 //-----------------------------------------------------------------------------
 void CFuncTankGun::Fire( int bulletCount, const Vector &barrelEnd, const Vector &forward, CBaseEntity *pAttacker, bool bIgnoreSpread )
 {
+#ifdef MAPBASE_MP // From SecobMod
+	//SecobMod__Information: This is required so that tracers show up for mounted guns.
+	IPredictionSystem::SuppressHostEvents( NULL );
+#endif
+
 	int i;
 
 	FireBulletsInfo_t info;
@@ -3659,6 +3698,12 @@ void CFuncTankAirboatGun::DoMuzzleFlash( void )
 		data.m_nEntIndex = m_hAirboatGunModel->entindex();
 		data.m_nAttachmentIndex = m_nGunBarrelAttachment;
 		data.m_flScale = 1.0f;
+		
+#ifdef MAPBASE_MP // From SecobMod
+		//SecobMod__Information: Here we add code from DutchMegas' Collaborate source mode.
+		m_hAirboatGunModel->GetAttachment( m_nGunBarrelAttachment, data.m_vOrigin );
+#endif
+
 		DispatchEffect( "AirboatMuzzleFlash", data );
 	}
 }
@@ -3686,6 +3731,11 @@ void CFuncTankAirboatGun::DoImpactEffect( trace_t &tr, int nDamageType )
 
 void CFuncTankAirboatGun::Fire( int bulletCount, const Vector &barrelEnd, const Vector &forward, CBaseEntity *pAttacker, bool bIgnoreSpread )
 {
+#ifdef MAPBASE_MP // From SecobMod
+	//SecobMod__Information: This is required so that tracers show up for mounted guns.
+	IPredictionSystem::SuppressHostEvents( NULL );
+#endif
+
 	CAmmoDef *pAmmoDef = GetAmmoDef();
 	int ammoType = pAmmoDef->Index( "AirboatGun" );
 
@@ -4252,7 +4302,11 @@ enum
 
 void UTIL_VisualizeCurve( int type, int steps, float bias )
 {
+#ifdef MAPBASE_MP // From SecobMod
+	CBasePlayer *pPlayer = UTIL_GetLocalPlayer();
+#else
 	CBasePlayer *pPlayer = UTIL_PlayerByIndex( 1 );
+#endif
 	Vector vForward, vRight, vUp;
 	
 	pPlayer->EyeVectors( &vForward, &vRight, &vUp );
@@ -5047,7 +5101,18 @@ void CFuncTankCombineCannon::FuncTankPostThink()
 			AddSpawnFlags( SF_TANK_AIM_AT_POS );
 
 			Vector vecTargetPosition = GetTargetPosition();
+#ifdef MAPBASE_MP // From SecobMod
+			CBasePlayer *pPlayer = UTIL_GetNearestVisiblePlayer( this );
+
+			////SecobMod__Information: Fixing null pointers on ep2_outland_09.
+			if (pPlayer == NULL)
+			{
+				CreateBeam();
+				return;
+			}
+#else
 			CBasePlayer *pPlayer = AI_GetSinglePlayer();
+#endif
 			Vector vecToPlayer = pPlayer->WorldSpaceCenter() - GetAbsOrigin();
 			vecToPlayer.NormalizeInPlace();
 
@@ -5208,9 +5273,14 @@ void CFuncTankCombineCannon::Fire( int bulletCount, const Vector &barrelEnd, con
 void CFuncTankCombineCannon::MakeTracer( const Vector &vecTracerSrc, const trace_t &tr, int iTracerType )
 {
 	// If the shot passed near the player, shake the screen.
-	if( AI_IsSinglePlayer() )
+#ifdef MAPBASE_MP
+	CBasePlayer *pPlayer = UTIL_GetNearestVisiblePlayer( this );
+#else
+	CBasePlayer *pPlayer = AI_GetSinglePlayer();
+#endif
+	if( pPlayer )
 	{
-		Vector vecPlayer = AI_GetSinglePlayer()->EyePosition();
+		Vector vecPlayer = pPlayer->EyePosition();
 
 		Vector vecNearestPoint = PointOnLineNearestPoint( vecTracerSrc, tr.endpos, vecPlayer );
 

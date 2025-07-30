@@ -218,7 +218,11 @@ ConVar	player_use_visibility_cache( "player_use_visibility_cache", "0", FCVAR_NO
 
 void CC_GiveCurrentAmmo( void )
 {
+#ifdef MAPBASE_MP // From SecobMod
+	CBasePlayer *pPlayer = UTIL_GetCommandClient();
+#else
 	CBasePlayer *pPlayer = UTIL_PlayerByIndex(1);
+#endif
 
 	if( pPlayer )
 	{
@@ -8442,7 +8446,19 @@ void CStripWeapons::StripWeapons(inputdata_t &data, bool stripSuit)
 	}
 	else if ( !g_pGameRules->IsDeathmatch() )
 	{
+#ifdef MAPBASE_MP // From SecobMod
+		for (int i = 1; i <= gpGlobals->maxClients; i++ ) 
+		{ 
+			pPlayer = UTIL_PlayerByIndex( i ); 
+			if ( pPlayer )
+			{
+				pPlayer->RemoveAllItems( stripSuit );
+			}
+		}
+		return;
+#else
 		pPlayer = UTIL_GetLocalPlayer();
+#endif
 	}
 
 	if ( pPlayer )
@@ -8538,10 +8554,18 @@ void CRevertSaved::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE 
 	SetNextThink( gpGlobals->curtime + LoadTime() );
 	SetThink( &CRevertSaved::LoadThink );
 
+#ifdef MAPBASE_MP // From SecobMod
+	for (int i = 1; i <= gpGlobals->maxClients; i++ ) 
+	{ 
+		CBasePlayer *pPlayer = UTIL_PlayerByIndex( i );
+		if ( !pPlayer ) 
+			continue;
+#else
 	CBasePlayer *pPlayer = UTIL_GetLocalPlayer();
 
 	if ( pPlayer )
 	{
+#endif
 		//Adrian: Setting this flag so we can't move or save a game.
 		pPlayer->pl.deadflag = true;
 		pPlayer->AddFlag( (FL_NOTARGET|FL_FROZEN) );
@@ -8596,10 +8620,25 @@ void CRevertSaved::MessageThink( void )
 
 void CRevertSaved::LoadThink( void )
 {
+#ifdef MAPBASE_MP // From SecobMod
+//SecobMod__Information: Here we change level to the map we're already on if a vital ally such as Alyx is killed etc etc etc.
+	if ( AI_IsSinglePlayer() )
+	{
+		engine->ServerCommand("reload\n");
+	}
+	else
+	{
+		char *szDefaultMapName = new char[32];
+		Q_strncpy( szDefaultMapName, STRING( gpGlobals->mapname ), 32 );
+		engine->ChangeLevel( szDefaultMapName, NULL );
+		return;
+	}
+#else
 	if ( !gpGlobals->deathmatch )
 	{
 		engine->ServerCommand("reload\n");
 	}
+#endif
 }
 
 #define SF_SPEED_MOD_SUPPRESS_WEAPONS	(1<<0)	// Take away weapons

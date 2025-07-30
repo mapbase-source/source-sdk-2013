@@ -560,7 +560,11 @@ CAI_Hint *CAI_ActBusyBehavior::FindCombatActBusyHintNode()
 {
 	Assert( IsCombatActBusy() );
 
+#ifdef MAPBASE_MP // From SecobMod
+	CBasePlayer *pPlayer = UTIL_GetNearestPlayer( GetAbsOrigin() );
+#else
 	CBasePlayer *pPlayer = AI_GetSinglePlayer();
+#endif
 
 	if( !pPlayer )
 		return NULL;
@@ -605,7 +609,11 @@ CAI_Hint *CAI_ActBusyBehavior::FindCombatActBusyTeleportHintNode()
 {
 	Assert( IsCombatActBusy() );
 
+#ifdef MAPBASE_MP // From SecobMod
+	CBasePlayer *pPlayer = UTIL_GetNearestPlayer( GetAbsOrigin() );
+#else
 	CBasePlayer *pPlayer = AI_GetSinglePlayer();
+#endif
 
 	if( !pPlayer )
 		return NULL;
@@ -907,7 +915,11 @@ void CAI_ActBusyBehavior::GatherConditions( void )
 					ClearCondition( COND_SEE_ENEMY );
 					ClearCondition( COND_NEW_ENEMY );
 
+#ifdef MAPBASE_MP // From SecobMod
+					CBasePlayer *pPlayer = UTIL_GetNearestPlayer( GetAbsOrigin() );
+#else
 					CBasePlayer *pPlayer = UTIL_PlayerByIndex(1);
+#endif
 
 					if( pPlayer )
 					{
@@ -1248,7 +1260,12 @@ int CAI_ActBusyBehavior::SelectScheduleWhileNotBusy( int iBase )
 		{
 			if( IsCombatActBusy() )
 			{
+#ifdef MAPBASE_MP // From SecobMod
+				CBasePlayer *pPlayer = UTIL_GetNearestVisiblePlayer( GetOuter() );
+				if ( m_hActBusyGoal->IsCombatActBusyTeleportAllowed() && m_iNumConsecutivePathFailures >= 2 && (!pPlayer || !pPlayer->FInViewCone(GetOuter())) )
+#else
 				if ( m_hActBusyGoal->IsCombatActBusyTeleportAllowed() && m_iNumConsecutivePathFailures >= 2 && !AI_GetSinglePlayer()->FInViewCone(GetOuter()) ) 
+#endif
 				{
 					// Looks like I've tried several times to find a path to a valid hint node and
 					// haven't been able to. This means I'm on a patch of node graph that simply

@@ -435,9 +435,18 @@ void CNPC_PlayerCompanion::GatherConditions()
 {
 	BaseClass::GatherConditions();
 
+#ifdef MAPBASE_MP // From SecobMod
+	CBasePlayer *pPlayer = ToBasePlayer( GetFollowBehavior().GetFollowTarget() );
+	if (!pPlayer)
+		pPlayer = UTIL_GetNearestPlayer( GetAbsOrigin() );
+
+	if ( pPlayer )
+	{
+#else
 	if ( AI_IsSinglePlayer() )
 	{
 		CBasePlayer *pPlayer = UTIL_GetLocalPlayer();
+#endif
 
 		if ( Classify() == CLASS_PLAYER_ALLY_VITAL )
 		{
@@ -609,7 +618,11 @@ void CNPC_PlayerCompanion::GatherConditions()
 //-----------------------------------------------------------------------------
 void CNPC_PlayerCompanion::DoCustomSpeechAI( void )
 {
+#ifdef MAPBASE_MP // From SecobMod
+	CBasePlayer *pPlayer = UTIL_GetNearestPlayer( GetAbsOrigin() );
+#else
 	CBasePlayer *pPlayer = AI_GetSinglePlayer();
+#endif
 	
 	// Don't allow this when we're getting in the car
 #ifdef HL2_EPISODIC
@@ -664,7 +677,7 @@ void CNPC_PlayerCompanion::DoCustomSpeechAI( void )
 					// If we see a headcrab leaving a zombie that just died, mention it
 					// (Note that this is now a response context since some death types remove the zombie instantly)
 					int nContext = pHC->FindContextByName( "from_zombie" );
-					if ( nContext > -1 && !ContextExpired( nContext ) ) // pHC->GetOwnerEntity() && ( pHC->GetOwnerEntity()->Classify() == CLASS_ZOMBIE ) && !pHC->GetOwnerEntity()->IsAlive()
+					if ( nContext > -1 && !pHC->ContextExpired( nContext ) ) // pHC->GetOwnerEntity() && ( pHC->GetOwnerEntity()->Classify() == CLASS_ZOMBIE ) && !pHC->GetOwnerEntity()->IsAlive()
 					{
 						SpeakIfAllowed( "TLK_SPOTTED_HEADCRAB_LEAVING_ZOMBIE" );
 					}
@@ -696,7 +709,11 @@ void CNPC_PlayerCompanion::DoCustomSpeechAI( void )
 //-----------------------------------------------------------------------------
 void CNPC_PlayerCompanion::PredictPlayerPush()
 {
+#ifdef MAPBASE_MP // From SecobMod
+	CBasePlayer *pPlayer = UTIL_GetNearestPlayer( GetAbsOrigin() );
+#else
 	CBasePlayer *pPlayer = AI_GetSinglePlayer();
+#endif
 	if ( pPlayer && pPlayer->GetSmoothedVelocity().LengthSqr() >= Square(140))
 	{
 		Vector predictedPosition = pPlayer->WorldSpaceCenter() + pPlayer->GetSmoothedVelocity() * .4;
@@ -1224,9 +1241,15 @@ int CNPC_PlayerCompanion::TranslateSchedule( int scheduleType )
 
 			if( CanReload() && pWeapon->UsesClipsForAmmo1() && pWeapon->Clip1() < ( pWeapon->GetMaxClip1() * .5 ) && OccupyStrategySlot( SQUAD_SLOT_EXCLUSIVE_RELOAD ) )
 			{
+#ifdef MAPBASE_MP
+				CBasePlayer *pPlayer = UTIL_GetNearestPlayer( GetAbsOrigin() );
+				if ( pPlayer )
+				{
+#else
 				if ( AI_IsSinglePlayer() )
 				{
 					CBasePlayer *pPlayer = UTIL_GetLocalPlayer();
+#endif
 					pWeapon = pPlayer->GetActiveWeapon();
 					if( pWeapon && pWeapon->UsesClipsForAmmo1() && 
 						pWeapon->Clip1() < ( pWeapon->GetMaxClip1() * .75 ) &&
@@ -1514,10 +1537,14 @@ void CNPC_PlayerCompanion::RunTask( const Task_t *pTask )
 
 		case TASK_PC_GET_PATH_OFF_COMPANION:
 			{
+#ifdef MAPBASE_MP // From SecobMod
+				GetNavigator()->SetAllowBigStep( UTIL_GetNearestPlayer( GetAbsOrigin() ) );
+#else
 				if ( AI_IsSinglePlayer() )
 				{
 					GetNavigator()->SetAllowBigStep( UTIL_GetLocalPlayer() );
 				}
+#endif
 				ChainRunTask( TASK_MOVE_AWAY_PATH, 48 );
 			}
 			break;
@@ -1940,7 +1967,11 @@ void CNPC_PlayerCompanion::Touch( CBaseEntity *pOther )
 		if ( m_afMemory & bits_MEMORY_PROVOKED )
 			return;
 			
+#ifdef MAPBASE_MP // From SecobMod
+		TestPlayerPushing( ( pOther->IsPlayer() ) ? pOther : UTIL_GetNearestPlayer( GetAbsOrigin() ) );
+#else
 		TestPlayerPushing( ( pOther->IsPlayer() ) ? pOther : AI_GetSinglePlayer() );
+#endif
 	}
 }
 
@@ -2204,7 +2235,11 @@ void CNPC_PlayerCompanion::UpdateReadiness()
 		}
 	}
 
+#ifdef MAPBASE_MP // From SecobMod
+ 	if( ai_debug_readiness.GetBool() )
+#else
  	if( ai_debug_readiness.GetBool() && AI_IsSinglePlayer() )
+#endif
 	{
 		// Draw the readiness-o-meter
 		Vector vecSpot;
@@ -2213,7 +2248,11 @@ void CNPC_PlayerCompanion::UpdateReadiness()
 		const float GRADLENGTH	= 4.0f;
 
 		Vector right;
+#ifdef MAPBASE_MP // From SecobMod
+		UTIL_GetNearestPlayer( GetAbsOrigin() )->GetVectors( NULL, &right, NULL );
+#else
 		UTIL_PlayerByIndex( 1 )->GetVectors( NULL, &right, NULL );
+#endif
 
 		if ( IsInScriptedReadinessState() )
  		{
@@ -2360,7 +2399,11 @@ bool CNPC_PlayerCompanion::PickTacticalLookTarget( AILookTargetArgs_t *pArgs )
 		// 1/3rd chance to authoritatively look at player
 		if( random->RandomInt( 0, 2 ) == 0 )
 		{
+#ifdef MAPBASE_MP // From SecobMod
+			pArgs->hTarget = UTIL_GetNearestVisiblePlayer( this );
+#else
 			pArgs->hTarget = AI_GetSinglePlayer();
+#endif
 			return true;
 		}
 	}
@@ -3370,7 +3413,11 @@ void CNPC_PlayerCompanion::OnFriendDamaged( CBaseCombatCharacter *pSquadmate, CB
 			}
 		}
 
+#ifdef MAPBASE_MP // From SecobMod
+		CBasePlayer *pPlayer = UTIL_GetNearestPlayer( GetAbsOrigin() );
+#else
 		CBasePlayer *pPlayer = AI_GetSinglePlayer();
+#endif
 		if ( pPlayer && IsInPlayerSquad() && ( pPlayer->GetAbsOrigin().AsVector2D() - GetAbsOrigin().AsVector2D() ).LengthSqr() < Square( 25*12 ) && IsAllowedToSpeak( TLK_WATCHOUT ) )
 		{
 			if ( !pPlayer->FInViewCone( pAttacker ) )
@@ -3611,11 +3658,16 @@ float CNPC_PlayerCompanion::GetIdealSpeed() const
 float CNPC_PlayerCompanion::GetIdealAccel() const
 {
 	float multiplier = 1.0;
+#ifdef MAPBASE_MP // From SecobMod
+	if ( m_bMovingAwayFromPlayer && (UTIL_GetNearestPlayer(GetAbsOrigin())->GetAbsOrigin() - GetAbsOrigin()).Length2DSqr() < Square(3.0*12.0) ) 
+		multiplier = 2.0f;
+#else
 	if ( AI_IsSinglePlayer() )
 	{
 		if ( m_bMovingAwayFromPlayer && (UTIL_PlayerByIndex(1)->GetAbsOrigin() - GetAbsOrigin()).Length2DSqr() < Square(3.0*12.0) )
 			multiplier = 2.0;
 	}
+#endif
 	return BaseClass::GetIdealAccel() * multiplier;
 }
 
@@ -3678,8 +3730,10 @@ bool CNPC_PlayerCompanion::ShouldAlwaysTransition( void )
 //-----------------------------------------------------------------------------
 void CNPC_PlayerCompanion::InputOutsideTransition( inputdata_t &inputdata )
 {
+#ifndef MAPBASE_MP // From SecobMod
 	if ( !AI_IsSinglePlayer() )
 		return;
+#endif
 
 	// Must want to do this
 	if ( ShouldAlwaysTransition() == false )
@@ -3689,7 +3743,11 @@ void CNPC_PlayerCompanion::InputOutsideTransition( inputdata_t &inputdata )
 	if ( IsInAVehicle() )
 		return;
 
+#ifdef MAPBASE_MP // From SecobMod
+	CBaseEntity *pPlayer = UTIL_GetNearestPlayer( GetAbsOrigin() );
+#else
 	CBaseEntity *pPlayer = UTIL_GetLocalPlayer();
+#endif
 	const Vector &playerPos = pPlayer->GetAbsOrigin();
 
 	// Mark us as already having succeeded if we're vital or always meant to come with the player
@@ -4498,9 +4556,21 @@ bool CNPC_PlayerCompanion::IsNavigationUrgent( void )
 		// could not see the player but the player could in fact see them.  Now the NPC's facing is
 		// irrelevant and the player's viewcone is more authorative. -- jdw
 
+#ifdef MAPBASE_MP // From SecobMod
+		for (int i = 1; i <= gpGlobals->maxClients; i++ ) 
+		{ 
+			CBasePlayer *pPlayer = UTIL_PlayerByIndex( i ); 
+			if ( !pPlayer ) 
+				continue; 
+
+			if ( pPlayer->FInViewCone( EyePosition() ) ) 
+				return false;
+		}
+#else
 		CBasePlayer *pLocalPlayer = AI_GetSinglePlayer();
 		if ( pLocalPlayer->FInViewCone( EyePosition() ) )
 			return false;
+#endif
 
 		return true;
 	}

@@ -4435,7 +4435,11 @@ CBaseEntity *CBaseCombatCharacter::FindNamedEntity( const char *szName, IEntityF
 
 	if ( !stricmp( name, "player" ))
 	{
+#ifdef MAPBASE_MP // From SecobMod
+		return UTIL_GetNearestPlayer( GetAbsOrigin() );
+#else
 		return AI_GetSinglePlayer();
+#endif
 	}
 	else if ( !stricmp( name, "enemy" ) )
 	{
