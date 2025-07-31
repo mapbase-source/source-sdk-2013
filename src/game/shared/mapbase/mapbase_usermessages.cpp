@@ -32,6 +32,10 @@ void RegisterMapbaseUserMessages( void )
 
 	usermessages->Register( "ShowMenuComplex", -1 ); // CHudMenu
 
+#ifdef HL2MP
+	usermessages->Register( "HideBotsJoin", 1 ); // ClientModeHL2MPNormal
+#endif
+
 #ifdef CLIENT_DLL
 	// TODO: Better placement?
 	HookMapbaseUserMessages();

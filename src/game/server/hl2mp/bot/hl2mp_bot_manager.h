@@ -98,6 +98,16 @@ public:
 
 	bool RemoveBotFromTeamAndKick( int nTeam );
 
+#ifdef MAPBASE
+	bool CanDoBotTakeover() const;
+	bool CanDoBotTakeoverOn( CHL2MP_Player *pPlayer ) const;
+	bool IsPerformingBotTakeover() const { return m_bPerformingBotTakeover; }
+	void HideBotsJoining( int nNumBots );
+
+	CHL2MPBot *BotTakeOverPlayer( CHL2MP_Player *pPlayer, bool bForIdle = true );
+	void PlayerTakeOverBot( CHL2MP_Player *pPlayer, CHL2MPBot *pBot, bool bKickBot = true );
+#endif
+
 protected:
 	void MaintainBotQuota();
 	void SetIsInOfflinePractice( bool bIsInOfflinePractice );
@@ -107,6 +117,10 @@ protected:
 
 	CUtlVector< CStuckBot * > m_stuckBotVector;
 	CountdownTimer m_stuckDisplayTimer;
+
+#ifdef MAPBASE
+	bool m_bPerformingBotTakeover;
+#endif
 };
 
 // singleton accessor

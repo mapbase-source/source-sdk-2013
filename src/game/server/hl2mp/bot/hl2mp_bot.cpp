@@ -668,6 +668,10 @@ void CHL2MPBot::Spawn()
 	SetBrokenFormation( false );
 
 	GetVisionInterface()->ForgetAllKnownEntities();
+
+#ifdef MAPBASE
+	SetUse( &CHL2MPBot::BotUse );
+#endif
 }
 
 
@@ -845,6 +849,45 @@ void CHL2MPBot::Event_Killed( const CTakeDamageInfo &info )
 
 	StopIdleSound();
 }
+
+
+#ifdef MAPBASE
+//-----------------------------------------------------------------------------------------------------
+int CHL2MPBot::ObjectCaps( void )
+{
+	int nCaps = BaseClass::ObjectCaps();
+
+	if ( ( HasAttribute( CHL2MPBot::CAN_POSSESS ) || HasAttribute( CHL2MPBot::IS_NPC ) ) && IsAlive() )
+		nCaps |= FCAP_IMPULSE_USE;
+
+	return nCaps;
+}
+
+//-----------------------------------------------------------------------------------------------------
+void CHL2MPBot::BotUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
+{
+	if ( HasAttribute( CHL2MPBot::CAN_POSSESS ) )
+	{
+		CHL2MP_Player *pPlayer = ToHL2MPPlayer( pActivator );
+		if ( pPlayer )
+		{
+			CRecipientFilter user;
+			user.AddAllPlayers();
+			user.MakeReliable();
+
+			// Make sure these bots come and go seamlessly
+			UserMessageBegin( user, "HideBotsJoin" );
+				WRITE_CHAR( 2 );
+			MessageEnd();
+
+			if (TheHL2MPBots().BotTakeOverPlayer( pPlayer, false ))
+			{
+				TheHL2MPBots().PlayerTakeOverBot( pPlayer, this );
+			}
+		}
+	}
+}
+#endif
 
 
 //---------------------------------------------------------------------------------------------

@@ -135,6 +135,11 @@ public:
 	void	ManageObjectRelocation( void );
 	void    CheckChatForReadySignal( CHL2MP_Player *pPlayer, const char *chatmsg );
 	const char *GetChatFormat( bool bTeamOnly, CBasePlayer *pPlayer );
+ 
+#ifdef MAPBASE
+	void PlayerSpawn( CBasePlayer *pPlayer );
+	void PlayerIdle( CBasePlayer *pPlayer );
+#endif
 
 #endif
 
@@ -166,6 +171,10 @@ private:
 
 #ifndef CLIENT_DLL
 	bool m_bChangelevelDone;
+
+#ifdef MAPBASE
+	CNetworkVar( bool, m_bHideBotJoinGame );	// Hides when bots connect and disconnect from the game
+#endif
 #endif
 };
 

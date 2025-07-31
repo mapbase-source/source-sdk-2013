@@ -286,6 +286,30 @@ void CHL2MPRules::PlayerKilled( CBasePlayer *pVictim, const CTakeDamageInfo &inf
 #endif
 }
 
+#if defined(MAPBASE) && !defined(CLIENT_DLL)
+void CHL2MPRules::PlayerSpawn( CBasePlayer *pPlayer )
+{
+	// Don't spawn with items when a bot is taking over a player, or vice versa
+	if (TheHL2MPBots().IsPerformingBotTakeover())
+		return;
+
+	BaseClass::PlayerSpawn( pPlayer );
+}
+
+void CHL2MPRules::PlayerIdle( CBasePlayer *pPlayer )
+{
+	IGameEvent *event = gameeventmanager->CreateEvent( "player_afk" );
+	if( event )
+	{
+		event->SetInt( "userid", pPlayer->GetUserID() );
+		event->SetInt( "priority", 5 );
+		gameeventmanager->FireEvent( event );
+	}
+
+	//BaseClass::PlayerIdle( pPlayer );
+}
+#endif
+
 
 void CHL2MPRules::Think( void )
 {
@@ -641,6 +665,29 @@ void CHL2MPRules::ClientDisconnected( edict_t *pClient )
 	CBasePlayer *pPlayer = (CBasePlayer *)CBaseEntity::Instance( pClient );
 	if ( pPlayer )
 	{
+#ifdef MAPBASE
+		CHL2MP_Player *pHL2MPPlayer = ToHL2MPPlayer( pPlayer );
+		if ( pHL2MPPlayer && pHL2MPPlayer->GetBotTakeOverAvatar() )
+		{
+			if ( pHL2MPPlayer->IsFakeClient() )
+			{
+				// This was a bot taking over for a real player. Add the real player back in before we leave
+				CHL2MP_Player *pAvatar = pHL2MPPlayer->GetBotTakeOverAvatar();
+				TheHL2MPBots().PlayerTakeOverBot( pAvatar, (CHL2MPBot *)pHL2MPPlayer, false );
+
+				// Remove flags set in CServerGameClients::ClientDisconnect
+				pAvatar->AddFlag( FL_AIMTARGET );
+				pAvatar->RemoveFlag( FL_DONTTOUCH | FL_NOTARGET );
+				pAvatar->RemoveSolidFlags( FSOLID_NOT_SOLID );
+			}
+			else
+			{
+				// This was a real player with a bot taking over. Kick the bot
+				engine->ServerCommand( UTIL_VarArgs( "kickid %d\n", pHL2MPPlayer->GetBotTakeOverAvatar()->GetUserID() ) );
+			}
+		}
+#endif
+
 		// Remove the player from his team
 		if ( pPlayer->GetTeam() )
 		{

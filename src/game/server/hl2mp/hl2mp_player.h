@@ -107,6 +107,13 @@ public:
 	const char *GetPlayerModelSoundPrefix( void );
 	int	  GetPlayerModelType( void ) { return m_iPlayerSoundType;	}
 
+#ifdef MAPBASE
+	// TF2-style AFK checking
+	void				CheckForIdle( void );
+	void				ResetIdleCheck( void ) { m_flLastAction = gpGlobals->curtime; }
+	bool				IsAwayFromKeyboard( void ) const { return m_bIsAFK; }
+#endif
+
 	int	GetMaxAmmo( int iAmmoIndex ) const;
 	
 	void  DetonateTripmines( void );
@@ -143,6 +150,12 @@ public:
 
 	bool IsThreatAimingTowardMe( CBaseEntity* threat, float cosTolerance = 0.8f ) const;
 	bool IsThreatFiringAtMe( CBaseEntity* threat ) const;
+
+#ifdef MAPBASE
+	void			SetBotTakeOverAvatar( CHL2MP_Player *pAvatar ) { m_pBotTakeOverAvatar = pAvatar; }
+	CHL2MP_Player	*GetBotTakeOverAvatar() const { return m_pBotTakeOverAvatar; }
+#endif
+
 private:
 
 	CNetworkQAngle( m_angEyeAngles );
@@ -168,6 +181,14 @@ private:
 
     bool m_bEnterObserver;
 	bool m_bReady;
+
+#ifdef MAPBASE
+	bool	m_bIsAFK;
+	float	m_flLastAction;
+
+	// Used by bot takeover. If we are a bot, this is our real player. If we are the real player, this is the bot that's taken us over.
+	CHL2MP_Player *m_pBotTakeOverAvatar;
+#endif
 };
 
 inline CHL2MP_Player *ToHL2MPPlayer( CBaseEntity *pEntity )

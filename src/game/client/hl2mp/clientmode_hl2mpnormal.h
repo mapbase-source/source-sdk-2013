@@ -32,6 +32,8 @@ public:
 
 	virtual void	Init();
 	virtual int		GetDeathMessageStartHeight( void );
+
+	virtual void	FireGameEvent( IGameEvent *event );
 };
 
 extern IClientMode *GetClientModeNormal();

@@ -399,6 +399,10 @@ void ClientModeShared::Init()
 	ListenForGameEvent( "game_newmap" );
 #endif
 
+#ifdef MAPBASE_MP
+	ListenForGameEvent( "player_afk" );
+#endif
+
 #ifndef _XBOX
 	HLTVCamera()->Init();
 #if defined( REPLAY_ENABLED )
@@ -1630,6 +1634,36 @@ void ClientModeShared::FireGameEvent( IGameEvent *event )
 	{
 		// Make sure the instance count is reset to 0.  Sometimes the count stay in sync and we get replay messages displaying lower than they should.
 		CReplayMessagePanel::RemoveAll();
+	}
+#endif
+#ifdef MAPBASE_MP
+	else if ( V_strcmp( "player_afk", eventname ) == 0 )
+	{
+		if ( !hudChat )
+			return;
+
+		int iPlayerIndex = engine->GetPlayerForUserID( event->GetInt( "userid" ) );
+		C_BasePlayer *pPlayer = UTIL_PlayerByIndex( iPlayerIndex );
+		if ( pPlayer )
+		{
+			const char *pszPlayerName = pPlayer->GetPlayerName();
+			if (PlayerNameNotSetYet( pszPlayerName ))
+				return;
+
+			CSteamID steamID;
+			pPlayer->GetSteamID( &steamID );
+
+			wchar_t wszPlayerName[MAX_PLAYER_NAME_LENGTH];
+			UTIL_GetFilteredPlayerNameAsWChar( steamID, pszPlayerName, wszPlayerName );
+
+			wchar_t wszLocalized[100];
+			g_pVGuiLocalize->ConstructString_safe( wszLocalized, g_pVGuiLocalize->Find( "#game_idle_spectator" ), 1, wszPlayerName );
+
+			char szLocalized[100];
+			g_pVGuiLocalize->ConvertUnicodeToANSI( wszLocalized, szLocalized, sizeof( szLocalized ) );
+
+			hudChat->Printf( CHAT_FILTER_TEAMCHANGE, "%s", szLocalized );
+		}
 	}
 #endif
 

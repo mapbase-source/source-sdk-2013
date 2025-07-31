@@ -18,6 +18,10 @@
 #include "hl2mpclientscoreboard.h"
 #include "hl2mptextwindow.h"
 #include "ienginevgui.h"
+#ifdef MAPBASE
+#include "hl2mp_gamerules.h"
+#include "usermessages.h"
+#endif
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -109,6 +113,18 @@ ClientModeHL2MPNormal::~ClientModeHL2MPNormal()
 }
 
 
+#ifdef MAPBASE
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+int g_nNumHideBots = 0;
+static void __MsgFunc_HideBotsJoin( bf_read &msg )
+{
+	g_nNumHideBots = msg.ReadChar();
+}
+#endif
+
+
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
@@ -122,6 +138,46 @@ void ClientModeHL2MPNormal::Init()
 	{
 		Warning( "Couldn't load combine panel scheme!\n" );
 	}
+
+#ifdef MAPBASE
+	usermessages->HookMessage( "HideBotsJoin", __MsgFunc_HideBotsJoin );
+#endif
+}
+
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+void ClientModeHL2MPNormal::FireGameEvent( IGameEvent *event )
+{
+	const char *eventname = event->GetName();
+
+	if (!eventname || !eventname[0])
+		return;
+
+#ifdef MAPBASE
+	if ( FStrEq( "player_connect_client", eventname ) || FStrEq( "player_disconnect", eventname ) )
+	{
+		if ( event->GetInt( "bot" ) != 0 )
+		{
+			if (g_nNumHideBots > 0)
+			{
+				g_nNumHideBots--;
+				return;
+			}
+		}
+	}
+	else if ( FStrEq( "player_team", eventname ) )
+	{
+		// Don't show player team messages during this
+		if (g_nNumHideBots > 0)
+		{
+			return;
+		}
+	}
+#endif
+
+	BaseClass::FireGameEvent( event );
 }
 
 

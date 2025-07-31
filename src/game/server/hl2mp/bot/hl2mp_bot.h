@@ -75,6 +75,11 @@ public:
 
 	virtual CNavArea *GetLastKnownArea( void ) const		{ return static_cast< CNavArea * >( BaseClass::GetLastKnownArea() ); }		// return the last nav area the player occupied - NULL if unknown
 
+#ifdef MAPBASE
+	virtual int			ObjectCaps( void );
+	virtual void		BotUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
+#endif
+
 	// NextBotPlayer
 	static CBasePlayer *AllocatePlayerEntity( edict_t *pEdict, const char *playerName );
 
@@ -192,6 +197,9 @@ public:
 		ALWAYS_FIRE_WEAPON			= 1<<13,				// constantly fire our weapon
 		TELEPORT_TO_HINT			= 1<<14,				// bot will teleport to hint target instead of walking out from the spawn point
 		AUTO_JUMP					= 1<<18,				// auto jump
+#ifdef MAPBASE
+		CAN_POSSESS					= 1<<19,				// player can switch to this bot
+#endif
 	};
 	void SetAttribute( int attributeFlag );
 	void ClearAttribute( int attributeFlag );

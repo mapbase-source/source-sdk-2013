@@ -22,6 +22,9 @@
 #include "gamestats.h"
 #include "ammodef.h"
 #include "NextBot.h"
+#ifdef MAPBASE
+#include "bot/hl2mp_bot_manager.h"
+#endif
 
 #include "engine/IEngineSound.h"
 #include "SoundEmitterSystem/isoundemittersystembase.h"
@@ -332,6 +335,15 @@ void CHL2MP_Player::PickDefaultSpawnTeam( void )
 //-----------------------------------------------------------------------------
 void CHL2MP_Player::Spawn(void)
 {
+#ifdef MAPBASE
+	// If this is a bot being created to take over a player, or vice versa, then only perform base spawn
+	if ( TheHL2MPBots().IsPerformingBotTakeover() )
+	{
+		BaseClass::Spawn();
+		return;
+	}
+#endif
+
 	m_flNextModelChangeTime = 0.0f;
 	m_flNextTeamChangeTime = 0.0f;
 
@@ -604,6 +616,10 @@ void CHL2MP_Player::PreThink( void )
 
 	BaseClass::PreThink();
 	State_PreThink();
+
+#ifdef MAPBASE
+	CheckForIdle();
+#endif
 
 	//Reset bullet force accumulator, only lasts one frame
 	m_vecTotalBulletForce = vec3_origin;
@@ -1053,6 +1069,10 @@ bool CHL2MP_Player::HandleCommand_JoinTeam( int team )
 
 bool CHL2MP_Player::ClientCommand( const CCommand &args )
 {
+#ifdef MAPBASE
+	m_flLastAction = gpGlobals->curtime;
+#endif
+
 	if ( FStrEq( args[0], "spectate" ) )
 	{
 		if ( ShouldRunRateLimitedCommand( args ) )
@@ -1630,6 +1650,10 @@ bool CHL2MP_Player::StartObserverMode(int mode)
 	//we only want to go into observer mode if the player asked to, not on a death timeout
 	if ( m_bEnterObserver == true )
 	{
+#ifdef MAPBASE
+		if (!GetBotTakeOverAvatar())
+			m_flLastAction = gpGlobals->curtime;
+#endif
 		VPhysicsDestroyObject();
 		return BaseClass::StartObserverMode( mode );
 	}
@@ -1684,6 +1708,15 @@ void CHL2MP_Player::State_Enter_ACTIVE()
 	// RemoveSolidFlags( FSOLID_NOT_SOLID );
 	
 	m_Local.m_iHideHUD = 0;
+
+#ifdef MAPBASE
+	m_flLastAction = gpGlobals->curtime;
+
+	if (GetBotTakeOverAvatar() && !IsFakeClient())
+	{
+		TheHL2MPBots().PlayerTakeOverBot( this, (CHL2MPBot*)GetBotTakeOverAvatar() );
+	}
+#endif
 }
 
 
@@ -1745,3 +1778,103 @@ bool CHL2MP_Player::IsThreatFiringAtMe( CBaseEntity* threat ) const
 
 	return false;
 }
+
+#ifdef MAPBASE
+ConVar mp_idledealmethod( "mp_idledealmethod", "0", FCVAR_GAMEDLL, "Deals with Idle Players. 1 = Sends them into Spectator mode then kicks them if they're still idle, 2 = Kicks them out of the game, 3 = Sends them into Spectator and temporarily adds a bot in their place;" );
+ConVar mp_idlemaxtime( "mp_idlemaxtime", "3", FCVAR_GAMEDLL, "Maximum time a player is allowed to be idle (in minutes)" );
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+void CHL2MP_Player::CheckForIdle( void )
+{
+	if ( m_afButtonLast != m_nButtons )
+		m_flLastAction = gpGlobals->curtime;
+
+	//if ( mp_idledealmethod.GetInt() )
+	{
+		if ( IsHLTV() || IsReplay() )
+			return;
+
+		if ( IsFakeClient() )
+			return;
+
+		if ( HL2MPRules() && HL2MPRules()->IsIntermission() )
+			return;
+
+		// Assign AFK
+		{
+			// Cannot possibly get out of the spawn room in 0 seconds--so if the ConVar says 0, let's assume 30 seconds.
+			float flIdleTime = Max( mp_idlemaxtime.GetFloat() * 60, 30.0f );
+
+			m_bIsAFK = (gpGlobals->curtime - m_flLastAction) > flIdleTime;
+		}
+		
+		if ( m_bIsAFK == true && mp_idledealmethod.GetInt() )
+		{
+			if (mp_idledealmethod.GetInt() != 3)
+			{
+				//Don't mess with the host on a listen server (probably one of us debugging something)
+				if (engine->IsDedicatedServer() == false && entindex() == 1)
+					return;
+
+				if (IsAutoKickDisabled())
+					return;
+			}
+
+			bool bKickPlayer = false;
+
+			ConVarRef mp_allowspectators( "mp_allowspectators" );
+			if ( mp_allowspectators.IsValid() && mp_allowspectators.GetBool() == false )
+			{
+				// just kick the player if this server doesn't allow spectators
+				bKickPlayer = true;
+			}
+			else if ( mp_idledealmethod.GetInt() == 1 )
+			{
+				//if ( GetTeamNumber() < FIRST_GAME_TEAM )
+				if ( GetTeamNumber() != TEAM_SPECTATOR )
+				{
+					bKickPlayer = true;
+				}
+				else
+				{
+					//First send them into spectator mode then kick him.
+					ChangeTeam( TEAM_SPECTATOR );
+					m_flLastAction = gpGlobals->curtime;
+					return;
+				}
+			}
+			else if ( mp_idledealmethod.GetInt() == 2 )
+			{
+				bKickPlayer = true;
+			}
+			else if ( mp_idledealmethod.GetInt() == 3 )
+			{
+				if ( GetTeamNumber() != TEAM_SPECTATOR )
+				{
+					UTIL_ClientPrintAll( HUD_PRINTCONSOLE, "#game_idle_spectator", GetPlayerName() );
+					HL2MPRules()->PlayerIdle( this );
+
+					if (TheHL2MPBots().CanDoBotTakeover() && TheHL2MPBots().CanDoBotTakeoverOn( this ))
+					{
+						TheHL2MPBots().HideBotsJoining( 1 );
+						TheHL2MPBots().BotTakeOverPlayer( this );
+					}
+					else
+					{
+						ChangeTeam( TEAM_SPECTATOR );
+					}
+				}
+			}
+
+			if ( bKickPlayer == true )
+			{
+				UTIL_ClientPrintAll( HUD_PRINTCONSOLE, "#game_idle_kick", GetPlayerName() );
+				engine->ServerCommand( UTIL_VarArgs( "kickid %d %s\n", GetUserID(), "#game_idle_kicked" ) );
+				m_flLastAction = gpGlobals->curtime;
+			}
+		}
+	}
+}
+#endif

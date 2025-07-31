@@ -8,6 +8,9 @@
 #include "team.h"
 #include "hl2mp_bot.h"
 #include "hl2mp_gamerules.h"
+#ifdef MAPBASE
+#include "ammodef.h"
+#endif
 
 
 //----------------------------------------------------------------------------------------------------------------
@@ -23,6 +26,10 @@ ConVar hl2mp_bot_auto_vacate( "hl2mp_bot_auto_vacate", "1", FCVAR_NONE, "If nonz
 ConVar hl2mp_bot_offline_practice( "hl2mp_bot_offline_practice", "0", FCVAR_NONE, "Tells the server that it is in offline practice mode." );
 ConVar hl2mp_bot_melee_only( "hl2mp_bot_melee_only", "0", FCVAR_GAMEDLL, "If nonzero, HL2MPBots will only use melee weapons" );
 ConVar hl2mp_bot_gravgun_only( "hl2mp_bot_gravgun_only", "0", FCVAR_GAMEDLL, "If nonzero, HL2MPBots will only use gravity gun weapon" );
+
+#ifdef MAPBASE
+ConVar hl2mp_bot_takeover_min_slots( "hl2mp_bot_takeover_min_slots", "2", FCVAR_GAMEDLL, "How many free client slots are needed in order to perform bot takeover. 0 will disable" );
+#endif
 
 extern const char *GetRandomBotName( void );
 extern void CreateBotName( int iTeam, CHL2MPBot::DifficultyType skill, char* pBuffer, int iBufferSize );
@@ -509,6 +516,326 @@ void CHL2MPBotManager::OnForceKickedBots( int iNumKicked )
 	// allow time for the bots to be kicked
 	m_flNextPeriodicThink = gpGlobals->curtime + 2.0f;
 }
+
+
+#ifdef MAPBASE
+
+//----------------------------------------------------------------------------------------------------------------
+bool CHL2MPBotManager::CanDoBotTakeover() const
+{
+	// Only allow if we have enough free client slots
+	int nFreeSlots = 0;
+	for (int i = 1; i < gpGlobals->maxClients; i++)
+	{
+		if (!UTIL_PlayerByIndex( i ))
+			nFreeSlots++;
+	}
+
+	if (nFreeSlots < hl2mp_bot_takeover_min_slots.GetInt())
+		return false;
+
+	return true;
+}
+
+//----------------------------------------------------------------------------------------------------------------
+bool CHL2MPBotManager::CanDoBotTakeoverOn( CHL2MP_Player *pPlayer ) const
+{
+	if ( pPlayer->IsFakeClient() )
+		return false;
+
+	return true;
+}
+
+//----------------------------------------------------------------------------------------------------------------
+void CHL2MPBotManager::HideBotsJoining( int nNumBots )
+{
+	CRecipientFilter user;
+	user.AddAllPlayers();
+	user.MakeReliable();
+
+	// Make sure these bots come and go seamlessly
+	UserMessageBegin( user, "HideBotsJoin" );
+		WRITE_CHAR( nNumBots );
+	MessageEnd();
+}
+
+//----------------------------------------------------------------------------------------------------------------
+
+static void ExchangePlayerData( CHL2MP_Player *pFrom, CHL2MP_Player *pTo )
+{
+	pTo->CopyAnimationDataFrom( pFrom );
+
+	Vector vecOrigin = pFrom->GetAbsOrigin();
+	QAngle angAngles = pFrom->GetAbsAngles();
+	Vector vecVelocity = pFrom->GetAbsVelocity();
+	pTo->Teleport( &vecOrigin, &angAngles, &vecVelocity );
+
+	// Transfer all of the player's weapons and ammo
+	CBaseCombatWeapon *pActiveWeapon = NULL;
+	for (int i = 0; i < MAX_WEAPONS; i++)
+	{
+		CBaseCombatWeapon *pWeapon = pFrom->GetWeapon( i );
+		if (pWeapon)
+		{
+			if (pWeapon == pFrom->GetActiveWeapon())
+			{
+				pActiveWeapon = pWeapon;
+				pWeapon->Holster();
+			}
+
+			pFrom->Weapon_Detach( pWeapon );
+
+			// Add SF_WEAPON_PRESERVE_AMMO briefly so that the weapon doesn't refill itself
+			bool bPreserveAmmo = pWeapon->HasSpawnFlags( SF_WEAPON_PRESERVE_AMMO );
+			if (!bPreserveAmmo)
+				pWeapon->AddSpawnFlags( SF_WEAPON_PRESERVE_AMMO );
+
+			pTo->Weapon_Equip( pWeapon );
+
+			if (!bPreserveAmmo)
+				pWeapon->RemoveSpawnFlags( SF_WEAPON_PRESERVE_AMMO );
+		}
+	}
+
+	if ( pActiveWeapon )
+		pTo->Weapon_Switch( pActiveWeapon );
+
+	CAmmoDef *pAmmoDef = GetAmmoDef();
+	if (pAmmoDef)
+	{
+		for (int i = 1; i < pAmmoDef->m_nAmmoIndex; i++)
+		{
+			pTo->SetAmmoCount( pFrom->GetAmmoCount( i ), i );
+		}
+	}
+
+	// Health and armor
+	pTo->SetMaxHealth( pFrom->GetMaxHealth() );
+	pTo->SetHealth( pFrom->GetHealth() );
+	pTo->SetArmorValue( pFrom->ArmorValue() );
+
+	// Player stats
+	pTo->ResetFragCount();
+	pTo->IncrementFragCount( pFrom->FragCount() );
+	pTo->ResetDeathCount();
+	pTo->IncrementDeathCount( pFrom->DeathCount() );
+
+	pTo->SetProtagonist( pFrom->GetProtagonistName() );
+
+	// Response contexts
+	for (int i = 0; i < pFrom->GetContextCount(); i++)
+	{
+		if (!pFrom->ContextExpired( i ))
+		{
+			const char *pszName = pFrom->GetContextName( i );
+			pTo->AddContext( pszName, pFrom->GetContextValue( i ), pFrom->GetContextExpireTime( pszName ) );
+		}
+	}
+
+	// Transfer generic entity properties
+	//pTo->SetSolid( pFrom->GetSolid() );
+	pTo->SetSolidFlags( pFrom->GetSolidFlags() );
+	pTo->SetCollisionGroup( pFrom->GetCollisionGroup() );
+	pTo->SetCollisionBounds( pFrom->CollisionProp()->OBBMinsPreScaled(), pFrom->CollisionProp()->OBBMaxsPreScaled() );
+	pTo->SetMoveType( pFrom->GetMoveType() );
+	pTo->SetEFlags( pFrom->GetEFlags() );
+	pTo->AddFlag( pFrom->GetFlags() & ~FL_FAKECLIENT );
+	//pTo->SetEffects( pFrom->GetEffects() );
+	pTo->SetBloodColor( pFrom->BloodColor() );
+	pTo->m_lifeState = pFrom->m_lifeState;
+	pTo->m_takedamage = pFrom->m_takedamage;
+
+	pTo->m_Local.m_iHideHUD = pFrom->m_Local.m_iHideHUD;
+}
+
+//----------------------------------------------------------------------------------------------------------------
+
+CHL2MPBot *CHL2MPBotManager::BotTakeOverPlayer( CHL2MP_Player *pPlayer, bool bForIdle )
+{
+	char szBotName[MAX_PLAYER_NAME_LENGTH];
+	if (bForIdle)
+	{
+		V_snprintf( szBotName, sizeof( szBotName ), "%s [IDLE]", pPlayer->GetPlayerName() );
+	}
+	else
+	{
+		// Try to ascertain a generic label from the classname context
+		// This can be assigned by the protagonist system to link classnames with models
+		const char *pszContextClass = pPlayer->GetContextValue( "classname" );
+		if (pszContextClass && *pszContextClass)
+		{
+			V_strncpy( szBotName, pszContextClass, sizeof( szBotName ) );
+		}
+		else
+		{
+			V_strncpy( szBotName, GetRandomBotName(), sizeof( szBotName ) );
+		}
+	}
+
+	m_bPerformingBotTakeover = true;
+
+	CHL2MPBot *pBot = NextBotCreatePlayerBot< CHL2MPBot >( szBotName, false );
+	if (pBot)
+	{
+		engine->SetFakeClientConVarValue( pBot->edict(), "cl_playermodel", STRING( pPlayer->GetModelName() ) );
+		engine->SetFakeClientConVarValue( pBot->edict(), "name", szBotName );
+
+		pBot->m_Local.m_iHideHUD = 0;
+
+		if ( pPlayer->IsSuitEquipped() )
+			pBot->EquipSuit( false );
+
+		pBot->ChangeTeam( pPlayer->GetTeamNumber() );
+		ExchangePlayerData( pPlayer, pBot );
+
+		if (bForIdle)
+		{
+			pPlayer->SetBotTakeOverAvatar( pBot );
+			pBot->SetBotTakeOverAvatar( pPlayer );
+
+			// Now move the player to spectator
+			pPlayer->ChangeTeam( TEAM_SPECTATOR );
+			pPlayer->SetObserverTarget( pBot );
+			pPlayer->SetObserverMode( OBS_MODE_CHASE );
+		}
+		else
+		{
+			pBot->SetAttribute( CHL2MPBot::CAN_POSSESS );
+		}
+	}
+
+	m_bPerformingBotTakeover = false;
+
+	return pBot;
+}
+
+
+//----------------------------------------------------------------------------------------------------------------
+void CHL2MPBotManager::PlayerTakeOverBot( CHL2MP_Player *pPlayer, CHL2MPBot *pBot, bool bKickBot )
+{
+	m_bPerformingBotTakeover = true;
+
+	pPlayer->ChangeTeam( pBot->GetTeamNumber() );
+
+	if (!pPlayer->IsAlive())
+		pPlayer->Spawn();
+
+	// Restore the player's team and data
+	ExchangePlayerData( pBot, pPlayer );
+
+	pPlayer->SetBotTakeOverAvatar( NULL );
+	pBot->SetBotTakeOverAvatar( NULL );
+
+	/*pPlayer->StopObserverMode();
+	pPlayer->pl.deadflag = false;
+	pPlayer->SetPlayerDrownTime( gpGlobals->curtime + 1.0f );*/	// Fixes players playing drown sound upon repossessing bot
+
+	if ( pBot->IsSuitEquipped() )
+		pPlayer->EquipSuit( false );
+
+	if (bKickBot)
+	{
+		// Remove the bot
+		engine->ServerCommand( UTIL_VarArgs( "kickid %d\n", pBot->GetUserID() ) );
+	}
+
+	m_bPerformingBotTakeover = false;
+}
+
+
+//----------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------------------
+CON_COMMAND_F( hl2mp_bot_takeover, "Makes a bot take over the given player", FCVAR_GAMEDLL | FCVAR_CHEAT )
+{
+	CHL2MP_Player *pPlayer = ToHL2MPPlayer( UTIL_GetCommandClient() );
+	if ( !pPlayer || !pPlayer->IsAlive() )
+		return;
+
+	if ( !TheHL2MPBots().CanDoBotTakeover() )
+	{
+		Warning( "Cannot do bot takeover right now\n" );
+		return;
+	}
+
+	if ( !TheHL2MPBots().CanDoBotTakeoverOn( pPlayer ) )
+	{
+		Warning( "Cannot do bot takeover on this player\n" );
+		return;
+	}
+
+	TheHL2MPBots().HideBotsJoining( 1 );
+	TheHL2MPBots().BotTakeOverPlayer( pPlayer );
+}
+
+
+//----------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------------------
+CON_COMMAND_F( hl2mp_bot_takeover_end, "Takes over a bot taking over the given player", FCVAR_GAMEDLL | FCVAR_CHEAT )
+{
+	CHL2MP_Player *pPlayer = ToHL2MPPlayer( UTIL_GetCommandClient() );
+	if ( !pPlayer )
+		return;
+
+	CHL2MPBot *pBot = ToHL2MPBot( pPlayer->GetBotTakeOverAvatar() );
+	if ( !pBot )
+		return;
+
+	TheHL2MPBots().HideBotsJoining( 1 );
+	TheHL2MPBots().PlayerTakeOverBot( pPlayer, pBot );
+}
+
+
+//----------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------------------
+extern CBaseEntity *FindPickerEntity( CBasePlayer *pPlayer );
+
+CON_COMMAND_F( hl2mp_bot_possess, "Makes a player take over a bot and leaves another bot in its place", FCVAR_GAMEDLL | FCVAR_CHEAT )
+{
+	CHL2MP_Player *pPlayer = ToHL2MPPlayer( UTIL_GetCommandClient() );
+	if ( !pPlayer || !pPlayer->IsAlive() )
+		return;
+
+	if ( !TheHL2MPBots().CanDoBotTakeover() )
+	{
+		Warning( "Cannot do bot takeover right now\n" );
+		return;
+	}
+
+	if ( !TheHL2MPBots().CanDoBotTakeoverOn( pPlayer ) )
+	{
+		Warning( "Cannot do bot takeover on this player\n" );
+		return;
+	}
+
+	CHL2MPBot *pBot = NULL;
+	if ( args.ArgC() > 1 )
+	{
+		pBot = ToHL2MPBot( UTIL_PlayerByIndex( atoi( args.Arg( 1 ) ) ) );
+	}
+	else
+	{
+		pBot = ToHL2MPBot( FindPickerEntity( pPlayer ) );
+	}
+
+	if ( !pBot )
+	{
+		Warning( "No bot found\n" );
+		return;
+	}
+
+	if ( !pBot->IsFriend( pPlayer ) && !sv_cheats->GetBool() )
+	{
+		Warning( "Bot not friendly\n" );
+		return;
+	}
+
+	TheHL2MPBots().HideBotsJoining( 2 );
+	if (TheHL2MPBots().BotTakeOverPlayer( pPlayer, false ))
+	{
+		TheHL2MPBots().PlayerTakeOverBot( pPlayer, pBot );
+	}
+}
+#endif
 
 
 //----------------------------------------------------------------------------------------------------------------
