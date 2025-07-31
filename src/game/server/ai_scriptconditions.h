@@ -162,6 +162,9 @@ private:
 #ifdef MAPBASE
 	void InputSatisfyConditions( inputdata_t &inputdata );
 #endif
+#ifdef MAPBASE_MP
+	void InputSetPlayerFilter( inputdata_t &inputdata );
+#endif
 
 	// Output handlers
 	COutputEvent	m_OnConditionsSatisfied;
@@ -186,7 +189,10 @@ private:
 		EvaluationFunc_t	pfnEvaluator;
 		const char			*pszName;
 	};
-
+	
+#ifdef MAPBASE_MP
+	static EvaluatorInfo_t gm_PlayerEvaluators[];
+#endif
 	static EvaluatorInfo_t gm_Evaluators[];
 
 	//---------------------------------
@@ -246,6 +252,11 @@ private:
 
 	ThreeState_t	m_fActorInVehicle;
 	ThreeState_t	m_fPlayerInVehicle;
+
+#ifdef MAPBASE_MP
+	string_t				m_iszPlayerFilterName;
+	CHandle<CBaseFilter> 	m_hPlayerFilter;
+#endif
 
 	CUtlVector< CAI_ScriptConditionsElement > m_ElementList;
 

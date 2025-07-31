@@ -38,12 +38,22 @@ private:
 
 private:
 	int		m_iTargetGameMaterial;
+#ifdef MAPBASE_MP
+	int		m_iCurrentGameMaterial[MAX_PLAYERS];
+	int		m_iLastGameMaterial[MAX_PLAYERS];
+	int		m_nNumOnMaterial;
+#else
 	int		m_iCurrentGameMaterial;
+#endif
 	bool	m_bDisabled;
 
 	// Outputs
 	COutputEvent m_OnSurfaceChangedToTarget;
 	COutputEvent m_OnSurfaceChangedFromTarget;
+#ifdef MAPBASE
+	COutputEvent m_OnSurfaceChangedToTargetAll;
+	COutputEvent m_OnSurfaceChangedFromTargetAll;
+#endif
 };
 
 #endif // ENV_PLAYER_SURFACE_TRIGGER_H
