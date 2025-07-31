@@ -30,6 +30,11 @@ public:
 	virtual void Paint();
 	void SetPercentage( float flPercentage ){ m_flPercent = flPercentage; }
 
+#ifdef MAPBASE
+	// Used by external timers
+	void SetPercentWarning( float flPercentage ) { m_flPercentWarning = flPercentage; }
+#endif
+
 private:
 
 	float	m_flPercent;
@@ -69,6 +74,11 @@ public:
 
 	CTFHudTimeStatus( Panel *parent, const char *name );
 
+#ifdef MAPBASE
+	// Derived class used with game_timer, see tf_hud_external_timer.cpp
+	friend class CTFHudExternalTimer;
+#endif
+
 	virtual void Paint( void );
 	virtual void ApplySchemeSettings( vgui::IScheme *pScheme );
 	virtual void Reset();
@@ -86,10 +96,10 @@ protected:
 
 private:
 
-	void SetExtraTimePanels();
+	virtual void SetExtraTimePanels();
 	void SetTimeAdded( int iIndex, int nSeconds );
 	void CheckClockLabelLength( CExLabel *pLabel, vgui::Panel *pBG );
-	void SetTeamBackground( void );
+	virtual void SetTeamBackground( void );
 
 private:
 

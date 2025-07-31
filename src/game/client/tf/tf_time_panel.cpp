@@ -432,6 +432,13 @@ void CTFHudTimeStatus::CheckClockLabelLength( CExLabel *pLabel, Panel *pBG )
 	{
 		pBG->SetVisible( false );
 	}
+#ifdef MAPBASE
+	else
+	{
+		// This can happen if the label can vary (e.g. on external timers)
+		pBG->SetVisible( true );
+	}
+#endif
 }
 
 //-----------------------------------------------------------------------------

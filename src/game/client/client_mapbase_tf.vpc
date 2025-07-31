@@ -12,6 +12,7 @@ $Project
 		{
 			$Folder	"TF"
 			{
+				$File	"mapbase\tf\tf_hud_external_timer.cpp"
 			}
 		}
 	}
