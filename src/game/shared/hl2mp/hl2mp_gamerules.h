@@ -139,6 +139,12 @@ public:
 #ifdef MAPBASE
 	void PlayerSpawn( CBasePlayer *pPlayer );
 	void PlayerIdle( CBasePlayer *pPlayer );
+
+	bool	AllowDefaultItems();
+	void	SetAllowDefaultItems( bool toggle );
+
+	bool	AllowDefaultSuit();
+	void	SetAllowDefaultSuit( bool toggle );
 #endif
 
 #endif
@@ -173,6 +179,9 @@ private:
 	bool m_bChangelevelDone;
 
 #ifdef MAPBASE
+	bool m_bAllowDefaultItems = true;
+	bool m_bAllowDefaultSuit = true;
+
 	CNetworkVar( bool, m_bHideBotJoinGame );	// Hides when bots connect and disconnect from the game
 #endif
 #endif

@@ -680,6 +680,9 @@ ConVarRef suitcharger( "sk_suitcharger" );
 		bool		addDefault;
 		CBaseEntity	*pWeaponEntity = NULL;
 
+#ifdef MAPBASE
+		if (AllowDefaultSuit())
+#endif
 		pPlayer->EquipSuit();
 		
 		addDefault = true;

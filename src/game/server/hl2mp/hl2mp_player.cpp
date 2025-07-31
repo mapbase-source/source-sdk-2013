@@ -244,7 +244,15 @@ void CHL2MP_Player::GiveAllItems( void )
 
 void CHL2MP_Player::GiveDefaultItems( void )
 {
+#ifdef MAPBASE
+	if (HL2MPRules()->AllowDefaultSuit())
+#endif
 	EquipSuit();
+
+#ifdef MAPBASE
+	if (!HL2MPRules()->AllowDefaultItems())
+		return;
+#endif
 
 	CBasePlayer::GiveAmmo( 255,	"Pistol");
 	CBasePlayer::GiveAmmo( 45,	"SMG1");

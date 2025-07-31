@@ -168,6 +168,10 @@ public:
 	virtual bool CanHaveItem( CBasePlayer *pPlayer, CItem *pItem );
 	virtual void PlayerGotItem( CBasePlayer *pPlayer, CItem *pItem );
 
+#ifdef MAPBASE
+	virtual bool AllowDefaultSuit() { return true; }
+#endif
+
 // Item spawn/respawn control
 	virtual int ItemShouldRespawn( CItem *pItem );
 	virtual float FlItemRespawnTime( CItem *pItem );

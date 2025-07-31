@@ -308,6 +308,38 @@ void CHL2MPRules::PlayerIdle( CBasePlayer *pPlayer )
 
 	//BaseClass::PlayerIdle( pPlayer );
 }
+
+//-----------------------------------------------------------------------------
+// Gets our default items setting.
+//-----------------------------------------------------------------------------
+bool CHL2MPRules::AllowDefaultItems()
+{
+	return m_bAllowDefaultItems;
+}
+
+//-----------------------------------------------------------------------------
+// Sets our default items setting.
+//-----------------------------------------------------------------------------
+void CHL2MPRules::SetAllowDefaultItems( bool toggle )
+{
+	m_bAllowDefaultItems = toggle;
+}
+
+//-----------------------------------------------------------------------------
+// Gets our default suit setting.
+//-----------------------------------------------------------------------------
+bool CHL2MPRules::AllowDefaultSuit()
+{
+	return m_bAllowDefaultSuit;
+}
+
+//-----------------------------------------------------------------------------
+// Sets our default suit setting.
+//-----------------------------------------------------------------------------
+void CHL2MPRules::SetAllowDefaultSuit( bool toggle )
+{
+	m_bAllowDefaultSuit = toggle;
+}
 #endif
 
 
