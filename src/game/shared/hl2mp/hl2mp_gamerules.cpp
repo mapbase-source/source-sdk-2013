@@ -33,6 +33,9 @@
 	#include "voice_gamemgr.h"
 	#include "hl2mp_gameinterface.h"
 	#include "hl2mp_cvars.h"
+#ifdef MAPBASE
+	#include "bot/hl2mp_bot_manager.h"
+#endif
 
 extern void respawn(CBaseEntity *pEdict, bool fCopyCorpse);
 
