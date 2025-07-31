@@ -36,6 +36,10 @@
 
 #endif
 
+#if defined(MAPBASE_MP) && !defined(CLIENT_DLL)
+#include "mapbase/mapbase_mp_saverestore.h"
+#endif
+
 // HACKHACK: Builds a global list of entities that were restored from all levels
 #if !defined( CLIENT_DLL )
 void AddRestoredEntity( CBaseEntity *pEntity );
@@ -460,6 +464,15 @@ void CSave::WriteQuaternion( const Quaternion *value, int count )
 {
 	BufferData( (const char *)value, sizeof(Quaternion) * count );
 }
+
+//-------------------------------------
+
+#ifdef MAPBASE_MP
+void CSave::WriteInt64( const int64 *value, int count )
+{
+	BufferData( (const char *)value, sizeof( int64 ) * count );
+}
+#endif
 
 
 //-------------------------------------
@@ -1870,6 +1883,15 @@ int CRestore::ReadVMatrix( VMatrix *pValue, int nElems, int nBytesAvailable )
 	return ReadSimple( pValue, nElems, nBytesAvailable );
 }
 
+//-------------------------------------
+
+#ifdef MAPBASE_MP
+int CRestore::ReadInt64( int64 *pValue, int nElems, int nBytesAvailable )
+{
+	return ReadSimple( pValue, nElems, nBytesAvailable );
+}
+#endif
+
 
 int CRestore::ReadVMatrixWorldspace( VMatrix *pValue, int nElems, int nBytesAvailable )
 {
@@ -2768,6 +2790,13 @@ void SaveEntityOnTable( CBaseEntity *pEntity, CSaveRestoreData *pSaveData, int &
 
 bool CEntitySaveRestoreBlockHandler::SaveInitEntities( CSaveRestoreData *pSaveData )
 {
+#if defined(MAPBASE_MP) && !defined(CLIENT_DLL)
+	if ( g_MPSaveRestore.IsSaving() )
+	{
+		return g_MPSaveRestore.SaveInitEntities( pSaveData );
+	}
+#endif
+
 	int number_of_entities;
 
 #if !defined( CLIENT_DLL )
@@ -3248,7 +3277,11 @@ public:
 
 	//---------------------------------
 
+#ifdef MAPBASE_MP
+public:
+#else
 private:
+#endif
 	int GetBlockBodyLoc( const char *pszName )
 	{
 		for ( int i = 0; i < m_BlockHeaders.Count(); i++ )
@@ -3268,6 +3301,8 @@ private:
 		}
 		return -1;
 	}
+
+private:
 
 	char 								   m_Name[MAX_BLOCK_NAME_LEN + 1];
 	CUtlVector<ISaveRestoreBlockHandler *> m_Handlers;

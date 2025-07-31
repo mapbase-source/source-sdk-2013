@@ -45,6 +45,8 @@ $Project
 			$File	"$SRCDIR\game\shared\mapbase\mapbase_usermessages.cpp"
 			$File	"$SRCDIR\game\shared\mapbase\mapbase_rpc.cpp"
 			$File	"$SRCDIR\game\shared\mapbase\mapbase_game_log.cpp"
+			$File	"$SRCDIR\game\shared\mapbase\mapbase_mp_saverestore.cpp" [$HL2MP||$TF]
+			$File	"$SRCDIR\game\shared\mapbase\mapbase_mp_saverestore.h" [$HL2MP||$TF]
 			$File	"$SRCDIR\game\shared\mapbase\MapEdit.cpp"
 			$File	"$SRCDIR\game\shared\mapbase\MapEdit.h"
 			$File	"$SRCDIR\game\shared\mapbase\matchers.cpp"

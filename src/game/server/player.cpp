@@ -97,6 +97,10 @@
 #include "mapbase/vscript_funcs_shared.h"
 #endif
 
+#ifdef MAPBASE_MP
+#include "mapbase/mapbase_mp_saverestore.h"
+#endif
+
 ConVar autoaim_max_dist( "autoaim_max_dist", "2160" ); // 2160 = 180 feet
 ConVar autoaim_max_deflect( "autoaim_max_deflect", "0.99" );
 
@@ -401,7 +405,9 @@ BEGIN_DATADESC( CBasePlayer )
 	
 	DEFINE_FIELD( m_iPlayerLocked, FIELD_INTEGER ),
 
+#ifndef MAPBASE_MP
 	DEFINE_AUTO_ARRAY( m_hViewModel, FIELD_EHANDLE ),
+#endif
 	
 	DEFINE_FIELD( m_flMaxspeed, FIELD_FLOAT ),
 	DEFINE_FIELD( m_flWaterJumpTime, FIELD_TIME ),
@@ -5025,6 +5031,19 @@ void CBasePlayer::PostThink()
 		PostThinkVPhysics();
 		VPROF_SCOPE_END();
 	}
+#ifdef MAPBASE_MP
+	else if (g_MPSaveRestore.IsPlayerWaitingToTransition( this ))
+	{
+		// Allow player to cancel transition
+		if (m_afButtonPressed & IN_JUMP)
+		{
+			if (!g_MPSaveRestore.PlayerCanCancelTransition( this ) || !g_MPSaveRestore.RemovePlayerFromTransition( this, true ))
+				UTIL_HudHintText( this, "#Valve_Hint_ExitTransition_Failure" );
+			else
+				UTIL_HudHintText( this, NULL );	// Clear HUD hint
+		}
+	}
+#endif
 
 #if !defined( NO_ENTITY_PREDICTION )
 	// Even if dead simulate entities
@@ -5668,7 +5687,16 @@ int CBasePlayer::Restore( IRestore &restore )
 
 	CSaveRestoreData *pSaveData = gpGlobals->pSaveData;
 	// landmark isn't present.
+#ifdef MAPBASE_MP
+	// This interferes with bots in MP save/restore and appears to serve no purpose.
+	// When players are created, their physics shadow (which uses abs origin) instantly overwrites this value.
+	// However, bots issue commands the instant they're created, so the abs origin is overwritten before that can happen.
+	// Since this code seemingly assumes players always spawn at the start when there's no landmark, I'm assuming it reflects
+	// an older version of the saving system and isn't used.
+	if ( !pSaveData->levelInfo.fUseLandmark && !g_MPSaveRestore.IsRestoringPlayer( this ) )
+#else
 	if ( !pSaveData->levelInfo.fUseLandmark )
+#endif
 	{
 		Msg( "No Landmark:%s\n", pSaveData->levelInfo.szLandmarkName );
 
@@ -5708,6 +5736,14 @@ int CBasePlayer::Restore( IRestore &restore )
 	CPlayerRestoreHelper helper;
 	InitVCollision( helper.GetAbsOrigin( this ), helper.GetAbsVelocity( this ) );
 
+#ifdef MAPBASE_MP
+	// We can't save the viewmodels in MP at the moment
+	CreateViewModel();
+#ifdef HL2_DLL
+	CreateHandModel();
+#endif
+#endif
+
 	// success
 	return 1;
 }
@@ -5736,6 +5772,17 @@ void CBasePlayer::OnRestore( void )
 		g_pScriptVM->SetValue( "player", GetScriptInstance() );
 	}
 }
+
+#ifdef MAPBASE_MP
+//-----------------------------------------------------------------------------
+// Purpose: Restores a weapon created by MP save/restore
+//-----------------------------------------------------------------------------
+void CBasePlayer::RestoreWeapon( CBaseCombatWeapon *pWeapon, int i )
+{
+	pWeapon->Equip( this );
+	m_hMyWeapons.Set( i, pWeapon );
+}
+#endif
 
 /* void CBasePlayer::SetTeamName( const char *pTeamName )
 {

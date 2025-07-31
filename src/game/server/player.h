@@ -444,6 +444,11 @@ public:
 	virtual bool			ShouldSavePhysics();
 	virtual void			OnRestore( void );
 
+#ifdef MAPBASE_MP
+	// Used by MP save/restore only
+	virtual void			RestoreWeapon( CBaseCombatWeapon *pWeapon, int i );
+#endif
+
 	virtual void			PackDeadPlayerItems( void );
 	virtual void			RemoveAllItems( bool removeSuit );
 	bool					IsDead() const;

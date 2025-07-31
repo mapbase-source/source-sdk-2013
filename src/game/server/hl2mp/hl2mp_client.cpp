@@ -25,6 +25,9 @@
 #include "engine/IEngineSound.h"
 #include "team.h"
 #include "viewport_panel_names.h"
+#ifdef MAPBASE_MP
+#include "mapbase/mapbase_mp_saverestore.h"
+#endif
 
 #include "tier0/vprof.h"
 
@@ -41,6 +44,10 @@ extern bool			g_fGameOver;
 void FinishClientPutInServer( CHL2MP_Player *pPlayer )
 {
 	pPlayer->InitialSpawn();
+
+#ifdef MAPBASE_MP
+	if ( !g_MPSaveRestore.RestorePlayer( pPlayer ) )
+#endif
 	pPlayer->Spawn();
 
 
