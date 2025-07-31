@@ -41,6 +41,10 @@ public:
 	bool IsMenuOpen( void );
 	void SelectMenuItem( int menu_item );
 
+#ifdef MAPBASE
+	bool IsMenuMapDefined() const { return m_bMapDefinedMenu; }
+#endif
+
 private:
 	virtual void OnThink();
 	virtual void Paint();

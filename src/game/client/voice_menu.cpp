@@ -50,6 +50,12 @@ void OpenVoiceMenu( int index )
 	if ( !pMenu )
 		return;
 
+#ifdef MAPBASE
+	// Don't override map-defined menus
+	if ( pMenu->IsMenuMapDefined() && pMenu->IsMenuOpen() )
+		return;
+#endif
+
 	// if they hit the key again, close the menu
 	if ( g_ActiveVoiceMenu == index )
 	{
