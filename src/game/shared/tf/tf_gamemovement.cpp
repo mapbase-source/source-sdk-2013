@@ -77,6 +77,10 @@ ConVar tf_movement_lost_footing_restick( "tf_movement_lost_footing_restick", "50
 ConVar tf_movement_lost_footing_friction( "tf_movement_lost_footing_friction", "0.1", FCVAR_REPLICATED | FCVAR_CHEAT,
                                           "Ground friction for players who have lost their footing" );
 
+#ifdef MAPBASE
+ConVar	tf_ladders( "tf_ladders", "1" );
+#endif
+
 extern ConVar cl_forwardspeed;
 extern ConVar cl_backspeed;
 extern ConVar cl_sidespeed;
@@ -2930,7 +2934,11 @@ void CTFGameMovement::StepMove( Vector &vecDestination, trace_t &trace )
 //-----------------------------------------------------------------------------
 bool CTFGameMovement::GameHasLadders() const
 {
+#ifdef MAPBASE
+	return tf_ladders.GetBool();
+#else
 	return false;
+#endif
 }
 
 //-----------------------------------------------------------------------------
