@@ -13333,6 +13333,14 @@ float CTFGameRules::FlPlayerFallDamage( CBasePlayer *pPlayer )
 	if ( !pTFPlayer )
 		return 0;
 
+#ifdef MAPBASE
+	// trigger_fall overrides all fall damage conditions
+	if ( pTFPlayer->m_bInTriggerFall )
+	{
+		return pPlayer->GetMaxHealth();
+	}
+#endif
+
 	// Karts don't take fall damage
 	if ( pTFPlayer->m_Shared.InCond( TF_COND_HALLOWEEN_KART ) )
 	{

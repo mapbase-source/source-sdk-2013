@@ -9222,6 +9222,13 @@ int CTFPlayer::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 	{
 		bAllowDamage = true;
 	}
+#ifdef MAPBASE
+	else if ( info.GetDamageType() & DMG_FALL && m_bInTriggerFall )
+	{
+		// trigger_fall should always kill
+		bAllowDamage = true;
+	}
+#endif
 
 	if ( !TFGameRules()->ApplyOnDamageModifyRules( info, this, bAllowDamage ) )
 	{

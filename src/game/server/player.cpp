@@ -5533,6 +5533,10 @@ void CBasePlayer::Spawn( void )
 	}
 
 	m_weaponFiredTimer.Invalidate();
+
+#ifdef MAPBASE
+	m_bInTriggerFall = false;
+#endif
 }
 
 void CBasePlayer::Activate( void )
