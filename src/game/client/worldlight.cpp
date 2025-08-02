@@ -24,6 +24,7 @@
 #include "filesystem.h"
 #include "client_factorylist.h" // FactoryList_Retrieve
 #include "eiface.h" // IVEngineServer
+#include <lzmaDecoder.h>
 
 static IVEngineServer *g_pEngineServer = NULL;
 
@@ -176,7 +177,15 @@ void CWorldLights::LevelInitPreEntity()
 
 	// If we can't divide the lump data into a whole number of worldlights,
 	// then the BSP format changed and we're unaware
-	if(lightLump.filelen % sizeof(dworldlight_t))
+	int lumpsize = lightLump.filelen;
+
+	// account for compressed BSPs 
+	if ( lightLump.uncompressedSize > 0 )
+	{
+		lumpsize = lightLump.uncompressedSize;
+	}
+
+	if( lumpsize % sizeof(dworldlight_t) )
 	{
 		Warning("CWorldLights: unknown world light lump\n");
 
@@ -188,12 +197,24 @@ void CWorldLights::LevelInitPreEntity()
 	g_pFullFileSystem->Seek(hFile, lightLump.fileofs, FILESYSTEM_SEEK_HEAD);
 
 	// Allocate memory for the worldlights
-	m_nWorldLights = lightLump.filelen / sizeof(dworldlight_t);
+	m_nWorldLights = lumpsize / sizeof(dworldlight_t);
 	m_pWorldLights = new dworldlight_t[m_nWorldLights];
 
 	// Read worldlights then close
-	g_pFullFileSystem->Read(m_pWorldLights, lightLump.filelen, hFile);
-	g_pFullFileSystem->Close(hFile);
+	if ( lightLump.uncompressedSize > 0 )
+	{
+		// account for compressed BSPs
+		uint8_t *worldlights = new uint8_t[lightLump.filelen];
+		g_pFullFileSystem->Read( worldlights, lightLump.filelen, hFile );
+		CLZMA::Uncompress( (unsigned char *)worldlights, (unsigned char *)m_pWorldLights );
+		delete[] worldlights;
+	}
+	else
+	{
+		g_pFullFileSystem->Read( m_pWorldLights, lightLump.filelen, hFile );
+	}
+
+	g_pFullFileSystem->Close( hFile );
 
 	DevMsg("CWorldLights: load successful (%d lights at 0x%p)\n", m_nWorldLights, m_pWorldLights);
 
