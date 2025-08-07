@@ -1841,7 +1841,7 @@ void CHL2MP_Player::CheckForIdle( void )
 			else if ( mp_idledealmethod.GetInt() == 1 )
 			{
 				//if ( GetTeamNumber() < FIRST_GAME_TEAM )
-				if ( GetTeamNumber() != TEAM_SPECTATOR )
+				if ( GetTeamNumber() == TEAM_SPECTATOR )
 				{
 					bKickPlayer = true;
 				}
