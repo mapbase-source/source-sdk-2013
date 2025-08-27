@@ -463,6 +463,11 @@ public:
 
 	int				m_nButtons;
 
+#ifdef MAPBASE_MP
+	int				m_afButtonDisabled;	// A mask of input flags that are cleared automatically
+	int				m_afButtonForced;	// These are forced onto the player's inputs
+#endif
+
 	CUserCmd		*m_pCurrentCommand;
 
 	// Movement constraints

@@ -959,8 +959,15 @@ public:
 	int						m_afButtonPressed;
 	int						m_afButtonReleased;
 	int						m_afButtonLast;
+#ifdef MAPBASE_MP
+	// These are transmitted so that prediction is aware of what buttons are disabled
+	// (e.g. weapons don't fire when +attack is disabled)
+	CNetworkVar( int, m_afButtonDisabled );	// A mask of input flags that are cleared automatically
+	CNetworkVar( int, m_afButtonForced );	// These are forced onto the player's inputs
+#else
 	int						m_afButtonDisabled;	// A mask of input flags that are cleared automatically
 	int						m_afButtonForced;	// These are forced onto the player's inputs
+#endif
 
 	CNetworkVar( bool, m_fOnTarget );		//Is the crosshair on a target?
 

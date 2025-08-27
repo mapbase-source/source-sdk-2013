@@ -9106,6 +9106,14 @@ void SendProxy_ShiftPlayerSpawnflags( const SendProp *pProp, const void *pStruct
 		SendPropBool		( SENDINFO( m_bInTriggerFall ) ),
 #endif
 
+#ifdef MAPBASE_MP
+		// These are transmitted so that prediction is aware of what buttons are disabled
+		// (e.g. weapons don't fire when +attack is disabled)
+		// Number of bits is based on in_buttons.h
+		SendPropInt			( SENDINFO( m_afButtonDisabled ), 27, SPROP_UNSIGNED ),
+		SendPropInt			( SENDINFO( m_afButtonForced ), 27, SPROP_UNSIGNED ),
+#endif
+
 	END_SEND_TABLE()
 
 
