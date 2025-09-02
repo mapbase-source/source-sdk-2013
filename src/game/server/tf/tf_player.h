@@ -1099,6 +1099,11 @@ public:
 	// Talk control
 	virtual bool		CanPlayerTalk() OVERRIDE;
 
+#ifdef MAPBASE
+	virtual CBaseEntity *GetPotentialUseEntity();
+	CBaseEntity *FindPotentialUseEntity();
+#endif
+
 protected:
 
 	// Creation/Destruction.

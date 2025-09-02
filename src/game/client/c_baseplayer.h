@@ -319,6 +319,9 @@ public:
 	bool				IsPoisoned( void ) { return m_Local.m_bPoisoned; }
 
 	C_BaseEntity				*GetUseEntity();
+#ifdef MAPBASE // From Alien Swarm SDK
+	virtual C_BaseEntity		*GetPotentialUseEntity() { return GetUseEntity(); }
+#endif
 
 	// Vehicles...
 	IClientVehicle			*GetVehicle();

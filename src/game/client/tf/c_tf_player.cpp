@@ -220,6 +220,10 @@ ConVar tf_taunt_first_person( "tf_taunt_first_person", "0", FCVAR_NONE, "1 = tau
 ConVar tf_romevision_opt_in( "tf_romevision_opt_in", "0", FCVAR_ARCHIVE, "Enable Romevision in Mann vs. Machine mode when available." );
 ConVar tf_romevision_skip_prompt( "tf_romevision_skip_prompt", "0", FCVAR_ARCHIVE, "If nonzero, skip the prompt about sharing Romevision." );
 
+#ifdef MAPBASE
+ConVar tf_scan_potential_use_target( "tf_scan_potential_use_target", "0", FCVAR_NONE, "Allows player to periodically store its \"potential use target\", a generic entity that the player may be looking at or interacting with. May be enabled automatically by game instructor, etc." );
+#endif
+
 
 #define BDAY_HAT_MODEL		"models/effects/bday_hat.mdl"
 #define BOMB_HAT_MODEL		"models/props_lakeside_event/bomb_temp_hat.mdl"
@@ -6057,6 +6061,24 @@ void C_TFPlayer::ClientThink()
 		    engine->ClientCmd("voicemenu 1 8");
 	    }
 	}
+
+#ifdef MAPBASE
+	if ( IsLocalPlayer() && tf_scan_potential_use_target.GetBool() && m_flPotentialUseEntityScanTime < gpGlobals->curtime )
+	{
+		// Fire an event if we have a new use entity
+		C_BaseEntity *pOldEnt = m_hPotentialUseEntity;
+		C_BaseEntity *pNewEnt = GetPotentialUseEntity();
+		if ( pNewEnt != pOldEnt && pNewEnt )
+		{
+			IGameEvent *event = gameeventmanager->CreateEvent( "use_target" );
+			if ( event )
+			{
+				event->SetInt( "targetid", pNewEnt->entindex() );
+				gameeventmanager->FireEventClientSide( event );
+			}
+		}
+	}
+#endif
 }
 
 void C_TFPlayer::Touch( CBaseEntity *pOther )

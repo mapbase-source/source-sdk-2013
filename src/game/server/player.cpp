@@ -579,6 +579,7 @@ BEGIN_ENT_SCRIPTDESC( CBasePlayer, CBaseCombatCharacter, "The player entity." )
 	DEFINE_SCRIPTFUNC_NAMED( ScriptGetViewModel, "GetViewModel", "Returns the viewmodel of the specified index." )
 	
 	DEFINE_SCRIPTFUNC_NAMED( ScriptGetUseEntity, "GetUseEntity", "Gets the player's current use entity." )
+	DEFINE_SCRIPTFUNC_NAMED( ScriptGetPotentialUseEntity, "GetPotentialUseEntity", "Gets the player's current potential use entity." )
 	DEFINE_SCRIPTFUNC_NAMED( ScriptGetHeldObject, "GetHeldObject", "Gets the player's currently held object IF it is being held by a gravity gun. To check for the player's held +USE object, use the standalone GetPlayerHeldEntity function." )
 
 	// 

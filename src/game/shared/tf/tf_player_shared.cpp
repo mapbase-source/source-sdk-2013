@@ -14679,3 +14679,103 @@ bool CTFPlayer::IsHelpmeButtonPressed() const
 	return m_flHelpmeButtonPressTime != 0.f;
 }
 
+
+#ifdef MAPBASE
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+CBaseEntity *CTFPlayer::GetPotentialUseEntity()
+{
+#ifdef CLIENT_DLL
+	if ( m_flPotentialUseEntityScanTime < gpGlobals->curtime )
+	{
+		// See if our potential use entity has changed
+		C_BaseEntity *pUseEnt = FindPotentialUseEntity();
+		if ( pUseEnt != m_hPotentialUseEntity )
+		{
+			m_hPotentialUseEntity = pUseEnt;
+
+			if ( pUseEnt )
+			{
+				IGameEvent *event = gameeventmanager->CreateEvent( "use_target" );
+				if ( event )
+				{
+					event->SetInt( "targetid", pUseEnt->entindex() );
+					gameeventmanager->FireEventClientSide( event );
+				}
+			}
+		}
+
+		m_flPotentialUseEntityScanTime = gpGlobals->curtime + 0.5f;
+	}
+
+	return m_hPotentialUseEntity;
+#else
+	// Storing it is not needed at the moment
+	return FindPotentialUseEntity();
+#endif
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: Figure out what entity we're interacting with/has our attention.
+// Similar to an event from L4D, used for game instructor and other generic purposes
+//-----------------------------------------------------------------------------
+CBaseEntity *CTFPlayer::FindPotentialUseEntity()
+{
+	if ( !IsAlive() )
+		return NULL;
+
+	// If we actually have a use entity, return that
+	if ( GetUseEntity() )
+		return GetUseEntity();
+
+	// If we're taunting with someone, return the partner
+	if ( GetTauntPartner() )
+		return GetTauntPartner();
+
+	// If we're a medic healing someone, return our patient
+	CBaseEntity *pHealTarget = MedicGetHealTarget();
+	if ( pHealTarget )
+		return pHealTarget;
+
+	CBaseEntity *pGroundEnt = GetGroundEntity();
+	if ( pGroundEnt )
+	{
+		// If we're standing on a building/object, use that
+		if ( pGroundEnt->IsBaseObject() )
+			return pGroundEnt;
+	}
+	
+#ifdef CLIENT_DLL
+	CBaseEntity *pHealer = m_hHealer;
+#else
+	CBaseEntity *pHealer = m_Shared.GetHealerByIndex( 0 );
+#endif
+	if ( pHealer )
+	{
+		// Return our primary healer
+		return pHealer;
+	}
+
+	// Find something directly in front of us
+	trace_t tr;
+#ifdef CLIENT_DLL
+	Vector vecEyeDir;
+	AngleVectors( EyeAngles(), &vecEyeDir );
+#else
+	Vector vecEyeDir = EyeDirection3D();
+#endif
+	UTIL_TraceLine( EyePosition(), EyePosition() + vecEyeDir * 128.0f, (MASK_SOLID | CONTENTS_HITBOX), this, COLLISION_GROUP_NONE, &tr );
+	if ( tr.DidHitNonWorldEntity() )
+	{
+		return tr.m_pEnt;
+	}
+
+	// If we're standing on something that isn't the world, return it
+	if ( pGroundEnt && !pGroundEnt->IsWorld() )
+		return pGroundEnt;
+
+	return NULL;
+}
+#endif
+

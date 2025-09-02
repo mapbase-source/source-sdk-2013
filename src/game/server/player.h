@@ -428,6 +428,7 @@ public:
 	HSCRIPT					ScriptGetViewModel( int viewmodelindex );
 
 	HSCRIPT					ScriptGetUseEntity() { return ToHScript( GetUseEntity() ); }
+	HSCRIPT					ScriptGetPotentialUseEntity() { return ToHScript( GetPotentialUseEntity() ); }
 	HSCRIPT					ScriptGetHeldObject() { return ToHScript( GetHeldObject() ); }
 #endif
 
@@ -776,6 +777,9 @@ public:
 	void	SetMuzzleFlashTime( float flTime );
 	void	SetUseEntity( CBaseEntity *pUseEntity );
 	CBaseEntity *GetUseEntity();
+#ifdef MAPBASE // From Alien Swarm SDK
+	virtual CBaseEntity *GetPotentialUseEntity() { return GetUseEntity(); }
+#endif
 
 	virtual float GetPlayerMaxSpeed();
 

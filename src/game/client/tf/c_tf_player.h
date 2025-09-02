@@ -513,6 +513,11 @@ public:
 
 	bool	IsPlayerOnSteamFriendsList( C_BasePlayer *pPlayer );
 
+#ifdef MAPBASE
+	virtual C_BaseEntity *GetPotentialUseEntity();
+	C_BaseEntity *FindPotentialUseEntity();
+#endif
+
 protected:
 
 	void ResetFlexWeights( CStudioHdr *pStudioHdr );
@@ -966,6 +971,11 @@ private:
 	float m_flTempForceDrawViewModelCycle  = 0.0f;
 
 	CNetworkVar( int, m_iPlayerSkinOverride );
+
+#ifdef MAPBASE
+	EHANDLE	m_hPotentialUseEntity = NULL;
+	float m_flPotentialUseEntityScanTime = 0.0f;
+#endif
 };
 
 inline C_TFPlayer* ToTFPlayer( C_BaseEntity *pEntity )

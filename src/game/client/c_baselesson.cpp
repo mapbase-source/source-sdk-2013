@@ -1336,6 +1336,22 @@ void CScriptedIconLesson::Init()
 			// Initialize from the key value file
 			InitFromKeys( GetGameInstructor().GetScriptKeys() );
 
+#if defined(MAPBASE) && defined(TF_CLIENT_DLL)
+			// Enable tf_scan_potential_use_target if this lesson utilizes use_target
+			extern ConVar tf_scan_potential_use_target;
+			CGameInstructorSymbol szUseTargetEvent( "use_target" );
+
+			CUtlVector< LessonEvent_t > &openEvents = m_OpenEvents;
+			for ( int i = 0; i < openEvents.Count(); i++ )
+			{
+				if ( openEvents[i].szEventName == szUseTargetEvent )
+				{
+					tf_scan_potential_use_target.SetValue( 1 );
+					break;
+				}
+			}
+#endif
+
 			if ( m_iPriority >= LESSON_PRIORITY_MAX )
 			{
 				DevWarning( "Priority level not set for lesson: %s\n", GetName() );
@@ -3657,7 +3673,7 @@ bool CScriptedIconLesson::ProcessElementAction( int iAction, bool bNot, const ch
 			return true;
 		}
 
-		/*case LESSON_ACTION_GET_POTENTIAL_USE_TARGET:
+		case LESSON_ACTION_GET_POTENTIAL_USE_TARGET:
 		{
 			int iTemp = static_cast<int>( fParam );
 
@@ -3708,7 +3724,7 @@ bool CScriptedIconLesson::ProcessElementAction( int iAction, bool bNot, const ch
 			}
 
 			return true;
-		}*/
+		}
 	}
 
 	DevWarning( "Invalid lesson action type used with \"%s\" variable type.\n", pchVarName );
