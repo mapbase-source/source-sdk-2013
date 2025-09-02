@@ -67,7 +67,11 @@ ConVar locator_start_at_crosshair( "locator_start_at_crosshair", "0", FCVAR_NONE
 
 ConVar locator_topdown_style( "locator_topdown_style", "0", FCVAR_NONE, "Topdown games set this to handle distance and offscreen location differently." );
 
+#if defined(TF_CLIENT_DLL) && defined(MAPBASE)
+ConVar locator_background_style( "locator_background_style", "1", FCVAR_NONE, "Setting this to 1 will show rectangle backgrounds behind the items word-bubble pointers." );
+#else
 ConVar locator_background_style( "locator_background_style", "0", FCVAR_NONE, "Setting this to 1 will show rectangle backgrounds behind the items word-bubble pointers." );
+#endif
 ConVar locator_background_color( "locator_background_color", "255 255 255 5", FCVAR_NONE, "The default color for the background." );
 ConVar locator_background_border_color( "locator_background_border_color", "255 255 255 15", FCVAR_NONE, "The default color for the border." );
 ConVar locator_background_thickness_x( "locator_background_thickness_x", "8", FCVAR_NONE, "How many pixels the background borders the left and right." );
@@ -715,6 +719,10 @@ public:
 	void DrawDynamicIcon( CLocatorTarget *pTarget, bool bDrawCaption, bool bDrawSimpleArrow );
 	void DrawIndicatorArrow( int x, int y, int iconWide, int iconTall, int textWidth, int direction );
 	void DrawTargetCaption( CLocatorTarget *pTarget, int x, int y, bool bDrawMultiline );
+#ifdef MAPBASE
+	int DrawTargetBackgroundCaption( CLocatorTarget *pTarget, int x, int y );
+	bool IsUsingBackground( CLocatorTarget *pTarget = NULL );
+#endif
 	int  GetScreenWidthForCaption( const wchar_t *pString, vgui::HFont hFont );
 	void DrawBindingName( CLocatorTarget *pTarget, const char *pchBindingName, int x, int y, bool bController );
 	void ComputeTargetIconPosition( CLocatorTarget *pTarget, bool bSetPosition );
@@ -762,6 +770,12 @@ private:
 	int				m_staticIconPosition;// Helps us stack static icons
 
 	CLocatorTarget	m_targets[MAX_LOCATOR_TARGETS];
+
+#ifdef MAPBASE
+	vgui::Panel*	m_pBackgroundPanel;
+	vgui::Label*	m_pCaptionLabel;
+	vgui::Label*	m_pCaptionLabelShadow;
+#endif
 };
 
 //-----------------------------------------------------------------------------
@@ -852,6 +866,12 @@ CLocatorPanel::CLocatorPanel( Panel *parent, const char *name ) : EditablePanel(
 	m_textureID_ArrowUp			= -1;
 	m_textureID_ArrowDown		= -1;
 	m_textureID_SimpleArrow		= -1;
+
+#ifdef MAPBASE
+	m_pBackgroundPanel			= NULL;
+	m_pCaptionLabel				= NULL;
+	m_pCaptionLabelShadow		= NULL;
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -870,6 +890,14 @@ void CLocatorPanel::ApplySchemeSettings( vgui::IScheme *pScheme )
 {
 	BaseClass::ApplySchemeSettings( pScheme );
 	LoadControlSettings("resource/UI/Locator.res");
+
+#ifdef MAPBASE
+	m_pBackgroundPanel = FindChildByName( "LocatorBG" );
+	m_pCaptionLabel = dynamic_cast<vgui::Label*>( FindChildByName( "CaptionLabel" ) );
+	if ( m_pCaptionLabel ) m_pCaptionLabel->SetParent( m_pBackgroundPanel );
+	m_pCaptionLabelShadow = dynamic_cast<vgui::Label*>( FindChildByName( "CaptionLabelShadow" ) );
+	if ( m_pCaptionLabelShadow ) m_pCaptionLabelShadow->SetParent( m_pBackgroundPanel );
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -879,10 +907,12 @@ void CLocatorPanel::PerformLayout( void )
 {
 	BaseClass::PerformLayout();
 
+#if !defined(TF_CLIENT_DLL) || !defined(MAPBASE)
 	vgui::Panel *pPanel = FindChildByName( "LocatorBG" );
 
 	if ( pPanel )
 		pPanel->SetPos( (GetWide() - pPanel->GetWide()) * 0.5, (GetTall() - pPanel->GetTall()) * 0.5 );
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -937,7 +967,13 @@ void CLocatorPanel::CollectGarbage()
 		if( m_targets[ i ].m_isActive )
 		{
 			if( gpGlobals->framecount - m_targets[ i ].m_frameLastUpdated > 20 )
+			{
+#ifdef MAPBASE
+				if ( IsUsingBackground( &m_targets[ i ] ) && m_pBackgroundPanel )
+					m_pBackgroundPanel->SetVisible( false );
+#endif
 				m_targets[ i ].Deactivate();
+			}
 		}
 	}
 }
@@ -1549,6 +1585,10 @@ void CLocatorPanel::PaintTarget( CLocatorTarget *pTarget )
 		// Doesn't draw when offscreen... reset it's alpha so it has to fade in again
 		pTarget->m_fadeStart = gpGlobals->curtime;
 		pTarget->m_alpha = 0;
+#ifdef MAPBASE
+		if ( IsUsingBackground( pTarget ) && m_pBackgroundPanel )
+			m_pBackgroundPanel->SetVisible( false );
+#endif
 	}
 	else
 	{
@@ -1566,6 +1606,7 @@ void CLocatorPanel::PaintTarget( CLocatorTarget *pTarget )
 //-----------------------------------------------------------------------------
 void CLocatorPanel::DrawPointerBackground( CLocatorTarget *pTarget, int nPointerX, int nPointerY, int nWide, int nTall, bool bPointer )
 {
+#ifndef MAPBASE // Not used with restored locator_background_style
 	if ( locator_background_style.GetInt() == 0 || pTarget->m_alpha == 0 )
 		return;
 
@@ -1590,6 +1631,7 @@ void CLocatorPanel::DrawPointerBackground( CLocatorTarget *pTarget, int nPointer
 	DevMsg("[TODO] vgui::surface()->DrawWordBubble \n");
 
 	//vgui::surface()->DrawWordBubble( nPosX, nPosY, nPosX + nBackgroundWide, nPosY + nBackgroundTall, locator_background_border_thickness.GetInt(),  rgbaBackground, rgbaBorder, bPointer, nPointerX, nPointerY, ScreenWidth() * ICON_SIZE );
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -1613,7 +1655,17 @@ void CLocatorPanel::DrawStaticIcon( CLocatorTarget *pTarget )
 	AnimateIconAlpha( pTarget->GetIconEffectsFlags(), &pTarget->m_alpha, pTarget->m_fadeStart );
 
 	// Figure out the caption width
-	pTarget->m_captionWide = GetScreenWidthForCaption( pTarget->GetCaptionText(), m_hCaptionFont );
+#ifdef MAPBASE
+	if ( IsUsingBackground( pTarget ) )
+	{
+		// Setup text and figure out the caption width. The caption width will be used to move the arrow next to the caption if it is on the right.
+		pTarget->m_captionWide = DrawTargetBackgroundCaption(pTarget, pTarget->GetIconX() + iconWide + ICON_GAP, pTarget->GetIconCenterY()) + YRES(5); // 5 padding.
+	}
+	else
+#endif
+	{
+		pTarget->m_captionWide = GetScreenWidthForCaption( pTarget->GetCaptionText(), m_hCaptionFont );
+	}
 
 	bool bDrawMultilineCaption = false;
 
@@ -1712,7 +1764,20 @@ void CLocatorPanel::DrawStaticIcon( CLocatorTarget *pTarget )
 		}
 	}
 
-	DrawTargetCaption( pTarget, pTarget->GetIconX() + iconWide + ICON_GAP, pTarget->GetIconCenterY(), bDrawMultilineCaption );
+#ifdef MAPBASE
+	if ( IsUsingBackground( pTarget ) && m_pBackgroundPanel )
+	{
+		m_pBackgroundPanel->SetVisible( true );
+		m_pBackgroundPanel->SetAlpha( pTarget->m_alpha );
+
+		DrawTargetBackgroundCaption( pTarget, pTarget->GetIconX() + iconWide + ICON_GAP, pTarget->GetIconCenterY() );
+	}
+	else
+#endif
+	{
+		DrawTargetCaption( pTarget, pTarget->GetIconX() + iconWide + ICON_GAP, pTarget->GetIconCenterY(), bDrawMultilineCaption );
+	}
+
 	if ( pTarget->DrawBindingName() )
 	{
 		DrawBindingName( pTarget, pTarget->DrawBindingName(), pTarget->GetIconX() + (iconWide>>1), pTarget->GetIconY() + (iconTall>>1), pTarget->m_bDrawControllerButton );
@@ -1747,6 +1812,10 @@ void CLocatorPanel::DrawDynamicIcon( CLocatorTarget *pTarget, bool bDrawCaption,
 
 	if( pTarget->m_bOccluded && !( (pTarget->GetIconEffectsFlags() & LOCATOR_ICON_FX_FORCE_CAPTION) || locator_topdown_style.GetBool() ) )
 	{
+#ifdef MAPBASE
+		if ( IsUsingBackground( pTarget ) && m_pBackgroundPanel )
+			m_pBackgroundPanel->SetVisible( false );
+#endif
 		return;
 	}
 
@@ -1761,24 +1830,41 @@ void CLocatorPanel::DrawDynamicIcon( CLocatorTarget *pTarget, bool bDrawCaption,
 		iWide /= pTarget->m_widthScale_onscreen;
 	}
 
-	// Figure out the caption width
-	pTarget->m_captionWide = GetScreenWidthForCaption( pTarget->GetCaptionText(), m_hCaptionFont );
-	
+	// Figure out the caption width	
 	bool bDrawMultilineCaption = false;
-
-	if ( m_iShouldWrapStaticLocators > 0 )	// conditionalized in locator.res
+	
+#ifdef MAPBASE
+	if ( IsUsingBackground( pTarget ) && m_pCaptionLabel )
 	{
-		if ( pTarget->m_captionWide > (  ScreenWidth() * locator_split_maxwide_percent.GetFloat() ) )
+		m_pCaptionLabel->SetText( pTarget->GetCaptionText() );
+		int captionWidth, captionHeight;
+		m_pCaptionLabel->GetContentSize( captionWidth, captionHeight );
+		pTarget->m_captionWide = captionWidth;
+	}
+	else
+#endif
+	{
+		pTarget->m_captionWide = GetScreenWidthForCaption( pTarget->GetCaptionText(), m_hCaptionFont );
+
+		if ( m_iShouldWrapStaticLocators > 0 )	// conditionalized in locator.res
 		{
-			// we will double-line this
-			pTarget->m_captionWide = pTarget->m_captionWide * locator_split_len.GetFloat();
-			bDrawMultilineCaption = true;
+			if ( pTarget->m_captionWide > (  ScreenWidth() * locator_split_maxwide_percent.GetFloat() ) )
+			{
+				// we will double-line this
+				pTarget->m_captionWide = pTarget->m_captionWide * locator_split_len.GetFloat();
+				bDrawMultilineCaption = true;
+			}
 		}
 	}
 
 	int totalWide = iWide;
 
 	bool bShouldDrawCaption = ( (pTarget->GetIconEffectsFlags() & LOCATOR_ICON_FX_FORCE_CAPTION) || (!pTarget->m_bOccluded && pTarget->m_distFromPlayer <= ICON_DIST_TOO_FAR) || locator_topdown_style.GetBool() );
+	
+#ifdef MAPBASE
+	if ( IsUsingBackground( pTarget ) && m_pBackgroundPanel )
+		m_pBackgroundPanel->SetVisible( pTarget->m_bOnscreen && pTarget->m_isActive && bShouldDrawCaption && bDrawCaption );
+#endif
 
 	if( pTarget->m_bOnscreen && bDrawCaption && bShouldDrawCaption )
 	{
@@ -1883,7 +1969,9 @@ void CLocatorPanel::DrawDynamicIcon( CLocatorTarget *pTarget, bool bDrawCaption,
 			DrawBindingName( pTarget, pTarget->DrawBindingName(), pTarget->GetIconX() + (iWide>>1), pTarget->GetIconY() + (pTarget->m_tall>>1), pTarget->m_bDrawControllerButtonOffscreen );
 		}
 
+#ifndef MAPBASE
 		if ( locator_background_style.GetInt() == 0 )
+#endif
 		{
 			// Draw the arrow.
 			DrawIndicatorArrow( pTarget->GetIconX(), pTarget->GetIconY(), iWide, pTarget->m_tall, 0, pTarget->m_drawArrowDirection );
@@ -1894,6 +1982,13 @@ void CLocatorPanel::DrawDynamicIcon( CLocatorTarget *pTarget, bool bDrawCaption,
 		if( bDrawCaption )
 		{
 			//ScreenWidth() *  * pTarget->m_widthScale_onscreen
+#ifdef MAPBASE
+			if ( IsUsingBackground( pTarget ) && m_pCaptionLabel )
+			{
+				DrawTargetBackgroundCaption( pTarget, pTarget->GetIconCenterX() + ICON_GAP + pTarget->GetIconWidth() * 0.5, pTarget->GetIconCenterY() );
+			}
+			else
+#endif
 			DrawTargetCaption( pTarget, pTarget->GetIconCenterX() + ICON_GAP + pTarget->GetIconWidth() * 0.5, pTarget->GetIconCenterY(), bDrawMultilineCaption );
 		}
 		if ( pTarget->DrawBindingName() )
@@ -1995,6 +2090,63 @@ void CLocatorPanel::DrawTargetCaption( CLocatorTarget *pTarget, int x, int y, bo
 		}		
 	}
 }
+
+#ifdef MAPBASE
+//-----------------------------------------------------------------------------
+// Purpose: Some targets have text captions. Draw the text.
+//-----------------------------------------------------------------------------
+int CLocatorPanel::DrawTargetBackgroundCaption( CLocatorTarget *pTarget, int x, int y )
+{
+	if (!m_pCaptionLabel || !m_pBackgroundPanel)
+		return 0;
+
+	// Draw text and background.
+	m_pCaptionLabel->SetText(pTarget->GetCaptionText());
+	int distanceWide, distanceTall;
+	m_pCaptionLabel->GetContentSize(distanceWide, distanceTall);
+	distanceWide += XRES(24);
+	distanceTall += YRES(18);
+	m_pCaptionLabel->SetSize(distanceWide, distanceTall);
+
+	int fontTall = vgui::surface()->GetFontTall(m_pCaptionLabel->GetFont());
+	m_pBackgroundPanel->SetPos(x - 1, y - (fontTall / 2) - 1 - YRES(18 / 2));
+	m_pBackgroundPanel->SetSize(distanceWide, distanceTall);
+	m_pBackgroundPanel->SetPaintBackgroundEnabled(locator_background_style.GetInt() == 1);
+
+	if (!m_pCaptionLabelShadow)
+		return distanceWide;
+
+	// Set text for the shadow label.
+	m_pCaptionLabelShadow->SetText(pTarget->GetCaptionText());
+	m_pCaptionLabelShadow->SetSize(distanceWide, distanceTall);
+	m_pCaptionLabelShadow->SetVisible(locator_text_drop_shadow.GetBool());
+
+	return distanceWide;
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: Whether or not to draw with the background
+//-----------------------------------------------------------------------------
+bool CLocatorPanel::IsUsingBackground( CLocatorTarget *pTarget )
+{
+	if ( pTarget )
+	{
+		// HACKHACK: Since we have only one background and label, just use them on the first hint.
+		// It is very rare for multiple hints to show up, although this could still be done better.
+		if ( pTarget->m_serialNumber != m_targets[0].m_serialNumber )
+			return false;
+
+		// No need for a background if we have no text
+		if ( !pTarget->GetCaptionText() || !*pTarget->GetCaptionText() )
+			return false;
+	}
+
+	if ( locator_background_style.GetInt() >= 1 )
+		return true;
+
+	return false;
+}
+#endif
 
 //-----------------------------------------------------------------------------
 // Purpose: Figure out how wide (pixels) a string will be if rendered with this font
@@ -2202,6 +2354,11 @@ void CLocatorPanel::RemoveTarget( int hTarget )
 
 	if( pTarget )
 	{
+#ifdef MAPBASE
+		if ( IsUsingBackground( pTarget ) && m_pBackgroundPanel )
+			m_pBackgroundPanel->SetVisible( false );
+#endif
+
 		pTarget->Deactivate();
 	}
 }

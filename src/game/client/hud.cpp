@@ -1237,6 +1237,9 @@ void CHudIcons::Init()
 #ifdef HL2_CLIENT_DLL
 	LoadHudTextures( textureList, "scripts/instructor_textures_hl2", NULL );
 #endif
+#ifdef TF_CLIENT_DLL
+	LoadHudTextures( textureList, "scripts/instructor_textures_tf", NULL );
+#endif
 	LoadHudTextures( textureList, "scripts/instructor_modtextures", NULL );
 
 	int c = textureList.Count();

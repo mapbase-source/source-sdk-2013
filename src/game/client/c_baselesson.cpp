@@ -18,6 +18,9 @@
 #include "vstdlib/IKeyValuesSystem.h"
 #ifdef MAPBASE
 #include "usermessages.h"
+#ifdef TF_CLIENT_DLL
+#include "c_tf_player.h"
+#endif
 #endif
 
 // memdbgon must be the last include file in a .cpp file!!!
