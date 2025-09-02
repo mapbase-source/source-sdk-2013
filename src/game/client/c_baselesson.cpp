@@ -448,6 +448,8 @@ void CIconLesson::Init()
 
 	m_iIconTargetPos		= ICON_TARGET_EYE_POSITION;
 	m_szHudHint				= "";
+	m_iHintEntSpawnFlags	= 0;
+	m_iHintEntTeam			= 0;
 #else
 	m_szCaptionColor		= "255,255,255";// Default to white
 #endif
@@ -700,6 +702,36 @@ bool CIconLesson::ShouldDisplay() const
 			return false;
 		}
 	}
+
+#ifdef MAPBASE
+	if ( m_iHintEntSpawnFlags || m_iHintEntTeam )
+	{
+		C_BasePlayer *pLocalPlayer = GetGameInstructor().GetLocalPlayer();
+		if ( pLocalPlayer )
+		{
+#ifdef TF_CLIENT_DLL
+			C_TFPlayer *pTFPlayer = static_cast<C_TFPlayer*>( pLocalPlayer );
+			if ( m_iHintEntSpawnFlags )
+			{
+				int iClass = pTFPlayer->GetPlayerClass()->GetClassIndex();
+				int bits = pow(2, iClass);
+				if ( !(m_iHintEntSpawnFlags & bits) )
+				{
+					return false;
+				}
+			}
+#endif
+			if ( m_iHintEntTeam )
+			{
+				int iTeam = pLocalPlayer->GetTeamNumber();
+				if ( m_iHintEntTeam != iTeam )
+				{
+					return false;
+				}
+			}
+		}
+	}
+#endif
 
 	// Ok to display
 	return true;
@@ -1033,6 +1065,9 @@ Vector CIconLesson::GetIconTargetPosition( C_BaseEntity *pIconTarget )
 																										\
 	LESSON_VARIABLE_MACRO( ICON_TARGET_POS, m_iIconTargetPos, int )								\
 	LESSON_VARIABLE_MACRO_STRING( HUD_HINT_AFTER_LEARNED, m_szHudHint, CGameInstructorSymbol )					\
+																										\
+	LESSON_VARIABLE_MACRO( ENT_SPAWNFLAGS, m_iHintEntSpawnFlags, int )									\
+	LESSON_VARIABLE_MACRO( ENT_TEAM, m_iHintEntTeam, int )												\
 
 
 // Create keyvalues name symbol

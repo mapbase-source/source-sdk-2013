@@ -277,6 +277,9 @@ protected:
 	};
 
 	CGameInstructorSymbol	m_szHudHint;
+
+	int		m_iHintEntSpawnFlags;
+	int		m_iHintEntTeam;
 #endif
 };
 

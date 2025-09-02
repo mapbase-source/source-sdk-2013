@@ -215,7 +215,7 @@ void CEnvInstructorHint::InputShowHint( inputdata_t &inputdata )
 
 		if ( inputdata.value.StringID() != NULL_STRING )
 		{
-			CBaseEntity *pTarget = gEntList.FindEntityByName( NULL, inputdata.value.String() );
+			CBaseEntity *pTarget = gEntList.FindEntityByName( NULL, inputdata.value.String(), NULL, inputdata.pActivator, inputdata.pCaller );
 			pActivator = dynamic_cast<CBasePlayer*>( pTarget );
 			if ( pActivator )
 			{
@@ -263,6 +263,8 @@ void CEnvInstructorHint::InputShowHint( inputdata_t &inputdata )
 #ifdef MAPBASE
 		event->SetString( "hint_start_sound", m_iszStartSound.ToCStr() );
 		event->SetInt( "hint_target_pos", m_iHintTargetPos );
+		event->SetInt( "hint_ent_spawnflags", GetSpawnFlags() );
+		event->SetInt( "hint_ent_team", GetTeamNumber() );
 #endif
 
 		gameeventmanager->FireEvent( event );
