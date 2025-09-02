@@ -47,6 +47,10 @@ public:
 
 	void DefineLesson( CBaseLesson *pLesson );
 
+#ifdef MAPBASE
+	bool Mod_DefineLessonType( const char *pszLessonName, const char *pszLessonType );
+#endif
+
 	const CBaseLesson * GetLesson( const char *pchLessonName );
 	bool IsLessonOfSameTypeOpen( const CBaseLesson *pLesson ) const;
 
@@ -60,6 +64,7 @@ public:
 	void PlaySound( const char *pchSoundName );
 
 	bool OpenOpportunity( CBaseLesson *pLesson );
+	void CloseOpportunity( CBaseLesson *pLesson );
 
 	void DumpOpenOpportunities( void );
 
@@ -83,7 +88,6 @@ private:
 	void StopAllLessons( void );
 
 	void CloseAllOpenOpportunities( void );
-	void CloseOpportunity( CBaseLesson *pLesson );
 
 	void InitLessonPrerequisites( void );
 

@@ -684,8 +684,18 @@ bool IsCreepWaveMode( void ) const;
 //=============================================================================
 // HPE_END
 //=============================================================================
+
+#if defined(MAPBASE) && defined(CLIENT_DLL)
+	bool IsTrainingHUDVisible( void ) { return (IsInTraining() && m_bIsTrainingHUDVisible) || IsShowingTFObjectiveLesson(); }
+#else
 	bool IsTrainingHUDVisible( void ) { return IsInTraining() && m_bIsTrainingHUDVisible; }
+#endif
 	void SetTrainingHUDVisible( bool bVisible ) { m_bIsTrainingHUDVisible.Set( bVisible ); }
+
+#if defined(MAPBASE) && defined(CLIENT_DLL)
+	bool	IsShowingTFObjectiveLesson() { return m_bShowingTFObjectiveLesson; }
+	void	SetShowingTFObjectiveLesson( bool bShowingLesson ) { m_bShowingTFObjectiveLesson = bShowingLesson; }
+#endif
 
 	virtual bool	IsInItemTestingMode( void ) { return m_bIsInItemTestingMode; }
 	void			SetInItemTestingMode( bool bInTesting ) { m_bIsInItemTestingMode.Set( bInTesting ); }
@@ -1166,6 +1176,10 @@ private:
 //=============================================================================
 	CNetworkVar( bool, m_bIsTrainingHUDVisible );
 
+#if defined(MAPBASE) && defined(CLIENT_DLL)
+	bool	m_bShowingTFObjectiveLesson; // Whether or not the training HUD is currently being used for an instructor lesson
+#endif
+
 	CNetworkVar( bool, m_bIsInItemTestingMode );
 	int		m_iItemTesting_BotAnim;
 	float	m_flItemTesting_BotAnimSpeed;
@@ -1616,6 +1630,9 @@ public:
 	void SetupOnRoundStart( void );
 	void SetTrainingMsg( const char *msg );
 	void SetTrainingObjective( const char *msg );
+#ifdef MAPBASE
+	void SetTrainingImage( const char *msg );
+#endif
 	void OnPlayerSpawned( CTFPlayer *pPlayer );
 	void OnPlayerDied( CTFPlayer *pPlayer, CBaseEntity *pKiller );
 	void OnBotDied( CTFPlayer *pPlayer, CBaseEntity *pKiller );
@@ -1634,6 +1651,9 @@ public:
 	void InputKickAllBots( inputdata_t &inputdata );
 	void InputShowTrainingMsg( inputdata_t &inputdata );
 	void InputShowTrainingObjective( inputdata_t &inputdata );
+#ifdef MAPBASE
+	void InputShowTrainingImage( inputdata_t &inputdata );
+#endif
 	void InputShowTrainingHUD( inputdata_t &inputdata );
 	void InputHideTrainingHUD( inputdata_t &inputdata );
 	void InputEndTraining( inputdata_t &inputdata );

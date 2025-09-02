@@ -1660,7 +1660,11 @@ void CScriptedIconLesson::ProcessOpenGameEvents( const CScriptedIconLesson *pRoo
 				}
 
 				MEM_ALLOC_CREDIT();
+#ifdef MAPBASE
+				CScriptedIconLesson *pOpenLesson = CreateLessonCopy();
+#else
 				CScriptedIconLesson *pOpenLesson = new CScriptedIconLesson( GetName(), false, true );
+#endif
 
 				// Run copy macros on all scriptable variables (see: LESSON_VARIABLE_FACTORY definition)
 #define LESSON_VARIABLE_MACRO			LESSON_VARIABLE_COPY
@@ -2711,13 +2715,13 @@ bool CScriptedIconLesson::ProcessElementAction( int iAction, bool bNot, const ch
 bool CScriptedIconLesson::ProcessElementAction( int iAction, bool bNot, const char *pchVarName, EHANDLE &hVar, const CGameInstructorSymbol *pchParamName, float fParam, C_BaseEntity *pParam, const char *pchParam )
 {
 	// First try to let the mod act on the action
-	/*bool bModHandled = false;
+	bool bModHandled = false;
 	bool bModReturn = Mod_ProcessElementAction( iAction, bNot, pchVarName, hVar, pchParamName, fParam, pParam, pchParam, bModHandled );
 
 	if ( bModHandled )
 	{
 		return bModReturn;
-	}*/
+	}
 
 	C_BaseEntity *pVar = hVar.Get();
 
@@ -3945,5 +3949,5 @@ void CScriptedIconLesson::PreReadLessonsFromFile()
 	CScriptedIconLesson::LessonActionMap.Insert( "get potential use target", LESSON_ACTION_GET_POTENTIAL_USE_TARGET );
 
 	// Add mod actions to the map
-	//Mod_PreReadLessonsFromFile();
+	Mod_PreReadLessonsFromFile();
 }

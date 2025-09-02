@@ -405,6 +405,10 @@ public:
 
 	bool ProcessElements( IGameEvent *event, const CUtlVector< LessonElement_t > *pElements );
 
+#ifdef MAPBASE
+	virtual CScriptedIconLesson *CreateLessonCopy()	{ return new CScriptedIconLesson( GetName(), false, true ); }
+#endif
+
 private:
 	void InitElementsFromKeys( CUtlVector< LessonElement_t > *pLessonElements, KeyValues *pKey );
 	void InitElementsFromElements( CUtlVector< LessonElement_t > *pLessonElements, const CUtlVector< LessonElement_t > *pLessonElements2 );
@@ -431,6 +435,7 @@ private:
 private:
 	static CUtlDict< int, int > LessonActionMap;
 
+protected:
 	EHANDLE					m_hLocalPlayer;
 	float					m_fOutput;
 	CHandle<C_BaseEntity>	m_hEntity1;
@@ -442,6 +447,7 @@ private:
 	float					m_fFloat1;
 	float					m_fFloat2;
 
+private:
 	CUtlVector< CGameInstructorSymbol >	m_PrerequisiteNames;
 	CUtlVector< LessonEvent_t >	m_OpenEvents;
 	CUtlVector< LessonEvent_t >	m_CloseEvents;

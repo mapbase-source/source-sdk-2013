@@ -160,7 +160,7 @@ void CHudNotificationPanel::MsgFunc_HudNotifyCustom( bf_read &msg )
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void CHudNotificationPanel::SetupNotifyCustom( const char *pszText, const char *pszIcon, int iBackgroundTeam )
+void CHudNotificationPanel::SetupNotifyCustom( const char *pszText, const char *pszIcon, int iBackgroundTeam, float overrideDuration )
 {
 	// Reload the base
 	LoadControlSettings( "resource/UI/notifications/base_notification.res" );
@@ -182,7 +182,7 @@ void CHudNotificationPanel::SetupNotifyCustom( const char *pszText, const char *
 	}
 
 	// set up the fade time
-	m_flFadeTime = gpGlobals->curtime + tf_hud_notification_duration.GetFloat();
+	m_flFadeTime = gpGlobals->curtime + ( overrideDuration > 0.f ? overrideDuration : tf_hud_notification_duration.GetFloat() );
 
 	InvalidateLayout();
 }
@@ -190,7 +190,7 @@ void CHudNotificationPanel::SetupNotifyCustom( const char *pszText, const char *
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void CHudNotificationPanel::SetupNotifyCustom( const wchar_t *pszText, const char *pszIcon, int iBackgroundTeam )
+void CHudNotificationPanel::SetupNotifyCustom( const wchar_t *pszText, const char *pszIcon, int iBackgroundTeam, float overrideDuration )
 {
 	// Reload the base
 	LoadControlSettings( "resource/UI/notifications/base_notification.res" );
@@ -212,7 +212,7 @@ void CHudNotificationPanel::SetupNotifyCustom( const wchar_t *pszText, const cha
 	}
 
 	// set up the fade time
-	m_flFadeTime = gpGlobals->curtime + tf_hud_notification_duration.GetFloat();
+	m_flFadeTime = gpGlobals->curtime + ( overrideDuration > 0.f ? overrideDuration : tf_hud_notification_duration.GetFloat() );
 
 	InvalidateLayout();
 }
@@ -234,6 +234,17 @@ void CHudNotificationPanel::SetupNotifyCustom( const wchar_t *pszText, HudNotifi
 
 	InvalidateLayout();
 }
+
+#ifdef MAPBASE
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+void CHudNotificationPanel::HideNotify()
+{
+	// Hides current message
+	m_flFadeTime = 0.0f;
+}
+#endif
 
 //-----------------------------------------------------------------------------
 // Purpose: 

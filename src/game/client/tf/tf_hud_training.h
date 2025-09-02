@@ -42,18 +42,39 @@ public:
 	static bool   FormatTrainingText( const char* input, wchar_t* output );
 
 	virtual void  ApplySchemeSettings( vgui::IScheme *pScheme );
+	virtual void  PerformLayout();
 	virtual void  Reset();
 	virtual void  FireGameEvent( IGameEvent *event );
 	virtual bool  IsVisible( void );
 	virtual void  OnTick();
 
-	void          SetTrainingText( char *msg );
-	void          SetTrainingObjective( char *msg );
+	void          SetTrainingText( const char *msg );
+	void          SetTrainingObjective( const char *msg );
+#ifdef MAPBASE
+	void          SetTrainingImage( const char *image );
+	void          SetTrainingOverridePos( bool bOverride, float flX, float flY );
+
+	void          SetTrainingGameInstructor( bool bIsInstructor );
+#endif
 
 private:
 
 	CExRichText		*m_pMsgLabel;
 	CExLabel		*m_pPressSpacebarToContinueLabel;
+#ifdef MAPBASE
+	CExLabel		*m_pGoalLabel;
+	CExLabel		*m_pGoalLabelShadow;
+	CExRichText		*m_pMsgLabelShadow;
+	CTFImagePanel	*m_pMsgBG;
+
+	vgui::ImagePanel	*m_pImage;
+	char			m_szImage[MAX_PATH];
+
+	bool			m_bOverridePos = false;
+	float			m_flOverrideX, m_flOverrideY = 0.0f;
+
+	bool			m_bIsGameInstructor = false;
+#endif
 };
 
 

@@ -44,8 +44,13 @@ public:
 	// HPE_BEGIN
 	// [msmith] Functions for training stuff.
 	//=============================================================================
-	void SetTrainingText( char *msg);
-	void SetTrainingObjective (char *obj);
+	void SetTrainingText( const char *msg);
+	void SetTrainingObjective (const char *obj);
+#ifdef MAPBASE
+	void SetTrainingImage (const char *img);
+	void SetTrainingGameInstructor (bool bIsInstructor);
+	void SetTrainingOverridePos (bool bOverride, float flX, float flY);
+#endif
 	//=============================================================================
 	// HPE_END
 	//=============================================================================

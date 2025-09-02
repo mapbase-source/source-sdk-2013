@@ -171,8 +171,7 @@ void C_GameInstructor::Shutdown()
 //=========================================================
 void C_GameInstructor::UpdateHiddenByOtherElements()
 {
-	//bool bHidden = Mod_HiddenByOtherElements();
-	bool bHidden = false;
+	bool bHidden = Mod_HiddenByOtherElements();
 
 	if ( bHidden && !m_bHiddenDueToOtherElements )
 		StopAllLessons();
@@ -1276,8 +1275,23 @@ void C_GameInstructor::ReadLessonsFromFile( const char *pchFileName )
 			continue;
 		}
 
+#ifdef MAPBASE
+		const char *pszLessonType = m_pScriptKeys->GetString( "lesson_type", "locator" );
+		if ( pszLessonType )
+		{
+			if (FStrEq( pszLessonType, "locator" ))
+			{
+				DefineLesson( new CScriptedIconLesson( m_pScriptKeys->GetName(), false, false ) );
+			}
+			else if (!Mod_DefineLessonType( m_pScriptKeys->GetName(), pszLessonType ))
+			{
+				Warning( "Lesson \"%s\" has unknown type \"%s\"\n", m_pScriptKeys->GetName(), pszLessonType );
+			}
+		}
+#else
 		CScriptedIconLesson *pNewLesson = new CScriptedIconLesson(m_pScriptKeys->GetName(), false, false);
 		GetGameInstructor().DefineLesson(pNewLesson);
+#endif
 	}
 
 	m_pScriptKeys = NULL;

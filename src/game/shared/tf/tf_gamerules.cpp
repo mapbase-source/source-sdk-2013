@@ -3379,6 +3379,10 @@ CTFGameRules::CTFGameRules()
 //=============================================================================
 	m_bIsTrainingHUDVisible.Set( false );
 
+#if defined(MAPBASE) && defined(CLIENT_DLL)
+	m_bShowingTFObjectiveLesson = false;
+#endif
+
 	m_bIsInItemTestingMode.Set( false );
 
 	// Set turbo physics on.  Do it here for now.
@@ -19304,6 +19308,9 @@ BEGIN_DATADESC( CTrainingModeLogic )
 	DEFINE_KEYFIELD( m_nextMapName, FIELD_STRING, "nextMap" ),
 	DEFINE_INPUTFUNC( FIELD_STRING, "ShowTrainingMsg", InputShowTrainingMsg ),
 	DEFINE_INPUTFUNC( FIELD_STRING, "ShowTrainingObjective", InputShowTrainingObjective ),
+#ifdef MAPBASE
+	DEFINE_INPUTFUNC( FIELD_STRING, "ShowTrainingImage", InputShowTrainingImage ),
+#endif
 	DEFINE_INPUTFUNC( FIELD_VOID, "ForcePlayerSpawnAsClassOutput", InputForcePlayerSpawnAsClassOutput ),
 	DEFINE_INPUTFUNC( FIELD_VOID, "KickBots", InputKickAllBots ),
 	DEFINE_INPUTFUNC( FIELD_VOID, "ShowTrainingHUD", InputShowTrainingHUD ),
@@ -19358,6 +19365,17 @@ void CTrainingModeLogic::SetTrainingObjective(const char *text)
 	WRITE_STRING( text );
 	MessageEnd();
 }
+
+#ifdef MAPBASE
+void CTrainingModeLogic::SetTrainingImage(const char *text)
+{
+	CBroadcastRecipientFilter allusers;
+	allusers.MakeReliable();
+	UserMessageBegin( allusers, "TrainingImage" );
+	WRITE_STRING( text );
+	MessageEnd();
+}
+#endif
 
 void CTrainingModeLogic::OnPlayerSpawned( CTFPlayer* pPlayer )
 {
@@ -19523,6 +19541,16 @@ void CTrainingModeLogic::InputShowTrainingObjective( inputdata_t &inputdata )
 	
 	UpdateHUDObjective();
 }
+
+#ifdef MAPBASE
+void CTrainingModeLogic::InputShowTrainingImage( inputdata_t &inputdata )
+{
+	if ( !TFGameRules()->IsInTraining() )
+		return;
+
+	SetTrainingImage( inputdata.value.String() );
+}
+#endif
 
 void CTrainingModeLogic::InputShowTrainingHUD( inputdata_t &inputdata )
 {

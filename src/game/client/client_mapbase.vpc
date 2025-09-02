@@ -4,9 +4,6 @@
 //	Project Script
 //-----------------------------------------------------------------------------
 
-$Include "$SRCDIR\game\client\client_mapbase_hl2.vpc"	[$HL2||$EPISODIC||$HL2MP]
-$Include "$SRCDIR\game\client\client_mapbase_tf.vpc"	[$TF]
-
 $Configuration
 {
 	$Compiler
@@ -30,6 +27,7 @@ $Project
 		$File	"c_baselesson.h"
 		$File	"c_gameinstructor.cpp"
 		$File	"c_gameinstructor.h"
+		$File	"c_mod_lesson_stubs.cpp"
 		$File	"hud_locator_target.cpp"
 		$File	"hud_locator_target.h"
 		$File	"c_postprocesscontroller.cpp"
@@ -81,3 +79,6 @@ $Project
 		$Lib	"raytrace"
 	}
 }
+
+$Include "$SRCDIR\game\client\client_mapbase_hl2.vpc"	[$HL2||$EPISODIC||$HL2MP]
+$Include "$SRCDIR\game\client\client_mapbase_tf.vpc"	[$TF]

@@ -40,6 +40,9 @@ public:
 
 	void			MsgFunc_TrainingMsg( bf_read &msg );
 	void			MsgFunc_TrainingObjective( bf_read &msg );
+#ifdef MAPBASE
+	void			MsgFunc_TrainingImage( bf_read &msg );
+#endif
 
 private:
 };
@@ -47,6 +50,9 @@ private:
 DECLARE_HUDELEMENT( CHudTrainingMsg );
 DECLARE_HUD_MESSAGE( CHudTrainingMsg, TrainingMsg );
 DECLARE_HUD_MESSAGE( CHudTrainingMsg, TrainingObjective );
+#ifdef MAPBASE
+DECLARE_HUD_MESSAGE( CHudTrainingMsg, TrainingImage );
+#endif
 
 //-----------------------------------------------------------------------------
 // Purpose: 
@@ -65,6 +71,9 @@ void CHudTrainingMsg::Init()
 {
 	HOOK_HUD_MESSAGE( CHudTrainingMsg, TrainingMsg );
 	HOOK_HUD_MESSAGE( CHudTrainingMsg, TrainingObjective );
+#ifdef MAPBASE
+	HOOK_HUD_MESSAGE( CHudTrainingMsg, TrainingImage );
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -110,4 +119,24 @@ void CHudTrainingMsg::MsgFunc_TrainingObjective( bf_read &msg )
 		pStatus->SetTrainingObjective(szString);
 	}
 }
+
+#ifdef MAPBASE
+//-----------------------------------------------------------------------------
+// Purpose: Activates the hint display
+//-----------------------------------------------------------------------------
+void CHudTrainingMsg::MsgFunc_TrainingImage( bf_read &msg )
+{
+	if ( engine->IsPlayingDemo() )
+		return;
+
+	char szString[MAX_TRAINING_MSG_LENGTH];
+	msg.ReadString( szString, MAX_TRAINING_MSG_LENGTH );
+
+	CTFHudObjectiveStatus *pStatus = GET_HUDELEMENT( CTFHudObjectiveStatus );
+	if ( pStatus )
+	{
+		pStatus->SetTrainingImage(szString);
+	}
+}
+#endif
 

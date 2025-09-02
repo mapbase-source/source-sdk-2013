@@ -66,6 +66,9 @@ void RegisterUserMessages()
 //=============================================================================
 	usermessages->Register( "TrainingMsg", -1 );	// Displays a training message
 	usermessages->Register( "TrainingObjective", -1 );	// Displays a training objective
+#ifdef MAPBASE
+	usermessages->Register( "TrainingImage", -1 );	// Displays a training image
+#endif
 //=============================================================================
 // HPE_END
 //=============================================================================

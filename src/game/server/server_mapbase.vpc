@@ -4,9 +4,6 @@
 //	Project Base Script
 //-----------------------------------------------------------------------------
 
-$Include "$SRCDIR\game\server\server_mapbase_hl2.vpc"	[$HL2||$EPISODIC||$HL2MP]
-$Include "$SRCDIR\game\server\server_mapbase_tf.vpc"	[$TF]
-
 $Configuration
 {
 	$Compiler
@@ -102,3 +99,6 @@ $Project
 		$Lib	"responserules" [$NEW_RESPONSE_SYSTEM]
 	}
 }
+
+$Include "$SRCDIR\game\server\server_mapbase_hl2.vpc"	[$HL2||$EPISODIC||$HL2MP]
+$Include "$SRCDIR\game\server\server_mapbase_tf.vpc"	[$TF]

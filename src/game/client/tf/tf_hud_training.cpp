@@ -16,6 +16,8 @@
 
 using namespace vgui;
 
+extern void AddSubKeyNamed( KeyValues *pKeys, const char *pszName );
+
 //-----------------------------------------------------------------------------
 // Purpose: Localize text for training messages.  Used in annotations and in the training hud. Assumes the output string size is greater than or equal to MAX_TRAINING_MSG_LENGTH
 //-----------------------------------------------------------------------------
@@ -128,6 +130,10 @@ CTFHudTraining::CTFHudTraining( Panel *parent, const char *name ) : EditablePane
 	ivgui()->AddTickSignal( GetVPanel(), 10 );
 
 	ListenForGameEvent( "teamplay_round_start" );
+
+#ifdef MAPBASE
+	m_szImage[0] = '\0';
+#endif
 }
 
 
@@ -161,6 +167,9 @@ void CTFHudTraining::Reset( void )
 	SetDialogVariable( "goal", emptyText );
 
 	if (m_pMsgLabel) m_pMsgLabel->SetText(emptyText);
+#ifdef MAPBASE
+	if (m_pMsgLabelShadow) m_pMsgLabelShadow->SetText(emptyText);
+#endif
 	if (m_pPressSpacebarToContinueLabel) m_pPressSpacebarToContinueLabel->SetVisible( false );
 
 }
@@ -172,14 +181,139 @@ void CTFHudTraining::ApplySchemeSettings( IScheme *pScheme )
 {
 	BaseClass::ApplySchemeSettings( pScheme );
 
+	KeyValues *pConditions = NULL;
+
+#ifdef MAPBASE
+	if (m_szImage[0])
+	{
+		if ( !pConditions )
+			pConditions = new KeyValues( "conditions" );
+
+		AddSubKeyNamed( pConditions, "if_image" );
+	}
+
+	if ( m_bIsGameInstructor )
+	{
+		if ( !pConditions )
+			pConditions = new KeyValues( "conditions" );
+
+		AddSubKeyNamed( pConditions, "if_instructor" );
+	}
+#endif
+
 	// load control settings...
-	LoadControlSettings( "resource/UI/HudTraining.res" );
+	LoadControlSettings( "resource/UI/HudTraining.res", NULL, NULL, pConditions );
 
 	m_pMsgLabel = dynamic_cast<CExRichText *>( FindChildByName("MsgLabel") );
 	m_pPressSpacebarToContinueLabel = dynamic_cast<CExLabel *>( FindChildByName("PressSpacebarToContinue") );
+
+#ifdef MAPBASE
+	m_pGoalLabel = dynamic_cast<CExLabel *>(FindChildByName( "GoalLabel" ));
+	m_pGoalLabelShadow = dynamic_cast<CExLabel *>(FindChildByName( "GoalLabelShadow" ));
+	m_pMsgLabelShadow = dynamic_cast<CExRichText *>(FindChildByName( "MsgLabelShadow" ));
+	m_pMsgBG = dynamic_cast<CTFImagePanel *>(FindChildByName( "HudTrainingMsgBG" ));
+
+	m_pImage = dynamic_cast<vgui::ImagePanel *>(FindChildByName( "HudTrainingImage" ));
+	if (m_pImage && m_szImage[0])
+	{
+		m_pImage->SetImage( m_szImage );
+	}
+#endif
 }
 
-void CTFHudTraining::SetTrainingObjective(char *szRawString)
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+void CTFHudTraining::PerformLayout()
+{
+	BaseClass::PerformLayout();
+
+#ifdef MAPBASE
+	//m_pMsgLabel->SetFont( scheme()->GetIScheme( m_pMsgLabel->GetScheme() )->GetFont( "InstructionalText", true ) );
+
+	if ( m_bIsGameInstructor )
+	{
+		int x, y, wide, tall;
+
+		if ( m_bOverridePos )
+		{
+			x = (ScreenWidth() * m_flOverrideX) - (GetWide() / 2);
+			y = (ScreenHeight() * m_flOverrideY) - (GetTall() / 2);
+			SetPos( x, y );
+		}
+
+		/*if (m_pMsgLabel->GetNumLines() > 5)
+		{
+			m_pMsgLabel->SetFont( scheme()->GetIScheme( m_pMsgLabel->GetScheme() )->GetFont( "InstructionalTextSmall", true ) );
+		}*/
+
+		int iOldTall = m_pMsgLabel->GetTall();
+
+		m_pMsgLabel->SetToFullHeight();
+		m_pMsgLabel->SetVerticalScrollbar( false );
+		m_pMsgLabelShadow->SetToFullHeight();
+		m_pMsgLabelShadow->SetVerticalScrollbar( false );
+
+		int iTallDiff = m_pMsgLabel->GetTall() - iOldTall;
+
+		if ( iTallDiff > 0 )
+		{
+			GetBounds( x, y, wide, tall );
+
+			// Artificial padding
+			const int iPadding = iTallDiff/8;
+			y -= iPadding;
+			tall += iTallDiff;
+
+			SetBounds( x, y, wide, tall );
+
+			if (m_pGoalLabel)
+			{
+				m_pGoalLabel->GetPos( x, y );
+				y += iPadding;
+				m_pGoalLabel->SetPos( x, y );
+			}
+
+			if (m_pGoalLabelShadow)
+			{
+				m_pGoalLabelShadow->GetPos( x, y );
+				y += iPadding;
+				m_pGoalLabelShadow->SetPos( x, y );
+			}
+
+			if (m_pMsgLabel)
+			{
+				m_pMsgLabel->GetPos( x, y );
+				y += iPadding;
+				m_pMsgLabel->SetPos( x, y );
+			}
+
+			if (m_pMsgLabelShadow)
+			{
+				m_pMsgLabelShadow->GetPos( x, y );
+				y += iPadding;
+				m_pMsgLabelShadow->SetPos( x, y );
+			}
+
+			if (m_pMsgBG)
+			{
+				m_pMsgBG->GetBounds( x, y, wide, tall );
+				tall += iTallDiff + (iPadding*2);
+				m_pMsgBG->SetBounds( x, y, wide, tall );
+			}
+
+			if (m_pImage)
+			{
+				m_pImage->GetPos( x, y );
+				y += iPadding;
+				m_pImage->SetPos( x, y );
+			}
+		}
+	}
+#endif
+}
+
+void CTFHudTraining::SetTrainingObjective(const char *szRawString)
 {
 	wchar_t wszText[MAX_TRAINING_MSG_LENGTH];
 
@@ -199,7 +333,7 @@ void CTFHudTraining::SetTrainingObjective(char *szRawString)
 }
 
 
-void CTFHudTraining::SetTrainingText(char *szRawString)
+void CTFHudTraining::SetTrainingText(const char *szRawString)
 {
 	static wchar_t wszText[MAX_TRAINING_MSG_LENGTH];
 
@@ -211,11 +345,19 @@ void CTFHudTraining::SetTrainingText(char *szRawString)
 	if (!FormatTrainingText(szRawString, wszText))
 	{
 		m_pMsgLabel->SetText( "" );
+#ifdef MAPBASE
+		if ( m_pMsgLabelShadow )
+			m_pMsgLabelShadow->SetText( "" );
+#endif
 		return;
 	}
 
 	// clear the text first
 	m_pMsgLabel->SetText("");
+#ifdef MAPBASE
+	if ( m_pMsgLabelShadow )
+		m_pMsgLabelShadow->SetText( "" );
+#endif
 
 	enum
 	{
@@ -255,6 +397,14 @@ void CTFHudTraining::SetTrainingText(char *szRawString)
 				wszInsertedText[len-1] = 0;
 				m_pMsgLabel->InsertColorChange( color );
 				m_pMsgLabel->InsertString( wszInsertedText );
+
+#ifdef MAPBASE
+				if ( m_pMsgLabelShadow )
+				{
+					m_pMsgLabelShadow->InsertString( wszInsertedText );
+				}
+#endif
+
 				// skip past the color change character
 				startIdx = endIdx + 1;
 			}
@@ -264,7 +414,35 @@ void CTFHudTraining::SetTrainingText(char *szRawString)
 	}
 
 	//m_pMessageFlashEndTime = gpGlobals->curtime + MESSAGE_FLASH_TIME;
-	g_pClientMode->GetViewportAnimationController()->StartAnimationSequence( "TrainingHudBounce");
+
+#ifdef MAPBASE
+	if (m_bIsGameInstructor)
+	{
+		m_pMsgLabel->SetUnusedScrollbarInvisible( true );
+		if ( m_pMsgLabelShadow )
+			m_pMsgLabelShadow->SetUnusedScrollbarInvisible( true );
+
+		InvalidateLayout( true, false );
+
+		/*
+		int x, y;
+		GetPos( x, y );
+
+		g_pClientMode->GetViewportAnimationController()->RunAnimationCommand( this, "Position", Color( x, y - 60, 0, 0 ), 0.0f, 0.0f, vgui::AnimationController::INTERPOLATOR_LINEAR );
+		g_pClientMode->GetViewportAnimationController()->RunAnimationCommand( this, "Position", Color( x, y, 0, 0 ), 0.0f, 2.0f, vgui::AnimationController::INTERPOLATOR_BOUNCE );
+		*/
+
+		g_pClientMode->GetViewportAnimationController()->StartAnimationSequence( "TrainingHudBlink" );
+	}
+	else
+#endif
+	{
+		m_pMsgLabel->SetUnusedScrollbarInvisible( false );
+		if ( m_pMsgLabelShadow )
+			m_pMsgLabelShadow->SetUnusedScrollbarInvisible( false );
+
+		g_pClientMode->GetViewportAnimationController()->StartAnimationSequence( "TrainingHudBounce");
+	}
 
 	C_BasePlayer *pLocalPlayer = C_BasePlayer::GetLocalPlayer();
 	if ( pLocalPlayer )
@@ -272,6 +450,27 @@ void CTFHudTraining::SetTrainingText(char *szRawString)
 		pLocalPlayer->EmitSound( "Hud.TrainingMsgUpdate" );
 	}
 }
+
+
+#ifdef MAPBASE
+void CTFHudTraining::SetTrainingImage( const char *image )
+{
+	V_strncpy( m_szImage, image, sizeof( m_szImage ) );
+	InvalidateLayout( false, true );
+}
+
+void CTFHudTraining::SetTrainingOverridePos( bool bOverride, float flX, float flY )
+{
+	m_bOverridePos = bOverride;
+	m_flOverrideX = flX;
+	m_flOverrideY = flY;
+}
+
+void CTFHudTraining::SetTrainingGameInstructor( bool bIsInstructor )
+{
+	m_bIsGameInstructor = bIsInstructor;
+}
+#endif
 
 
 //-----------------------------------------------------------------------------

@@ -159,7 +159,7 @@ CControlPointProgressBar *CTFHudObjectiveStatus::GetControlPointProgressBar( voi
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void CTFHudObjectiveStatus::SetTrainingText( char *text )
+void CTFHudObjectiveStatus::SetTrainingText( const char *text )
 {
 	if ( NULL == m_pTrainingPanel )
   		return;
@@ -170,13 +170,48 @@ void CTFHudObjectiveStatus::SetTrainingText( char *text )
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void CTFHudObjectiveStatus::SetTrainingObjective( char *text )
+void CTFHudObjectiveStatus::SetTrainingObjective( const char *text )
 {
 	if ( NULL == m_pTrainingPanel )
 		return;
 
 	m_pTrainingPanel->SetTrainingObjective( text );
 }
+
+#ifdef MAPBASE
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+void CTFHudObjectiveStatus::SetTrainingImage( const char *img )
+{
+	if ( NULL == m_pTrainingPanel )
+		return;
+
+	m_pTrainingPanel->SetTrainingImage( img );
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+void CTFHudObjectiveStatus::SetTrainingGameInstructor( bool bIsInstructor )
+{
+	if ( NULL == m_pTrainingPanel )
+		return;
+
+	m_pTrainingPanel->SetTrainingGameInstructor( bIsInstructor );
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+void CTFHudObjectiveStatus::SetTrainingOverridePos( bool bOverride, float flX, float flY )
+{
+	if ( NULL == m_pTrainingPanel )
+		return;
+
+	m_pTrainingPanel->SetTrainingOverridePos( bOverride, flX, flY );
+}
+#endif
 //=============================================================================
 // HPE_END
 //=============================================================================

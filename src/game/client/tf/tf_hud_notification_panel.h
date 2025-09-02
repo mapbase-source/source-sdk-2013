@@ -45,9 +45,13 @@ public:
 	void	MsgFunc_HudNotify( bf_read &msg );
 	void	MsgFunc_HudNotifyCustom( bf_read &msg );
 
-	void	SetupNotifyCustom( const char *pszText, const char *pszIcon, int iBackgroundTeam );
-	void	SetupNotifyCustom( const wchar_t *pszText, const char *pszIcon, int iBackgroundTeam );
+	void	SetupNotifyCustom( const char *pszText, const char *pszIcon, int iBackgroundTeam, float overrideDuration = 0.0f );
+	void	SetupNotifyCustom( const wchar_t *pszText, const char *pszIcon, int iBackgroundTeam, float overrideDuration = 0.0f );
 	void	SetupNotifyCustom( const wchar_t *pszText, HudNotification_t type, float overrideDuration = 0.0f );
+
+#ifdef MAPBASE
+	void	HideNotify();
+#endif
 
 	virtual void LevelInit( void ) { m_flFadeTime = 0; };
 
