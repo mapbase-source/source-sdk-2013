@@ -238,6 +238,14 @@ Other sources:
 
 //-------------------------------------------------------------------------------------------------------------------------
 
+Mapbase additionally contains the following features originally created for Team Fortress 2 Classic:
+
+- TF-Style Instructor Hint Background by MaartenS11
+- TF-Style Instructor Hint Icons by Wheat (This is asset-based and not reflected in the code)
+- env_instructor_hint team and class support by azzy
+
+//-------------------------------------------------------------------------------------------------------------------------
+
 If there is anything missing from this list, please contact Blixibon.
 
 //=========================================================================================================================
