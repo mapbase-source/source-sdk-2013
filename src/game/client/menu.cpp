@@ -31,6 +31,12 @@ char g_szPrelocalisedMenuString[MAX_MENU_STRING];
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
+#ifdef MAPBASE
+ConVar	hud_menu_voice_use_item_color( "hud_menu_voice_use_item_color", "0", FCVAR_ARCHIVE, "Whether or not the voice command menu should use the menu UI's item color instead of its title color." );
+ConVar	hud_menu_voice_use_item_font( "hud_menu_voice_use_item_font", "0", FCVAR_ARCHIVE, "Whether or not the voice command menu should use the menu UI's item font instead of its title font." );
+ConVar	hud_menu_voice_use_item_anim( "hud_menu_voice_use_item_anim", "0", FCVAR_ARCHIVE, "Whether or not the voice command menu should play a pulse animation when an option is selected." );
+#endif
+
 //
 //-----------------------------------------------------
 //
@@ -95,7 +101,7 @@ void CHudMenu::LevelInit()
 	CHudElement::LevelInit();
 
 #ifdef MAPBASE
-	if (m_bMapDefinedMenu)
+	if (IsMenuMapDefined())
 	{
 		// Fixes menu retaining on level change/reload
 		// TODO: Would non-map menus benefit from this as well?
@@ -139,7 +145,7 @@ void CHudMenu::OnThink()
 
 	// If we've been open for a while without input, hide
 #ifdef MAPBASE
-	if ( m_bMenuDisplayed && ( gpGlobals->curtime - m_flSelectionTime > flSelectionTimeout && !m_bMapDefinedMenu ) )
+	if ( m_bMenuDisplayed && ( gpGlobals->curtime - m_flSelectionTime > flSelectionTimeout && !IsMenuMapDefined() ) )
 #else
 	if ( m_bMenuDisplayed && ( gpGlobals->curtime - m_flSelectionTime > flSelectionTimeout ) )
 #endif
@@ -161,7 +167,7 @@ bool CHudMenu::ShouldDraw( void )
 	if ( m_flShutoffTime > 0 )
 	{  
 #ifdef MAPBASE
-		if ( m_bMapDefinedMenu && !m_bPlayingFadeout && (m_flShutoffTime - m_flOpenCloseTime) <= GetMenuTime() )
+		if ( IsMenuMapDefined() && !m_bPlayingFadeout && (m_flShutoffTime - m_flOpenCloseTime) <= GetMenuTime() )
 		{
 			// Begin closing the menu
 			g_pClientMode->GetViewportAnimationController()->StartAnimationSequence( "MenuClose" );
@@ -236,7 +242,7 @@ void CHudMenu::Paint()
 
 #ifdef MAPBASE
 		bool isItem = true;
-		if (line->menuitem == 0 && line->startchar < (MAX_MENU_STRING-1) && g_szMenuString[ line->startchar ] != L'0' && g_szMenuString[ line->startchar+1 ] != L'.')
+		if (IsMenuMapDefined() && line->menuitem == 0 && line->startchar < (MAX_MENU_STRING-1) && g_szMenuString[ line->startchar ] != L'0' && g_szMenuString[ line->startchar+1 ] != L'.')
 		{
 			// Can't use 0 directly because it gets conflated with the cancel item
 			isItem = false;
@@ -246,6 +252,7 @@ void CHudMenu::Paint()
 #endif
 
 		Color clr = isItem ? itemColor : menuColor;
+		vgui::HFont font = isItem ? m_hItemFont : m_hTextFont;
 
 		bool canblur = false;
 		if ( line->menuitem != 0 &&
@@ -254,6 +261,21 @@ void CHudMenu::Paint()
 		{
 			canblur = true;
 		}
+
+#ifdef MAPBASE
+		if ( IsVoiceMenu() )
+		{
+			if ( !hud_menu_voice_use_item_color.GetBool() )
+				clr = menuColor;
+			if ( !hud_menu_voice_use_item_font.GetBool() )
+				font = m_hTextFont;
+			if ( !hud_menu_voice_use_item_anim.GetBool() )
+			{
+				isItem = false;
+				canblur = false;
+			}
+		}
+#endif
 		
 		vgui::surface()->DrawSetTextColor( clr );
 
@@ -263,7 +285,7 @@ void CHudMenu::Paint()
 			drawLen *= m_flTextScan;
 		}
 
-		vgui::surface()->DrawSetTextFont( isItem ? m_hItemFont : m_hTextFont );
+		vgui::surface()->DrawSetTextFont( font );
 
 		PaintString( &g_szMenuString[ line->startchar ], drawLen, 
 			isItem ? m_hItemFont : m_hTextFont, x, y );
@@ -458,7 +480,7 @@ void CHudMenu::ShowMenu( const char * menuName, int validSlots )
 	m_fWaitingForMore = 0;
 	m_nBorder = 20;
 #ifdef MAPBASE
-	m_bMapDefinedMenu = false;
+	m_iMenuType = MENU_TYPE_GENERIC;
 	m_bPlayingFadeout = false;
 #endif
 
@@ -490,7 +512,7 @@ void CHudMenu::ShowMenu_KeyValueItems( KeyValues *pKV )
 	m_bitsValidSlots = 0;
 	m_nBorder = 20;
 #ifdef MAPBASE
-	m_bMapDefinedMenu = false;
+	m_iMenuType = MENU_TYPE_KEYVALUES;
 	m_bPlayingFadeout = false;
 #endif
 
@@ -605,13 +627,21 @@ void CHudMenu::MsgFunc_ShowMenu( bf_read &msg)
 	m_fWaitingForMore = NeedMore;
 	m_nBorder = 20;
 #ifdef MAPBASE
-	m_bMapDefinedMenu = false;
+	m_iMenuType = MENU_TYPE_GENERIC;
 	m_bPlayingFadeout = false;
 #endif
 }
 
 #ifdef MAPBASE
 ConVar	hud_menu_complex_border( "hud_menu_complex_border", "30" );
+
+#ifdef TF_CLIENT_DLL // TODO: Better criteria for whether voice_menu.cpp is implemented
+#define VOICE_MENU_IMPLEMENTED 1
+#endif
+
+#ifdef VOICE_MENU_IMPLEMENTED
+extern void OverrideActiveVoiceMenu();
+#endif
 
 //-----------------------------------------------------------------------------
 // Purpose: Message handler for ShowMenu message with more options for game_menu
@@ -628,8 +658,16 @@ void CHudMenu::MsgFunc_ShowMenuComplex( bf_read &msg)
 	float DisplayTime = msg.ReadFloat();
 	int NeedMore = msg.ReadByte();
 
+#ifdef VOICE_MENU_IMPLEMENTED
+	if ( m_iMenuType == MENU_TYPE_KEYVALUES )
+	{
+		// Ensure voice menu doesn't interfere
+		OverrideActiveVoiceMenu();
+	}
+#endif
+
 	m_nBorder = hud_menu_complex_border.GetInt();
-	m_bMapDefinedMenu = true;
+	m_iMenuType = MENU_TYPE_MAP_DEFINED;
 	m_bPlayingFadeout = false;
 
 	if ( DisplayTime > 0 )

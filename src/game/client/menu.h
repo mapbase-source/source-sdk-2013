@@ -42,7 +42,9 @@ public:
 	void SelectMenuItem( int menu_item );
 
 #ifdef MAPBASE
-	bool IsMenuMapDefined() const { return m_bMapDefinedMenu; }
+	bool IsGenericMenu() const { return m_iMenuType == MENU_TYPE_GENERIC; }
+	bool IsMenuMapDefined() const { return m_iMenuType == MENU_TYPE_MAP_DEFINED; }
+	bool IsVoiceMenu() const { return m_iMenuType == MENU_TYPE_KEYVALUES; }
 #endif
 
 private:
@@ -81,8 +83,15 @@ private:
 	float			m_flSelectionTime;
 
 #ifdef MAPBASE
-	// Indicates this menu is defined by game_menu
-	bool			m_bMapDefinedMenu;
+	enum MenuType_t
+	{
+		MENU_TYPE_GENERIC,
+		MENU_TYPE_KEYVALUES,	// Indicates this menu was initiated with ShowMenu_KeyValueItems (voice menu)
+		MENU_TYPE_MAP_DEFINED,	// Indicates this menu is defined by game_menu
+	};
+
+	MenuType_t		m_iMenuType;
+
 	bool			m_bPlayingFadeout;
 #endif
 

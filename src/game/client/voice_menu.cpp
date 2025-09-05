@@ -93,6 +93,17 @@ void OpenVoiceMenu( int index )
 	}
 }
 
+#ifdef MAPBASE
+// Function called externally to ensure voice menu is overridden by game_menu, etc.
+void OverrideActiveVoiceMenu()
+{
+	if ( g_ActiveVoiceMenu != 0 )
+	{
+		g_ActiveVoiceMenu = 0;
+	}
+}
+#endif
+
 static void OpenVoiceMenu_1( void )
 {
 	OpenVoiceMenu( 1 );
