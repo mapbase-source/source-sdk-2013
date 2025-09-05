@@ -712,6 +712,12 @@ void CTFStatPanel::ShowStatPanel( int iClass, int iTeam, int iCurStatValue, TFSt
 		return;
 	}
 
+#ifdef MAPBASE
+	// Don't interfere with training HUD
+	if ( TFGameRules() && TFGameRules()->IsShowingTFObjectiveLesson() )
+		return;
+#endif
+
 	ClassStats_t &classStats = GetClassStats( iClass );
 	vgui::Label *pLabel = dynamic_cast<Label *>( FindChildByName( "summaryLabel" ) );
 	if ( !pLabel )

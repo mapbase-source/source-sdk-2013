@@ -12,6 +12,7 @@
 #include "tf_hud_training.h"
 #include "tf_hud_objectivestatus.h"
 #include "tf_hud_notification_panel.h"
+#include "tf_hud_statpanel.h"
 
 //-----------------------------------------------------------------------------
 
@@ -635,6 +636,13 @@ void CTFObjectiveLesson::Start()
 		pStatus->SetTrainingOverridePos( m_bFixedPosition, m_fFixedPositionX, m_fFixedPositionY );
 
 		TFGameRules()->SetShowingTFObjectiveLesson( true );
+
+		// Hide the stat panel if it's active
+		CTFStatPanel *pStatPanel = GET_HUDELEMENT( CTFStatPanel );
+		if ( pStatPanel )
+		{
+			pStatPanel->Hide();
+		}
 
 		// HACKHACK: Can't put these in Init() due to base class usage
 		m_bNoIconTarget			= true;
