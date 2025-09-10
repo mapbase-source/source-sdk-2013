@@ -1497,6 +1497,45 @@ void CTFNavMesh::ComputeIncursionDistances( void )
 		}
 	}
 
+#ifdef MAPBASE
+	if ( IFuncRespawnRoomAutoList::AutoList().Count() <= 0 )
+	{
+		// No respawn rooms, mark based on team spawn points instead
+		for ( int iTFTeamSpawn=0; iTFTeamSpawn<ITFTeamSpawnAutoList::AutoList().Count(); ++iTFTeamSpawn )
+		{
+			CTFTeamSpawn *spawnSpot = static_cast< CTFTeamSpawn* >( ITFTeamSpawnAutoList::AutoList()[iTFTeamSpawn] );
+			
+			if ( spawnSpot->GetTeamNumber() == TF_TEAM_RED && isRedComputed )
+				continue;
+
+			if ( spawnSpot->GetTeamNumber() == TF_TEAM_BLUE && isBlueComputed )
+				continue;
+
+			if ( !spawnSpot->IsTriggered( NULL ) )
+				continue;
+
+			if ( spawnSpot->IsDisabled() )
+				continue;
+
+			// found a valid spawn spot, compute travel distances throughout the nav mesh
+			CTFNavArea *spawnArea = static_cast< CTFNavArea * >( TheTFNavMesh()->GetNearestNavArea( spawnSpot ) );
+			if ( spawnArea )
+			{
+				ComputeIncursionDistances( spawnArea, spawnSpot->GetTeamNumber() );
+
+				if ( spawnSpot->GetTeamNumber() == TF_TEAM_RED )
+				{
+					isRedComputed = true;
+				}
+				else
+				{
+					isBlueComputed = true;
+				}
+			}
+		}
+	}
+#endif
+
 	if ( !isRedComputed )
 	{
 		Warning( "Can't compute incursion distances from the Red spawn room(s). Bots will perform poorly. This is caused by either a missing func_respawnroom, or missing info_player_teamspawn entities within the func_respawnroom.\n" );
@@ -1776,6 +1815,40 @@ void CTFNavMesh::DecorateMesh( void )
 			}
 		}
 	}
+ 
+#ifdef MAPBASE
+	if ( IFuncRespawnRoomAutoList::AutoList().Count() <= 0 )
+	{
+		// No respawn rooms, mark based on team spawn points instead
+		for ( int iTFTeamSpawn=0; iTFTeamSpawn<ITFTeamSpawnAutoList::AutoList().Count(); ++iTFTeamSpawn )
+		{
+			CTFTeamSpawn *spawnSpot = static_cast< CTFTeamSpawn* >( ITFTeamSpawnAutoList::AutoList()[iTFTeamSpawn] );
+
+			if ( !spawnSpot->IsTriggered( NULL ) )
+				continue;
+
+			if ( spawnSpot->IsDisabled() )
+				continue;
+
+			CNavArea *area = GetNearestNavArea( spawnSpot, GETNAVAREA_CHECK_GROUND | GETNAVAREA_CHECK_LOS, 500.0f );
+			if ( area )
+			{
+				CTFNavArea *tfArea = static_cast<CTFNavArea *>(area);
+
+				if ( spawnSpot->GetTeamNumber() == TF_TEAM_RED )
+				{
+					tfArea->SetAttributeTF( TF_NAV_SPAWN_ROOM_RED );
+					m_redSpawnRoomAreaVector.AddToTail( tfArea );
+				}
+				else
+				{
+					tfArea->SetAttributeTF( TF_NAV_SPAWN_ROOM_BLUE );
+					m_blueSpawnRoomAreaVector.AddToTail( tfArea );
+				}
+			}
+		}
+	}
+#endif
 
 	// mark each spawn room area adjacent to a non-spawn room area as an exit
 	m_redSpawnRoomExitAreaVector.RemoveAll();
