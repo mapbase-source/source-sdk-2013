@@ -975,7 +975,7 @@ void RegisterSharedScriptFunctions()
 
 #ifndef CLIENT_DLL
 	ScriptRegisterFunction( g_pScriptVM, AddThinkToEnt, "This will put a think function onto an entity, or pass null to remove it. This is NOT chained, so be careful." );
-	ScriptRegisterFunction( g_pScriptVM, PrecacheEntityFromTable, "Precache an entity from KeyValues in a table." );
+	ScriptRegisterFunctionNamed( g_pScriptVM, PrecacheEntityFromTable, "DoPrecacheEntityFromTable", SCRIPT_ALIAS( "PrecacheEntityFromTable", "Precache an entity from KeyValues in a table." ) );
 	ScriptRegisterFunction( g_pScriptVM, SpawnEntityFromTable, "Native function for entity spawning." );
 #endif // !CLIENT_DLL
 	ScriptRegisterFunction( g_pScriptVM, EntIndexToHScript, "Returns the script handle for the given entity index." );

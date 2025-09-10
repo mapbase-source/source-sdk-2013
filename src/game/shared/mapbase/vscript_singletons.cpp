@@ -41,6 +41,8 @@
 #if !defined(NO_STEAM)
 #include "steam/steam_api.h"
 #endif
+#else
+#include "netpropmanager.h"
 #endif
 
 #include "vscript_singletons.h"
@@ -102,6 +104,18 @@ extern ISaveRestoreOps* GetStdStringDataOps();
 		extern CConceptHistoriesDataOps g_ConceptHistoriesSaveDataOps;
 	#endif
 #endif
+
+#ifndef CLIENT_DLL
+// This is a smaller version of the stock net prop manager which has functions we need
+CNetPropManager g_ScriptNetPropManagerStub;
+#endif
+
+// Copied from netpropmanager.cpp
+const char *s_pszBannedNetProps[]
+{
+	"EntityQuality",
+	"AccountID",
+};
 
 //=============================================================================
 // Net Prop Manager
@@ -461,6 +475,16 @@ private:
 	// CPlayerResource::m_iHealth and CBaseEntity::m_iHealth
 	varinfo_t *GetVarInfo( CBaseEntity *pEnt, const char *szProp, int index )
 	{
+		// Copied from netpropmanager.cpp
+		for ( int i = 0; i < ARRAYSIZE( s_pszBannedNetProps ); i++ )
+		{
+			if ( V_stristr( szProp, s_pszBannedNetProps[ i ] ) != NULL)
+			{
+				// Replace any banned properties with a dummy string.
+				szProp = "Y6WP5EH4I45F2LMKSDY2";
+			}
+		}
+
 		int offset = 0;
 		NetTable *pTable = GetNetTable( GetNetworkClass( pEnt ) );
 		NetProp *pProp = FindInNetTable( (char*)pEnt, pTable, szProp, &offset );
@@ -1615,6 +1639,16 @@ public:
 		}
 	}
 
+	bool GetPropBoolArray( HSCRIPT hEnt, const char *szProp, int index )
+	{
+		return (bool)GetPropIntArray( hEnt, szProp, index );
+	}
+
+	void SetPropBoolArray( HSCRIPT hEnt, const char *szProp, bool value, int index )
+	{
+		SetPropIntArray( hEnt, szProp, (int)value, index );
+	}
+
 #define GetProp( type, name )\
 	type GetProp##name( HSCRIPT hEnt, const char* szProp )\
 	{\
@@ -1629,6 +1663,8 @@ public:
 
 	GetProp( int, Int );
 	SetProp( int, Int );
+	GetProp( bool, Bool );
+	SetProp( bool, Bool );
 	GetProp( float, Float );
 	SetProp( float, Float );
 	GetProp( HSCRIPT, Entity );
@@ -1640,6 +1676,62 @@ public:
 
 #undef GetProp
 #undef SetProp
+
+	//-----------------------------------------------------------------------------
+	// Adapted from netpropmanager.cpp
+	//-----------------------------------------------------------------------------
+	bool GetPropInfo( HSCRIPT hEnt, const char *szProp, int index, HSCRIPT hTable )
+	{
+		CBaseEntity *pEnt = ToEnt( hEnt );
+		if ( !pEnt )
+			return false;
+
+		varinfo_t *pInfo = CacheFetch( pEnt, szProp );
+		if ( !pInfo )
+		{
+			pInfo = GetVarInfo( pEnt, szProp, INDEX_GET_TYPE );
+
+			if ( !pInfo )
+				return false;
+		}
+
+		g_pScriptVM->SetValue( hTable, "is_sendprop", !pInfo->isNotNetworked );
+		g_pScriptVM->SetValue( hTable, "type", pInfo->datatype );
+
+		int size = 0;
+		if ( pInfo->datatype == types::_STRING_T || pInfo->datatype == types::_CSTRING || pInfo->datatype == types::_INT8 )
+		{
+			size = pInfo->stringsize;
+		}
+		else
+		{
+			// Revert MASK_INT_SIZE to get original size
+			int bits = pInfo->mask;
+			while (bits > 0)
+			{
+				bits >>= 1;
+				size++;
+			}
+		}
+
+		// TODO: pInfo->arraysize stores both GetNumElements() and GetNumProps()
+		g_pScriptVM->SetValue( hTable, "bits", size );
+		g_pScriptVM->SetValue( hTable, "elements", pInfo->arraysize );
+		g_pScriptVM->SetValue( hTable, "offset", pInfo->GetOffset( index ) );
+		g_pScriptVM->SetValue( hTable, "length", pInfo->arraysize );
+		g_pScriptVM->SetValue( hTable, "array_props", pInfo->elemsize );
+		g_pScriptVM->SetValue( hTable, "flags", pInfo->isUnsigned ? SPROP_UNSIGNED : 0 ); // TODO: Proper flag storage?
+
+		return true;
+	}
+
+#ifndef CLIENT_DLL
+	void GetTable( HSCRIPT hEnt, int iPropType, HSCRIPT hTable )
+	{
+		// To avoid copying a bunch of code, we keep a piece of the original net prop manager around for this
+		g_ScriptNetPropManagerStub.GetTable( hEnt, iPropType, hTable );
+	}
+#endif
 
 #ifdef _DEBUG
 private:
@@ -2541,9 +2633,19 @@ BEGIN_SCRIPTDESC_ROOT_NAMED( CScriptNetPropManager, "CNetPropManager", SCRIPT_SI
 	DEFINE_SCRIPTFUNC( SetPropStringArray, "Sets a string in an array." )
 	DEFINE_SCRIPTFUNC( SetPropVector, "Sets to the specified vector." )
 	DEFINE_SCRIPTFUNC( SetPropVectorArray, "Sets a 3D vector in an array." )
+	DEFINE_SCRIPTFUNC( GetPropInfo, "Fills in a passed table with property info for the provided entity." )
+#ifndef CLIENT_DLL
+	DEFINE_SCRIPTFUNC( GetTable, "Fills in a passed table with all props of a specified type for the provided entity (set prop_type to 0 for SendTable or 1 for DataMap)." )
+#endif
 #ifdef _DEBUG
 	DEFINE_SCRIPTFUNC( Dump, "Dump all readable netprop and datafield values of this entity. Pass in file name to write into." );
 #endif
+
+	// TF2 SDK compatibility
+	DEFINE_SCRIPTFUNC( GetPropBool, SCRIPT_HIDE )
+	DEFINE_SCRIPTFUNC( GetPropBoolArray, SCRIPT_HIDE )
+	DEFINE_SCRIPTFUNC( SetPropBool, SCRIPT_HIDE )
+	DEFINE_SCRIPTFUNC( SetPropBoolArray, SCRIPT_HIDE )
 END_SCRIPTDESC();
 
 //=============================================================================
@@ -5016,6 +5118,11 @@ public:
 		GameRules()->SaveConvar( cvar );
 	}
 
+	bool IsConVarOnAllowList( const char *pszConVar )
+	{
+		return !IsBlockedConvar( pszConVar );
+	}
+
 } g_ScriptConvarAccessor;
 
 
@@ -5233,6 +5340,7 @@ BEGIN_SCRIPTDESC_ROOT_NAMED( CScriptConvarAccessor, "CConvars", SCRIPT_SINGLETON
 	DEFINE_SCRIPTFUNC( SetBool, "Sets the value of the convar as a bool." )
 	DEFINE_SCRIPTFUNC( SetStr, "Sets the value of the convar as a string." )
 	DEFINE_SCRIPTFUNC_NAMED( SetVariant, "SetValue", "Sets the value of the convar with any applicable type." )
+	DEFINE_SCRIPTFUNC( IsConVarOnAllowList, "Checks if the cvar is allowed to be changed." )
 END_SCRIPTDESC();
 
 

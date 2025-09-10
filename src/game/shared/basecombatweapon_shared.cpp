@@ -3200,8 +3200,8 @@ BEGIN_ENT_SCRIPTDESC( CBaseCombatWeapon, BASECOMBATWEAPON_DERIVED_FROM, "The bas
 	DEFINE_SCRIPTFUNC( GetWeight, "Get the weapon's weight." )
 	DEFINE_SCRIPTFUNC( GetPrintName, "" )
 
-	DEFINE_SCRIPTFUNC_CL( GetSlot, "" )
-	DEFINE_SCRIPTFUNC_CL( GetPosition, "" )
+	DEFINE_SCRIPTFUNC( GetSlot, "" )
+	DEFINE_SCRIPTFUNC( GetPosition, "" )
 
 	DEFINE_SCRIPTFUNC( CanBePickedUpByNPCs, "Check if the weapon can be picked up by NPCs." )
 

@@ -83,6 +83,20 @@ function PrecacheOther( a, b = "" )
     return PrecacheOther( a, b )
 }
 
+function PrecacheEntityFromTable( a, b = null )
+{
+	if ( b == null )
+	{
+		// Table only
+		return DoPrecacheEntityFromTable( a.classname, a )
+	}
+	else
+	{
+		// Classname + table
+		return DoPrecacheEntityFromTable( a, b )
+	}
+}
+
 function __ReplaceClosures( script, scope )
 {
 	if ( !scope )

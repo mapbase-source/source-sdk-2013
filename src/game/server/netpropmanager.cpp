@@ -16,8 +16,6 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
-#ifndef MAPBASE_VSCRIPT
-
 extern void SendProxy_StringT_To_String( const SendProp *pProp, const void *pStruct, const void *pVarData, DVariant *pOut, int iElement, int objectID );
 extern ISaveRestoreOps* ActivityDataOps();
 
@@ -27,6 +25,7 @@ const char *ArrayElementNameForIdx( size_t i )
 	return DT_ArrayElementNameForIdx( i );
 }
 
+#ifndef MAPBASE_VSCRIPT
 //-----------------------------------------------------------------------------
 CNetPropManager::~CNetPropManager()
 {
@@ -1076,6 +1075,7 @@ bool CNetPropManager::GetPropInfo( HSCRIPT hEnt, const char *pszProperty, int el
 
 	return true;
 }
+#endif
 
 
 //-----------------------------------------------------------------------------
@@ -1390,4 +1390,3 @@ void CNetPropManager::GetTable( HSCRIPT hEnt, int iPropType, HSCRIPT hTable )
 		CollectNestedDataMaps( pDataMap, pBaseEntity, 0, hTable );
 	}
 }
-#endif

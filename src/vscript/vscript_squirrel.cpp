@@ -15,7 +15,7 @@
 
 #include "squirrel.h"
 #include "sqstdaux.h"
-//#include "sqstdblob.h"
+#include "sqstdblob.h"
 //#include "sqstdsystem.h"
 #include "sqstdtime.h"
 //#include "sqstdio.h"
@@ -983,6 +983,117 @@ namespace SQVector
 		return 1;
 	}
 
+	SQInteger Forward(HSQUIRRELVM vm)
+	{
+		Vector* v1 = nullptr;
+
+		if (sq_gettop(vm) != 1 ||
+			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR)))
+		{
+			return sq_throwerror(vm, "Expected (Vector)");
+		}
+
+		sq_getclass(vm, 1);
+		sq_createinstance(vm, -1);
+		SQUserPointer p;
+		sq_getinstanceup(vm, -1, &p, 0);
+		new(p) Vector();
+		AngleVectors( *((QAngle*)v1), (Vector*)p );
+		sq_remove(vm, -2);
+
+		return 1;
+	}
+
+	SQInteger Left(HSQUIRRELVM vm)
+	{
+		Vector* v1 = nullptr;
+
+		if (sq_gettop(vm) != 1 ||
+			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR)))
+		{
+			return sq_throwerror(vm, "Expected (Vector)");
+		}
+
+		sq_getclass(vm, 1);
+		sq_createinstance(vm, -1);
+		SQUserPointer p;
+		sq_getinstanceup(vm, -1, &p, 0);
+		new(p) Vector();
+		AngleVectors( *((QAngle*)v1), NULL, (Vector*)p, NULL );	// Despite being named "Left", docs suggest this returns right vector in live TF2
+		sq_remove(vm, -2);
+
+		return 1;
+	}
+
+	SQInteger Up(HSQUIRRELVM vm)
+	{
+		Vector* v1 = nullptr;
+
+		if (sq_gettop(vm) != 1 ||
+			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR)))
+		{
+			return sq_throwerror(vm, "Expected (Vector)");
+		}
+
+		sq_getclass(vm, 1);
+		sq_createinstance(vm, -1);
+		SQUserPointer p;
+		sq_getinstanceup(vm, -1, &p, 0);
+		new(p) Vector();
+		AngleVectors( *((QAngle*)v1), NULL, NULL, (Vector*)p );
+		sq_remove(vm, -2);
+
+		return 1;
+	}
+
+	SQInteger Pitch(HSQUIRRELVM vm)
+	{
+		Vector* v1 = nullptr;
+
+		if (sq_gettop(vm) != 1 ||
+			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR)))
+		{
+			return sq_throwerror(vm, "Expected (Vector)");
+		}
+
+		sq_pushfloat(vm, v1->x);
+		return 1;
+	}
+
+	SQInteger Yaw(HSQUIRRELVM vm)
+	{
+		Vector* v1 = nullptr;
+
+		if (sq_gettop(vm) != 1 ||
+			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR)))
+		{
+			return sq_throwerror(vm, "Expected (Vector)");
+		}
+
+		sq_pushfloat(vm, v1->y);
+		return 1;
+	}
+
+	SQInteger Roll(HSQUIRRELVM vm)
+	{
+		Vector* v1 = nullptr;
+
+		if (sq_gettop(vm) != 1 ||
+			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR)))
+		{
+			return sq_throwerror(vm, "Expected (Vector)");
+		}
+
+		sq_pushfloat(vm, v1->z);
+		return 1;
+	}
+
+	SQInteger ToQuat(HSQUIRRELVM vm)
+	{
+		// TODO
+		return sq_throwerror(vm, "ToQuat() is currently unsupported in Mapbase");
+	}
+
 	SQInteger ToString(HSQUIRRELVM vm)
 	{
 		Vector* v1 = nullptr;
@@ -1081,6 +1192,15 @@ namespace SQVector
 		{_SC("_tostring"), ToString, 1, _SC(".")},
 		{_SC("_typeof"), TypeOf, 1, _SC(".")},
 		{_SC("_nexti"), Nexti, 2, _SC("..")},
+
+		// TF2 SDK compatibility
+		{_SC("Forward"), Forward, 1, _SC("...")},
+		{_SC("Left"), Left, 1, _SC("...")},
+		{_SC("Up"), Up, 1, _SC("...")},
+		{_SC("Pitch"), Pitch, 1, _SC("...")},
+		{_SC("Yaw"), Yaw, 1, _SC("...")},
+		{_SC("Roll"), Roll, 1, _SC("...")},
+		{_SC("ToQuat"), ToQuat, 1, _SC("...")},
 
 		{nullptr,(SQFUNCTION)0,0,nullptr}
 	};
@@ -2068,9 +2188,11 @@ bool SquirrelVM::Init()
 		// that also depends on compile errors not showing up and relies on IFilesystem with
 		// a path prefix.
 		//
-		//sqstd_register_bloblib(vm_);
 		//sqstd_register_iolib(vm_);
 		//sqstd_register_systemlib(vm_);
+		
+		// bloblib is used in the TF2 SDK
+		sqstd_register_bloblib(vm_);
 
 		// There is no vulnerability in getting time.
 		sqstd_register_timelib(vm_);

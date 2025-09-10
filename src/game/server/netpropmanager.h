@@ -13,13 +13,13 @@
 #pragma once
 #endif
 
-#ifndef MAPBASE_VSCRIPT
 #include "dt_send.h"
 #include "datamap.h"
 
 // Gets and sets SendTable/DataMap netprops and caches results
 class CNetPropManager
 {
+#ifndef MAPBASE_VSCRIPT
 public:
 	~CNetPropManager();
 
@@ -72,6 +72,7 @@ private:
 
 	// Searches a ServerClass's SendTable and datamap and returns pertinent prop info
 	inline PropInfo_t GetEntityPropInfo( CBaseEntity *pBaseEntity, const char *pstrProperty, int element );
+#endif
 
 	// Gets the value of a SendProp and stores it in a table
 	inline void StoreSendPropValue( SendProp *pSendProp, CBaseEntity *pBaseEntity, int iOffset, int iElement, HSCRIPT hTable );
@@ -85,6 +86,13 @@ private:
 	// Iterates through the DataMap and stores prop names in a table
 	inline void CollectNestedDataMaps( datamap_t *pMap, CBaseEntity *pBaseEntity, int iOffset, HSCRIPT hTable );
 
+#ifdef MAPBASE_VSCRIPT
+
+public:
+	// Fills in a passed table with all SendProps or DataMaps for the provided entity
+	void GetTable( HSCRIPT hEnt, int iPropType, HSCRIPT hTable );
+
+#else
 
 private:
 
@@ -184,8 +192,8 @@ public:
 
 	// Fills in a passed table with property info for the provided entity
 	bool GetPropInfo( HSCRIPT hEnt, const char *pstrProperty, int element, HSCRIPT hTable );
-};
 #endif
+};
 
 
 #endif // NETPROPMANAGER_H
