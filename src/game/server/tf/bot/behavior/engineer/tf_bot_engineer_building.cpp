@@ -18,6 +18,10 @@
 #include "bot/behavior/engineer/tf_bot_engineer_build_teleport_exit.h"
 #include "bot/behavior/engineer/tf_bot_engineer_build_sentrygun.h"
 #include "bot/behavior/engineer/tf_bot_engineer_build_dispenser.h"
+#ifdef MAPBASE
+#include "bot/behavior/scenario/capture_point/tf_bot_capture_point.h"
+#include "bot/behavior/tf_bot_seek_and_destroy.h"
+#endif
 #include "bot/behavior/tf_bot_attack.h"
 #include "bot/behavior/tf_bot_get_ammo.h"
 #include "bot/map_entities/tf_bot_hint_teleporter_exit.h"
@@ -463,6 +467,30 @@ ActionResult< CTFBot >	CTFBotEngineerBuilding::Update( CTFBot *me, float interva
 			return SuspendFor( new CTFBotEngineerBuildTeleportExit(), "Building teleporter exit" );
 		}
 	}
+
+#ifdef MAPBASE
+	if ( TFGameRules()->IsInArenaMode() )
+	{
+		// If we are the only player left on our team, don't get caught in a loop in case there's
+		// another engineer on the other team maintaining their buildings like we are
+		// Defer to default capture AI
+		CUtlVector< CTFPlayer * > livePlayerVector;
+		CollectPlayers( &livePlayerVector, me->GetTeamNumber(), COLLECT_ONLY_LIVING_PLAYERS );
+
+		if ( livePlayerVector.Count() <= 1 )
+		{
+			CUtlVector< CTeamControlPoint * > captureVector;
+			TFGameRules()->CollectCapturePoints( me, &captureVector );
+
+			if ( captureVector.Count() > 0 )
+			{
+				return ChangeTo( new CTFBotCapturePoint, "Everyone is gone! Going for the point" );
+			}
+
+			return ChangeTo( new CTFBotSeekAndDestroy, "Everyone is gone! Seeking and destroying" );
+		}
+	}
+#endif
 
 	// everything is built - maintain them
 	UpgradeAndMaintainBuildings( me );

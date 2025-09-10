@@ -1381,6 +1381,12 @@ void CTFBot::SetMission( MissionType mission, bool resetBehaviorSystem )
 //-----------------------------------------------------------------------------------------------------
 bool CTFBot::ShouldReEvaluateCurrentClass( void ) const
 {
+#ifdef MAPBASE
+	// Don't change class mid-round in arena mode
+	if ( TFGameRules() && TFGameRules()->IsInArenaMode() && TFGameRules()->GetRoundState() >= GR_STATE_RND_RUNNING )
+		return false;
+#endif
+
 	ETFClass iCurrentClass = ( ETFClass )GetPlayerClass()->GetClassIndex();
 	Assert( iCurrentClass != TF_CLASS_UNDEFINED );
 	TFPlayerClassData_t *classData = GetPlayerClassData( iCurrentClass );

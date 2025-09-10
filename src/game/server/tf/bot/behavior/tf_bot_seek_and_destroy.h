@@ -35,6 +35,8 @@ public:
 
 	virtual const char *GetName( void ) const	{ return "SeekAndDestroy"; };
 
+	bool IsPointLocked( CTFBot *me, CTeamControlPoint *point );
+
 private:
 	CTFNavArea *m_goalArea;
 	CTFNavArea *ChooseGoalArea( CTFBot *me );

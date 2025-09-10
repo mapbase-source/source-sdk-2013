@@ -13,6 +13,10 @@
 #include "bot/behavior/medic/tf_bot_medic_retreat.h"
 #include "bot/behavior/tf_bot_use_teleporter.h"
 #include "bot/behavior/scenario/capture_the_flag/tf_bot_fetch_flag.h"
+#ifdef MAPBASE
+#include "bot/behavior/scenario/capture_point/tf_bot_capture_point.h"
+#include "bot/behavior/tf_bot_seek_and_destroy.h"
+#endif
 #include "nav_mesh.h"
 #include "tier0/vprof.h"
 
@@ -272,7 +276,11 @@ CTFPlayer *CTFBotMedicHeal::SelectPatient( CTFBot *me, CTFPlayer *current )
 
 	CSelectPrimaryPatient choose( me, current );
 
+#ifdef MAPBASE
+	if ( TFGameRules()->IsPVEModeActive() || TFGameRules()->IsInArenaMode() )
+#else
 	if ( TFGameRules()->IsPVEModeActive() )
+#endif
 	{
 		// assume perfect knowledge
 		CUtlVector< CTFPlayer * > livePlayerVector;
@@ -517,6 +525,23 @@ ActionResult< CTFBot >	CTFBotMedicHeal::Update( CTFBot *me, float interval )
 			// don't retreat, just wait
 			return Continue();
 		}
+
+#ifdef MAPBASE
+		if ( TFGameRules()->IsInArenaMode() )
+		{
+			// If we can't find a patient in arena mode, we probably won't for the rest of the round
+			// Defer to default capture AI
+			CUtlVector< CTeamControlPoint * > captureVector;
+			TFGameRules()->CollectCapturePoints( me, &captureVector );
+
+			if ( captureVector.Count() > 0 )
+			{
+				return ChangeTo( new CTFBotCapturePoint, "Everyone is gone! Going for the point" );
+			}
+
+			return ChangeTo( new CTFBotSeekAndDestroy, "Everyone is gone! Seeking and destroying" );
+		}
+#endif
 
 		// no patients - retreat to spawn to find another one
 		return SuspendFor( new CTFBotMedicRetreat, "Retreating to find another patient to heal" );

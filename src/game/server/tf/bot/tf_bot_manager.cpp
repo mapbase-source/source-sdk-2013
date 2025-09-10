@@ -408,6 +408,13 @@ void CTFBotManager::MaintainBotQuota()
 			{
 				nTFBotsOnGameTeams++;
 			}
+#ifdef MAPBASE
+			else if ( TFGameRules()->IsInArenaMode() && tf_arena_use_queue.GetBool() && pPlayer->GetTeamNumber() == TEAM_SPECTATOR )
+			{
+				// Spectators waiting in queue
+				nTFBotsOnGameTeams++;
+			}
+#endif
 		}
 		else
 		{
@@ -471,6 +478,12 @@ void CTFBotManager::MaintainBotQuota()
 			if ( pBot )
 			{
 				pBot->SetAttribute( CTFBot::QUOTA_MANANGED );
+				
+#ifdef MAPBASE
+				// Don't try to change teams on anyone in arena mode queue
+				if ( pBot->GetTeamNumber() != TEAM_UNASSIGNED && TFGameRules()->IsInArenaMode() && tf_arena_use_queue.GetBool() )
+					return;
+#endif
 
 				// join a team before we pick our class, since we use our teammates to decide what class to be
 				pBot->HandleCommand_JoinTeam( "auto" );
@@ -632,7 +645,12 @@ CTFBot* CTFBotManager::GetAvailableBotFromPool()
 		if ( ( pBot->GetFlags() & FL_FAKECLIENT ) == 0 )
 			continue;
 
+#ifdef MAPBASE
+		// Spectators stay quota-managed in arena mode queue
+		if ( ( pBot->GetTeamNumber() == TEAM_SPECTATOR && ( !TFGameRules()->IsInArenaMode() || !tf_arena_use_queue.GetBool() ) ) || pBot->GetTeamNumber() == TEAM_UNASSIGNED )
+#else
 		if ( pBot->GetTeamNumber() == TEAM_SPECTATOR || pBot->GetTeamNumber() == TEAM_UNASSIGNED )
+#endif
 		{
 			pBot->ClearAttribute( CTFBot::QUOTA_MANANGED );
 			return pBot;

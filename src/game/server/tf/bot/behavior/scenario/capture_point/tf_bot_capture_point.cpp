@@ -55,6 +55,15 @@ ActionResult< CTFBot >	CTFBotCapturePoint::Update( CTFBot *me, float interval )
 		return SuspendFor( new CTFBotSeekAndDestroy( roamTime ), "Seek and destroy until a point becomes available" );
 	}
 
+#ifdef MAPBASE
+	if ( TFGameRules()->IsInArenaMode() )
+	{
+		// CollectCapturePoints() can still count a locked point in arena mode. Wait until it's open before zeroing in
+		if ( !TeamplayGameRules()->TeamMayCapturePoint( me->GetTeamNumber(), point->GetPointIndex() ) )
+			return SuspendFor( new CTFBotSeekAndDestroy, "Seek and destroy until a point becomes available" );
+	}
+#endif
+
 	if ( point->GetTeamNumber() == me->GetTeamNumber() )
 	{
 		return ChangeTo( new CTFBotDefendPoint, "We need to defend our point(s)" );

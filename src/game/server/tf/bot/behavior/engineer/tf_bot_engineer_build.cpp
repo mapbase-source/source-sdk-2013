@@ -22,11 +22,19 @@
 // this was useful when engineers build at their normal (slow) rate to make sure initial sentries get built in time
 ConVar tf_raid_engineer_infinte_metal( "tf_raid_engineer_infinte_metal", "1", FCVAR_CHEAT | FCVAR_DEVELOPMENTONLY );
 
+#ifdef MAPBASE
+ConVar tf_bot_arena_build_teleporter( "tf_bot_arena_build_teleporter", "0" );
+#endif
+
 
 //---------------------------------------------------------------------------------------------
 Action< CTFBot > *CTFBotEngineerBuild::InitialContainedAction( CTFBot *me )
 {
+#ifdef MAPBASE
+	if ( TFGameRules()->IsPVEModeActive() || ( TFGameRules()->IsInArenaMode() && !tf_bot_arena_build_teleporter.GetBool() ) )
+#else
 	if ( TFGameRules()->IsPVEModeActive() )
+#endif
 	{
 		return new CTFBotEngineerMoveToBuild;
 	}

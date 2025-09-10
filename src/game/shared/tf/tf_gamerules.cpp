@@ -14047,7 +14047,18 @@ bool CTFGameRules::BHavePlayers( void )
 	{
 		// At least two in queue, we're always able to play
 		if ( m_hArenaPlayerQueue.Count() >= 2 )
+		{
+#ifdef MAPBASE
+			// Only return true if at least one of the players isn't a bot
+			for ( int i = 0; i < m_hArenaPlayerQueue.Count(); i++ )
+			{
+				if ( m_hArenaPlayerQueue[i] && !m_hArenaPlayerQueue[i]->IsBot() )
+					return true;
+			}
+#else
 			return true;
+#endif
+		}
 
 		// Otherwise, return false if nobody is actually on a team, regardless of players ready-to-play state.
 		if ( GetGlobalTFTeam( TF_TEAM_BLUE )->GetNumPlayers() == 0 || GetGlobalTFTeam( TF_TEAM_RED )->GetNumPlayers() == 0 )
@@ -14122,6 +14133,17 @@ int ScramblePlayersSort( CTFPlayer* const *p1, CTFPlayer* const *p2 )
 
 	return -1;
 }
+
+#ifdef MAPBASE
+// Sort function to deprioritize bots in arena queue
+int PlayerArenaQueueSortFunc( const CHandle<CTFPlayer>* pPlayer1, const CHandle<CTFPlayer>* pPlayer2 )
+{
+	if ( !(*pPlayer1).Get()->IsBot() && (*pPlayer2).Get()->IsBot() )
+		return -1;
+
+	return 1;
+}
+#endif
 
 //-----------------------------------------------------------------------------
 // Purpose: 
@@ -14473,6 +14495,11 @@ void CTFGameRules::Arena_RunTeamLogic( void )
 		{
 			iTeam = TF_TEAM_AUTOASSIGN;
 		}
+
+#ifdef MAPBASE
+		// Ensures bots are deprioritized
+		m_hArenaPlayerQueue.Sort( PlayerArenaQueueSortFunc );
+#endif
 
 		//Move people in the queue into a team.
 		for ( int iPlayers = 0; iPlayers < iPlayersNeeded; iPlayers++ )
@@ -17779,7 +17806,11 @@ void CTFGameRules::CollectCapturePoints( CBasePlayer *player, CUtlVector< CTeamC
 	if ( pMaster )
 	{
 		// special case hack for KotH mode to use control points that are locked at the start of the round
+#ifdef MAPBASE
+		if ( ( IsInKothMode() || IsInArenaMode() ) && pMaster->GetNumPoints() == 1 )
+#else
 		if ( IsInKothMode() && pMaster->GetNumPoints() == 1 )
+#endif
 		{
 			captureVector->AddToTail( pMaster->GetControlPoint( 0 ) );
 			return;

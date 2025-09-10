@@ -38,7 +38,7 @@ ActionResult< CTFBot >	CTFBotSeekAndDestroy::OnStart( CTFBot *me, Action< CTFBot
 	RecomputeSeekPath( me );
 
 	CTeamControlPoint *point = me->GetMyControlPoint();
-	m_isPointLocked = ( point && point->IsLocked() );
+	m_isPointLocked = IsPointLocked( me, point );
 
 	// restart the timer if we have one
 	if ( m_giveUpTimer.HasStarted() )
@@ -77,7 +77,7 @@ ActionResult< CTFBot >	CTFBotSeekAndDestroy::Update( CTFBot *me, float interval 
 		{
 			CTeamControlPoint *point = me->GetMyControlPoint();
 
-			if ( point && !point->IsLocked() )
+			if ( !IsPointLocked( me, point ) )
 			{
 				return Done( "The point just unlocked" );
 			}
@@ -251,5 +251,27 @@ EventDesiredResult< CTFBot > CTFBotSeekAndDestroy::OnTerritoryCaptured( CTFBot *
 EventDesiredResult< CTFBot > CTFBotSeekAndDestroy::OnTerritoryLost( CTFBot *me, int territoryID )
 {
 	return TryDone( RESULT_IMPORTANT, "Giving up due to point lost" );
+}
+
+
+//---------------------------------------------------------------------------------------------
+bool CTFBotSeekAndDestroy::IsPointLocked( CTFBot *me, CTeamControlPoint *point )
+{
+	if ( !point )
+		return false;
+
+	if ( point->IsLocked() )
+		return true;
+
+#ifdef MAPBASE
+	if ( TFGameRules()->IsInArenaMode() )
+	{
+		// Arena mode has special lock conditions in CTFGameRules::TeamMayCapturePoint
+		if ( !TFGameRules()->TeamMayCapturePoint( me->GetTeamNumber(), point->GetPointIndex() ) )
+			return true;
+	}
+#endif
+
+	return false;
 }
 

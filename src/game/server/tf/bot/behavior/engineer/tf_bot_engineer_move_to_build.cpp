@@ -58,6 +58,11 @@ void CTFBotEngineerMoveToBuild::CollectBuildAreas( CTFBot *me )
 	m_sentryAreaVector.RemoveAll();
 
 	CUtlVector< CTFNavArea * > pointAreaVector;
+#ifdef MAPBASE
+	// Gamemodes such as arena may use control points outside of the actual CP mode
+	// This is used to check if there's a valid control point, as GetControlPointCenterArea is used elsewhere in engineer AI
+	CTFNavArea *pointCenterArea = NULL;
+#endif
 	Vector pointCentroid = vec3_origin;
 	float pointEnemyIncursion = 0.0f;
 	int i;
@@ -110,6 +115,10 @@ void CTFBotEngineerMoveToBuild::CollectBuildAreas( CTFBot *me )
 		if ( !ctrlPoint )
 			return;
 
+#ifdef MAPBASE
+		pointCenterArea = TheTFNavMesh()->GetControlPointCenterArea( ctrlPoint->GetPointIndex() );
+#endif
+
 		const CUtlVector< CTFNavArea * > *ctrlPointAreaVector = TheTFNavMesh()->GetControlPointAreas( ctrlPoint->GetPointIndex() );
 
 		if ( ctrlPointAreaVector )
@@ -161,7 +170,12 @@ void CTFBotEngineerMoveToBuild::CollectBuildAreas( CTFBot *me )
 // 					continue;
 // 			}
 
+#ifdef MAPBASE
+			// Control points may exist outside of CP mode
+			if ( pointCenterArea )
+#else
 			if ( TFGameRules()->GetGameType() == TF_GAMETYPE_CP )
+#endif
 			{
 				// don't build directly on the point
 				if ( visibleArea->HasAttributeTF( TF_NAV_CONTROL_POINT ) )
