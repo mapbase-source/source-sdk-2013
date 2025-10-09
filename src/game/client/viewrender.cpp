@@ -189,6 +189,8 @@ extern ConVar localplayer_visionflags;
 static ConVar r_nearz_skybox( "r_nearz_skybox", "2.0", FCVAR_CHEAT );
 #endif
 
+ConVar r_viewmodel_opacity( "r_viewmodel_opacity", "1", FCVAR_ARCHIVE, "", true, 0.f, true, 1.f );
+
 //-----------------------------------------------------------------------------
 // Globals
 //-----------------------------------------------------------------------------
@@ -1137,6 +1139,8 @@ void CViewRender::DrawViewModels( const CViewSetup &viewRender, bool drawViewmod
 	// Force clipped down range
 	if( bUseDepthHack )
 		pRenderContext->DepthRange( 0.0f, 0.1f );
+
+	CUtlVector< IClientRenderable * > transparentVMList( 16 );
 	
 	if ( bShouldDrawPlayerViewModel || bShouldDrawToolViewModels )
 	{
@@ -1171,6 +1175,34 @@ void CViewRender::DrawViewModels( const CViewSetup &viewRender, bool drawViewmod
 			}
 		}
 
+		// if we have viewmodel opacity move our vm model's to a different list
+		if ( r_viewmodel_opacity.GetFloat() < 1.f )
+		{
+			int nOpaque = opaqueViewModelList.Count();
+			for ( int i = nOpaque - 1; i >= 0; --i )
+			{
+				IClientRenderable *pRenderable = opaqueViewModelList[i];
+				CBaseEntity *pEntity = pRenderable->GetIClientUnknown()->GetBaseEntity();
+				if ( dynamic_cast<C_BaseViewModel *>( pEntity ) )
+				{
+					transparentVMList.AddToTail( pRenderable );
+					opaqueViewModelList.FastRemove( i );
+				}
+			}
+
+			int nTranslucent = translucentViewModelList.Count();
+			for ( int i = nTranslucent - 1; i >= 0; --i )
+			{
+				IClientRenderable *pRenderable = translucentViewModelList[i];
+				CBaseEntity *pEntity = pRenderable->GetIClientUnknown()->GetBaseEntity();
+				if ( dynamic_cast<C_BaseViewModel *>( pEntity ) )
+				{
+					transparentVMList.AddToTail( pRenderable );
+					translucentViewModelList.FastRemove( i );
+				}
+			}
+		}
+
 		if ( !UpdateRefractIfNeededByList( opaqueViewModelList ) )
 		{
 			UpdateRefractIfNeededByList( translucentViewModelList );
@@ -1179,6 +1211,40 @@ void CViewRender::DrawViewModels( const CViewSetup &viewRender, bool drawViewmod
 		DrawRenderablesInList( opaqueViewModelList );
 		DrawRenderablesInList( translucentViewModelList, STUDIO_TRANSPARENCY );
 	}
+
+	if ( r_viewmodel_opacity.GetFloat() < 1.f && r_viewmodel_opacity.GetFloat() > 0.f )
+	{
+		ITexture *pRenderTarget = materials->FindTexture( "_rt_viewmodel", TEXTURE_GROUP_RENDER_TARGET );
+		pRenderContext->PushRenderTargetAndViewport( pRenderTarget, viewRender.x, viewRender.y, viewRender.width, viewRender.height );
+		pRenderContext->ClearColor4ub( 0, 0, 0, 0 );
+		pRenderContext->ClearBuffers( true, true, true );
+
+		pRenderContext->SetStencilEnable( true );
+		pRenderContext->SetStencilReferenceValue( 1 );
+		pRenderContext->SetStencilTestMask( 0xFF );
+		pRenderContext->SetStencilWriteMask( 0xFF );
+		pRenderContext->SetStencilCompareFunction( STENCILCOMPARISONFUNCTION_LESS );
+		pRenderContext->SetStencilPassOperation( STENCILOPERATION_ZERO );
+		pRenderContext->SetStencilZFailOperation( STENCILOPERATION_REPLACE );
+		pRenderContext->SetStencilFailOperation( STENCILOPERATION_REPLACE );
+
+		DrawRenderablesInList( transparentVMList, STUDIO_TRANSPARENCY );
+
+		// clear based on our desired opacity
+		float opacity = r_viewmodel_opacity.GetFloat() * 255.f ;
+		pRenderContext->ClearColor4ub( 0, 0, 0, static_cast<int>( opacity ) );
+		pRenderContext->SetStencilReferenceValue( 0 );
+		pRenderContext->ClearBuffersObeyStencilEx( false, true, true );
+		pRenderContext->SetStencilEnable( false );
+
+		// redraw renderables without updating the depth buffer
+		pRenderContext->OverrideAlphaWriteEnable( true, false );
+		DrawRenderablesInList( transparentVMList, STUDIO_TRANSPARENCY );
+		pRenderContext->OverrideAlphaWriteEnable( false, true );
+
+		pRenderContext->PopRenderTargetAndViewport();
+	}
+
 
 	// Reset the depth range to the original values
 	if( bUseDepthHack )
@@ -2484,7 +2550,29 @@ void CViewRender::RenderView( const CViewSetup &viewRender, int nClearFlags, int
 			DownscaleRect.x, DownscaleRect.y, DownscaleRect.x+DownscaleRect.width-1, DownscaleRect.y+DownscaleRect.height-1, 
 			pFullFrameFB1->GetActualWidth(), pFullFrameFB1->GetActualHeight() );
 
+		if ( r_viewmodel_opacity.GetFloat() < 1.f && r_viewmodel_opacity.GetFloat() > 0.f )
+		{
+			m_transparentVMMaterial->IncrementReferenceCount();
+			
+			pRenderContextUpscale->DrawScreenSpaceRectangle( m_transparentVMMaterial, UpscaleRect.x, UpscaleRect.y, UpscaleRect.width, UpscaleRect.height,
+				DownscaleRect.x, DownscaleRect.y, DownscaleRect.x + DownscaleRect.width - 1, DownscaleRect.y + DownscaleRect.height - 1,
+				pFullFrameFB1->GetActualWidth(), pFullFrameFB1->GetActualHeight() );
+			
+			m_transparentVMMaterial->DecrementReferenceCount();
+		}
+
 		pCopyMaterial->DecrementReferenceCount();
+	}
+	else if ( r_viewmodel_opacity.GetFloat() < 1.f && r_viewmodel_opacity.GetFloat() > 0.f )
+	{
+		CMatRenderContextPtr pRenderContextVM( materials );
+		m_transparentVMMaterial->IncrementReferenceCount();
+
+		ITexture *pFullFrameFB1 = materials->FindTexture( "_rt_FullFrameFB1", TEXTURE_GROUP_RENDER_TARGET );
+		pRenderContextVM->DrawScreenSpaceRectangle( m_transparentVMMaterial, viewRender.x, viewRender.y, viewRender.width, viewRender.height,
+			viewRender.x, viewRender.y, viewRender.x + viewRender.width - 1, viewRender.y + viewRender.height - 1,
+			pFullFrameFB1->GetActualWidth(), pFullFrameFB1->GetActualHeight() );
+		m_transparentVMMaterial->DecrementReferenceCount();
 	}
 
 	// if we're in VR mode we might need to override the render target

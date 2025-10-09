@@ -323,6 +323,13 @@ void CViewRender::Init( void )
 	m_flLastFOV = default_fov.GetFloat();
 #endif
 
+	KeyValues *pVMTKeyValues = new KeyValues( "UnlitGeneric" );
+	pVMTKeyValues->SetString( "$basetexture", "_rt_viewmodel" );
+	pVMTKeyValues->SetInt( "$vertexcolor", 0 );
+	pVMTKeyValues->SetInt( "$vertexalpha", 0 );
+	pVMTKeyValues->SetInt( "$translucent", 1 );
+	pVMTKeyValues->SetInt( "$additive", 0 );
+	m_transparentVMMaterial.Init( "__viewmodel", TEXTURE_GROUP_RENDER_TARGET, pVMTKeyValues );
 }
 
 //-----------------------------------------------------------------------------

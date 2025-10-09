@@ -24,6 +24,9 @@ $Project
 			// Original stunstick files are conditional'd out in the HL2 VPCs
 			$File	"$SRCDIR\game\shared\hl2mp\weapon_stunstick.cpp"
 			$File	"$SRCDIR\game\shared\hl2mp\weapon_stunstick.h"
+			// Rendertargets implementation for HL2
+			$File	"hl2\rendertargets.cpp"
+			$File	"hl2\rendertargets.h"
 		}
 		
 		$Folder	"HL2MP"

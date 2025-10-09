@@ -527,6 +527,8 @@ private:
 	CMaterialReference	m_ScriptOverlayMaterial;
 	char m_szCurrentScriptMaterialName[ MAX_PATH ];
 
+	CMaterialReference m_transparentVMMaterial;
+
 	Vector			m_vecLastFacing;
 	float			m_flCheapWaterStartDistance;
 	float			m_flCheapWaterEndDistance;
