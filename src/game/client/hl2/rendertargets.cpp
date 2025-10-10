@@ -8,13 +8,14 @@
 #include "cbase.h"
 #include "rendertargets.h"
 
-ConVar mapbase_water_resolution( "mapbase_water_resolution", "1024", FCVAR_NONE, "Needs to be set at game launch time to override." );
-ConVar mapbase_monitor_resolution( "mapbase_monitor_resolution", "1024", FCVAR_NONE, "Needs to be set at game launch time to override." );
+// shamelessly copied from TF2's rendertargets impl
+ConVar hl2_water_resolution( "hl2_water_resolution", "1024", FCVAR_NONE, "Needs to be set at game launch time to override." );
+ConVar hl2_monitor_resolution( "hl2_monitor_resolution", "1024", FCVAR_NONE, "Needs to be set at game launch time to override." );
 
 void CRenderTargets::InitClientRenderTargets( IMaterialSystem* pMaterialSystem, IMaterialSystemHardwareConfig* pHardwareConfig )
 {
 	BaseClass::InitClientRenderTargets( pMaterialSystem, pHardwareConfig, 
-		mapbase_water_resolution.GetInt(), mapbase_monitor_resolution.GetInt() );
+		hl2_water_resolution.GetInt(), hl2_monitor_resolution.GetInt() );
 }
 
 //-----------------------------------------------------------------------------

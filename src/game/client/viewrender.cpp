@@ -190,6 +190,13 @@ static ConVar r_nearz_skybox( "r_nearz_skybox", "2.0", FCVAR_CHEAT );
 #endif
 
 ConVar r_viewmodel_opacity( "r_viewmodel_opacity", "1", FCVAR_ARCHIVE, "", true, 0.f, true, 1.f );
+// personal preference to have occlusion disable on TF2 by default
+#ifdef TF_CLIENT_DLL
+ConVar r_viewmodel_opacity_occlude_effects( "r_viewmodel_opacity_occlude_effects", "0",
+#else
+ConVar r_viewmodel_opacity_occlude_effects( "r_viewmodel_opacity_occlude_effects", "1",
+#endif
+	FCVAR_ARCHIVE, "When the opacity is less than 1 should it occlude effects rendered with the viewmodel such as particles" );
 
 //-----------------------------------------------------------------------------
 // Globals
@@ -1139,14 +1146,13 @@ void CViewRender::DrawViewModels( const CViewSetup &viewRender, bool drawViewmod
 	// Force clipped down range
 	if( bUseDepthHack )
 		pRenderContext->DepthRange( 0.0f, 0.1f );
-
-	CUtlVector< IClientRenderable * > transparentVMList( 16 );
 	
 	if ( bShouldDrawPlayerViewModel || bShouldDrawToolViewModels )
 	{
 
 		CUtlVector< IClientRenderable * > opaqueViewModelList( 32 );
 		CUtlVector< IClientRenderable * > translucentViewModelList( 32 );
+		CUtlVector< IClientRenderable * > transparentList( 64 );
 
 		ClientLeafSystem()->CollateViewModelRenderables( opaqueViewModelList, translucentViewModelList );
 
@@ -1175,9 +1181,16 @@ void CViewRender::DrawViewModels( const CViewSetup &viewRender, bool drawViewmod
 			}
 		}
 
-		// if we have viewmodel opacity move our vm model's to a different list
-		if ( r_viewmodel_opacity.GetFloat() < 1.f )
+		if ( r_viewmodel_opacity.GetFloat() >= 1.f )
 		{
+			if ( !UpdateRefractIfNeededByList( opaqueViewModelList ) )
+			{
+				UpdateRefractIfNeededByList( translucentViewModelList );
+			}
+		}
+		else
+		{
+			// move our vm models to a different list
 			int nOpaque = opaqueViewModelList.Count();
 			for ( int i = nOpaque - 1; i >= 0; --i )
 			{
@@ -1185,7 +1198,7 @@ void CViewRender::DrawViewModels( const CViewSetup &viewRender, bool drawViewmod
 				CBaseEntity *pEntity = pRenderable->GetIClientUnknown()->GetBaseEntity();
 				if ( pEntity )
 				{
-					transparentVMList.AddToTail( pRenderable );
+					transparentList.AddToTail( pRenderable );
 					opaqueViewModelList.FastRemove( i );
 				}
 			}
@@ -1197,74 +1210,73 @@ void CViewRender::DrawViewModels( const CViewSetup &viewRender, bool drawViewmod
 				CBaseEntity *pEntity = pRenderable->GetIClientUnknown()->GetBaseEntity();
 				if ( pEntity )
 				{
-					transparentVMList.AddToTail( pRenderable );
+					transparentList.AddToTail( pRenderable );
 					translucentViewModelList.FastRemove( i );
 				}
 			}
-		}
 
-		if ( !UpdateRefractIfNeededByList( opaqueViewModelList ) )
-		{
-			UpdateRefractIfNeededByList( translucentViewModelList );
+			if ( transparentList.Count() )
+			{
+				ITexture *pRenderTarget = materials->FindTexture( "_rt_viewmodel", TEXTURE_GROUP_RENDER_TARGET );
+				pRenderContext->PushRenderTargetAndViewport( pRenderTarget, viewRender.x, viewRender.y, viewRender.width, viewRender.height );
+				pRenderContext->ClearColor4ub( 0, 0, 0, 0 );
+				pRenderContext->ClearBuffers( true, true, true );
+
+				// write the stencil and draw the viewmodel for the vm render target
+				pRenderContext->SetStencilEnable( true );
+				pRenderContext->SetStencilReferenceValue( 1 );
+				pRenderContext->SetStencilWriteMask( 0xFF );
+				pRenderContext->SetStencilTestMask( 0xFF );
+				pRenderContext->SetStencilCompareFunction( STENCILCOMPARISONFUNCTION_ALWAYS );
+				pRenderContext->SetStencilPassOperation( STENCILOPERATION_REPLACE );
+				pRenderContext->SetStencilFailOperation( STENCILOPERATION_KEEP );
+				pRenderContext->SetStencilZFailOperation( STENCILOPERATION_KEEP );
+				DrawRenderablesInList( transparentList, STUDIO_TRANSPARENCY );
+
+				// clear the alpha channel based on what we just drew
+				float opacity = r_viewmodel_opacity.GetFloat() * 255.f;
+				pRenderContext->ClearColor4ub( 0, 0, 0, static_cast<int>( opacity ) );
+
+				pRenderContext->SetStencilWriteMask( 0 );
+				pRenderContext->SetStencilReferenceValue( 1 );
+				pRenderContext->SetStencilCompareFunction( STENCILCOMPARISONFUNCTION_EQUAL );
+				pRenderContext->ClearBuffersObeyStencilEx( false, true, true );
+				pRenderContext->PopRenderTargetAndViewport();
+
+				// Do we want to occlude rendered effects and particles?
+				if ( !r_viewmodel_opacity_occlude_effects.GetBool() )
+					pRenderContext->SetStencilEnable( false );
+				else
+				{
+					// write our stencil for the main render target
+					pRenderContext->SetStencilEnable( true );
+					pRenderContext->SetStencilReferenceValue( 1 );
+					pRenderContext->SetStencilWriteMask( 0x3 );
+					pRenderContext->SetStencilTestMask( 0x3 );
+					pRenderContext->SetStencilCompareFunction( STENCILCOMPARISONFUNCTION_LESS );
+					pRenderContext->SetStencilPassOperation( STENCILOPERATION_ZERO );
+					pRenderContext->SetStencilFailOperation( STENCILOPERATION_REPLACE );
+					pRenderContext->SetStencilZFailOperation( STENCILOPERATION_REPLACE );
+
+					// something about drawing the ItemModelPanel render target ruins everything
+					// so just don't write colour which mostly works
+					pRenderContext->OverrideColorWriteEnable( true, false );
+					DrawRenderablesInList( transparentList, STUDIO_TRANSPARENCY );
+					pRenderContext->OverrideColorWriteEnable( false, true );
+
+					// setup for occlusion
+					pRenderContext->SetStencilWriteMask( 0 );
+					pRenderContext->SetStencilReferenceValue( 0 );
+					pRenderContext->SetStencilCompareFunction( STENCILCOMPARISONFUNCTION_EQUAL );
+				}
+				DrawRenderablesInList( transparentList, STUDIO_DRAWTRANSLUCENTSUBMODELS );
+			}
 		}
 
 		DrawRenderablesInList( opaqueViewModelList );
 		DrawRenderablesInList( opaqueViewModelList, STUDIO_DRAWTRANSLUCENTSUBMODELS );
 		DrawRenderablesInList( translucentViewModelList, STUDIO_TRANSPARENCY );
 		DrawRenderablesInList( translucentViewModelList, STUDIO_TRANSPARENCY | STUDIO_DRAWTRANSLUCENTSUBMODELS );
-	}
-
-	if ( r_viewmodel_opacity.GetFloat() < 1.f && r_viewmodel_opacity.GetFloat() >= 0.f )
-	{
-		ITexture *pRenderTarget = materials->FindTexture( "_rt_viewmodel", TEXTURE_GROUP_RENDER_TARGET );
-		pRenderContext->PushRenderTargetAndViewport( pRenderTarget, viewRender.x, viewRender.y, viewRender.width, viewRender.height );
-		pRenderContext->ClearColor4ub( 0, 0, 0, 0 );
-		pRenderContext->ClearBuffers( true, true, true );
-
-		// write the stencil and draw the viewmodel for the vm render target
-		{
-			pRenderContext->SetStencilEnable( true );
-			pRenderContext->SetStencilReferenceValue( 1 );
-			pRenderContext->SetStencilWriteMask( 0xFF );
-			pRenderContext->SetStencilTestMask( 0xFF );
-			pRenderContext->SetStencilCompareFunction( STENCILCOMPARISONFUNCTION_ALWAYS );
-			pRenderContext->SetStencilPassOperation( STENCILOPERATION_REPLACE );
-			pRenderContext->SetStencilFailOperation( STENCILOPERATION_KEEP );
-			pRenderContext->SetStencilZFailOperation( STENCILOPERATION_KEEP );
-			DrawRenderablesInList( transparentVMList, STUDIO_TRANSPARENCY );
-		}
-
-		// clear the alpha channel based on what we just drew
-		float opacity = r_viewmodel_opacity.GetFloat() * 255.f;
-		pRenderContext->ClearColor4ub( 0, 0, 0, static_cast<int>( opacity ) );
-
-		pRenderContext->SetStencilWriteMask( 0 );
-		pRenderContext->SetStencilReferenceValue( 1 );
-		pRenderContext->SetStencilCompareFunction( STENCILCOMPARISONFUNCTION_EQUAL );
-		pRenderContext->ClearBuffersObeyStencilEx( false, true, true );
-		pRenderContext->PopRenderTargetAndViewport();
-
-		// write our stencil for the main render target
-		{
-			pRenderContext->SetStencilEnable( true );
-			pRenderContext->SetStencilReferenceValue( 1 );
-			pRenderContext->SetStencilWriteMask( 0xFF );
-			pRenderContext->SetStencilTestMask( 0xFF );
-			pRenderContext->SetStencilCompareFunction( STENCILCOMPARISONFUNCTION_LESS );
-			pRenderContext->SetStencilPassOperation( STENCILOPERATION_ZERO );
-			pRenderContext->SetStencilFailOperation( STENCILOPERATION_REPLACE );
-			pRenderContext->SetStencilZFailOperation( STENCILOPERATION_REPLACE );
-			DrawRenderablesInList( transparentVMList );
-		}
-
-		// draw what should just be the sprites
-		{
-			pRenderContext->SetStencilWriteMask( 0 );
-			pRenderContext->SetStencilReferenceValue( 0 );
-			pRenderContext->SetStencilCompareFunction( STENCILCOMPARISONFUNCTION_EQUAL );
-			DrawRenderablesInList( transparentVMList, STUDIO_DRAWTRANSLUCENTSUBMODELS );
-		}
-
 		pRenderContext->SetStencilEnable( false );
 	}
 
@@ -2573,7 +2585,7 @@ void CViewRender::RenderView( const CViewSetup &viewRender, int nClearFlags, int
 			DownscaleRect.x, DownscaleRect.y, DownscaleRect.x+DownscaleRect.width-1, DownscaleRect.y+DownscaleRect.height-1, 
 			pFullFrameFB1->GetActualWidth(), pFullFrameFB1->GetActualHeight() );
 
-		if ( r_viewmodel_opacity.GetFloat() < 1.f && r_viewmodel_opacity.GetFloat() > 0.f )
+		if ( r_drawviewmodel.GetBool() && r_viewmodel_opacity.GetFloat() < 1.f && r_viewmodel_opacity.GetFloat() > 0.f )
 		{
 			m_transparentVMMaterial->IncrementReferenceCount();
 			
@@ -2586,7 +2598,7 @@ void CViewRender::RenderView( const CViewSetup &viewRender, int nClearFlags, int
 
 		pCopyMaterial->DecrementReferenceCount();
 	}
-	else if ( r_viewmodel_opacity.GetFloat() < 1.f && r_viewmodel_opacity.GetFloat() > 0.f )
+	else if ( r_drawviewmodel.GetBool() && r_viewmodel_opacity.GetFloat() < 1.f && r_viewmodel_opacity.GetFloat() > 0.f )
 	{
 		CMatRenderContextPtr pRenderContextVM( materials );
 		m_transparentVMMaterial->IncrementReferenceCount();
