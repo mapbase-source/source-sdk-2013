@@ -165,7 +165,7 @@ static ConVar mat_drawwater( "mat_drawwater", "1", FCVAR_CHEAT );
 static ConVar mat_clipz( "mat_clipz", "1" );
 
 #ifdef MAPBASE
-static ConVar r_water_use_fix_for_bleeding("r_water_use_fix_for_bleeding", "1", FCVAR_ARCHIVE, "Enable hack that adjusts the clipping plane so it fixes bleeding (2x expensive)");
+static ConVar r_water_use_fix_for_bleeding("r_water_use_fix_for_bleeding", "1", FCVAR_ARCHIVE, "Enable hack that adjusts the clipping plane so it fixes bleeding");
 #endif
 
 
