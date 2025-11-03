@@ -164,6 +164,10 @@ static ConVar r_ForceWaterLeaf( "r_ForceWaterLeaf", "1", 0, "Enable for optimiza
 static ConVar mat_drawwater( "mat_drawwater", "1", FCVAR_CHEAT );
 static ConVar mat_clipz( "mat_clipz", "1" );
 
+#ifdef MAPBASE
+static ConVar r_water_use_fix_for_bleeding("r_water_use_fix_for_bleeding", "1", FCVAR_ARCHIVE, "Enable hack that adjusts the clipping plane so it fixes bleeding (2x expensive)");
+#endif
+
 
 //-----------------------------------------------------------------------------
 // Other convars
@@ -6597,7 +6601,9 @@ void CAboveWaterView::CRefractionView::Setup()
 		DF_DRAW_ENTITITES ;
 
 #ifdef MAPBASE
-	m_DrawFlags |= DF_RENDER_ABOVEWATER;
+	// Single check if enough, no need to repeat that in Draw just for +2.f
+	if (r_water_use_fix_for_bleeding.GetBool())
+		m_DrawFlags |= DF_RENDER_ABOVEWATER;
 #endif
 }
 
