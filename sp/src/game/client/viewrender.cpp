@@ -6595,6 +6595,10 @@ void CAboveWaterView::CRefractionView::Setup()
 	m_DrawFlags = DF_RENDER_REFRACTION | DF_CLIP_Z | 
 		DF_RENDER_UNDERWATER | DF_FUDGE_UP | 
 		DF_DRAW_ENTITITES ;
+
+#ifdef MAPBASE
+	m_DrawFlags |= DF_RENDER_ABOVEWATER;
+#endif
 }
 
 
@@ -6611,11 +6615,19 @@ void CAboveWaterView::CRefractionView::Draw()
 	int nSaveViewID = CurrentViewID();
 	SetupCurrentView( origin, angles, VIEW_REFRACTION );
 
+#ifdef MAPBASE
+	DrawSetup( GetOuter()->m_waterHeight + 2.f, m_DrawFlags, GetOuter()->m_waterZAdjust );
+#else
 	DrawSetup( GetOuter()->m_waterHeight, m_DrawFlags, GetOuter()->m_waterZAdjust );
+#endif
 
 	SetFogVolumeState( GetOuter()->m_fogInfo, true );
 	SetClearColorToFogColor();
+#ifdef MAPBASE
+	DrawExecute( GetOuter()->m_waterHeight + 2.f, VIEW_REFRACTION, GetOuter()->m_waterZAdjust );
+#else
 	DrawExecute( GetOuter()->m_waterHeight, VIEW_REFRACTION, GetOuter()->m_waterZAdjust );
+#endif
 
 #ifdef PORTAL
 	// deal with stencil
