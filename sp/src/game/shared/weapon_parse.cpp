@@ -305,6 +305,10 @@ bool ReadWeaponDataFromFileForSlot( IFileSystem* filesystem, const char *szWeapo
 		return false;
 
 #ifdef MAPBASE
+	// Reload HUD elements if we had a custom script
+	if ( pFileInfo->bCustom )
+		pFileInfo->bLoadedHudElements = false;
+
 	pFileInfo->bCustom = false;
 #endif
 	pFileInfo->Parse( pKV, szWeaponName );
@@ -349,6 +353,7 @@ bool ReadCustomWeaponDataFromFileForSlot( IFileSystem* filesystem, const char *s
 		return false;
 
 	pFileInfo->bCustom = true;
+	pFileInfo->bLoadedHudElements = false;
 	pFileInfo->Parse( pKV, szWeaponName );
 
 	pKV->deleteThis();
