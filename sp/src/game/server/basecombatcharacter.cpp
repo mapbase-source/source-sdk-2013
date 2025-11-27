@@ -4308,7 +4308,8 @@ void CBaseCombatCharacter::InputHolsterAndDestroyWeapon( inputdata_t &inputdata 
 		if (pWeapon->GetActivity() == ACT_VM_HOLSTER)
 		{
 			// Remove when holster is finished
-			pWeapon->ThinkSet( &CBaseEntity::SUB_Remove, gpGlobals->curtime + pWeapon->GetViewModelSequenceDuration() );
+			pWeapon->SetThink( &CBaseEntity::SUB_Remove );
+			pWeapon->SetNextThink( gpGlobals->curtime + pWeapon->GetViewModelSequenceDuration() );
 		}
 		else
 		{
