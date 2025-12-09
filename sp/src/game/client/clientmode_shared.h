@@ -187,7 +187,7 @@ private:
 	CHandle<C_ColorCorrection> m_pCurrentColorCorrection;
 
 	// When using a custom client scheme
-	bool	m_bResetSchemeOnUnload;
+	bool	m_bResetSchemeOnReload;
 #endif
 };
 
