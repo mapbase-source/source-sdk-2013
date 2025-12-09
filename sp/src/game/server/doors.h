@@ -141,7 +141,7 @@ public:
 	void			StartMovingSound( void );
 	virtual void	StopMovingSound( void );
 	void			MovingSoundThink( void );
-#ifdef HL1_DLL
+#ifdef HL1_DLL || MAPBASE
 	bool		PassesBlockTouchFilter(CBaseEntity *pOther);
 	string_t	m_iBlockFilterName;
 	EHANDLE		m_hBlockFilter;
