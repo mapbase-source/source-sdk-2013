@@ -473,6 +473,7 @@ BEGIN_DATADESC( CBasePlayer )
 	DEFINE_INPUTFUNC( FIELD_STRING, "HandleMapEvent", InputHandleMapEvent ),
 #ifdef MAPBASE
 	DEFINE_INPUTFUNC( FIELD_BOOLEAN, "SetSuppressAttacks", InputSetSuppressAttacks ),
+	DEFINE_INPUTFUNC( FIELD_STRING, "SendHUDAnimation", InputSendHUDAnimation ),
 #endif
 
 	DEFINE_FIELD( m_nNumCrouches, FIELD_INTEGER ),
@@ -9623,6 +9624,20 @@ void CBasePlayer::InputSetSuppressAttacks( inputdata_t &inputdata )
 	inputdata.value.Bool() ?
 		AddSpawnFlags( SF_PLAYER_SUPPRESS_FIRING ) :
 		RemoveSpawnFlags( SF_PLAYER_SUPPRESS_FIRING );
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+// Input  : &inputdata -
+//-----------------------------------------------------------------------------
+void CBasePlayer::InputSendHUDAnimation( inputdata_t &inputdata )
+{
+	CSingleUserRecipientFilter filter( this );
+	filter.MakeReliable();
+
+	UserMessageBegin( filter, "HudAnim" );
+		WRITE_STRING( inputdata.value.String() ); // anim name
+	MessageEnd();
 }
 #endif
 

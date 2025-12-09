@@ -282,6 +282,16 @@ static void __MsgFunc_VGUIMenu( bf_read &msg )
 	gViewPortInterface->ShowPanel( viewport, bShow );
 }
 
+#ifdef MAPBASE
+static void __MsgFunc_HudAnim( bf_read &msg )
+{
+	char animname[128]; 
+	msg.ReadString( animname, sizeof( animname ) );
+
+	g_pClientMode->GetViewportAnimationController()->StartAnimationSequence( animname );
+}
+#endif
+
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
@@ -387,6 +397,9 @@ void ClientModeShared::Init()
 
 	HOOK_MESSAGE( VGUIMenu );
 	HOOK_MESSAGE( Rumble );
+#ifdef MAPBASE
+	HOOK_MESSAGE( HudAnim );
+#endif
 }
 
 
