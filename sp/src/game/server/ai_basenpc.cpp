@@ -10689,9 +10689,15 @@ int CAI_BaseNPC::DrawDebugTextOverlays(void)
 			CAI_BehaviorBase *pBehavior = GetRunningBehavior();
 			if ( pBehavior )
 			{
+#ifdef MAPBASE
+				// CAI_BehaviorBase::DrawDebugTextOverlays prints identical text, but wasn't used
+				// This change allows behaviors to print their own debug text
+				text_offset = pBehavior->DrawDebugTextOverlays( text_offset );
+#else
 				Q_snprintf(tempstr,sizeof(tempstr),"Behv: %s, ", pBehavior->GetName() );
 				EntityText(text_offset,tempstr,0);
 				text_offset++;
+#endif
 			}
 
 			const char *pName = NULL;
