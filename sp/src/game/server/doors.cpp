@@ -13,7 +13,7 @@
 #include "engine/IEngineSound.h"
 #include "physics_npc_solver.h"
 
-#ifdef HL1_DLL || MAPBASE
+#if defined(HL1_DLL) || defined(MAPBASE)
 #include "filters.h"
 #endif
 
@@ -54,7 +54,7 @@ BEGIN_DATADESC( CBaseDoor )
 	DEFINE_KEYFIELD( m_bForceClosed, FIELD_BOOLEAN, "forceclosed" ),
 	DEFINE_FIELD( m_bDoorGroup, FIELD_BOOLEAN ),
 
-#ifdef HL1_DLL || MAPBASE
+#if defined(HL1_DLL) || defined(MAPBASE)
 	DEFINE_KEYFIELD( m_iBlockFilterName,	FIELD_STRING,	"filtername" ),
 	DEFINE_FIELD( m_hBlockFilter, FIELD_EHANDLE ),
 #endif
@@ -500,7 +500,7 @@ void CBaseDoor::Activate( void )
 		break;
 	}
 
-#ifdef HL1_DLL || MAPBASE
+#if defined(HL1_DLL) || defined(MAPBASE)
 	// Get a handle to my filter entity if there is one
 	if (m_iBlockFilterName != NULL_STRING)
 	{
@@ -615,7 +615,7 @@ void CBaseDoor::DoorTouch( CBaseEntity *pOther )
 	// Ignore touches by anything but players.
 	if ( !pOther->IsPlayer() )
 	{
-#ifdef HL1_DLL || MAPBASE
+#if defined(HL1_DLL) || defined(MAPBASE)
 		if( PassesBlockTouchFilter( pOther ) && m_toggle_state == TS_GOING_DOWN )
 		{
 			DoorGoUp();
@@ -661,7 +661,7 @@ void CBaseDoor::DoorTouch( CBaseEntity *pOther )
 	}
 }
 
-#ifdef HL1_DLL || MAPBASE
+#if defined(HL1_DLL) || defined(MAPBASE)
 bool CBaseDoor::PassesBlockTouchFilter(CBaseEntity *pOther)
 {
 	CBaseFilter* pFilter = (CBaseFilter*)(m_hBlockFilter.Get());
