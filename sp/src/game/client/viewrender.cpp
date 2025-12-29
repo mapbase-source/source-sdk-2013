@@ -2242,6 +2242,10 @@ void CViewRender::RenderView( const CViewSetup &view, int nClearFlags, int whatT
 #endif
 		DrawViewModels( view, whatToDraw & RENDERVIEW_DRAWVIEWMODEL );
 
+#ifdef MAPBASE
+		GetClientModeNormal()->DoPostScreenSpaceEffectsPostViewModel( &view );
+#endif
+
 		DrawUnderwaterOverlay();
 
 		PixelVisibility_EndScene();

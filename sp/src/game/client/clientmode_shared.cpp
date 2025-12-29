@@ -835,6 +835,18 @@ bool ClientModeShared::DoPostScreenSpaceEffects( const CViewSetup *pSetup )
 	return true;
 }
 
+#ifdef MAPBASE
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+bool ClientModeShared::DoPostScreenSpaceEffectsPostViewModel( const CViewSetup *pSetup )
+{
+	g_pColorCorrectionMgr->RenderExclusionObjects( pSetup );
+
+	return true;
+}
+#endif
+
 //-----------------------------------------------------------------------------
 // Purpose: 
 // Output : vgui::Panel

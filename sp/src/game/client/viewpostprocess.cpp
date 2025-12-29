@@ -50,6 +50,15 @@ float g_flDOFFarBlurRadius = 10.0f;
 
 bool g_bFlashlightIsOn = false;
 
+#ifdef MAPBASE
+// Mask marking each color correction table that should be affected by the exclusion texture
+// Controlled by CColorCorrectionMgr
+int g_nColCorrectExcludeMask = 0;
+
+float g_flColCorrectExcludeExponent = 0.3f;
+static ConVar mat_colcorrection_exclude_exponent( "mat_colcorrection_exclude_exponent", "0.1" );
+#endif
+
 // hdr parameters
 ConVar mat_bloomscale( "mat_bloomscale", "1" );
 ConVar mat_hdr_level( "mat_hdr_level", "2", FCVAR_ARCHIVE );
@@ -1282,6 +1291,10 @@ private:
 	IMaterialVar *m_pMaterialParam_ColCorrectNumLookups;
 	IMaterialVar *m_pMaterialParam_ColCorrectDefaultWeight;
 	IMaterialVar *m_pMaterialParam_ColCorrectLookupWeights;
+#ifdef MAPBASE
+	IMaterialVar *m_pMaterialParam_ColCorrectExcludeMask;
+	IMaterialVar *m_pMaterialParam_ColCorrectExcludeExponent;
+#endif
 	IMaterialVar *m_pMaterialParam_LocalContrastStrength;
 	IMaterialVar *m_pMaterialParam_LocalContrastEdgeStrength;
 	IMaterialVar *m_pMaterialParam_VignetteStart;
@@ -1330,6 +1343,10 @@ CEnginePostMaterialProxy::CEnginePostMaterialProxy()
 	m_pMaterialParam_ColCorrectNumLookups		= NULL;
 	m_pMaterialParam_ColCorrectDefaultWeight	= NULL;
 	m_pMaterialParam_ColCorrectLookupWeights	= NULL;
+#ifdef MAPBASE
+	m_pMaterialParam_ColCorrectExcludeMask		= NULL;
+	m_pMaterialParam_ColCorrectExcludeExponent	= NULL;
+#endif
 	m_pMaterialParam_LocalContrastStrength		= NULL;
 	m_pMaterialParam_LocalContrastEdgeStrength	= NULL;
 	m_pMaterialParam_VignetteStart				= NULL;
@@ -1361,6 +1378,10 @@ bool CEnginePostMaterialProxy::Init( IMaterial *pMaterial, KeyValues *pKeyValues
 	m_pMaterialParam_ColCorrectNumLookups = pMaterial->FindVar( "$colCorrect_NumLookups", &bFoundVar, false );
 	m_pMaterialParam_ColCorrectDefaultWeight = pMaterial->FindVar( "$colCorrect_DefaultWeight", &bFoundVar, false );
 	m_pMaterialParam_ColCorrectLookupWeights = pMaterial->FindVar( "$colCorrect_LookupWeights", &bFoundVar, false );
+#ifdef MAPBASE
+	m_pMaterialParam_ColCorrectExcludeMask = pMaterial->FindVar( "$colCorrect_ExcludeMask", &bFoundVar, false );
+	m_pMaterialParam_ColCorrectExcludeExponent = pMaterial->FindVar( "$colCorrect_ExcludeExponent", &bFoundVar, false );
+#endif
 	m_pMaterialParam_LocalContrastStrength = pMaterial->FindVar( "$localContrastScale", &bFoundVar, false );
 	m_pMaterialParam_LocalContrastEdgeStrength = pMaterial->FindVar( "$localContrastEdgeScale", &bFoundVar, false );
 	m_pMaterialParam_VignetteStart = pMaterial->FindVar( "$localContrastVignetteStart", &bFoundVar, false );
@@ -1431,7 +1452,13 @@ void CEnginePostMaterialProxy::OnBind( C_BaseEntity *pEnt )
 	if ( m_pMaterialParam_FilmGrainStrength )
 		m_pMaterialParam_FilmGrainStrength->SetFloatValue( s_LocalPostProcessParameters.m_flParameters[ PPPN_FILM_GRAIN_STRENGTH ] );
 
-
+#ifdef MAPBASE
+	if ( m_pMaterialParam_ColCorrectExcludeMask )
+		m_pMaterialParam_ColCorrectExcludeMask->SetIntValue( g_nColCorrectExcludeMask );
+	
+	if ( m_pMaterialParam_ColCorrectExcludeExponent )
+		m_pMaterialParam_ColCorrectExcludeExponent->SetFloatValue( g_flColCorrectExcludeExponent );
+#endif
 
 	if ( m_pMaterialParam_FadeType )
 	{
@@ -1525,6 +1552,13 @@ IMaterial * CEnginePostMaterialProxy::SetupEnginePostMaterial(	const Vector4D & 
 	s_PostBloomAmount = flBloomAmount;
 
 	SetupEnginePostMaterialAA( bPerformSoftwareAA, flAAStrength );
+
+#ifdef MAPBASE
+	if ( bPerformColCorrect )
+	{
+		g_flColCorrectExcludeExponent = mat_colcorrection_exclude_exponent.GetFloat();
+	}
+#endif
 
 	//if ( bPerformSoftwareAA || bPerformColCorrect )
 	{

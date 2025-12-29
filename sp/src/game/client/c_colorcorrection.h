@@ -67,7 +67,8 @@ private:
 
 	bool	m_bEnabled;
 
-#ifdef MAPBASE // From Alien Swarm SDK
+#ifdef MAPBASE
+	// -- From Alien Swarm SDK --
 	float	m_flFadeInDuration;
 	float	m_flFadeOutDuration;
 	float	m_flMaxWeight;
@@ -80,6 +81,10 @@ private:
 	float	m_flFadeStartWeight;
 	float	m_flFadeStartTime;
 	float	m_flFadeDuration;
+	//---------------------------
+
+	bool	m_bMaskEnabled;
+	bool	m_bMaskInvert;
 #endif
 
 	ClientCCHandle_t m_CCHandle;

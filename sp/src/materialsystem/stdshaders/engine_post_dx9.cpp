@@ -83,6 +83,13 @@ BEGIN_VS_SHADER_FLAGS( SDK_Engine_Post_dx9, "Engine post-processing effects (sof
 		SHADER_PARAM( WEIGHT3,					SHADER_PARAM_TYPE_FLOAT,	"1",				"weight3" )
 		SHADER_PARAM( NUM_LOOKUPS,				SHADER_PARAM_TYPE_FLOAT,	"0",				"num_lookups" )
 		SHADER_PARAM( TOOLTIME,					SHADER_PARAM_TYPE_FLOAT,	"0",				"tooltime" )
+
+#ifdef MAPBASE
+		// Color correction mask
+		SHADER_PARAM( COLORCORRECTIONMASK,		SHADER_PARAM_TYPE_TEXTURE, "_rt_ColCorrectMask", "" )
+		SHADER_PARAM( COLCORRECT_EXCLUDEMASK,	SHADER_PARAM_TYPE_INTEGER, "0", "" )
+		SHADER_PARAM( COLCORRECT_EXCLUDEEXPONENT,	SHADER_PARAM_TYPE_FLOAT, "1.0", "" )
+#endif
 	END_SHADER_PARAMS
 
 	SHADER_INIT_PARAMS()
@@ -271,6 +278,13 @@ BEGIN_VS_SHADER_FLAGS( SDK_Engine_Post_dx9, "Engine post-processing effects (sof
 		{
 			LoadTexture( INTERNAL_VIGNETTETEXTURE );
 		}
+
+#ifdef MAPBASE
+		if ( params[COLORCORRECTIONMASK]->IsDefined() )
+		{
+			LoadTexture( COLORCORRECTIONMASK );
+		}
+#endif
 	}
 
 	SHADER_DRAW
@@ -323,6 +337,12 @@ BEGIN_VS_SHADER_FLAGS( SDK_Engine_Post_dx9, "Engine post-processing effects (sof
 			// Screen effect texture
 			pShaderShadow->EnableTexture(  SHADER_SAMPLER8, true  );
 			pShaderShadow->EnableSRGBRead( SHADER_SAMPLER8, false );
+
+#ifdef MAPBASE
+			// Color correction mask
+			pShaderShadow->EnableTexture( SHADER_SAMPLER9, true );
+			pShaderShadow->EnableSRGBRead( SHADER_SAMPLER9, false );
+#endif
 
 			pShaderShadow->EnableSRGBWrite( false );
 
@@ -404,6 +424,43 @@ BEGIN_VS_SHADER_FLAGS( SDK_Engine_Post_dx9, "Engine post-processing effects (sof
 			{
 				pShaderAPI->BindStandardTexture( (Sampler_t)(SHADER_SAMPLER2 + i), (StandardTextureId_t)(TEXTURE_COLOR_CORRECTION_VOLUME_0 + i) );
 			}
+
+#ifdef MAPBASE
+			// TODO: Better terminology. Color correction mask is an alpha channel for the color correction,
+			// but "exclude mask" refers to the bit mask that controls its behavior
+			bool bUsingCCMask = false;
+			if ( ccInfo.m_bIsEnabled )
+			{
+				int nExcludeMask = params[COLCORRECT_EXCLUDEMASK]->GetIntValue();
+				if ( nExcludeMask != 0 )
+				{
+					bUsingCCMask = true;
+					BindTexture( SHADER_SAMPLER9, COLORCORRECTIONMASK );
+
+					float vCCExcludeMask[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+
+					// One "flag" for each of the 4 weights
+					// 0 = don't use mask, 1 = use mask, -1 = inverted mask
+					for ( int i = 0; i < 4; i++ )
+					{
+						if ( nExcludeMask & (1 << i) )
+						{
+							if ( nExcludeMask & (1 << (16 + i)) )
+								vCCExcludeMask[i] = -1.0f;
+							else
+								vCCExcludeMask[i] = 1.0f;
+						}
+					}
+
+					pShaderAPI->SetPixelShaderConstant( 17, &vCCExcludeMask[0], 4 );
+
+					// Assign other params
+					float vPsConst[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+					vPsConst[0] = params[COLCORRECT_EXCLUDEEXPONENT]->GetFloatValue();
+					pShaderAPI->SetPixelShaderConstant( 18, vPsConst, 1 );
+				}
+			}
+#endif
 
 			// Upload 1-pixel X&Y offsets [ (+dX,0,+dY,-dX) is chosen to work with the allowed ps20 swizzles ]
 			// The shader will sample in a cross (up/down/left/right from the current sample), for 5-tap
@@ -553,6 +610,7 @@ BEGIN_VS_SHADER_FLAGS( SDK_Engine_Post_dx9, "Engine post-processing effects (sof
 			// fade to black
 			float vPsConst[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 			vPsConst[0] = params[ FADETOBLACKSCALE ]->GetFloatValue();
+
 			pShaderAPI->SetPixelShaderConstant( 10, vPsConst, 1 );
 
 			bool bVomitEnable = ( params[ VOMITENABLE ]->GetIntValue() != 0 );
@@ -617,6 +675,7 @@ BEGIN_VS_SHADER_FLAGS( SDK_Engine_Post_dx9, "Engine post-processing effects (sof
 			DECLARE_DYNAMIC_PIXEL_SHADER( sdk_engine_post_ps20b );
 			SET_DYNAMIC_PIXEL_SHADER_COMBO( AA_ENABLE,						aaEnabled );
 			SET_DYNAMIC_PIXEL_SHADER_COMBO( COL_CORRECT_NUM_LOOKUPS,		colCorrectNumLookups );
+			SET_DYNAMIC_PIXEL_SHADER_COMBO( COL_CORRECT_USE_MASK,			bUsingCCMask );
 			SET_DYNAMIC_PIXEL_SHADER_COMBO( CONVERT_FROM_LINEAR,			bConvertFromLinear );
 			SET_DYNAMIC_PIXEL_SHADER_COMBO( CONVERT_TO_LINEAR,				bConvertToLinear );
 			SET_DYNAMIC_PIXEL_SHADER_COMBO( NOISE_ENABLE,					bNoiseEnable );

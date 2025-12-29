@@ -207,10 +207,6 @@ public:
 		}
 		gameinfo->deleteThis();
 
-#ifdef CLIENT_DLL
-		InitializeRTs();
-#endif
-
 		return true;
 	}
 
@@ -370,58 +366,6 @@ public:
 
 		return false;
 	}
-
-#ifdef CLIENT_DLL
-	//-----------------------------------------------------------------------------
-	// Initialize custom RT textures if necessary
-	//-----------------------------------------------------------------------------
-	void InitializeRTs()
-	{
-		if (!m_bInitializedRTs)
-		{
-			int iNumCameras = CommandLine()->ParmValue( "-numcameratextures", 3 );
-
-			materials->BeginRenderTargetAllocation();
-
-			for (int i = 0; i < iNumCameras; i++)
-			{
-				char szName[32];
-				Q_snprintf( szName, sizeof(szName), "_rt_Camera%i", i );
-
-				int iRefIndex = m_CameraTextures.AddToTail();
-
-				//m_CameraTextures[iRefIndex].InitRenderTarget(
-				//	256, 256, RT_SIZE_DEFAULT,
-				//	g_pMaterialSystem->GetBackBufferFormat(),
-				//	MATERIAL_RT_DEPTH_SHARED, true, szName );
-
-				m_CameraTextures[iRefIndex].Init( g_pMaterialSystem->CreateNamedRenderTargetTextureEx2(
-					szName,
-					256, 256, RT_SIZE_DEFAULT,
-					g_pMaterialSystem->GetBackBufferFormat(),
-					MATERIAL_RT_DEPTH_SHARED,
-					0,
-					CREATERENDERTARGETFLAGS_HDR ) );
-			}
-
-			materials->EndRenderTargetAllocation();
-
-			m_bInitializedRTs = true;
-		}
-	}
-
-	void Shutdown()
-	{
-		if (m_bInitializedRTs)
-		{
-			for (int i = 0; i < m_CameraTextures.Count(); i++)
-			{
-				m_CameraTextures[i].Shutdown();
-			}
-			m_bInitializedRTs = false;
-		}
-	}
-#endif
 
 	// Get a generic, hardcoded manifest with hardcoded names.
 	void ParseGenericManifest()
@@ -652,9 +596,6 @@ public:
 private:
 
 #ifdef CLIENT_DLL
-	bool m_bInitializedRTs = false;
-	CUtlVector<CTextureReference> m_CameraTextures;
-
 	CUtlVector<CUtlSymbol> m_CloseCaptionFileNames;
 #endif
 };

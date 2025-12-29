@@ -96,10 +96,14 @@ private:
 
 	bool	m_bStartDisabled;
 	CNetworkVar( bool, m_bEnabled );
-#ifdef MAPBASE // From Alien Swarm SDK
+#ifdef MAPBASE
+	// -- From Alien Swarm SDK --
 	CNetworkVar( bool, m_bMaster );
 	CNetworkVar( bool, m_bClientSide );
 	CNetworkVar( bool, m_bExclusive );
+	//---------------------------
+	CNetworkVar( bool, m_bMaskEnabled );
+	CNetworkVar( bool, m_bMaskInvert );
 #endif
 
 	CNetworkVar( float, m_MinFalloff );
