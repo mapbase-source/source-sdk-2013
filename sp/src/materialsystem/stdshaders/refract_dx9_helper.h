@@ -31,6 +31,9 @@ struct Refract_DX9_Vars_t
 	int m_nFrame;
 	int m_nRefractAmount;
 	int m_nRefractTint;
+#ifdef MAPBASE
+	int m_nRefractTintRespectAmount;
+#endif
 	int m_nNormalMap;
 	int m_nNormalMap2;
 	int m_nBumpFrame;
