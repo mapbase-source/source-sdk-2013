@@ -1301,6 +1301,10 @@ private:
 	IMaterialVar *m_pMaterialParam_VignetteEnd;
 	IMaterialVar *m_pMaterialParam_VignetteBlurEnable;
 	IMaterialVar *m_pMaterialParam_VignetteBlurStrength;
+#ifdef MAPBASE
+	IMaterialVar *m_pMaterialParam_VignetteEnable;
+	IMaterialVar *m_pMaterialParam_VignetteStrength;
+#endif
 	IMaterialVar *m_pMaterialParam_FadeToBlackStrength;
 	IMaterialVar *m_pMaterialParam_DepthBlurFocalDistance;
 	IMaterialVar *m_pMaterialParam_DepthBlurStrength;
@@ -1353,6 +1357,10 @@ CEnginePostMaterialProxy::CEnginePostMaterialProxy()
 	m_pMaterialParam_VignetteEnd				= NULL;
 	m_pMaterialParam_VignetteBlurEnable			= NULL;
 	m_pMaterialParam_VignetteBlurStrength		= NULL;
+#ifdef MAPBASE
+	m_pMaterialParam_VignetteEnable				= NULL;
+	m_pMaterialParam_VignetteStrength			= NULL;
+#endif
 	m_pMaterialParam_FadeToBlackStrength		= NULL;
 	m_pMaterialParam_DepthBlurFocalDistance		= NULL;
 	m_pMaterialParam_DepthBlurStrength			= NULL;
@@ -1388,6 +1396,10 @@ bool CEnginePostMaterialProxy::Init( IMaterial *pMaterial, KeyValues *pKeyValues
 	m_pMaterialParam_VignetteEnd = pMaterial->FindVar( "$localContrastVignetteEnd", &bFoundVar, false );
 	m_pMaterialParam_VignetteBlurEnable = pMaterial->FindVar( "$blurredVignetteEnable", &bFoundVar, false );
 	m_pMaterialParam_VignetteBlurStrength = pMaterial->FindVar( "$blurredVignetteScale", &bFoundVar, false );
+#ifdef MAPBASE
+	m_pMaterialParam_VignetteEnable = pMaterial->FindVar( "$vignetteEnable", &bFoundVar, false );
+	m_pMaterialParam_VignetteStrength = pMaterial->FindVar( "$vignetteStrength", &bFoundVar, false );
+#endif
 	m_pMaterialParam_FadeToBlackStrength = pMaterial->FindVar( "$fadeToBlackScale", &bFoundVar, false );
 	m_pMaterialParam_DepthBlurFocalDistance = pMaterial->FindVar( "$depthBlurFocalDistance", &bFoundVar, false );
 	m_pMaterialParam_DepthBlurStrength = pMaterial->FindVar( "$depthBlurStrength", &bFoundVar, false );
@@ -1436,6 +1448,14 @@ void CEnginePostMaterialProxy::OnBind( C_BaseEntity *pEnt )
 
 	if ( m_pMaterialParam_VignetteBlurStrength )
 		m_pMaterialParam_VignetteBlurStrength->SetFloatValue( s_LocalPostProcessParameters.m_flParameters[ PPPN_VIGNETTE_BLUR_STRENGTH ] );
+
+#ifdef MAPBASE
+	if ( m_pMaterialParam_VignetteEnable )
+		m_pMaterialParam_VignetteEnable->SetIntValue( s_LocalPostProcessParameters.m_flParameters[ PPPN_TOP_VIGNETTE_STRENGTH ] > 0.0f ? 1 : 0 );
+	
+	if (m_pMaterialParam_VignetteStrength)
+		m_pMaterialParam_VignetteStrength->SetFloatValue( s_LocalPostProcessParameters.m_flParameters[ PPPN_TOP_VIGNETTE_STRENGTH ] );
+#endif
 
 	if ( m_pMaterialParam_FadeToBlackStrength )
 		m_pMaterialParam_FadeToBlackStrength->SetFloatValue( s_LocalPostProcessParameters.m_flParameters[ PPPN_FADE_TO_BLACK_STRENGTH ] );

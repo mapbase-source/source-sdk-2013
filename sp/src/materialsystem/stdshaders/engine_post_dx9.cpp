@@ -89,6 +89,9 @@ BEGIN_VS_SHADER_FLAGS( SDK_Engine_Post_dx9, "Engine post-processing effects (sof
 		SHADER_PARAM( COLORCORRECTIONMASK,		SHADER_PARAM_TYPE_TEXTURE, "_rt_ColCorrectMask", "" )
 		SHADER_PARAM( COLCORRECT_EXCLUDEMASK,	SHADER_PARAM_TYPE_INTEGER, "0", "" )
 		SHADER_PARAM( COLCORRECT_EXCLUDEEXPONENT,	SHADER_PARAM_TYPE_FLOAT, "1.0", "" )
+
+		// Vignette strength
+		SHADER_PARAM( VIGNETTESTRENGTH,			SHADER_PARAM_TYPE_FLOAT,	"1",				"" )
 #endif
 	END_SHADER_PARAMS
 
@@ -242,6 +245,12 @@ BEGIN_VS_SHADER_FLAGS( SDK_Engine_Post_dx9, "Engine post-processing effects (sof
 		{
 			params[ DESATURATION ]->SetFloatValue( 0.0f );
 		}
+#ifdef MAPBASE
+		if ( !params[ VIGNETTESTRENGTH ]->IsDefined() )
+		{
+			params[ VIGNETTESTRENGTH ]->SetFloatValue( 1.0f );
+		}
+#endif
 
 		SET_FLAGS2( MATERIAL_VAR2_NEEDS_FULL_FRAME_BUFFER_TEXTURE );
 	}
@@ -604,6 +613,9 @@ BEGIN_VS_SHADER_FLAGS( SDK_Engine_Post_dx9, "Engine post-processing effects (sof
 				{
 					vPsConst[2] = mat_local_contrast_edge_scale_override.GetFloat();
 				}
+#ifdef MAPBASE
+				vPsConst[3] = params[ VIGNETTESTRENGTH ]->GetFloatValue();
+#endif
 				pShaderAPI->SetPixelShaderConstant( 9, vPsConst, 1 );
 			}
 

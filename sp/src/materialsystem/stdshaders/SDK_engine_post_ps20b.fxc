@@ -75,6 +75,7 @@ float4	g_vLocalContrastVignetteParams	: register( c9 );
 #define g_flLocalContrastVignetteStart	g_vLocalContrastVignetteParams.x
 #define g_flLocalContrastVignetteEnd	g_vLocalContrastVignetteParams.y
 #define g_flLocalContrastEdgeStrength	g_vLocalContrastVignetteParams.z
+#define g_flVignetteStrength			g_vLocalContrastVignetteParams.w
 
 float	g_flFadeToBlackStrength			: register( c10 );
 
@@ -401,6 +402,8 @@ float4 main( PS_INPUT i ) : COLOR
 		// This tex2D solves the 3 lines of math above
 		flVignette = tex2D( VignetteSampler, vUv.xy ).r; // Red is for the PC
 		flVignette = saturate( flVignette * 0.55 + 0.46 );
+		
+		flVignette = lerp( 1.0, flVignette, g_flVignetteStrength );
 
 		outColor.rgb *= flVignette;
 	}

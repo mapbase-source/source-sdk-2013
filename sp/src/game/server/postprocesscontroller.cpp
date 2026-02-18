@@ -42,6 +42,9 @@ BEGIN_DATADESC( CPostProcessController )
 	DEFINE_KEYFIELD( m_flPostProcessParameters[ PPPN_DEPTH_BLUR_STRENGTH ], FIELD_FLOAT, "depthblurstrength" ),
 	DEFINE_KEYFIELD( m_flPostProcessParameters[ PPPN_SCREEN_BLUR_STRENGTH ], FIELD_FLOAT, "screenblurstrength" ),
 	DEFINE_KEYFIELD( m_flPostProcessParameters[ PPPN_FILM_GRAIN_STRENGTH ], FIELD_FLOAT, "filmgrainstrength" ),
+#ifdef MAPBASE
+	DEFINE_KEYFIELD( m_flPostProcessParameters[ PPPN_TOP_VIGNETTE_STRENGTH ], FIELD_FLOAT, "topvignettestrength" ),
+#endif
 
 	// Inputs
 	DEFINE_INPUTFUNC( FIELD_FLOAT, "SetFadeTime", InputSetFadeTime ),
@@ -55,6 +58,9 @@ BEGIN_DATADESC( CPostProcessController )
 	DEFINE_INPUTFUNC( FIELD_FLOAT, "SetDepthBlurStrength", InputSetDepthBlurStrength ),
 	DEFINE_INPUTFUNC( FIELD_FLOAT, "SetScreenBlurStrength", InputSetScreenBlurStrength ),
 	DEFINE_INPUTFUNC( FIELD_FLOAT, "SetFilmGrainStrength", InputSetFilmGrainStrength ),
+#ifdef MAPBASE
+	DEFINE_INPUTFUNC( FIELD_FLOAT, "SetTopVignetteStrength", InputSetTopVignetteStrength ),
+#endif
 END_DATADESC()
 
 IMPLEMENT_SERVERCLASS_ST( CPostProcessController, DT_PostProcessController )
@@ -138,6 +144,13 @@ void CPostProcessController::InputSetFilmGrainStrength( inputdata_t &inputdata )
 {
 	m_flPostProcessParameters.Set( PPPN_FILM_GRAIN_STRENGTH, inputdata.value.Float() );
 }
+
+#ifdef MAPBASE
+void CPostProcessController::InputSetTopVignetteStrength( inputdata_t &inputdata )
+{
+	m_flPostProcessParameters.Set( PPPN_TOP_VIGNETTE_STRENGTH, inputdata.value.Float() );
+}
+#endif
 
 //-----------------------------------------------------------------------------
 // Purpose: Clear out the PostProcess controller.
