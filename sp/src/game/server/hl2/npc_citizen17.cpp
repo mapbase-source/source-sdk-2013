@@ -924,18 +924,19 @@ void CNPC_Citizen::FixupMattWeapon()
 	if ( pWeapon && pWeapon->ClassMatches( "weapon_crowbar" ) && NameMatches( "matt" ) )
 #endif
 	{
-		Weapon_Drop( pWeapon );
-		UTIL_Remove( pWeapon );
-		pWeapon = (CBaseCombatWeapon *)CREATE_UNSAVED_ENTITY( CMattsPipe, "weapon_crowbar" );
-		pWeapon->SetName( AllocPooledString( "matt_weapon" ) );
-		DispatchSpawn( pWeapon );
+		variant_t tmpVar;
+
+		tmpVar.SetString(MAKE_STRING("weapon_mattpipe"));
+		pWeapon->AcceptInput("ChangeScript", this, this, tmpVar, 0);
+
+		//weapon doesn't save the prevent pick up flag when dropped, set the flag when needed (death in this case)
+		tmpVar.SetString(MAKE_STRING("OnDeath matt_weapon:AddOutput:spawnflags 2:0.00:1"));
+		AcceptInput("AddOutput", this, this, tmpVar, 0);
 
 #ifdef DEBUG
 		extern bool g_bReceivedChainedActivate;
 		g_bReceivedChainedActivate = false;
 #endif
-		pWeapon->Activate();
-		Weapon_Equip( pWeapon );
 	}
 }
 

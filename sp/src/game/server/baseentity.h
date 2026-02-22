@@ -645,9 +645,10 @@ public:
 	const char* GetPreTemplateName(); // Not threadsafe. Get the name stripped of template unique decoration
 
 	bool		NameMatches( const char *pszNameOrWildcard );
-	bool		ClassMatches( const char *pszClassOrWildcard );
 	bool		NameMatches( string_t nameStr );
-	bool		ClassMatches( string_t nameStr );
+	
+	virtual bool		ClassMatches( string_t nameStr );
+	virtual bool		ClassMatches( const char *pszClassOrWildcard );
 
 private:
 	bool		NameMatchesComplex( const char *pszNameOrWildcard );

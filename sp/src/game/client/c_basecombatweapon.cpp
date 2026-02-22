@@ -191,6 +191,20 @@ void C_BaseCombatWeapon::OnDataChanged( DataUpdateType_t updateType )
 	m_iOldState = m_iState;
 
 	m_bJustRestored = false;
+	
+#ifdef MAPBASE
+	if (updateType == DATA_UPDATE_CREATED)
+	{
+		Precache(); //cache weapon on client again, otherwise the client will always use default script name while server not
+	}
+
+	//update script in case if wanted
+	if (m_iOldNeedsUpdate != m_iNeedsUpdate)
+	{
+		Precache();
+		m_iOldNeedsUpdate = m_iNeedsUpdate; //assign new value to prevent updates on client when we don't want
+	}
+#endif
 }
 
 //-----------------------------------------------------------------------------

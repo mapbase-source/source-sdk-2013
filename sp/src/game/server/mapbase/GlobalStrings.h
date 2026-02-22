@@ -74,7 +74,7 @@ inline bool EntIsClass( CBaseEntity *ent, string_t str2 )
 
 	// Since classnames are pooled, the global string and the entity's classname should point to the same string in memory.
 	// As long as this rule is preserved, we only need a pointer comparison. A string comparison isn't necessary.
-	return ent->m_iClassname == str2;
+	return ent->GetClassname() == str2.ToCStr();
 }
 
 // -------------------------------------------------------------

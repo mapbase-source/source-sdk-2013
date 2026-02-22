@@ -51,6 +51,9 @@ private:
 	int		m_iAmmo;
 	int		m_iAmmo2;
 	CHudTexture *m_iconPrimaryAmmo;
+#ifdef MAPBASE
+	int		m_iOldNeedsUpdate; //needs update tracking
+#endif
 };
 
 DECLARE_HUDELEMENT( CHudAmmo );
@@ -66,6 +69,9 @@ CHudAmmo::CHudAmmo( const char *pElementName ) : BaseClass(NULL, "HudAmmo"), CHu
 	hudlcd->SetGlobalStat( "(ammo_secondary)", "0" );
 	hudlcd->SetGlobalStat( "(weapon_print_name)", "" );
 	hudlcd->SetGlobalStat( "(weapon_name)", "" );
+#ifdef MAPBASE
+	m_iOldNeedsUpdate = -1; // Initialize
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -75,6 +81,9 @@ void CHudAmmo::Init( void )
 {
 	m_iAmmo		= -1;
 	m_iAmmo2	= -1;
+#ifdef MAPBASE
+	m_iOldNeedsUpdate = -1; // Initialize
+#endif
 	
 	m_iconPrimaryAmmo = NULL;
 
@@ -107,6 +116,9 @@ void CHudAmmo::Reset()
 	m_hCurrentVehicle = NULL;
 	m_iAmmo = 0;
 	m_iAmmo2 = 0;
+#ifdef MAPBASE
+	m_iOldNeedsUpdate = -1; // Initialize
+#endif
 
 	UpdateAmmoDisplays();
 }
@@ -158,7 +170,12 @@ void CHudAmmo::UpdatePlayerAmmo( C_BasePlayer *player )
 	hudlcd->SetGlobalStat( "(ammo_primary)", VarArgs( "%d", ammo1 ) );
 	hudlcd->SetGlobalStat( "(ammo_secondary)", VarArgs( "%d", ammo2 ) );
 
+#ifdef MAPBASE
+	int iNeedsUpdate = wpn ? wpn->m_iOldNeedsUpdate : -1;
+	if (wpn == m_hCurrentActiveWeapon && m_iOldNeedsUpdate == iNeedsUpdate)
+#else
 	if (wpn == m_hCurrentActiveWeapon)
+#endif
 	{
 		// same weapon, just update counts
 		SetAmmo(ammo1, true);
@@ -185,6 +202,10 @@ void CHudAmmo::UpdatePlayerAmmo( C_BasePlayer *player )
 		g_pClientMode->GetViewportAnimationController()->StartAnimationSequence("WeaponChanged");
 		m_hCurrentActiveWeapon = wpn;
 	}
+
+#ifdef MAPBASE
+	m_iOldNeedsUpdate = iNeedsUpdate;
+#endif
 }
 
 void CHudAmmo::UpdateVehicleAmmo( C_BasePlayer *player, IClientVehicle *pVehicle )
@@ -362,6 +383,9 @@ public:
 	CHudSecondaryAmmo( const char *pElementName ) : BaseClass( NULL, "HudAmmoSecondary" ), CHudElement( pElementName )
 	{
 		m_iAmmo = -1;
+#ifdef MAPBASE
+		m_iOldNeedsUpdate = -1;
+#endif
 
 		SetHiddenBits( HIDEHUD_HEALTH | HIDEHUD_WEAPONSELECTION | HIDEHUD_PLAYERDEAD | HIDEHUD_NEEDSUIT );
 	}
@@ -369,6 +393,10 @@ public:
 	void Init( void )
 	{
 #ifndef HL2MP
+#ifdef MAPBASE
+		m_iOldNeedsUpdate = -1;
+#endif
+
 		wchar_t *tempString = g_pVGuiLocalize->Find("#Valve_Hud_AMMO_ALT");
 		if (tempString)
 		{
@@ -414,6 +442,9 @@ public:
 		// hud reset, update ammo state
 		BaseClass::Reset();
 		m_iAmmo = 0;
+#ifdef MAPBASE
+		m_iOldNeedsUpdate = -1;
+#endif
 		m_hCurrentActiveWeapon = NULL;
 		SetAlpha( 0 );
 		UpdateAmmoState();
@@ -473,9 +504,14 @@ protected:
 			SetAmmo(player->GetAmmoCount(wpn->GetSecondaryAmmoType()));
 		}
 
+#ifdef MAPBASE
+		int iNeedsUpdate = wpn ? wpn->m_iOldNeedsUpdate : -1;
+		if (m_hCurrentActiveWeapon != wpn || m_iOldNeedsUpdate != iNeedsUpdate)
+#else
 		if ( m_hCurrentActiveWeapon != wpn )
+#endif
 		{
-			if ( wpn->UsesSecondaryAmmo() )
+			if (wpn && wpn->UsesSecondaryAmmo())
 			{
 				// we've changed to a weapon that uses secondary ammo
 				g_pClientMode->GetViewportAnimationController()->StartAnimationSequence("WeaponUsesSecondaryAmmo");
@@ -487,15 +523,35 @@ protected:
 			}
 			m_hCurrentActiveWeapon = wpn;
 			
+#ifndef MAPBASE		
 			// Get the icon we should be displaying
 			m_iconSecondaryAmmo = gWR.GetAmmoIconFromWeapon( m_hCurrentActiveWeapon->GetSecondaryAmmoType() );
+#endif
 		}
+
+#ifdef MAPBASE
+		// Always update the icon if weapon is valid
+		if (wpn && wpn->UsesSecondaryAmmo())
+		{
+			m_iconSecondaryAmmo = gWR.GetAmmoIconFromWeapon(wpn->GetSecondaryAmmoType());
+		}
+		else
+		{
+			m_iconSecondaryAmmo = nullptr;
+		}
+
+		// Update m_iOldNeedsUpdate
+		m_iOldNeedsUpdate = iNeedsUpdate;
+#endif
 	}
 	
 private:
 	CHandle< C_BaseCombatWeapon > m_hCurrentActiveWeapon;
 	CHudTexture *m_iconSecondaryAmmo;
 	int		m_iAmmo;
+#ifdef MAPBASE
+	int		m_iOldNeedsUpdate; //needs update tracking
+#endif
 };
 
 DECLARE_HUDELEMENT( CHudSecondaryAmmo );

@@ -201,8 +201,13 @@ CBaseEntity* CBaseCombatWeapon::Respawn( void )
 	// will decide when to make the weapon visible and touchable.
 	CBaseEntity *pNewWeapon = CBaseEntity::Create( GetClassname(), g_pGameRules->VecWeaponRespawnSpot( this ), GetLocalAngles(), GetOwnerEntity() );
 
-	if ( pNewWeapon )
+	if (pNewWeapon)
 	{
+#ifdef MAPBASE
+		pNewWeapon->KeyValue("weaponscriptname", GetClassname()); // pass along the script name
+		pNewWeapon->Precache(); // precache it here to avoid prediction errors
+		pNewWeapon->SetModel(GetWorldModel()); // fix bbox for world model
+#endif // MAPBASE
 		pNewWeapon->AddEffects( EF_NODRAW );// invisible for now
 		pNewWeapon->SetTouch( NULL );// no touch
 		pNewWeapon->SetThink( &CBaseCombatWeapon::AttemptToMaterialize );
@@ -215,7 +220,7 @@ CBaseEntity* CBaseCombatWeapon::Respawn( void )
 	}
 	else
 	{
-		Warning("Respawn failed to create %s!\n", GetClassname() );
+		Warning("Respawn failed to create %s!\n", GetClassname());
 	}
 
 	return pNewWeapon;
