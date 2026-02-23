@@ -64,6 +64,20 @@ ConVar tf_weapon_criticals_bucket_bottom( "tf_weapon_criticals_bucket_bottom", "
 ConVar tf_weapon_criticals_bucket_default( "tf_weapon_criticals_bucket_default", "300.0", FCVAR_REPLICATED | FCVAR_CHEAT );
 #endif // TF
 
+#ifdef MAPBASE
+ConVar	sv_weapon_clips_reset_mode("sv_weapon_clips_reset_mode", "1", 
+	FCVAR_REPLICATED | FCVAR_CHEAT, 
+	"Sets the way to reset clips:\n0 - No reset at all.\n1 - Set max clip value.\n2 - Set max clip value if more then max clip.",
+	true, 0.0f, true, 2.0f
+);
+
+ConVar	sv_weapon_vm_anim_reset_mode("sv_weapon_vm_anim_reset_mode", "0",
+	FCVAR_REPLICATED | FCVAR_CHEAT,
+	"Animation to set after weapon script change, 0 to use idle animation, 1 to use deploy animation.",
+	true, 0, true, 1
+);
+#endif
+
 CBaseCombatWeapon::CBaseCombatWeapon()
 {
 	// Constructor must call this
@@ -1999,33 +2013,7 @@ void CBaseCombatWeapon::InputForceSecondaryFire( inputdata_t &inputdata )
 {
 	InputForceFire(inputdata, true);
 }
-#endif
 
-//-----------------------------------------------------------------------------
-// Purpose: 
-//-----------------------------------------------------------------------------
-void CBaseCombatWeapon::InputHideWeapon( inputdata_t &inputdata )
-{
-	// Only hide if we're still the active weapon. If we're not the active weapon
-	if ( GetOwner() && GetOwner()->GetActiveWeapon() == this )
-	{
-		SetWeaponVisible( false );
-	}
-}
-
-ConVar	sv_weapon_clips_reset_mode("sv_weapon_clips_reset_mode", "1", 
-	FCVAR_REPLICATED | FCVAR_CHEAT, 
-	"Sets the way to reset clips:\n0 - No reset at all.\n1 - Set max clip value.\n2 - Set max clip value if more then max clip.",
-	true, 0.0f, true, 2.0f
-);
-
-ConVar	sv_weapon_vm_anim_reset_mode("sv_weapon_vm_anim_reset_mode", "0",
-	FCVAR_REPLICATED | FCVAR_CHEAT,
-	"Animation to set after weapon script change, 0 to use idle animation, 1 to use deploy animation.",
-	true, 0, true, 1
-);
-
-#ifndef CLIENT_DLL
 //-----------------------------------------------------------------------------
 // Purpose: Input to change the weapon script name and re-Precache
 //-----------------------------------------------------------------------------
@@ -2113,6 +2101,19 @@ void CBaseCombatWeapon::InputChangeScript(inputdata_t& inputdata)
 
 		if (UsesClipsForAmmo2() && m_iClip2 > GetMaxClip2())
 			m_iClip2 = GetMaxClip2();
+	}
+}
+#endif
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+void CBaseCombatWeapon::InputHideWeapon( inputdata_t &inputdata )
+{
+	// Only hide if we're still the active weapon. If we're not the active weapon
+	if ( GetOwner() && GetOwner()->GetActiveWeapon() == this )
+	{
+		SetWeaponVisible( false );
 	}
 }
 #endif
