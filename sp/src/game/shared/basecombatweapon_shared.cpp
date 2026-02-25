@@ -340,7 +340,7 @@ void CBaseCombatWeapon::Precache( void )
 	{
 		// Couldn't read data file, remove myself
 #ifdef MAPBASE
-		Warning( "Error reading weapon data file for classname \"%s\" with script \"%s\".\n", GetClassname(false), GetClassname())
+		Warning( "Error reading weapon data file for classname \"%s\" with script \"%s\".\n", GetClassname(false), GetClassname());
 #else
 		Warning( "Error reading weapon data file for: %s\n", GetClassname() );
 #endif
