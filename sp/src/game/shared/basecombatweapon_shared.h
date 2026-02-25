@@ -217,7 +217,7 @@ public:
 	void					SetAmmoFromMapper( float flAmmo, bool bSecondary = false );
 	virtual bool			KeyValue( const char *szKeyName, const char *szValue );
 	virtual bool			GetKeyValue( const char *szKeyName, char *szValue, int iMaxLen );
-	inline const char*		GetClassname( bool bUseWeaponScriptName = true );
+	const char*				GetClassname( bool bUseWeaponScriptName = true );
 	virtual bool			ClassMatches( const char* pszClassOrWildcard );
 #endif
 

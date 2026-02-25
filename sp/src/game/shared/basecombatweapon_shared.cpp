@@ -423,14 +423,11 @@ bool CBaseCombatWeapon::GetKeyValue( const char *szKeyName, char *szValue, int i
 // Purpose: Returns weaponscriptname to make weapons of the same classname working properly with the rest of the code.
 // Putting false will return the real classname, instead of weaponscriptname.
 //-----------------------------------------------------------------------------
-inline const char* CBaseCombatWeapon::GetClassname(bool bUseWeaponScriptName)
+const char* CBaseCombatWeapon::GetClassname(bool bUseWeaponScriptName)
 {
 	if (bUseWeaponScriptName && Q_strcmp(m_iszWeaponScriptName.Get(), "") > 0)
 	{
-		if (Q_strcmp(m_iszWeaponScriptName.Get(), "") > 0)
-		{
-			return m_iszWeaponScriptName.Get();
-		}
+		return m_iszWeaponScriptName.Get();
 	}
 
 	return BaseClass::GetClassname();
