@@ -341,7 +341,7 @@ void CBaseCombatWeapon::Precache( void )
 	{
 		// Couldn't read data file, remove myself
 #ifdef MAPBASE
-		Warning( "Error reading weapon data file for classname \"%s\" with script \"%s\".\n", GetClassname(false), GetClassname());
+		Warning( "Error reading weapon data file for classname \"%s\" with script \"%s\".\n", m_iClassname, GetClassname());
 #else
 		Warning( "Error reading weapon data file for: %s\n", GetClassname() );
 #endif
@@ -390,10 +390,6 @@ bool CBaseCombatWeapon::KeyValue( const char *szKeyName, const char *szValue )
 		{
 			Q_strncpy(m_iszWeaponScriptName.GetForModify(), szValue, MAX_WEAPON_STRING);
 		}
-		else
-		{
-			Q_strncpy(m_iszWeaponScriptName.GetForModify(), GetClassname(false), MAX_WEAPON_STRING);
-		}
 
 		return true;
 	}
@@ -423,9 +419,9 @@ bool CBaseCombatWeapon::GetKeyValue( const char *szKeyName, char *szValue, int i
 // Purpose: Returns weaponscriptname to make weapons of the same classname working properly with the rest of the code.
 // Putting false will return the real classname, instead of weaponscriptname.
 //-----------------------------------------------------------------------------
-const char* CBaseCombatWeapon::GetClassname(bool bUseWeaponScriptName)
+const char* CBaseCombatWeapon::GetClassname()
 {
-	if (bUseWeaponScriptName && Q_strcmp(m_iszWeaponScriptName.Get(), "") > 0)
+	if (Q_strcmp(m_iszWeaponScriptName.Get(), "") > 0)
 	{
 		return m_iszWeaponScriptName.Get();
 	}
