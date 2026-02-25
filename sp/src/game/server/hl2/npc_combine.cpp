@@ -3824,7 +3824,7 @@ void CNPC_Combine::OnEndMoveAndShoot()
 WeaponProficiency_t CNPC_Combine::CalcWeaponProficiency( CBaseCombatWeapon *pWeapon )
 {
 #ifdef MAPBASE
-	if( pWeapon->ClassMatches( gm_isz_class_AR2 ) )
+	if( pWeapon->ClassMatches( gm_isz_class_AR2.ToCStr() ) )
 #else
 	if( FClassnameIs( pWeapon, "weapon_ar2" ) )
 #endif
@@ -3839,7 +3839,7 @@ WeaponProficiency_t CNPC_Combine::CalcWeaponProficiency( CBaseCombatWeapon *pWea
 		}
 	}
 #ifdef MAPBASE
-	else if( pWeapon->ClassMatches( gm_isz_class_Shotgun ) )
+	else if( pWeapon->ClassMatches( gm_isz_class_Shotgun.ToCStr() ) )
 #else
 	else if( FClassnameIs( pWeapon, "weapon_shotgun" )	)
 #endif
@@ -3854,7 +3854,7 @@ WeaponProficiency_t CNPC_Combine::CalcWeaponProficiency( CBaseCombatWeapon *pWea
 		return WEAPON_PROFICIENCY_PERFECT;
 	}
 #ifdef MAPBASE
-	else if( pWeapon->ClassMatches( gm_isz_class_SMG1 ) )
+	else if( pWeapon->ClassMatches( gm_isz_class_SMG1.ToCStr() ) )
 #else
 	else if( FClassnameIs( pWeapon, "weapon_smg1" ) )
 #endif
@@ -3862,7 +3862,7 @@ WeaponProficiency_t CNPC_Combine::CalcWeaponProficiency( CBaseCombatWeapon *pWea
 		return WEAPON_PROFICIENCY_GOOD;
 	}
 #ifdef MAPBASE
-	else if ( pWeapon->ClassMatches( gm_isz_class_Pistol ) )
+	else if ( pWeapon->ClassMatches( gm_isz_class_Pistol.ToCStr() ) )
 	{
 		// Mods which need a lower soldier pistol accuracy can either change this value or use proficiency override in Hammer.
 		return WEAPON_PROFICIENCY_VERY_GOOD;
