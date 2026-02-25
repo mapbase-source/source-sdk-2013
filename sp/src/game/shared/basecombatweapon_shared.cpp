@@ -2028,6 +2028,24 @@ void CBaseCombatWeapon::InputChangeScript(inputdata_t& inputdata)
 	//don't update if other weapon that owns my owner uses the same script
 	if (GetOwner() && GetOwner()->Weapon_OwnsThisType(pszNewScript))
 			return;
+		
+	char sz[128];
+	Q_snprintf(sz, sizeof(sz), "scripts/%s", pszNewScript);
+
+	KeyValues* pKV = ReadEncryptedKVFile(filesystem, sz, GetEncryptionKey(),
+#if defined( DOD_DLL )
+		true			// Only read .ctx files!
+#else
+		false
+#endif
+	);
+
+	//don't if file doesn't exists
+	if (!pKV)
+	{
+		Warning("Error reading weapon data file \"%s\".\n", pszNewScript);
+		return;
+	}
 
 	//copy new data for networked and stored
 	Q_strncpy(m_iszWeaponScriptName.GetForModify(), pszNewScript, MAX_WEAPON_STRING);
