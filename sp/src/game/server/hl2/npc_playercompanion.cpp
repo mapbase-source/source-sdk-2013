@@ -398,8 +398,8 @@ Disposition_t CNPC_PlayerCompanion::IRelationType( CBaseEntity *pTarget )
 				  pTarget->IsNPC() && 
 				  ((CAI_BaseNPC *)pTarget)->GetActiveWeapon() && 
 #ifdef MAPBASE
-				  (EntIsClass( ((CAI_BaseNPC *)pTarget)->GetActiveWeapon(), gm_iszShotgunClassname.ToCStr() ) &&
-				  ( !GetActiveWeapon() || !EntIsClass( GetActiveWeapon(), gm_iszShotgunClassname.ToCStr() ) ) ) )
+				  (EntIsClass( ((CAI_BaseNPC *)pTarget)->GetActiveWeapon(), gm_iszShotgunClassname ) &&
+				  ( !GetActiveWeapon() || !EntIsClass( GetActiveWeapon(), gm_iszShotgunClassname ) ) ) )
 #else
 				  ((CAI_BaseNPC *)pTarget)->GetActiveWeapon()->ClassMatches( gm_iszShotgunClassname.ToCStr() ) &&
 				  ( !GetActiveWeapon() || !GetActiveWeapon()->ClassMatches( gm_iszShotgunClassname.ToCStr() ) ) )

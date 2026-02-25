@@ -40,6 +40,7 @@
 
 #ifdef MAPBASE
 	#include "gamestringpool.h"
+	#include "mapbase_matchers_base.h"
 #endif
 
 // memdbgon must be the last include file in a .cpp file!!!
