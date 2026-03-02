@@ -13,17 +13,17 @@
 #include "hud_macros.h"
 #include "engine/IEngineSound.h"
 
-#define DIALOGUE_FILE_PATH "resource/dialogues/sewers/blackguy_1.txt"
 #define TYPEWRITER_BASE_SPEED 2.0f // Base characters per tick at speed multiplier 1.0
-#define DIALOGUE_ZOOM_FOV 45       // FOV to zoom to during dialogue (default is ~75)
+#define DIALOGUE_DEFAULT_FOV 75    // Default player FOV
 #define DIALOGUE_ZOOM_RATE 0.3f    // How fast to zoom in/out (seconds)
 
 using namespace vgui;
 
 // Message types matching the server
-#define DIALOGUE_MSG_START  0
-#define DIALOGUE_MSG_STOP   1
-#define DIALOGUE_MSG_NODE   2
+#define DIALOGUE_MSG_START    0
+#define DIALOGUE_MSG_STOP     1
+#define DIALOGUE_MSG_NODE     2
+#define DIALOGUE_MSG_SETTINGS 3
 
 void __MsgFunc_DialogueMsg(bf_read &msg)
 {
@@ -31,21 +31,35 @@ void __MsgFunc_DialogueMsg(bf_read &msg)
 		return;
 
 	int type = msg.ReadByte();
-	char str1[256], str2[64];
-	msg.ReadString(str1, sizeof(str1));
-	msg.ReadString(str2, sizeof(str2));
 
 	switch (type)
 	{
 	case DIALOGUE_MSG_START:
-		g_pDialoguePanel->LoadFile(str1);
-		if (str2[0])
-			g_pDialoguePanel->ShowNode(str2);
-		g_pDialoguePanel->Show();
+		{
+			char str1[256], str2[64];
+			msg.ReadString(str1, sizeof(str1));
+			msg.ReadString(str2, sizeof(str2));
+			g_pDialoguePanel->LoadFile(str1);
+			if (str2[0])
+				g_pDialoguePanel->ShowNode(str2);
+			g_pDialoguePanel->Show();
+		}
 		break;
 
 	case DIALOGUE_MSG_STOP:
 		g_pDialoguePanel->Hide();
+		break;
+
+	case DIALOGUE_MSG_SETTINGS:
+		{
+			bool bTypewriter = msg.ReadByte() != 0;
+			float flSpeed = msg.ReadFloat();
+			char szTypewriterSound[256], szOpenSound[256], szCloseSound[256];
+			msg.ReadString(szTypewriterSound, sizeof(szTypewriterSound));
+			msg.ReadString(szOpenSound, sizeof(szOpenSound));
+			msg.ReadString(szCloseSound, sizeof(szCloseSound));
+			g_pDialoguePanel->ApplySettings(bTypewriter, flSpeed, szTypewriterSound, szOpenSound, szCloseSound);
+		}
 		break;
 	}
 }
@@ -99,6 +113,38 @@ static bool ParseColorValue(const char* value, Color &outColor)
 	return false;
 }
 
+//-----------------------------------------------------------------------------
+// Plays a 2D sound on a specific channel from the local player.
+// Different channels allow sounds to play simultaneously without cutting each other.
+//-----------------------------------------------------------------------------
+static void PlayDialogueSound2D(const char* soundName, int channel)
+{
+	if (!soundName || !soundName[0])
+		return;
+
+	C_BasePlayer* pPlayer = C_BasePlayer::GetLocalPlayer();
+	if (!pPlayer)
+		return;
+
+	CLocalPlayerFilter filter;
+	enginesound->EmitSound(filter, pPlayer->entindex(), channel, soundName,
+		1.0f, SNDLVL_NONE, 0, PITCH_NORM, 0, NULL);
+}
+
+//-----------------------------------------------------------------------------
+// Calculates a zoom FOV based on distance to the target entity.
+// Close targets get a tighter zoom, far targets get a wider one.
+// Returns a value clamped between 30 and default FOV.
+//-----------------------------------------------------------------------------
+static int CalcDialogueZoomFOV(float flDistance)
+{
+	// At ~64 units (face-to-face) -> FOV 30
+	// At ~256 units (across a room) -> FOV 55
+	// At ~512+ units (far away) -> FOV ~65 (barely zoomed)
+	float flFOV = RemapValClamped(flDistance, 64.0f, 512.0f, 30.0f, 65.0f);
+	return (int)clamp(flFOV, 30.0f, (float)DIALOGUE_DEFAULT_FOV);
+}
+
 class CDialoguePanel : public vgui::Frame
 {
 	DECLARE_CLASS_SIMPLE(CDialoguePanel, vgui::Frame);
@@ -109,18 +155,23 @@ class CDialoguePanel : public vgui::Frame
 	virtual void ShowNode(const char* nodeName);
 	void ShowPanel(void);
 	void HidePanel(void);
+	void ApplyDialogueSettings(bool bTypewriter, float flSpeed, const char* szTypewriterSound, const char* szOpenSound, const char* szCloseSound);
 
 	protected:
 	virtual void OnTick();
 	virtual void OnCommand(const char* pcCommand);
+	virtual void OnMousePressed(vgui::MouseCode code);
 	virtual void PerformLayout();
 
 	private:
-		void LookAtNPC(const char* npcName);
+		void LookAtTarget(const char* targetName);
 		void PlayNPCAnimation(const char* actName);
 		void ExecuteCommand(const char* cmdText);
 		void PlayNPCSound(const char* soundName);
 		void PlayGameSound(const char* soundName);
+		void SkipTypewriter(void);
+		void StartTypewriterSound(void);
+		void StopTypewriterSound(void);
 
 	KeyValues* m_pDialogueKV;
 	RichText* m_pDialogueText;
@@ -133,12 +184,19 @@ class CDialoguePanel : public vgui::Frame
 	float m_flTypewriterSpeed;
 	float m_flTypewriterAccum;
 
-	// NPC focus tracking
-	EHANDLE m_hFocusNPC;           // Handle to the NPC we're focusing on
-	bool m_bShouldTrackNPC;        // Whether to keep tracking the NPC each tick
+	// Focus tracking (NPC or info_target)
+	EHANDLE m_hFocusEntity;        // Handle to the entity we're focusing on
+	bool m_bShouldTrackTarget;     // Whether to keep tracking the target each tick
 	bool m_bZoomActive;            // Whether we've applied a zoom
 
 	bool m_bIsDialogueActive;      // Whether the dialogue panel is currently shown
+
+	// Settings from logic_dialogue (defaults, overrideable by node/inline tags)
+	bool  m_bDefaultTypewriter;    // Default typewriter mode from Hammer
+	float m_flDefaultSpeed;        // Default typewriter speed from Hammer
+	char  m_szTypewriterSound[256];// Typewriter tick sound (looping while printing)
+	char  m_szOpenSound[256];      // Sound when panel opens
+	char  m_szCloseSound[256];     // Sound when panel closes
 };
 
 CDialoguePanel::CDialoguePanel(vgui::VPANEL parent)
@@ -157,9 +215,16 @@ CDialoguePanel::CDialoguePanel(vgui::VPANEL parent)
 	m_flTypewriterAccum = 0.0f;
 
 	// Initialize NPC focus
-	m_hFocusNPC = NULL;
-	m_bShouldTrackNPC = false;
+	m_hFocusEntity = NULL;
+	m_bShouldTrackTarget = false;
 	m_bZoomActive = false;
+
+	// Initialize settings defaults
+	m_bDefaultTypewriter = true;
+	m_flDefaultSpeed = 1.0f;
+	m_szTypewriterSound[0] = '\0';
+	m_szOpenSound[0] = '\0';
+	m_szCloseSound[0] = '\0';
 
 	SetKeyBoardInputEnabled(true);
 	SetMouseInputEnabled(true);
@@ -175,7 +240,7 @@ CDialoguePanel::CDialoguePanel(vgui::VPANEL parent)
 	SetAlpha(127); // 50% transparent
 	SetRoundedCorners(15);
 
-	SetScheme(vgui::scheme()->LoadSchemeFromFile("resource/SourceScheme.res", "SourceScheme"));
+	//SetScheme(vgui::scheme()->LoadSchemeFromFile("resource/SourceScheme.res", "SourceScheme"));
 
 	// Character name label
 	m_pCharacterName = new Label(this, "DiagCharName", "DiagCharName");
@@ -203,19 +268,6 @@ CDialoguePanel::CDialoguePanel(vgui::VPANEL parent)
 		m_pOptions[i]->SetReleasedSound("common/bugreporter_succeeded.wav");
 		m_pOptions[i]->SetButtonActivationType(Button::ACTIVATE_ONPRESSEDANDRELEASED);
 	}
-	m_pOptions[3]->SetText("StartDiag");
-	m_pOptions[3]->SetCommand(VarArgs("startdiag %s", DIALOGUE_FILE_PATH));
-
-	// Exit button
-	m_pOptions[4]->SetContentAlignment(Label::a_west);
-	m_pOptions[4]->SetText("Exit");
-	m_pOptions[4]->SetTextInset(6, 0);
-	m_pOptions[4]->SetVisible(true);
-	m_pOptions[4]->SetEnabled(true);
-	m_pOptions[4]->SetAsDefaultButton(true);
-	m_pOptions[4]->SetArmedSound("ui/buttonrollover.wav");
-	m_pOptions[4]->SetReleasedSound("common/bugreporter_failed.wav");
-	m_pOptions[4]->SetCommand("turnoff");
 
 	// Hook the server dialogue message
 	HOOK_MESSAGE(DialogueMsg);
@@ -238,6 +290,10 @@ void CDialoguePanel::ShowPanel(void)
 	SetMouseInputEnabled(true);
 	MoveToFront();
 
+	// Play open sound on CHAN_ITEM so it doesn't conflict with NPC voice or typewriter
+	if (m_szOpenSound[0])
+		PlayDialogueSound2D(m_szOpenSound, CHAN_ITEM);
+
 	// Hide the HUD during dialogue
 	engine->ClientCmd_Unrestricted("sv_dialogue_hud 0");
 
@@ -248,13 +304,18 @@ void CDialoguePanel::ShowPanel(void)
 void CDialoguePanel::HidePanel(void)
 {
 	m_bIsDialogueActive = false;
-	m_bShouldTrackNPC = false;
-	m_hFocusNPC = NULL;
+	m_bShouldTrackTarget = false;
+	m_hFocusEntity = NULL;
 
 	// Stop typewriter if still running
+	StopTypewriterSound();
 	m_bTypewriterActive = false;
 	m_szTypewriterBuffer[0] = '\0';
 	m_iTypewriterPos = 0;
+
+	// Play close sound on CHAN_ITEM so it doesn't conflict with NPC voice or typewriter
+	if (m_szCloseSound[0])
+		PlayDialogueSound2D(m_szCloseSound, CHAN_ITEM);
 
 	// Restore default FOV if we zoomed in
 	if (m_bZoomActive)
@@ -272,6 +333,100 @@ void CDialoguePanel::HidePanel(void)
 
 	// Stop receiving ticks while dialogue is inactive
 	vgui::ivgui()->RemoveTickSignal(GetVPanel());
+}
+
+void CDialoguePanel::SkipTypewriter(void)
+{
+	if (!m_bTypewriterActive)
+		return;
+
+	// Flush remaining buffer: process all tags and insert all text instantly
+	while (m_szTypewriterBuffer[m_iTypewriterPos] != '\0')
+	{
+		if (m_szTypewriterBuffer[m_iTypewriterPos] == '<')
+		{
+			char tagValue[256];
+			int consumed = 0;
+
+			consumed = ParseTag(&m_szTypewriterBuffer[m_iTypewriterPos], "speed", tagValue, sizeof(tagValue));
+			if (consumed > 0) { m_iTypewriterPos += consumed; continue; }
+
+			consumed = ParseTag(&m_szTypewriterBuffer[m_iTypewriterPos], "color", tagValue, sizeof(tagValue));
+			if (consumed > 0)
+			{
+				Color clr;
+				if (ParseColorValue(tagValue, clr))
+					m_pDialogueText->InsertColorChange(clr);
+				m_iTypewriterPos += consumed;
+				continue;
+			}
+
+			consumed = ParseTag(&m_szTypewriterBuffer[m_iTypewriterPos], "focus", tagValue, sizeof(tagValue));
+			if (consumed > 0) { LookAtTarget(tagValue); m_iTypewriterPos += consumed; continue; }
+
+			consumed = ParseTag(&m_szTypewriterBuffer[m_iTypewriterPos], "anim", tagValue, sizeof(tagValue));
+			if (consumed > 0) { PlayNPCAnimation(tagValue); m_iTypewriterPos += consumed; continue; }
+
+			consumed = ParseTag(&m_szTypewriterBuffer[m_iTypewriterPos], "command", tagValue, sizeof(tagValue));
+			if (consumed > 0) { ExecuteCommand(tagValue); m_iTypewriterPos += consumed; continue; }
+
+			consumed = ParseTag(&m_szTypewriterBuffer[m_iTypewriterPos], "sound_npc", tagValue, sizeof(tagValue));
+			if (consumed > 0) { PlayNPCSound(tagValue); m_iTypewriterPos += consumed; continue; }
+
+			consumed = ParseTag(&m_szTypewriterBuffer[m_iTypewriterPos], "sound_world", tagValue, sizeof(tagValue));
+			if (consumed > 0) { PlayGameSound(tagValue); m_iTypewriterPos += consumed; continue; }
+
+			consumed = ParseTag(&m_szTypewriterBuffer[m_iTypewriterPos], "sound_typewriter", tagValue, sizeof(tagValue));
+			if (consumed > 0) { m_iTypewriterPos += consumed; continue; }
+		}
+
+		// Collect a run of plain text until the next '<' or end
+		const char* start = &m_szTypewriterBuffer[m_iTypewriterPos];
+		const char* end = start + 1;
+		while (*end && *end != '<')
+			end++;
+
+		int len = end - start;
+		char buf[512];
+		if (len >= (int)sizeof(buf))
+			len = sizeof(buf) - 1;
+		Q_strncpy(buf, start, len + 1);
+		m_pDialogueText->InsertString(buf);
+		m_iTypewriterPos += len;
+	}
+
+	m_bTypewriterActive = false;
+	StopTypewriterSound();
+}
+
+void CDialoguePanel::OnMousePressed(vgui::MouseCode code)
+{
+	if (m_bTypewriterActive && code == MOUSE_LEFT)
+	{
+		SkipTypewriter();
+		return;
+	}
+
+	BaseClass::OnMousePressed(code);
+}
+
+void CDialoguePanel::ApplyDialogueSettings(bool bTypewriter, float flSpeed, const char* szTypewriterSound, const char* szOpenSound, const char* szCloseSound)
+{
+	m_bDefaultTypewriter = bTypewriter;
+	m_flDefaultSpeed = (flSpeed > 0.0f) ? flSpeed : 1.0f;
+	Q_strncpy(m_szTypewriterSound, szTypewriterSound ? szTypewriterSound : "", sizeof(m_szTypewriterSound));
+	Q_strncpy(m_szOpenSound, szOpenSound ? szOpenSound : "", sizeof(m_szOpenSound));
+	Q_strncpy(m_szCloseSound, szCloseSound ? szCloseSound : "", sizeof(m_szCloseSound));
+}
+
+void CDialoguePanel::StartTypewriterSound(void)
+{
+	// Sound is now played per-tick in OnTick, this is kept for potential future use
+}
+
+void CDialoguePanel::StopTypewriterSound(void)
+{
+	// One-shot sounds stop naturally when we stop calling PlaySound each tick
 }
 
 class CDialoguePanelInterface : public IDialoguePanel
@@ -330,18 +485,25 @@ class CDialoguePanelInterface : public IDialoguePanel
 			m_pPanel->ShowNode(nodeName);
 		}
 	}
+	void ApplySettings(bool bTypewriter, float flSpeed, const char* szTypewriterSound, const char* szOpenSound, const char* szCloseSound)
+	{
+		if (m_pPanel)
+		{
+			m_pPanel->ApplyDialogueSettings(bTypewriter, flSpeed, szTypewriterSound, szOpenSound, szCloseSound);
+		}
+	}
 };
 static CDialoguePanelInterface g_DialoguePanel;
 IDialoguePanel* g_pDialoguePanel = (IDialoguePanel*)&g_DialoguePanel;
 
 //-----------------------------------------------------------------------------
-// Helper: get the head position of an NPC.
-// Tries the "ValveBiped.Bip01_Head1" bone first (standard HL2 skeleton),
-// then falls back to bounding-box center.
+// Helper: get the head/center position of an entity.
+// For NPCs: tries "ValveBiped.Bip01_Head1" bone, falls back to bounding-box center.
+// For non-animated entities (info_target, etc.): returns GetAbsOrigin().
 //-----------------------------------------------------------------------------
-static Vector GetNPCHeadPosition(C_BaseEntity* pNPC)
+static Vector GetEntityFocusPosition(C_BaseEntity* pEnt)
 {
-	C_BaseAnimating* pAnimating = pNPC->GetBaseAnimating();
+	C_BaseAnimating* pAnimating = pEnt->GetBaseAnimating();
 	if (pAnimating)
 	{
 		int iBone = pAnimating->LookupBone("ValveBiped.Bip01_Head1");
@@ -353,66 +515,65 @@ static Vector GetNPCHeadPosition(C_BaseEntity* pNPC)
 			return vecPos;
 		}
 	}
-	return pNPC->WorldSpaceCenter();
+	// info_target and other point entities have no model — use origin
+	return pEnt->GetAbsOrigin();
 }
 
-void CDialoguePanel::LookAtNPC(const char* npcName)
+void CDialoguePanel::LookAtTarget(const char* targetName)
 {
 	C_BasePlayer* pPlayer = C_BasePlayer::GetLocalPlayer();
 	if (!pPlayer)
 		return;
 
-	// Find the NPC by entity name
+	// Find entity by targetname (works for NPCs, info_target, etc.)
 	C_BaseEntity* ent = NULL;
-	C_BaseEntity* pFoundNPC = NULL;
+	C_BaseEntity* pFoundEntity = NULL;
 	while ((ent = ClientEntityList().NextBaseEntity(ent)) != NULL)
 	{
 		const char* entName = ent->GetEntityName();
-		if (entName && entName[0] && !Q_stricmp(entName, npcName))
+		if (entName && entName[0] && !Q_stricmp(entName, targetName))
 		{
-			pFoundNPC = ent;
+			pFoundEntity = ent;
 			break;
 		}
 	}
 
-	if (!pFoundNPC)
+	if (!pFoundEntity)
 	{
-		Warning("CDialoguePanel::LookAtNPC: NPC '%s' not found!\n", npcName);
-		m_hFocusNPC = NULL;
-		m_bShouldTrackNPC = false;
+		Warning("CDialoguePanel::LookAtTarget: Entity '%s' not found!\n", targetName);
+		m_hFocusEntity = NULL;
+		m_bShouldTrackTarget = false;
 		return;
 	}
 
-	m_hFocusNPC = pFoundNPC;
-	m_bShouldTrackNPC = true;
+	m_hFocusEntity = pFoundEntity;
+	m_bShouldTrackTarget = true;
 
-	Vector vecNPCTarget = GetNPCHeadPosition(pFoundNPC);
-
+	Vector vecTarget = GetEntityFocusPosition(pFoundEntity);
 	Vector vecPlayerEye = pPlayer->EyePosition();
-	Vector vecDir = vecNPCTarget - vecPlayerEye;
+	Vector vecDir = vecTarget - vecPlayerEye;
+	float flDistance = vecDir.Length();
 	VectorNormalize(vecDir);
 
 	QAngle angLookAt;
 	VectorAngles(vecDir, angLookAt);
 	engine->SetViewAngles(angLookAt);
 
-	// Apply zoom
-	if (!m_bZoomActive)
-	{
-		engine->ClientCmd_Unrestricted(VarArgs("sv_dialogue_zoom %d %.1f", DIALOGUE_ZOOM_FOV, DIALOGUE_ZOOM_RATE));
-		m_bZoomActive = true;
-	}
+	// Apply distance-based zoom
+	int iFOV = CalcDialogueZoomFOV(flDistance);
+	engine->ClientCmd_Unrestricted(VarArgs("sv_dialogue_zoom %d %.1f", iFOV, DIALOGUE_ZOOM_RATE));
+	m_bZoomActive = true;
 
-	// Ask server to make the NPC face and look at the player
+	// Ask server to make the NPC face and look at the player (only affects NPCs, ignored for info_target)
 	char szCmd[256];
-	Q_snprintf(szCmd, sizeof(szCmd), "sv_dialogue_lookatplayer %s", npcName);
+	Q_snprintf(szCmd, sizeof(szCmd), "sv_dialogue_lookatplayer %s", targetName);
 	engine->ClientCmd_Unrestricted(szCmd);
 }
 
 void CDialoguePanel::PlayNPCAnimation(const char* actName)
 {
 	// Send animation request to the server for the currently focused NPC
-	C_BaseEntity* pNPC = m_hFocusNPC.Get();
+	C_BaseEntity* pNPC = m_hFocusEntity.Get();
 	if (!pNPC)
 	{
 		Warning("CDialoguePanel::PlayNPCAnimation: No focused NPC to animate!\n");
@@ -446,7 +607,7 @@ void CDialoguePanel::PlayNPCSound(const char* soundName)
 	if (!soundName || !soundName[0])
 		return;
 
-	C_BaseEntity* pNPC = m_hFocusNPC.Get();
+	C_BaseEntity* pNPC = m_hFocusEntity.Get();
 	if (!pNPC)
 	{
 		Warning("CDialoguePanel::PlayNPCSound: No focused NPC to play sound '%s'!\n", soundName);
@@ -536,17 +697,17 @@ void CDialoguePanel::OnTick()
 	if (!m_bIsDialogueActive)
 		return;
 
-	// Track NPC: keep camera focused on the NPC while dialogue is open
-	if (m_bShouldTrackNPC)
+	// Track target: keep camera focused on the entity while dialogue is open
+	if (m_bShouldTrackTarget)
 	{
-		C_BaseEntity* pNPC = m_hFocusNPC.Get();
+		C_BaseEntity* pTarget = m_hFocusEntity.Get();
 		C_BasePlayer* pPlayer = C_BasePlayer::GetLocalPlayer();
-		if (pNPC && pPlayer)
+		if (pTarget && pPlayer)
 		{
-			Vector vecNPCTarget = GetNPCHeadPosition(pNPC);
+			Vector vecTarget = GetEntityFocusPosition(pTarget);
 
 			Vector vecPlayerEye = pPlayer->EyePosition();
-			Vector vecDir = vecNPCTarget - vecPlayerEye;
+			Vector vecDir = vecTarget - vecPlayerEye;
 			VectorNormalize(vecDir);
 
 			QAngle angLookAt;
@@ -555,8 +716,8 @@ void CDialoguePanel::OnTick()
 		}
 		else
 		{
-			m_bShouldTrackNPC = false;
-			m_hFocusNPC = NULL;
+			m_bShouldTrackTarget = false;
+			m_hFocusEntity = NULL;
 		}
 	}
 
@@ -565,11 +726,16 @@ void CDialoguePanel::OnTick()
 	{
 		m_flTypewriterAccum += m_flTypewriterSpeed * TYPEWRITER_BASE_SPEED;
 
+		// Replay typewriter sound each tick while printing (CHAN_BODY won't conflict with voice or UI sounds)
+		if (m_szTypewriterSound[0] && m_flTypewriterAccum >= 1.0f)
+			PlayDialogueSound2D(m_szTypewriterSound, CHAN_BODY);
+
 		while (m_flTypewriterAccum >= 1.0f)
 		{
 			if (m_szTypewriterBuffer[m_iTypewriterPos] == '\0')
 			{
 				m_bTypewriterActive = false;
+				StopTypewriterSound();
 				break;
 			}
 
@@ -601,8 +767,17 @@ void CDialoguePanel::OnTick()
 					continue;
 				}
 
-				// <animate=ACT_TEMPLATE>
-				consumed = ParseTag(&m_szTypewriterBuffer[m_iTypewriterPos], "animate", tagValue, sizeof(tagValue));
+				// <focus=targetname>
+				consumed = ParseTag(&m_szTypewriterBuffer[m_iTypewriterPos], "focus", tagValue, sizeof(tagValue));
+				if (consumed > 0)
+				{
+					LookAtTarget(tagValue);
+					m_iTypewriterPos += consumed;
+					continue;
+				}
+
+				// <anim=ACT_TEMPLATE>
+				consumed = ParseTag(&m_szTypewriterBuffer[m_iTypewriterPos], "anim", tagValue, sizeof(tagValue));
 				if (consumed > 0)
 				{
 					PlayNPCAnimation(tagValue);
@@ -619,8 +794,8 @@ void CDialoguePanel::OnTick()
 					continue;
 				}
 
-				// <sndnpc=sound/path.wav>
-				consumed = ParseTag(&m_szTypewriterBuffer[m_iTypewriterPos], "sndnpc", tagValue, sizeof(tagValue));
+				// <sound_npc=sound/path.wav>
+				consumed = ParseTag(&m_szTypewriterBuffer[m_iTypewriterPos], "sound_npc", tagValue, sizeof(tagValue));
 				if (consumed > 0)
 				{
 					PlayNPCSound(tagValue);
@@ -628,11 +803,20 @@ void CDialoguePanel::OnTick()
 					continue;
 				}
 
-				// <sndgame=sound/path.wav>
-				consumed = ParseTag(&m_szTypewriterBuffer[m_iTypewriterPos], "sndgame", tagValue, sizeof(tagValue));
+				// <sound_world=sound/path.wav>
+				consumed = ParseTag(&m_szTypewriterBuffer[m_iTypewriterPos], "sound_world", tagValue, sizeof(tagValue));
 				if (consumed > 0)
 				{
 					PlayGameSound(tagValue);
+					m_iTypewriterPos += consumed;
+					continue;
+				}
+
+				// <sound_typewriter=sound/path.wav> — change typewriter tick sound mid-text
+				consumed = ParseTag(&m_szTypewriterBuffer[m_iTypewriterPos], "sound_typewriter", tagValue, sizeof(tagValue));
+				if (consumed > 0)
+				{
+					Q_strncpy(m_szTypewriterSound, tagValue, sizeof(m_szTypewriterSound));
 					m_iTypewriterPos += consumed;
 					continue;
 				}
@@ -663,6 +847,7 @@ void CDialoguePanel::OnTick()
 	else if (m_bTypewriterActive)
 	{
 		m_bTypewriterActive = false;
+		StopTypewriterSound();
 	}
 }
 
@@ -742,7 +927,6 @@ void CDialoguePanel::ShowNode(const char* nodeName)
 	// =========================================================
 
 	m_pCharacterName->SetText("...");
-
 	m_pDialogueText->SetText("");
 	m_bTypewriterActive = false;
 	m_szTypewriterBuffer[0] = '\0';
@@ -772,21 +956,21 @@ void CDialoguePanel::ShowNode(const char* nodeName)
 	if (speaker)
 		m_pCharacterName->SetText(speaker);
 
-	// --- Focus camera on NPC (before other actions so m_hFocusNPC is set) ---
-	const char* npc = pNode->GetString("npc", "");
-	if (npc && npc[0] != '\0')
-		LookAtNPC(npc);
+	// --- Focus camera on entity (NPC or info_target, before other actions so m_hFocusEntity is set) ---
+	const char* focus = pNode->GetString("focus", "");
+	if (focus && focus[0] != '\0')
+		LookAtTarget(focus);
 
 	// --- Node-level actions (executed once, before typewriter starts) ---
-	const char* nodeAnim = pNode->GetString("animate", "");
+	const char* nodeAnim = pNode->GetString("anim", "");
 	if (nodeAnim && nodeAnim[0] != '\0')
 		PlayNPCAnimation(nodeAnim);
 
-	const char* nodeSndNpc = pNode->GetString("sndnpc", "");
+	const char* nodeSndNpc = pNode->GetString("sound_npc", "");
 	if (nodeSndNpc && nodeSndNpc[0] != '\0')
 		PlayNPCSound(nodeSndNpc);
 
-	const char* nodeSndGame = pNode->GetString("sndgame", "");
+	const char* nodeSndGame = pNode->GetString("sound_world", "");
 	if (nodeSndGame && nodeSndGame[0] != '\0')
 		PlayGameSound(nodeSndGame);
 
@@ -804,14 +988,21 @@ void CDialoguePanel::ShowNode(const char* nodeName)
 	}
 
 	// --- Node-level default speed (can be overridden by inline <speed=...>) ---
-	float nodeSpeed = pNode->GetFloat("speed", 1.0f);
+	// Use entity default speed, then let node override if specified
+	float nodeSpeed = pNode->GetFloat("speed", m_flDefaultSpeed);
 	m_flTypewriterSpeed = nodeSpeed;
+
+	// --- Node-level typewriter sound (can be overridden by inline <sound_typewriter=...>) ---
+	const char* nodeTwSound = pNode->GetString("sound_typewriter", "");
+	if (nodeTwSound && nodeTwSound[0] != '\0')
+		Q_strncpy(m_szTypewriterSound, nodeTwSound, sizeof(m_szTypewriterSound));
 
 	// --- Typewriter colored text output ---
 	const char* text = pNode->GetString("text", NULL);
 	if (text)
 	{
-		bool bTypewriter = pNode->GetBool("typewriter", true);
+		// Node "typewriter" key overrides entity default; if not set, use entity default
+		bool bTypewriter = pNode->GetBool("typewriter", m_bDefaultTypewriter);
 
 		if (bTypewriter)
 		{
@@ -850,8 +1041,17 @@ void CDialoguePanel::ShowNode(const char* nodeName)
 						continue;
 					}
 
-					// <animate=ACT_TEMPLATE>
-					consumed = ParseTag(p, "animate", tagValue, sizeof(tagValue));
+					// <focus=targetname>
+					consumed = ParseTag(p, "focus", tagValue, sizeof(tagValue));
+					if (consumed > 0)
+					{
+						LookAtTarget(tagValue);
+						p += consumed;
+						continue;
+					}
+
+					// <anim=ACT_TEMPLATE>
+					consumed = ParseTag(p, "anim", tagValue, sizeof(tagValue));
 					if (consumed > 0)
 					{
 						PlayNPCAnimation(tagValue);
@@ -868,8 +1068,8 @@ void CDialoguePanel::ShowNode(const char* nodeName)
 						continue;
 					}
 
-					// <sndnpc=sound/path.wav>
-					consumed = ParseTag(p, "sndnpc", tagValue, sizeof(tagValue));
+					// <sound_npc=sound/path.wav>
+					consumed = ParseTag(p, "sound_npc", tagValue, sizeof(tagValue));
 					if (consumed > 0)
 					{
 						PlayNPCSound(tagValue);
@@ -877,11 +1077,19 @@ void CDialoguePanel::ShowNode(const char* nodeName)
 						continue;
 					}
 
-					// <sndgame=sound/path.wav>
-					consumed = ParseTag(p, "sndgame", tagValue, sizeof(tagValue));
+					// <sound_world=sound/path.wav>
+					consumed = ParseTag(p, "sound_world", tagValue, sizeof(tagValue));
 					if (consumed > 0)
 					{
 						PlayGameSound(tagValue);
+						p += consumed;
+						continue;
+					}
+
+					// <sound_typewriter=...> — skip in instant mode (no typewriter playing)
+					consumed = ParseTag(p, "sound_typewriter", tagValue, sizeof(tagValue));
+					if (consumed > 0)
+					{
 						p += consumed;
 						continue;
 					}
@@ -919,8 +1127,8 @@ void CDialoguePanel::ShowNode(const char* nodeName)
 
 		m_pOptions[i]->SetVisible(true);
 		m_pOptions[i]->SetEnabled(pNodeOption->GetBool("enabled", true));
-		m_pOptions[i]->SetArmedSound(pNodeOption->GetString("hover", "ui/buttonrollover.wav"));
-		m_pOptions[i]->SetReleasedSound(pNodeOption->GetString("release", "common/bugreporter_succeeded.wav"));
+		m_pOptions[i]->SetArmedSound(pNodeOption->GetString("sound_hover", "ui/buttonrollover.wav"));
+		m_pOptions[i]->SetReleasedSound(pNodeOption->GetString("sound_press", "common/bugreporter_succeeded.wav"));
 
 		KeyValues* pExitOption = pNodeOption->FindKey("exit", false);
 		if (pExitOption)
@@ -936,7 +1144,7 @@ void CDialoguePanel::ShowNode(const char* nodeName)
 		}
 	}
 
-	// --- Leave button (close X) ---
-	if (pNode->FindKey("leavebutton", false))
+	// --- Closable (close X button) ---
+	if (pNode->FindKey("closable", false))
 		SetCloseButtonVisible(true);
 }

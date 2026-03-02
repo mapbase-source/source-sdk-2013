@@ -10,9 +10,10 @@
 #include "activitylist.h"
 
 // Message types sent to the client
-#define DIALOGUE_MSG_START  0
-#define DIALOGUE_MSG_STOP   1
-#define DIALOGUE_MSG_NODE   2
+#define DIALOGUE_MSG_START    0
+#define DIALOGUE_MSG_STOP     1
+#define DIALOGUE_MSG_NODE     2
+#define DIALOGUE_MSG_SETTINGS 3
 
 class CLogicDialogue : public CLogicalEntity
 {
@@ -26,10 +27,19 @@ public:
 private:
 	// Helper functions
 	void SendDialogueMsg(CBasePlayer* pPlayer, int type, const char* str1 = "", const char* str2 = "");
-	void MakeNPCLookAtPlayer(const char* npcName, CBaseEntity* pActivator);
+	void SendDialogueSettings(CBasePlayer* pPlayer);
 
 	string_t m_iszDialogueFile;
 	string_t m_iszStartNode;
+
+	// Typewriter settings
+	bool     m_bTypewriterEnabled;     // Default typewriter on/off (overridden by node "typewriter" or inline <speed=>)
+	float    m_flTypewriterSpeed;      // Default typewriter speed multiplier
+	string_t m_iszTypewriterSound;     // Looping sound while typewriter is printing
+
+	// Panel sounds
+	string_t m_iszOpenSound;           // Sound when dialogue opens
+	string_t m_iszCloseSound;          // Sound when dialogue closes
 
 	COutputEvent m_OnDialogueStarted;
 	COutputEvent m_OnDialogueStopped;
@@ -41,6 +51,12 @@ BEGIN_DATADESC(CLogicDialogue)
 
 	DEFINE_KEYFIELD(m_iszDialogueFile, FIELD_STRING, "dialogue_file"),
 	DEFINE_KEYFIELD(m_iszStartNode, FIELD_STRING, "start_node"),
+
+	DEFINE_KEYFIELD(m_bTypewriterEnabled, FIELD_BOOLEAN, "typewriter_enabled"),
+	DEFINE_KEYFIELD(m_flTypewriterSpeed, FIELD_FLOAT, "typewriter_speed"),
+	DEFINE_KEYFIELD(m_iszTypewriterSound, FIELD_STRING, "typewriter_sound"),
+	DEFINE_KEYFIELD(m_iszOpenSound, FIELD_STRING, "open_sound"),
+	DEFINE_KEYFIELD(m_iszCloseSound, FIELD_STRING, "close_sound"),
 
 	DEFINE_INPUTFUNC(FIELD_VOID, "StartDialogue", InputStartDialogue),
 	DEFINE_INPUTFUNC(FIELD_VOID, "StopDialogue", InputStopDialogue),
@@ -62,24 +78,19 @@ void CLogicDialogue::SendDialogueMsg(CBasePlayer* pPlayer, int type, const char*
 	MessageEnd();
 }
 
-void CLogicDialogue::MakeNPCLookAtPlayer(const char* npcName, CBaseEntity* pActivator)
+void CLogicDialogue::SendDialogueSettings(CBasePlayer* pPlayer)
 {
-	if (!npcName || !npcName[0])
-		return;
+	CSingleUserRecipientFilter filter(pPlayer);
+	filter.MakeReliable();
 
-	CBasePlayer* pPlayer = UTIL_GetLocalPlayer();
-	if (!pPlayer)
-		return;
-
-	CBaseEntity* pEnt = gEntList.FindEntityByName(NULL, npcName, this, pActivator, this);
-	if (!pEnt)
-		return;
-
-	CAI_BaseActor* pActor = dynamic_cast<CAI_BaseActor*>(pEnt);
-	if (pActor)
-	{
-		pActor->AddLookTarget(pPlayer, 1.0f, 10.0f, 0.2f);
-	}
+	UserMessageBegin(filter, "DialogueMsg");
+		WRITE_BYTE(DIALOGUE_MSG_SETTINGS);
+		WRITE_BYTE(m_bTypewriterEnabled ? 1 : 0);
+		WRITE_FLOAT(m_flTypewriterSpeed > 0.0f ? m_flTypewriterSpeed : 1.0f);
+		WRITE_STRING(m_iszTypewriterSound != NULL_STRING ? STRING(m_iszTypewriterSound) : "");
+		WRITE_STRING(m_iszOpenSound != NULL_STRING ? STRING(m_iszOpenSound) : "");
+		WRITE_STRING(m_iszCloseSound != NULL_STRING ? STRING(m_iszCloseSound) : "");
+	MessageEnd();
 }
 
 void CLogicDialogue::InputStartDialogue(inputdata_t& inputData)
@@ -94,7 +105,8 @@ void CLogicDialogue::InputStartDialogue(inputdata_t& inputData)
 	if (!startNode || !startNode[0])
 		startNode = "node_start";
 
-	// Tell client: open panel and load file
+	// Send settings first, then start — client applies settings before opening
+	SendDialogueSettings(pPlayer);
 	SendDialogueMsg(pPlayer, DIALOGUE_MSG_START, filePath, startNode);
 
 	m_OnDialogueStarted.FireOutput(inputData.pActivator, this);

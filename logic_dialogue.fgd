@@ -1,0 +1,26 @@
+//=============================================================================
+// logic_dialogue - Triggers a client-side dialogue panel.
+//=============================================================================
+
+@PointClass base(Targetname, EnableDisable) iconsprite("editor/logic_dialogue.vmt") = logic_dialogue :
+	"Triggers a client-side dialogue panel."
+[
+	dialogue_file(string) : "Dialogue File" : "" : "Path to the dialogue file (e.g. resource/dialogues/sewers/blackguy_1.txt)"
+	start_node(string) : "Start Node" : "node_start" : "The node name to begin the dialogue at."
+
+	typewriter_enabled(choices) : "Typewriter Mode" : 1 : "Default typewriter mode. Individual nodes can override with 'typewriter' key." =
+	[
+		0 : "Disabled (instant text)"
+		1 : "Enabled (typewriter)"
+	]
+	typewriter_speed(float) : "Typewriter Speed" : "1.0" : "Default typewriter speed multiplier. Nodes can override with 'speed' key."
+	typewriter_sound(sound) : "Typewriter Sound" : "" : "Sound that plays while typewriter is printing. Stops when text completes or is skipped."
+	open_sound(sound) : "Open Sound" : "" : "Sound played when the dialogue panel opens."
+	close_sound(sound) : "Close Sound" : "" : "Sound played when the dialogue panel closes."
+
+	input StartDialogue(void) : "Opens the dialogue panel."
+	input StopDialogue(void) : "Closes the dialogue panel."
+
+	output OnDialogueStarted(void) : "Fired when the dialogue panel is opened."
+	output OnDialogueStopped(void) : "Fired when the dialogue panel is closed."
+]
