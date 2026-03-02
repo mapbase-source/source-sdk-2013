@@ -861,24 +861,36 @@ void CDialoguePanel::OnCommand(const char* pcCommand)
 
 	BaseClass::OnCommand(pcCommand);
 
-	if (!Q_stricmp(pcCommand, "turnoff"))
+	// Split on semicolons to support composite commands (e.g. "cmd x;gotonode y;turnoff")
+	char cmdBuf[512];
+	Q_strncpy(cmdBuf, pcCommand, sizeof(cmdBuf));
+
+	char* ctx = NULL;
+	char* token = strtok_s(cmdBuf, ";", &ctx);
+	while (token)
 	{
-		HidePanel();
-	}
-	else if(!Q_strnicmp(pcCommand, "gotonode ", 9))
-	{
-		const char* nodeName = pcCommand + 9;
-		ShowNode(nodeName);
-	}
-	else if (!Q_strnicmp(pcCommand, "startdiag ", 10))
-	{
-		const char* filePath = pcCommand + 10;
-		LoadFile(filePath);
-	}
-	else if (!Q_strnicmp(pcCommand, "cmd ", 4))
-	{
-		const char* cmdText = pcCommand + 4;
-		engine->ClientCmd_Unrestricted(cmdText);
+		// Trim leading spaces
+		while (*token == ' ')
+			token++;
+
+		if (!Q_stricmp(token, "turnoff"))
+		{
+			HidePanel();
+		}
+		else if (!Q_strnicmp(token, "gotonode ", 9))
+		{
+			ShowNode(token + 9);
+		}
+		else if (!Q_strnicmp(token, "startdiag ", 10))
+		{
+			LoadFile(token + 10);
+		}
+		else if (!Q_strnicmp(token, "cmd ", 4))
+		{
+			engine->ClientCmd_Unrestricted(token + 4);
+		}
+
+		token = strtok_s(NULL, ";", &ctx);
 	}
 }
 
@@ -1129,19 +1141,47 @@ void CDialoguePanel::ShowNode(const char* nodeName)
 		m_pOptions[i]->SetEnabled(pNodeOption->GetBool("enabled", true));
 		m_pOptions[i]->SetArmedSound(pNodeOption->GetString("sound_hover", "ui/buttonrollover.wav"));
 		m_pOptions[i]->SetReleasedSound(pNodeOption->GetString("sound_press", "common/bugreporter_succeeded.wav"));
+		m_pOptions[i]->SetText(pNodeOption->GetString("text", "..."));
 
-		KeyValues* pExitOption = pNodeOption->FindKey("exit", false);
-		if (pExitOption)
-		{
+		if (pNodeOption->FindKey("exit", false))
 			m_pOptions[i]->SetAsDefaultButton(true);
-			m_pOptions[i]->SetText(pNodeOption->GetString("text", "..."));
-			m_pOptions[i]->SetCommand(pNodeOption->GetString("command", "turnoff"));
-		}
-		else
+
+		// Build composite command: command runs first, then navigation
+		const char* choiceCmd = pNodeOption->GetString("command", "");
+		const char* choiceNext = pNodeOption->GetString("next", "");
+		bool bExit = pNodeOption->FindKey("exit", false) != NULL;
+
+		char compositeCmd[512];
+		compositeCmd[0] = '\0';
+
+		if (choiceCmd[0])
+			Q_snprintf(compositeCmd, sizeof(compositeCmd), "cmd %s", choiceCmd);
+
+		if (choiceNext[0])
 		{
-			m_pOptions[i]->SetText(pNodeOption->GetString("text", "..."));
-			m_pOptions[i]->SetCommand(pNodeOption->GetString("command", ""));
+			if (compositeCmd[0])
+			{
+				char temp[512];
+				Q_snprintf(temp, sizeof(temp), "%s;gotonode %s", compositeCmd, choiceNext);
+				Q_strncpy(compositeCmd, temp, sizeof(compositeCmd));
+			}
+			else
+			{
+				Q_snprintf(compositeCmd, sizeof(compositeCmd), "gotonode %s", choiceNext);
+			}
 		}
+		else if (bExit && !compositeCmd[0])
+		{
+			Q_strncpy(compositeCmd, "turnoff", sizeof(compositeCmd));
+		}
+		else if (bExit)
+		{
+			char temp[512];
+			Q_snprintf(temp, sizeof(temp), "%s;turnoff", compositeCmd);
+			Q_strncpy(compositeCmd, temp, sizeof(compositeCmd));
+		}
+
+		m_pOptions[i]->SetCommand(compositeCmd);
 	}
 
 	// --- Closable (close X button) ---

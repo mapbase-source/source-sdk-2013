@@ -82,12 +82,17 @@ KeyValues `.txt` file. Each top-level key is a **node name**.
         "choice1"
         {
             "text"          "What happened here?"
-            "command"       "gotonode node_explain"
+            "next"          "node_explain"
         }
         "choice2"
         {
+            "text"          "Open the gate and ask"
+            "command"       "ent_fire gate_01 open"
+            "next"          "node_gate"
+        }
+        "choice3"
+        {
             "text"          "I have to go."
-            "command"       "turnoff"
             "exit"          ""
             "sound_hover"   "ui/buttonrollover.wav"
             "sound_press"   "ui/button_close.wav"
@@ -187,23 +192,57 @@ Used inside `"text"` values. Tags are not printed — they trigger actions mid-t
 
 Choices are sub-keys named `choice1` through `choice5`.
 
-| Key            | Type   | Default                           | Description                     |
-|----------------|--------|-----------------------------------|---------------------------------|
-| `text`         | string | `"..."`                           | Button label                    |
-| `command`      | string | `""`                              | Command on press (see below)    |
-| `enabled`      | bool   | `1`                               | Whether the button is clickable |
-| `exit`         | flag   | —                                 | If present, marks as exit button (default command: `turnoff`) |
-| `sound_hover`  | sound  | `ui/buttonrollover.wav`           | Sound on mouse hover            |
-| `sound_press`  | sound  | `common/bugreporter_succeeded.wav`| Sound on click                  |
+| Key            | Type   | Default                           | Description                          |
+|----------------|--------|-----------------------------------|--------------------------------------|
+| `text`         | string | `"..."`                           | Button label                         |
+| `next`         | string | —                                 | Node name to navigate to on press    |
+| `command`      | string | —                                 | Console command to execute on press  |
+| `exit`         | flag   | —                                 | If present, closes dialogue on press |
+| `enabled`      | bool   | `1`                               | Whether the button is clickable      |
+| `sound_hover`  | sound  | `ui/buttonrollover.wav`           | Sound on mouse hover                 |
+| `sound_press`  | sound  | `common/bugreporter_succeeded.wav`| Sound on click                       |
 
-### Choice Commands
+`next`, `command`, and `exit` can be **combined freely**. Execution order: **command → next → exit**.
 
-| Command                  | Description                              |
-|--------------------------|------------------------------------------|
-| `gotonode NODE_NAME`     | Navigate to another dialogue node        |
-| `turnoff`                | Close the dialogue panel                 |
-| `cmd CONSOLE_COMMAND`    | Execute a console command                |
-| `startdiag FILE_PATH`   | Load a different dialogue file           |
+### Examples
+
+Navigate to another node:
+```
+"choice1"
+{
+    "text"    "Tell me more."
+    "next"    "node_explain"
+}
+```
+
+Execute a command and navigate:
+```
+"choice2"
+{
+    "text"      "Open the door"
+    "command"   "ent_fire door_01 open"
+    "next"      "node_door_opened"
+}
+```
+
+Exit button (closes dialogue):
+```
+"choice3"
+{
+    "text"    "Goodbye."
+    "exit"    ""
+}
+```
+
+Execute a command and exit:
+```
+"choice4"
+{
+    "text"      "Take the item and leave"
+    "command"   "ent_fire item_01 kill"
+    "exit"      ""
+}
+```
 
 ---
 
