@@ -149,6 +149,7 @@ public:
 	}
 };
 
+// This is the macro that creates the static entity factory for a class, and links it to the classname used in .MAP files
 #define LINK_ENTITY_TO_CLASS(mapClassName,DLLClassName) \
 	static CEntityFactory<DLLClassName> mapClassName( #mapClassName );
 

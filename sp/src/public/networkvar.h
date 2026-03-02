@@ -96,6 +96,7 @@ inline int CheckDeclareClass_Access( T *, const char *pShouldBe )
 		} 
 
 #else
+	// AI: In release builds, we don't need to validate the class declarations, so we can skip the friend functions and extra checks.
 	#define DECLARE_CLASS( className, baseClassName ) \
 		typedef baseClassName BaseClass; \
 		typedef className ThisClass;

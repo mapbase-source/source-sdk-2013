@@ -23,6 +23,7 @@
 #include <KeyValues.h>
 #include "filesystem.h"
 #include "matsys_controls/matsyscontrols.h"
+#include <IMyPanel.h>
 
 #ifdef SIXENSE
 #include "sixense/in_sixense.h"
@@ -197,6 +198,8 @@ void VGui_CreateGlobalPanels( void )
 {
 	VPANEL gameToolParent = enginevgui->GetPanel( PANEL_CLIENTDLL_TOOLS );
 	VPANEL toolParent = enginevgui->GetPanel( PANEL_TOOLS );
+	VPANEL gameParent = enginevgui->GetPanel(PANEL_INGAMESCREENS);
+
 #if defined( TRACK_BLOCKING_IO )
 	VPANEL gameDLLPanel = enginevgui->GetPanel( PANEL_GAMEDLL );
 #endif
@@ -220,6 +223,7 @@ void VGui_CreateGlobalPanels( void )
 #ifdef SIXENSE
 	g_pSixenseInput->CreateGUI( gameToolParent );
 #endif
+	mypanel->Create(gameParent);
 }
 
 void VGui_Shutdown()
@@ -249,6 +253,8 @@ void VGui_Shutdown()
 	// Make sure anything "marked for deletion"
 	//  actually gets deleted before this dll goes away
 	vgui::ivgui()->RunFrame();
+	mypanel->Destroy();
+
 }
 
 static ConVar cl_showpausedimage( "cl_showpausedimage", "1", 0, "Show the 'Paused' image when game is paused." );

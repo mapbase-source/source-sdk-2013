@@ -52,6 +52,9 @@ void RegisterUserMessages( void )
 	usermessages->Register( "AchievementEvent", -1 );
 	usermessages->Register( "UpdateJalopyRadar", -1 );
 
+	// Dialogue system
+	usermessages->Register( "DialogueMsg", -1 );	// variable size: byte type + strings
+
 #ifndef _X360
 	// NVNT register haptic user messages
 	RegisterHapticMessages();

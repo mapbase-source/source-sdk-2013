@@ -320,6 +320,7 @@ struct datamap_t
 	template <typename T> friend void ::DataMapAccess(T *, datamap_t **p); \
 	template <typename T> friend datamap_t *::DataMapInit(T *);
 
+// AI: Use this when you have a base class that also has a datadesc
 #define	DECLARE_DATADESC() \
 	DECLARE_SIMPLE_DATADESC() \
 	virtual datamap_t *GetDataDescMap( void );
