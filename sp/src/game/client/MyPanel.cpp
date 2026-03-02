@@ -16,7 +16,7 @@
 
 #define DIALOGUE_FILE_PATH "resource/dialogues/sewers/blackguy_1.txt"
 #define TYPEWRITER_BASE_SPEED 2.0f // Base characters per tick at speed multiplier 1.0
-#define DIALOGUE_ZOOM_FOV 75       // FOV to zoom to during dialogue (default is ~90)
+#define DIALOGUE_ZOOM_FOV 45       // FOV to zoom to during dialogue (default is ~90)
 #define DIALOGUE_ZOOM_RATE 0.3f    // How fast to zoom in/out (seconds)
 
 using namespace vgui;
@@ -244,6 +244,9 @@ void CMyPanel::ShowPanel(void)
 	SetMouseInputEnabled(true);
 	MoveToFront();
 
+	// Hide the HUD during dialogue
+	engine->ClientCmd_Unrestricted("sv_dialogue_hud 0");
+
 	// Start receiving ticks only when dialogue is active
 	vgui::ivgui()->AddTickSignal(GetVPanel(), 100);
 }
@@ -265,6 +268,9 @@ void CMyPanel::HidePanel(void)
 		engine->ClientCmd_Unrestricted(VarArgs("sv_dialogue_zoom 0 %.1f", DIALOGUE_ZOOM_RATE));
 		m_bZoomActive = false;
 	}
+
+	// Restore the HUD
+	engine->ClientCmd_Unrestricted("sv_dialogue_hud 1");
 
 	SetVisible(false);
 	SetKeyBoardInputEnabled(false);
@@ -454,8 +460,13 @@ void CMyPanel::PlayNPCSound(const char* soundName)
 		return;
 	}
 
-	CPASAttenuationFilter filter(pNPC);
-	C_BaseEntity::EmitSound(filter, pNPC->entindex(), soundName);
+	// Use enginesound directly so raw .wav paths work (EmitSound wrapper expects soundscript names).
+	// Emit from the NPC's position at talking volume so the sound is spatialized.
+	CLocalPlayerFilter filter;
+	Vector vecOrigin = pNPC->GetAbsOrigin();
+	enginesound->EmitSound(filter, pNPC->entindex(), CHAN_VOICE, soundName,
+		1.0f, SNDLVL_TALKING, 0, PITCH_NORM, 0,
+		&vecOrigin);
 	Msg("CMyPanel::PlayNPCSound: '%s' on entity %d\n", soundName, pNPC->entindex());
 }
 
@@ -629,8 +640,8 @@ void CMyPanel::OnTick()
 				if (consumed > 0)
 				{
 					PlayGameSound(tagValue);
-					m_iTypewriterPos += consumed;
-					continue;
+				 m_iTypewriterPos += consumed;
+				 continue;
 				}
 			}
 
@@ -662,53 +673,53 @@ void CMyPanel::OnTick()
 	}
 }
 
-CON_COMMAND(ToggleMyPanel, "Toggles testpanel on or off")
-{
-	if (!mypanel)
-		return;
-
-	// Simple toggle for debug purposes
-	static bool s_bShown = false;
-	s_bShown = !s_bShown;
-	if (s_bShown)
-		mypanel->Show();
-	else
-		mypanel->Hide();
-};
-
-CON_COMMAND(debug_panel_file, "Sets the dialogue file to use in myPanel for testing purposes")
-{
-	if (!mypanel)
-	{
-		Warning("debug_panel_file: myPanel not initialized yet!\n");
-		return;
-	}
-
-	if (args.ArgC() >= 2)
-	{
-		mypanel->LoadFile(args[1]);
-		Msg("Set debug_panel_file to %s\n", args[1]);
-		return;
-	}
-
-	Warning("Usage: debug_panel_file <path>\n");
-};
-
-CON_COMMAND(debug_panel_node, "Sets the node to show in myPanel for testing purposes")
-{
-	if (!mypanel)
-	{
-		Warning("debug_panel_node: myPanel not initialized yet!\n");
-		return;
-	}
-
-	if (args.ArgC() >= 2)
-	{
-		mypanel->ShowNode(args[1]);
-		Msg("Set debug_panel_node to %s\n", args[1]);
-		return;
-	}
-};
+//CON_COMMAND(ToggleMyPanel, "Toggles testpanel on or off")
+//{
+//	if (!mypanel)
+//		return;
+//
+//	// Simple toggle for debug purposes
+//	static bool s_bShown = false;
+//	s_bShown = !s_bShown;
+//	if (s_bShown)
+//		mypanel->Show();
+//	else
+//		mypanel->Hide();
+//};
+//
+//CON_COMMAND(debug_panel_file, "Sets the dialogue file to use in myPanel for testing purposes")
+//{
+//	if (!mypanel)
+//	{
+//		Warning("debug_panel_file: myPanel not initialized yet!\n");
+//		return;
+//	}
+//
+//	if (args.ArgC() >= 2)
+//	{
+//		mypanel->LoadFile(args[1]);
+//		Msg("Set debug_panel_file to %s\n", args[1]);
+//		return;
+//	}
+//
+//	Warning("Usage: debug_panel_file <path>\n");
+//};
+//
+//CON_COMMAND(debug_panel_node, "Sets the node to show in myPanel for testing purposes")
+//{
+//	if (!mypanel)
+//	{
+//		Warning("debug_panel_node: myPanel not initialized yet!\n");
+//		return;
+//	}
+//
+//	if (args.ArgC() >= 2)
+//	{
+//		mypanel->ShowNode(args[1]);
+//		Msg("Set debug_panel_node to %s\n", args[1]);
+//		return;
+//	}
+//};
 
 void CMyPanel::OnCommand(const char* pcCommand)
 {
@@ -934,8 +945,8 @@ void CMyPanel::ShowNode(const char* nodeName)
 					if (consumed > 0)
 					{
 						PlayGameSound(tagValue);
-						p += consumed;
-						continue;
+					 p += consumed;
+					 continue;
 					}
 				}
 

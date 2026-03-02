@@ -112,7 +112,7 @@ void CLogicDialogue::InputStopDialogue(inputdata_t& inputData)
 }
 
 // Server command for client to request NPC look-at-player (called from ShowNode)
-CON_COMMAND(sv_dialogue_lookatplayer, "Makes the named NPC look at the player")
+CON_COMMAND_F(sv_dialogue_lookatplayer, "Makes the named NPC look at the player", FCVAR_HIDDEN)
 {
 	if (args.ArgC() < 2)
 		return;
@@ -158,7 +158,7 @@ CON_COMMAND(sv_dialogue_lookatplayer, "Makes the named NPC look at the player")
 // Server command for client to request FOV zoom during dialogue
 // Usage: sv_dialogue_zoom <fov> <rate>
 // fov=0 resets to default
-CON_COMMAND(sv_dialogue_zoom, "Sets the player FOV for dialogue zoom")
+CON_COMMAND_F(sv_dialogue_zoom, "Sets the player FOV for dialogue zoom", FCVAR_HIDDEN)
 {
 	if (args.ArgC() < 2)
 		return;
@@ -172,13 +172,19 @@ CON_COMMAND(sv_dialogue_zoom, "Sets the player FOV for dialogue zoom")
 	int iFOV = atoi(args[1]);
 	float flRate = (args.ArgC() >= 3) ? atof(args[2]) : 0.3f;
 
-	// FOV 0 means reset to default
-	pPlayer->SetFOV(pPlayer, iFOV, flRate);
+	// Clear any existing zoom owner so our request isn't rejected
+	if (pPlayer->GetFOVOwner() && pPlayer->GetFOVOwner() != pPlayer)
+	{
+		pPlayer->SetFOV(pPlayer->GetFOVOwner(), 0, 0.0f);
+	}
+
+	bool bResult = pPlayer->SetFOV(pPlayer, iFOV, flRate);
+	Msg("sv_dialogue_zoom: FOV=%d rate=%.1f result=%s\n", iFOV, flRate, bResult ? "OK" : "FAILED");
 }
 
 // Server command for client to request NPC animation during dialogue
 // Usage: sv_dialogue_animate <npc_name> <activity_name>
-CON_COMMAND(sv_dialogue_animate, "Makes the named NPC play an activity")
+CON_COMMAND_F(sv_dialogue_animate, "Makes the named NPC play an activity", FCVAR_HIDDEN)
 {
 	if (args.ArgC() < 3)
 		return;
@@ -214,4 +220,28 @@ CON_COMMAND(sv_dialogue_animate, "Makes the named NPC play an activity")
 	}
 
 	pNPC->SetIdealActivity((Activity)iActivity);
+}
+
+// Server command for client to hide/show HUD during dialogue
+// Usage: sv_dialogue_hud <0|1>  (0 = hide, 1 = show)
+CON_COMMAND_F(sv_dialogue_hud, "Hides or shows the HUD for dialogue", FCVAR_HIDDEN)
+{
+	if (args.ArgC() < 2)
+		return;
+
+	CBasePlayer* pPlayer = UTIL_GetCommandClient();
+	if (!pPlayer)
+		pPlayer = UTIL_GetLocalPlayer();
+	if (!pPlayer)
+		return;
+
+	int iShow = atoi(args[1]);
+	if (iShow)
+	{
+		pPlayer->m_Local.m_iHideHUD &= ~HIDEHUD_ALL;
+	}
+	else
+	{
+		pPlayer->m_Local.m_iHideHUD |= HIDEHUD_ALL;
+	}
 }
