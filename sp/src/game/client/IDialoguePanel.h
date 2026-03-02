@@ -1,4 +1,4 @@
-class MyPanel
+class IDialoguePanel
 {
 public:
 	virtual void		Create(vgui::VPANEL parent) = 0;
@@ -10,4 +10,4 @@ public:
 	virtual void		ShowNode(const char* nodeName) = 0;
 };
 
-extern MyPanel* mypanel;
+extern IDialoguePanel* g_pDialoguePanel;

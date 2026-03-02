@@ -23,7 +23,7 @@
 #include <KeyValues.h>
 #include "filesystem.h"
 #include "matsys_controls/matsyscontrols.h"
-#include <IMyPanel.h>
+#include <IDialoguePanel.h>
 
 #ifdef SIXENSE
 #include "sixense/in_sixense.h"
@@ -223,7 +223,7 @@ void VGui_CreateGlobalPanels( void )
 #ifdef SIXENSE
 	g_pSixenseInput->CreateGUI( gameToolParent );
 #endif
-	mypanel->Create(gameParent);
+	g_pDialoguePanel->Create(gameParent);
 }
 
 void VGui_Shutdown()
@@ -253,7 +253,7 @@ void VGui_Shutdown()
 	// Make sure anything "marked for deletion"
 	//  actually gets deleted before this dll goes away
 	vgui::ivgui()->RunFrame();
-	mypanel->Destroy();
+	g_pDialoguePanel->Destroy();
 
 }
 

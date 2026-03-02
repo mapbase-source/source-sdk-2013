@@ -1,6 +1,5 @@
-//The following include files are necessary to allow your MyPanel.cpp to compile.
 #include "cbase.h"
-#include "IMyPanel.h"
+#include "IDialoguePanel.h"
 #include <vgui/IVGui.h>
 #include <vgui/ISurface.h>
 #include <vgui_controls/Frame.h>
@@ -16,7 +15,7 @@
 
 #define DIALOGUE_FILE_PATH "resource/dialogues/sewers/blackguy_1.txt"
 #define TYPEWRITER_BASE_SPEED 2.0f // Base characters per tick at speed multiplier 1.0
-#define DIALOGUE_ZOOM_FOV 45       // FOV to zoom to during dialogue (default is ~90)
+#define DIALOGUE_ZOOM_FOV 45       // FOV to zoom to during dialogue (default is ~75)
 #define DIALOGUE_ZOOM_RATE 0.3f    // How fast to zoom in/out (seconds)
 
 using namespace vgui;
@@ -28,7 +27,7 @@ using namespace vgui;
 
 void __MsgFunc_DialogueMsg(bf_read &msg)
 {
-	if (!mypanel)
+	if (!g_pDialoguePanel)
 		return;
 
 	int type = msg.ReadByte();
@@ -39,14 +38,14 @@ void __MsgFunc_DialogueMsg(bf_read &msg)
 	switch (type)
 	{
 	case DIALOGUE_MSG_START:
-		mypanel->LoadFile(str1);
+		g_pDialoguePanel->LoadFile(str1);
 		if (str2[0])
-			mypanel->ShowNode(str2);
-		mypanel->Show();
+			g_pDialoguePanel->ShowNode(str2);
+		g_pDialoguePanel->Show();
 		break;
 
 	case DIALOGUE_MSG_STOP:
-		mypanel->Hide();
+		g_pDialoguePanel->Hide();
 		break;
 	}
 }
@@ -100,13 +99,12 @@ static bool ParseColorValue(const char* value, Color &outColor)
 	return false;
 }
 
-//CMyPanel class: Tutorial example class
-class CMyPanel : public vgui::Frame
+class CDialoguePanel : public vgui::Frame
 {
-	DECLARE_CLASS_SIMPLE(CMyPanel, vgui::Frame);
+	DECLARE_CLASS_SIMPLE(CDialoguePanel, vgui::Frame);
 
-	CMyPanel(vgui::VPANEL parent);
-	~CMyPanel();
+	CDialoguePanel(vgui::VPANEL parent);
+	~CDialoguePanel();
 	virtual void LoadFile(const char* filePath);
 	virtual void ShowNode(const char* nodeName);
 	void ShowPanel(void);
@@ -129,7 +127,7 @@ class CMyPanel : public vgui::Frame
 	Button* m_pOptions[5];
 	Label* m_pCharacterName;
 
-	char m_szTypewriterBuffer[512];
+	char m_szTypewriterBuffer[2048];
 	int m_iTypewriterPos;
 	bool m_bTypewriterActive;
 	float m_flTypewriterSpeed;
@@ -143,9 +141,8 @@ class CMyPanel : public vgui::Frame
 	bool m_bIsDialogueActive;      // Whether the dialogue panel is currently shown
 };
 
-// Constuctor: Initializes the Panel
-CMyPanel::CMyPanel(vgui::VPANEL parent)
-	: BaseClass(NULL, "MyPanel")
+CDialoguePanel::CDialoguePanel(vgui::VPANEL parent)
+	: BaseClass(NULL, "DialoguePanel")
 {
 	SetParent(parent);
 
@@ -180,7 +177,6 @@ CMyPanel::CMyPanel(vgui::VPANEL parent)
 
 	SetScheme(vgui::scheme()->LoadSchemeFromFile("resource/SourceScheme.res", "SourceScheme"));
 
-
 	// Character name label
 	m_pCharacterName = new Label(this, "DiagCharName", "DiagCharName");
 	m_pCharacterName->SetContentAlignment(Label::a_west);
@@ -188,8 +184,8 @@ CMyPanel::CMyPanel(vgui::VPANEL parent)
 
 	// Dialogue rich text
 	m_pDialogueText = new RichText(this, "DiagText");
-	m_pDialogueText->SetText("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.");
-	m_pDialogueText->SetMaximumCharCount(256);
+	m_pDialogueText->SetText("");
+	m_pDialogueText->SetMaximumCharCount(4096);
 	m_pDialogueText->SetVerticalScrollbar(false);
 	m_pDialogueText->SetVisible(true);
 	m_pDialogueText->SetRoundedCorners(15);
@@ -221,13 +217,11 @@ CMyPanel::CMyPanel(vgui::VPANEL parent)
 	m_pOptions[4]->SetReleasedSound("common/bugreporter_failed.wav");
 	m_pOptions[4]->SetCommand("turnoff");
 
-	//vgui::ivgui()->AddTickSignal(GetVPanel(), 100);
-
 	// Hook the server dialogue message
 	HOOK_MESSAGE(DialogueMsg);
 }
 
-CMyPanel::~CMyPanel()
+CDialoguePanel::~CDialoguePanel()
 {
 	if(m_pDialogueKV)
 	{
@@ -236,7 +230,7 @@ CMyPanel::~CMyPanel()
 	}
 }
 
-void CMyPanel::ShowPanel(void)
+void CDialoguePanel::ShowPanel(void)
 {
 	m_bIsDialogueActive = true;
 	SetVisible(true);
@@ -251,7 +245,7 @@ void CMyPanel::ShowPanel(void)
 	vgui::ivgui()->AddTickSignal(GetVPanel(), 100);
 }
 
-void CMyPanel::HidePanel(void)
+void CDialoguePanel::HidePanel(void)
 {
 	m_bIsDialogueActive = false;
 	m_bShouldTrackNPC = false;
@@ -280,66 +274,65 @@ void CMyPanel::HidePanel(void)
 	vgui::ivgui()->RemoveTickSignal(GetVPanel());
 }
 
-//Class: CMyPanelInterface Class. Used for construction.
-class CMyPanelInterface : public MyPanel
+class CDialoguePanelInterface : public IDialoguePanel
 {
 	private:
-	CMyPanel* MyPanel;
+	CDialoguePanel* m_pPanel;
 	public:
-	CMyPanelInterface()
+	CDialoguePanelInterface()
 	{
-		MyPanel = NULL;
+		m_pPanel = NULL;
 	}
 	void Create(vgui::VPANEL parent)
 	{
-		MyPanel = new CMyPanel(parent);
+		m_pPanel = new CDialoguePanel(parent);
 	}
 	void Destroy()
 	{
-		if (MyPanel)
+		if (m_pPanel)
 		{
-			MyPanel->SetParent((vgui::Panel*)NULL);
-			delete MyPanel;
+			m_pPanel->SetParent((vgui::Panel*)NULL);
+			delete m_pPanel;
 		}
 	}
 	void Activate(void)
 	{
-		if (MyPanel)
+		if (m_pPanel)
 		{
-			MyPanel->Activate();
+			m_pPanel->Activate();
 		}
 	}
 	void Show(void)
 	{
-		if (MyPanel)
+		if (m_pPanel)
 		{
-			MyPanel->ShowPanel();
+			m_pPanel->ShowPanel();
 		}
 	}
 	void Hide(void)
 	{
-		if (MyPanel)
+		if (m_pPanel)
 		{
-			MyPanel->HidePanel();
+			m_pPanel->HidePanel();
 		}
 	}
 	void LoadFile(const char* filePath)
 	{
-		if (MyPanel)
+		if (m_pPanel)
 		{
-			MyPanel->LoadFile(filePath);
+			m_pPanel->LoadFile(filePath);
 		}
 	}
 	void ShowNode(const char* nodeName)
 	{
-		if (MyPanel)
+		if (m_pPanel)
 		{
-			MyPanel->ShowNode(nodeName);
+			m_pPanel->ShowNode(nodeName);
 		}
 	}
 };
-static CMyPanelInterface g_MyPanel;
-MyPanel* mypanel = (MyPanel*)&g_MyPanel;
+static CDialoguePanelInterface g_DialoguePanel;
+IDialoguePanel* g_pDialoguePanel = (IDialoguePanel*)&g_DialoguePanel;
 
 //-----------------------------------------------------------------------------
 // Helper: get the head position of an NPC.
@@ -363,7 +356,7 @@ static Vector GetNPCHeadPosition(C_BaseEntity* pNPC)
 	return pNPC->WorldSpaceCenter();
 }
 
-void CMyPanel::LookAtNPC(const char* npcName)
+void CDialoguePanel::LookAtNPC(const char* npcName)
 {
 	C_BasePlayer* pPlayer = C_BasePlayer::GetLocalPlayer();
 	if (!pPlayer)
@@ -384,7 +377,7 @@ void CMyPanel::LookAtNPC(const char* npcName)
 
 	if (!pFoundNPC)
 	{
-		Warning("CMyPanel::LookAtNPC: NPC '%s' not found!\n", npcName);
+		Warning("CDialoguePanel::LookAtNPC: NPC '%s' not found!\n", npcName);
 		m_hFocusNPC = NULL;
 		m_bShouldTrackNPC = false;
 		return;
@@ -416,39 +409,39 @@ void CMyPanel::LookAtNPC(const char* npcName)
 	engine->ClientCmd_Unrestricted(szCmd);
 }
 
-void CMyPanel::PlayNPCAnimation(const char* actName)
+void CDialoguePanel::PlayNPCAnimation(const char* actName)
 {
 	// Send animation request to the server for the currently focused NPC
 	C_BaseEntity* pNPC = m_hFocusNPC.Get();
 	if (!pNPC)
 	{
-		Warning("CMyPanel::PlayNPCAnimation: No focused NPC to animate!\n");
+		Warning("CDialoguePanel::PlayNPCAnimation: No focused NPC to animate!\n");
 		return;
 	}
 
 	const char* entName = pNPC->GetEntityName();
 	if (!entName || !entName[0])
 	{
-		Warning("CMyPanel::PlayNPCAnimation: Focused NPC has no entity name!\n");
+		Warning("CDialoguePanel::PlayNPCAnimation: Focused NPC has no entity name!\n");
 		return;
 	}
 
 	char szCmd[256];
 	Q_snprintf(szCmd, sizeof(szCmd), "sv_dialogue_animate %s %s", entName, actName);
 	engine->ClientCmd_Unrestricted(szCmd);
-	Msg("CMyPanel::PlayNPCAnimation: Requesting '%s' on '%s'\n", actName, entName);
+	Msg("CDialoguePanel::PlayNPCAnimation: Requesting '%s' on '%s'\n", actName, entName);
 }
 
-void CMyPanel::ExecuteCommand(const char* cmdText)
+void CDialoguePanel::ExecuteCommand(const char* cmdText)
 {
 	if (!cmdText || !cmdText[0])
 		return;
 
-	Msg("CMyPanel::ExecuteCommand: '%s'\n", cmdText);
+	Msg("CDialoguePanel::ExecuteCommand: '%s'\n", cmdText);
 	engine->ClientCmd_Unrestricted(cmdText);
 }
 
-void CMyPanel::PlayNPCSound(const char* soundName)
+void CDialoguePanel::PlayNPCSound(const char* soundName)
 {
 	if (!soundName || !soundName[0])
 		return;
@@ -456,7 +449,7 @@ void CMyPanel::PlayNPCSound(const char* soundName)
 	C_BaseEntity* pNPC = m_hFocusNPC.Get();
 	if (!pNPC)
 	{
-		Warning("CMyPanel::PlayNPCSound: No focused NPC to play sound '%s'!\n", soundName);
+		Warning("CDialoguePanel::PlayNPCSound: No focused NPC to play sound '%s'!\n", soundName);
 		return;
 	}
 
@@ -467,19 +460,19 @@ void CMyPanel::PlayNPCSound(const char* soundName)
 	enginesound->EmitSound(filter, pNPC->entindex(), CHAN_VOICE, soundName,
 		1.0f, SNDLVL_TALKING, 0, PITCH_NORM, 0,
 		&vecOrigin);
-	Msg("CMyPanel::PlayNPCSound: '%s' on entity %d\n", soundName, pNPC->entindex());
+	Msg("CDialoguePanel::PlayNPCSound: '%s' on entity %d\n", soundName, pNPC->entindex());
 }
 
-void CMyPanel::PlayGameSound(const char* soundName)
+void CDialoguePanel::PlayGameSound(const char* soundName)
 {
 	if (!soundName || !soundName[0])
 		return;
 
 	enginesound->EmitAmbientSound(soundName, 1.0f);
-	Msg("CMyPanel::PlayGameSound: '%s'\n", soundName);
+	Msg("CDialoguePanel::PlayGameSound: '%s'\n", soundName);
 }
 
-void CMyPanel::PerformLayout()
+void CDialoguePanel::PerformLayout()
 {
 	BaseClass::PerformLayout();
 
@@ -536,7 +529,7 @@ void CMyPanel::PerformLayout()
 	m_pOptions[4]->SetSize(btnW, btnH);
 }
 
-void CMyPanel::OnTick()
+void CDialoguePanel::OnTick()
 {
 	BaseClass::OnTick();
 
@@ -583,7 +576,7 @@ void CMyPanel::OnTick()
 			// Check for tags starting with '<'
 			if (m_szTypewriterBuffer[m_iTypewriterPos] == '<')
 			{
-				char tagValue[64];
+				char tagValue[256];
 				int consumed = 0;
 
 				// <speed=1.0>
@@ -640,8 +633,8 @@ void CMyPanel::OnTick()
 				if (consumed > 0)
 				{
 					PlayGameSound(tagValue);
-				 m_iTypewriterPos += consumed;
-				 continue;
+					m_iTypewriterPos += consumed;
+					continue;
 				}
 			}
 
@@ -673,55 +666,7 @@ void CMyPanel::OnTick()
 	}
 }
 
-//CON_COMMAND(ToggleMyPanel, "Toggles testpanel on or off")
-//{
-//	if (!mypanel)
-//		return;
-//
-//	// Simple toggle for debug purposes
-//	static bool s_bShown = false;
-//	s_bShown = !s_bShown;
-//	if (s_bShown)
-//		mypanel->Show();
-//	else
-//		mypanel->Hide();
-//};
-//
-//CON_COMMAND(debug_panel_file, "Sets the dialogue file to use in myPanel for testing purposes")
-//{
-//	if (!mypanel)
-//	{
-//		Warning("debug_panel_file: myPanel not initialized yet!\n");
-//		return;
-//	}
-//
-//	if (args.ArgC() >= 2)
-//	{
-//		mypanel->LoadFile(args[1]);
-//		Msg("Set debug_panel_file to %s\n", args[1]);
-//		return;
-//	}
-//
-//	Warning("Usage: debug_panel_file <path>\n");
-//};
-//
-//CON_COMMAND(debug_panel_node, "Sets the node to show in myPanel for testing purposes")
-//{
-//	if (!mypanel)
-//	{
-//		Warning("debug_panel_node: myPanel not initialized yet!\n");
-//		return;
-//	}
-//
-//	if (args.ArgC() >= 2)
-//	{
-//		mypanel->ShowNode(args[1]);
-//		Msg("Set debug_panel_node to %s\n", args[1]);
-//		return;
-//	}
-//};
-
-void CMyPanel::OnCommand(const char* pcCommand)
+void CDialoguePanel::OnCommand(const char* pcCommand)
 {
 	if (!Q_stricmp(pcCommand, "Close"))
 	{
@@ -738,24 +683,21 @@ void CMyPanel::OnCommand(const char* pcCommand)
 	else if(!Q_strnicmp(pcCommand, "gotonode ", 9))
 	{
 		const char* nodeName = pcCommand + 9;
-		Msg("OnCommand: ShowNode command received with nodeName: %s\n", nodeName);
 		ShowNode(nodeName);
 	}
 	else if (!Q_strnicmp(pcCommand, "startdiag ", 10))
 	{
 		const char* filePath = pcCommand + 10;
-		Msg("OnCommand: StartDiag command received with filePath: %s\n", filePath);
 		LoadFile(filePath);
 	}
 	else if (!Q_strnicmp(pcCommand, "cmd ", 4))
 	{
 		const char* cmdText = pcCommand + 4;
-		Msg("OnCommand: Command received with args: %s\n", cmdText);
 		engine->ClientCmd_Unrestricted(cmdText);
 	}
 }
 
-void CMyPanel::LoadFile(const char* pathFile)
+void CDialoguePanel::LoadFile(const char* pathFile)
 {
 	// Clean up previous data before loading new file
 	if(m_pDialogueKV)
@@ -766,35 +708,31 @@ void CMyPanel::LoadFile(const char* pathFile)
 
 	m_pDialogueKV = new KeyValues("DialogueFile");
 
-	// Load the dialogue file from the specified path. The path is relative to the game's "MOD" directory (e.g., "resource/dialogues/sewers/blackguy_1.txt").
 	if (!m_pDialogueKV->LoadFromFile(filesystem, pathFile, "MOD"))
 	{
-		Warning("CMyPanel: Failed to load %s!\n", pathFile);
+		Warning("CDialoguePanel: Failed to load %s!\n", pathFile);
 		m_pDialogueKV->deleteThis();
 		m_pDialogueKV = NULL;
 		return;
 	}
-	Msg("CMyPanel: Successfully loaded dialogue file %s!\n", pathFile);
+	Msg("CDialoguePanel: Successfully loaded dialogue file %s!\n", pathFile);
 }
 
-void CMyPanel::ShowNode(const char* nodeName)
+void CDialoguePanel::ShowNode(const char* nodeName)
 {
-	Msg("CMyPanel: ShowNode called with nodeName: %s\n", nodeName);
-
 	if (!m_pDialogueKV)
 	{
-		Warning("CMyPanel: Dialogue file not loaded, cannot show node %s!\n", nodeName);
+		Warning("CDialoguePanel: Dialogue file not loaded, cannot show node %s!\n", nodeName);
 		return;
 	}
 
 	// Find the node in the KeyValues
 	KeyValues* pNode = m_pDialogueKV->FindKey(nodeName);
-	Msg("Trying to show node: %s\n", nodeName);
 
 	// Check if the node exists
 	if (!pNode)
 	{
-		Warning("CMyPanel: Node %s not found in dialogue file!\n", nodeName);
+		Warning("CDialoguePanel: Node %s not found in dialogue file!\n", nodeName);
 		return;
 	}
 
@@ -873,8 +811,7 @@ void CMyPanel::ShowNode(const char* nodeName)
 	const char* text = pNode->GetString("text", NULL);
 	if (text)
 	{
-		const char* twVal = pNode->GetString("typewriter", "1");
-		bool bTypewriter = pNode->GetBool("typewriter", true) || !Q_stricmp(twVal, "true");
+		bool bTypewriter = pNode->GetBool("typewriter", true);
 
 		if (bTypewriter)
 		{
@@ -891,7 +828,7 @@ void CMyPanel::ShowNode(const char* nodeName)
 			{
 				if (*p == '<')
 				{
-					char tagValue[64];
+					char tagValue[256];
 					int consumed = 0;
 
 					// <speed=...> — skip in instant mode (no effect)
@@ -945,8 +882,8 @@ void CMyPanel::ShowNode(const char* nodeName)
 					if (consumed > 0)
 					{
 						PlayGameSound(tagValue);
-					 p += consumed;
-					 continue;
+						p += consumed;
+						continue;
 					}
 				}
 
@@ -959,7 +896,9 @@ void CMyPanel::ShowNode(const char* nodeName)
 				if (p > start)
 				{
 					int len = p - start;
-					char* buf = (char*)stackalloc(len + 1);
+					char buf[512];
+					if (len >= (int)sizeof(buf))
+						len = sizeof(buf) - 1;
 					Q_strncpy(buf, start, len + 1);
 					m_pDialogueText->InsertString(buf);
 				}
