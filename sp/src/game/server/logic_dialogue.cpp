@@ -8,12 +8,14 @@
 #include "cbase.h"
 #include "ai_baseactor.h"
 #include "activitylist.h"
+#include "engine/IEngineSound.h"
 
 // Message types sent to the client
 #define DIALOGUE_MSG_START    0
 #define DIALOGUE_MSG_STOP     1
 #define DIALOGUE_MSG_NODE     2
 #define DIALOGUE_MSG_SETTINGS 3
+#define DIALOGUE_MSG_FOCUS    4
 
 class CLogicDialogue : public CLogicalEntity
 {
@@ -123,8 +125,29 @@ void CLogicDialogue::InputStopDialogue(inputdata_t& inputData)
 	m_OnDialogueStopped.FireOutput(inputData.pActivator, this);
 }
 
-// Server command for client to request NPC look-at-player (called from ShowNode)
-CON_COMMAND_F(sv_dialogue_lookatplayer, "Makes the named NPC look at the player", FCVAR_HIDDEN)
+//-----------------------------------------------------------------------------
+// Helper: get the head/center position of an entity on the server.
+//-----------------------------------------------------------------------------
+static Vector GetEntityFocusPosition(CBaseEntity* pEnt)
+{
+	CBaseAnimating* pAnimating = pEnt->GetBaseAnimating();
+	if (pAnimating)
+	{
+		int iBone = pAnimating->LookupBone("ValveBiped.Bip01_Head1");
+		if (iBone >= 0)
+		{
+			Vector vecPos;
+			QAngle angDummy;
+			pAnimating->GetBonePosition(iBone, vecPos, angDummy);
+			return vecPos;
+		}
+	}
+	return pEnt->GetAbsOrigin();
+}
+
+// Server command: client requests focus on an entity by targetname.
+// Finds the entity, handles NPC look-at-player, and sends position back to client.
+CON_COMMAND_F(internal_dialogue_focus, "Focuses dialogue camera on the named entity", FCVAR_HIDDEN)
 {
 	if (args.ArgC() < 2)
 		return;
@@ -135,42 +158,122 @@ CON_COMMAND_F(sv_dialogue_lookatplayer, "Makes the named NPC look at the player"
 	if (!pPlayer)
 		return;
 
-	const char* npcName = args[1];
-	CBaseEntity* pEnt = gEntList.FindEntityByName(NULL, npcName);
+	const char* targetName = args[1];
+	CBaseEntity* pEnt = gEntList.FindEntityByName(NULL, targetName);
 	if (!pEnt)
+	{
+		Warning("sv_dialogue_focus: Entity '%s' not found!\n", targetName);
 		return;
+	}
 
-	// Turn NPC body to face the player
+	// Turn NPC body to face the player (only affects NPCs)
 	CAI_BaseNPC* pNPC = pEnt->MyNPCPointer();
 	if (pNPC)
 	{
 		Vector vecDir = pPlayer->EyePosition() - pNPC->GetAbsOrigin();
-		vecDir.z = 0; // only yaw, no pitch for body
+		vecDir.z = 0;
 		VectorNormalize(vecDir);
 
 		QAngle angFacing;
 		VectorAngles(vecDir, angFacing);
 		pNPC->Teleport(NULL, &angFacing, NULL);
 
-		// Also set the ideal yaw so the AI doesn't immediately turn away
 		if (pNPC->GetMotor())
 		{
 			pNPC->GetMotor()->SetIdealYawAndUpdate(angFacing[YAW]);
 		}
 	}
 
-	// Make NPC look at the player with head/eyes
+	// Make NPC look at the player with head/eyes (only affects actors)
 	CAI_BaseActor* pActor = dynamic_cast<CAI_BaseActor*>(pEnt);
 	if (pActor)
 	{
 		pActor->AddLookTarget(pPlayer, 1.0f, 10.0f, 0.2f);
 	}
+
+	// Send focus position back to client
+	Vector vecFocus = GetEntityFocusPosition(pEnt);
+
+	CSingleUserRecipientFilter filter(pPlayer);
+	filter.MakeReliable();
+
+	UserMessageBegin(filter, "DialogueMsg");
+		WRITE_BYTE(DIALOGUE_MSG_FOCUS);
+		WRITE_FLOAT(vecFocus.x);
+		WRITE_FLOAT(vecFocus.y);
+		WRITE_FLOAT(vecFocus.z);
+	MessageEnd();
+}
+
+// Server command: lightweight position update for server-only entities (info_target, etc.)
+// Called each tick by the client when the focused entity doesn't exist client-side.
+CON_COMMAND_F(internal_dialogue_focus_update, "Updates dialogue focus position for server-only entities", FCVAR_HIDDEN)
+{
+	if (args.ArgC() < 2)
+		return;
+
+	CBasePlayer* pPlayer = UTIL_GetCommandClient();
+	if (!pPlayer)
+		pPlayer = UTIL_GetLocalPlayer();
+	if (!pPlayer)
+		return;
+
+	const char* targetName = args[1];
+	CBaseEntity* pEnt = gEntList.FindEntityByName(NULL, targetName);
+	if (!pEnt)
+		return;
+
+	Vector vecFocus = GetEntityFocusPosition(pEnt);
+
+	CSingleUserRecipientFilter filter(pPlayer);
+	filter.MakeReliable();
+
+	UserMessageBegin(filter, "DialogueMsg");
+		WRITE_BYTE(DIALOGUE_MSG_FOCUS);
+		WRITE_FLOAT(vecFocus.x);
+		WRITE_FLOAT(vecFocus.y);
+		WRITE_FLOAT(vecFocus.z);
+	MessageEnd();
+}
+
+// Server command: play sound from the named entity's position
+CON_COMMAND_F(internal_dialogue_sound, "Plays a sound from the named entity", FCVAR_HIDDEN)
+{
+	if (args.ArgC() < 3)
+		return;
+
+	CBasePlayer* pPlayer = UTIL_GetCommandClient();
+	if (!pPlayer)
+		pPlayer = UTIL_GetLocalPlayer();
+	if (!pPlayer)
+		return;
+
+	const char* targetName = args[1];
+	const char* soundName = args[2];
+
+	CBaseEntity* pEnt = gEntList.FindEntityByName(NULL, targetName);
+	if (!pEnt)
+	{
+		Warning("sv_dialogue_sound: Entity '%s' not found!\n", targetName);
+		return;
+	}
+
+	if (!enginesound->IsSoundPrecached(soundName))
+		enginesound->PrecacheSound(soundName, true);
+
+	CPASAttenuationFilter sndFilter(pEnt, SNDLVL_TALKING);
+	EmitSound_t ep;
+	ep.m_nChannel = CHAN_VOICE;
+	ep.m_pSoundName = soundName;
+	ep.m_flVolume = 1.0f;
+	ep.m_SoundLevel = SNDLVL_TALKING;
+	pEnt->EmitSound(sndFilter, pEnt->entindex(), ep);
 }
 
 // Server command for client to request FOV zoom during dialogue
 // Usage: sv_dialogue_zoom <fov> <rate>
 // fov=0 resets to default
-CON_COMMAND_F(sv_dialogue_zoom, "Sets the player FOV for dialogue zoom", FCVAR_HIDDEN)
+CON_COMMAND_F(internal_dialogue_zoom, "Sets the player FOV for dialogue zoom", FCVAR_HIDDEN)
 {
 	if (args.ArgC() < 2)
 		return;
@@ -190,13 +293,12 @@ CON_COMMAND_F(sv_dialogue_zoom, "Sets the player FOV for dialogue zoom", FCVAR_H
 		pPlayer->SetFOV(pPlayer->GetFOVOwner(), 0, 0.0f);
 	}
 
-	bool bResult = pPlayer->SetFOV(pPlayer, iFOV, flRate);
-	Msg("sv_dialogue_zoom: FOV=%d rate=%.1f result=%s\n", iFOV, flRate, bResult ? "OK" : "FAILED");
+	pPlayer->SetFOV(pPlayer, iFOV, flRate);
 }
 
 // Server command for client to request NPC animation during dialogue
 // Usage: sv_dialogue_animate <npc_name> <activity_name>
-CON_COMMAND_F(sv_dialogue_animate, "Makes the named NPC play an activity", FCVAR_HIDDEN)
+CON_COMMAND_F(internal_dialogue_animate, "Makes the named NPC play an activity", FCVAR_HIDDEN)
 {
 	if (args.ArgC() < 3)
 		return;
@@ -212,31 +314,22 @@ CON_COMMAND_F(sv_dialogue_animate, "Makes the named NPC play an activity", FCVAR
 
 	CBaseEntity* pEnt = gEntList.FindEntityByName(NULL, npcName);
 	if (!pEnt)
-	{
-		Warning("sv_dialogue_animate: NPC '%s' not found!\n", npcName);
 		return;
-	}
 
 	CAI_BaseNPC* pNPC = pEnt->MyNPCPointer();
 	if (!pNPC)
-	{
-		Warning("sv_dialogue_animate: '%s' is not an NPC!\n", npcName);
 		return;
-	}
 
 	int iActivity = ActivityList_IndexForName(actName);
 	if (iActivity == kActivityLookup_Missing)
-	{
-		Warning("sv_dialogue_animate: Activity '%s' not found!\n", actName);
 		return;
-	}
 
 	pNPC->SetIdealActivity((Activity)iActivity);
 }
 
 // Server command for client to hide/show HUD during dialogue
 // Usage: sv_dialogue_hud <0|1>  (0 = hide, 1 = show)
-CON_COMMAND_F(sv_dialogue_hud, "Hides or shows the HUD for dialogue", FCVAR_HIDDEN)
+CON_COMMAND_F(internal_dialogue_hud, "Hides or shows the HUD for dialogue", FCVAR_HIDDEN)
 {
 	if (args.ArgC() < 2)
 		return;

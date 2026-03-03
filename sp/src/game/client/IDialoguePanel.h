@@ -9,6 +9,7 @@ public:
 	virtual void		LoadFile(const char* filePath) = 0;
 	virtual void		ShowNode(const char* nodeName) = 0;
 	virtual void		ApplySettings(bool bTypewriter, float flSpeed, const char* szTypewriterSound, const char* szOpenSound, const char* szCloseSound) = 0;
+	virtual void		ApplyFocusPosition(float x, float y, float z) = 0;
 };
 
 extern IDialoguePanel* g_pDialoguePanel;

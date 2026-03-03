@@ -21,10 +21,6 @@ Client (DialoguePanel.cpp)
   │  Sends server commands for NPC actions
   ▼
 Server (CON_COMMANDs)
-  sv_dialogue_lookatplayer  ──  NPC faces player
-  sv_dialogue_animate       ──  NPC plays activity
-  sv_dialogue_zoom          ──  Player FOV change
-  sv_dialogue_hud           ──  Hide/show HUD
 ```
 
 ---
