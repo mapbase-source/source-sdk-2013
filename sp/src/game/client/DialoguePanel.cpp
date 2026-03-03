@@ -16,6 +16,9 @@
 #define DIALOGUE_DEFAULT_FOV 75    // Default player FOV
 #define DIALOGUE_ZOOM_RATE 0.3f    // How fast to zoom in/out (seconds)
 #define DIALOGUE_HIDE_DELAY 0.15f  // Delay before hiding panel (lets button sounds play)
+#define DIALOGUE_ANIM_DURATION 0.35f // Slide-in animation duration (seconds)
+#define DIALOGUE_ANIM_TICK_MS 10   // Tick interval during animations (ms)
+#define DIALOGUE_BTN_FADE_DURATION 0.25f // Button fade-in duration (seconds)
 
 // Typewriter timing: we print exactly 1 character per tick.
 // The tick interval is adjusted based on speed so that:
@@ -230,6 +233,8 @@ class CDialoguePanel : public vgui::Frame
 	virtual void OnCommand(const char* pcCommand);
 	virtual void OnMousePressed(vgui::MouseCode code);
 	virtual void PerformLayout();
+	virtual void PaintBackground();
+	virtual void ApplySchemeSettings(vgui::IScheme *pScheme);
 
 	private:
 		void LookAtTarget(const char* targetName);
@@ -239,11 +244,21 @@ class CDialoguePanel : public vgui::Frame
 		void PlayGameSound(const char* soundName);
 		void SkipTypewriter(void);
 		void UpdateTickInterval(void);
+		void BeginButtonsFade(void);
 
 	KeyValues* m_pDialogueKV;
 	RichText* m_pDialogueText;
 	Button* m_pOptions[5];
 	Label* m_pCharacterName;
+	Panel* m_pSeparator;
+
+	// Cached layout positions for PaintBackground
+	int m_iLayoutMargin;
+	int m_iLayoutSepY;
+	int m_iLayoutTextTop;
+	int m_iLayoutTextH;
+	int m_iLayoutContentW;
+	int m_iLayoutDialogH;  // Height of the dialog box (excluding gap + buttons)
 
 	char m_szTypewriterBuffer[2048];
 	int m_iTypewriterPos;
@@ -264,6 +279,16 @@ class CDialoguePanel : public vgui::Frame
 	bool  m_bHidePending;
 	float m_flHideTime;
 
+	// Animation phases:
+	//   ANIM_NONE         — idle, no animation
+	//   ANIM_SLIDE_IN     — panel slides up from off-screen to final position, fading in
+	//   ANIM_BUTTONS_FADE — buttons gradually become visible after typewriter finishes
+	enum AnimPhase { ANIM_NONE = 0, ANIM_SLIDE_IN, ANIM_BUTTONS_FADE };
+	AnimPhase m_eAnimPhase;
+	float m_flAnimStartTime;
+	int   m_iAnimStartY;    // Y position at start of slide-in (off-screen)
+	int   m_iFinalY;        // Final resting Y position
+
 	// Settings from logic_dialogue (defaults, overrideable by node/inline tags)
 	bool  m_bDefaultTypewriter;
 	float m_flDefaultSpeed;
@@ -279,6 +304,14 @@ CDialoguePanel::CDialoguePanel(vgui::VPANEL parent)
 
 	m_pDialogueKV = NULL;
 	m_bIsDialogueActive = false;
+
+	// Initialize cached layout
+	m_iLayoutMargin = 0;
+	m_iLayoutSepY = 0;
+	m_iLayoutTextTop = 0;
+	m_iLayoutTextH = 0;
+	m_iLayoutContentW = 0;
+	m_iLayoutDialogH = 0;
 
 	// Initialize typewriter state
 	m_szTypewriterBuffer[0] = '\0';
@@ -298,6 +331,12 @@ CDialoguePanel::CDialoguePanel(vgui::VPANEL parent)
 	m_bHidePending = false;
 	m_flHideTime = 0.0f;
 
+	// Initialize animation state
+	m_eAnimPhase = ANIM_NONE;
+	m_flAnimStartTime = 0.0f;
+	m_iAnimStartY = 0;
+	m_iFinalY = 0;
+
 	// Initialize settings defaults
 	m_bDefaultTypewriter = true;
 	m_flDefaultSpeed = 1.0f;
@@ -316,35 +355,55 @@ CDialoguePanel::CDialoguePanel(vgui::VPANEL parent)
 	SetSizeable(false);
 	SetMoveable(true);
 	SetVisible(false);
-	SetAlpha(127); // 50% transparent
 	SetRoundedCorners(15);
+	
+	// Black panel background
+	SetBgColor(Color(20, 20, 20, 230));
 
-	// Character name label
+	vgui::HScheme scheme = vgui::scheme()->LoadSchemeFromFile(
+		"resource/DialogueScheme.res", "DialogueScheme");
+	SetScheme(scheme);
+	vgui::HFont hFont = vgui::scheme()->GetIScheme(scheme)->GetFont("DialogueFont");
+
+	// Character name label — white text
 	m_pCharacterName = new Label(this, "DiagCharName", "DiagCharName");
 	m_pCharacterName->SetContentAlignment(Label::a_west);
 	m_pCharacterName->SetVisible(true);
+	m_pCharacterName->SetFgColor(Color(255, 255, 255, 255));
+	m_pCharacterName->SetBgColor(Color(0, 0, 0, 0));
+	m_pCharacterName->SetPaintBackgroundEnabled(false);
+	m_pCharacterName->SetMouseInputEnabled(false);
+	m_pCharacterName->SetFont(hFont);
 
-	// Dialogue rich text
+	// Separator line — drawn manually in PaintBackground for reliability
+	m_pSeparator = new Panel(this, "DiagSeparator");
+	m_pSeparator->SetVisible(false);
+
+	// Dialogue rich text — background drawn manually in PaintBackground
 	m_pDialogueText = new RichText(this, "DiagText");
 	m_pDialogueText->SetText("");
 	m_pDialogueText->SetMaximumCharCount(4096);
 	m_pDialogueText->SetVerticalScrollbar(false);
 	m_pDialogueText->SetVisible(true);
-	m_pDialogueText->SetRoundedCorners(15);
 	m_pDialogueText->SetMouseInputEnabled(false);
+	m_pDialogueText->SetPaintBackgroundEnabled(false);
+	m_pDialogueText->SetFgColor(Color(255, 255, 255, 255));
+	m_pDialogueText->SetFont(hFont);
 
 	// Dialogue option buttons
 	const char* optionNames[] = { "DiagOption1", "DiagOption2", "DiagOption3", "DiagOption4", "DiagOption5"};
 	for (int i = 0; i < 5; i++)
 	{
 		m_pOptions[i] = new Button(this, optionNames[i], optionNames[i], this, "");
-		m_pOptions[i]->SetContentAlignment(Label::a_west);
-		m_pOptions[i]->SetTextInset(6, 0);
+		m_pOptions[i]->SetContentAlignment(Label::a_center);
+		m_pOptions[i]->SetTextInset(4, 0);
 		m_pOptions[i]->SetVisible(true);
 		m_pOptions[i]->SetEnabled(true);
 		m_pOptions[i]->SetArmedSound("ui/buttonrollover.wav");
 		m_pOptions[i]->SetReleasedSound("common/bugreporter_succeeded.wav");
 		m_pOptions[i]->SetButtonActivationType(Button::ACTIVATE_ONPRESSEDANDRELEASED);
+		m_pOptions[i]->SetFont(hFont);
+		m_pOptions[i]->SetAlpha(0);
 	}
 
 	// Hook the server dialogue message
@@ -371,6 +430,18 @@ void CDialoguePanel::UpdateTickInterval(void)
 	}
 }
 
+void CDialoguePanel::BeginButtonsFade(void)
+{
+	// Start fading buttons in after typewriter finished
+	m_eAnimPhase = ANIM_BUTTONS_FADE;
+	m_flAnimStartTime = gpGlobals->realtime;
+
+	// Switch to fast tick rate for smooth fade
+	m_iCurrentTickInterval = DIALOGUE_ANIM_TICK_MS;
+	vgui::ivgui()->RemoveTickSignal(GetVPanel());
+	vgui::ivgui()->AddTickSignal(GetVPanel(), m_iCurrentTickInterval);
+}
+
 void CDialoguePanel::ShowPanel(void)
 {
 	m_bIsDialogueActive = true;
@@ -387,8 +458,20 @@ void CDialoguePanel::ShowPanel(void)
 	// Hide the HUD during dialogue
 	engine->ClientCmd_Unrestricted("internal_dialogue_hud 0");
 
-	// Start receiving ticks
-	m_iCurrentTickInterval = CalcTypewriterTickInterval(m_flTypewriterSpeed);
+	// Hide buttons — they fade in after typewriter finishes
+	for (int i = 0; i < 5; i++)
+		m_pOptions[i]->SetAlpha(0);
+
+	// Start ANIM_SLIDE_IN: panel slides from off-screen to final position
+	int screenW, screenH;
+	vgui::surface()->GetScreenSize(screenW, screenH);
+	m_iAnimStartY = screenH;
+	m_eAnimPhase = ANIM_SLIDE_IN;
+	m_flAnimStartTime = gpGlobals->realtime;
+	SetAlpha(0);
+
+	// Start receiving ticks at a fast rate for smooth animation
+	m_iCurrentTickInterval = DIALOGUE_ANIM_TICK_MS;
 	vgui::ivgui()->AddTickSignal(GetVPanel(), m_iCurrentTickInterval);
 }
 
@@ -403,6 +486,12 @@ void CDialoguePanel::HidePanel(void)
 	m_bTypewriterActive = false;
 	m_szTypewriterBuffer[0] = '\0';
 	m_iTypewriterPos = 0;
+
+	// Stop animation
+	m_eAnimPhase = ANIM_NONE;
+	SetAlpha(255);
+	for (int i = 0; i < 5; i++)
+		m_pOptions[i]->SetAlpha(255);
 
 	// Play close sound on CHAN_ITEM so it doesn't conflict with NPC voice or typewriter
 	if (m_szCloseSound[0])
@@ -487,6 +576,9 @@ void CDialoguePanel::SkipTypewriter(void)
 	}
 
 	m_bTypewriterActive = false;
+
+	// Text finished — fade buttons in
+	BeginButtonsFade();
 }
 
 void CDialoguePanel::OnMousePressed(vgui::MouseCode code)
@@ -709,13 +801,44 @@ void CDialoguePanel::PerformLayout()
 	int screenW, screenH;
 	vgui::surface()->GetScreenSize(screenW, screenH);
 
-	// Panel size: proportional to screen
-	int panelW = (int)(screenW * 0.42f);
-	int panelH = (int)(screenH * 0.29f);
+	// Layout: dialog box on top, gap, then buttons below — all inside one VGUI panel.
+	// PaintBackground only draws the black bg for the dialog portion.
+	int margin = (int)(screenW * 0.0125f);
+	int contentW = (int)(screenW * 0.50f) - margin * 2;
+	int panelW = contentW + margin * 2;
 
-	// Panel position: centered horizontally, near the bottom
+	// Dialog box content heights
+	int topPad = 4;
+	int labelH = 20;
+	int sepY = topPad + labelH + 2;
+	int textTop = sepY + 6;
+	int textH = (int)(screenH * 0.15f);
+	int dialogH = textTop + textH + margin;
+
+	// Button row below dialog with a gap
+	int gap = 6;
+	int btnH = 22;
+	int btnSpacing = (int)(panelW * 0.008f);
+
+	// Total panel height includes dialog + gap + buttons
+	int panelH = dialogH + gap + btnH;
+
+	// Panel position: centered horizontally, dialog area near the bottom
 	int panelX = (screenW - panelW) / 2;
 	int panelY = screenH - panelH - (int)(screenH * 0.04f);
+
+	// Cache final position for animations
+	m_iFinalY = panelY;
+
+	// During slide-in animation, override Y position
+	int actualY = panelY;
+	if (m_eAnimPhase == ANIM_SLIDE_IN)
+	{
+		float flElapsed = gpGlobals->realtime - m_flAnimStartTime;
+		float flFraction = clamp(flElapsed / DIALOGUE_ANIM_DURATION, 0.0f, 1.0f);
+		float flSmooth = 1.0f - (1.0f - flFraction) * (1.0f - flFraction);
+		actualY = m_iAnimStartY + (int)((float)(panelY - m_iAnimStartY) * flSmooth);
+	}
 
 	// Only update if changed — prevents infinite invalidation loop
 	int oldW, oldH, oldX, oldY;
@@ -723,39 +846,74 @@ void CDialoguePanel::PerformLayout()
 	GetPos(oldX, oldY);
 	if (oldW != panelW || oldH != panelH)
 		SetSize(panelW, panelH);
-	if (oldX != panelX || oldY != panelY)
-		SetPos(panelX, panelY);
+	if (oldX != panelX || oldY != actualY)
+		SetPos(panelX, actualY);
 
-	// Margins and spacing relative to panel size
-	int margin = (int)(panelW * 0.03f);
-	int topPad = (int)(panelH * 0.02f);
-	int labelH = (int)(panelH * 0.11f);
-	int textTop = (int)(panelH * 0.15f);
-	int btnW = (int)(panelW * 0.214f);
-	int btnH = labelH;
-	int btnX = panelW - margin - btnW;
-	int textW = btnX - margin * 2;
+	// Cache for PaintBackground
+	m_iLayoutMargin = margin;
+	m_iLayoutSepY = sepY;
+	m_iLayoutTextTop = textTop;
+	m_iLayoutTextH = textH;
+	m_iLayoutContentW = contentW;
+	m_iLayoutDialogH = dialogH;
 
-	// Character name label
+	// Character name label — full width
 	m_pCharacterName->SetPos(margin, topPad);
-	m_pCharacterName->SetSize(textW, labelH);
+	m_pCharacterName->SetSize(contentW, labelH);
 
-	// Dialogue rich text
-	int textH = panelH - textTop - margin;
+	// Dialogue rich text — full width
 	m_pDialogueText->SetPos(margin, textTop);
-	m_pDialogueText->SetSize(textW, textH);
+	m_pDialogueText->SetSize(contentW, textH);
 
-	// Option buttons: evenly spaced in the button column
-	int btnSpacing = btnH + (int)(panelH * 0.01f);
-	for (int i = 0; i < 4; i++)
+	// Option buttons: horizontal row below dialog box
+	int btnAreaY = dialogH + gap;
+
+	int visibleCount = 0;
+	for (int i = 0; i < 5; i++)
 	{
-		m_pOptions[i]->SetPos(btnX, textTop + i * btnSpacing);
-		m_pOptions[i]->SetSize(btnW, btnH);
+		if (m_pOptions[i]->IsVisible())
+			visibleCount++;
 	}
+	if (visibleCount == 0)
+		visibleCount = 5;
 
-	// Exit button: at the bottom of the button column
-	m_pOptions[4]->SetPos(btnX, textTop + 4 * btnSpacing);
-	m_pOptions[4]->SetSize(btnW, btnH);
+	int totalSpacing = btnSpacing * (visibleCount - 1);
+	int btnW = (contentW - totalSpacing) / visibleCount;
+	int btnX = margin;
+
+	for (int i = 0; i < 5; i++)
+	{
+		m_pOptions[i]->SetPos(btnX, btnAreaY);
+		m_pOptions[i]->SetSize(btnW, btnH);
+		// Re-apply colors every layout since ApplySchemeSettings overrides them
+		m_pOptions[i]->SetDefaultColor(Color(255, 255, 255, 255), Color(20, 20, 20, 230));
+		m_pOptions[i]->SetArmedColor(Color(255, 255, 255, 255), Color(40, 40, 40, 240));
+		m_pOptions[i]->SetDepressedColor(Color(200, 200, 200, 255), Color(10, 10, 10, 240));
+		m_pOptions[i]->SetDisabledFgColor1(Color(100, 100, 100, 255));
+		m_pOptions[i]->SetDisabledFgColor2(Color(0, 0, 0, 0));
+		if (m_pOptions[i]->IsVisible())
+			btnX += btnW + btnSpacing;
+	}
+}
+
+void CDialoguePanel::PaintBackground()
+{
+	int w, h;
+	GetSize(w, h);
+
+	// Black background — only for the dialog box area (not the buttons below)
+	vgui::surface()->DrawSetColor(20, 20, 20, 230);
+	vgui::surface()->DrawFilledRect(0, 0, w, m_iLayoutDialogH);
+
+	// Grey RichText background
+	vgui::surface()->DrawSetColor(40, 40, 40, 220);
+	vgui::surface()->DrawFilledRect(m_iLayoutMargin, m_iLayoutTextTop,
+		m_iLayoutMargin + m_iLayoutContentW, m_iLayoutTextTop + m_iLayoutTextH);
+
+	// White separator line between label and rich text
+	vgui::surface()->DrawSetColor(180, 180, 180, 200);
+	vgui::surface()->DrawFilledRect(m_iLayoutMargin, m_iLayoutSepY,
+		m_iLayoutMargin + m_iLayoutContentW, m_iLayoutSepY + 2);
 }
 
 void CDialoguePanel::OnTick()
@@ -764,6 +922,75 @@ void CDialoguePanel::OnTick()
 
 	if (!m_bIsDialogueActive)
 		return;
+
+	// =====================================================
+	// ANIM_SLIDE_IN: panel slides from off-screen to final position, fading in
+	// =====================================================
+	if (m_eAnimPhase == ANIM_SLIDE_IN)
+	{
+		float flElapsed = gpGlobals->realtime - m_flAnimStartTime;
+		float flFraction = clamp(flElapsed / DIALOGUE_ANIM_DURATION, 0.0f, 1.0f);
+		float flSmooth = 1.0f - (1.0f - flFraction) * (1.0f - flFraction);
+
+		// Interpolate alpha: 0 -> 255
+		int iAlpha = (int)(255.0f * flSmooth);
+		SetAlpha(iAlpha);
+
+		// Interpolate Y position
+		int currentY = m_iAnimStartY + (int)((float)(m_iFinalY - m_iAnimStartY) * flSmooth);
+		int curX, curY;
+		GetPos(curX, curY);
+		if (curY != currentY)
+			SetPos(curX, currentY);
+
+		if (flFraction >= 1.0f)
+		{
+			// Slide-in finished — snap to final position
+			m_eAnimPhase = ANIM_NONE;
+			SetAlpha(255);
+			SetPos(curX, m_iFinalY);
+
+			// Start typewriter if text was buffered
+			if (m_szTypewriterBuffer[0] != '\0')
+			{
+				m_bTypewriterActive = true;
+				UpdateTickInterval();
+			}
+			else
+			{
+				// No typewriter text — fade buttons in immediately
+				BeginButtonsFade();
+			}
+		}
+
+		return;
+	}
+
+	// =====================================================
+	// ANIM_BUTTONS_FADE: buttons gradually become visible
+	// =====================================================
+	if (m_eAnimPhase == ANIM_BUTTONS_FADE)
+	{
+		float flElapsed = gpGlobals->realtime - m_flAnimStartTime;
+		float flFraction = clamp(flElapsed / DIALOGUE_BTN_FADE_DURATION, 0.0f, 1.0f);
+		float flSmooth = flFraction * flFraction;
+
+		int btnAlpha = (int)(255.0f * flSmooth);
+		for (int i = 0; i < 5; i++)
+			m_pOptions[i]->SetAlpha(btnAlpha);
+
+		if (flFraction >= 1.0f)
+		{
+			m_eAnimPhase = ANIM_NONE;
+			for (int i = 0; i < 5; i++)
+				m_pOptions[i]->SetAlpha(255);
+
+			// Switch to lower tick rate
+			UpdateTickInterval();
+		}
+
+		return;
+	}
 
 	// Deferred hide: wait for button sounds to finish, then actually close
 	if (m_bHidePending)
@@ -903,6 +1130,7 @@ void CDialoguePanel::OnTick()
 			if (m_szTypewriterBuffer[m_iTypewriterPos] == '\0')
 			{
 				m_bTypewriterActive = false;
+				BeginButtonsFade();
 				return;
 			}
 		}
@@ -935,12 +1163,16 @@ void CDialoguePanel::OnTick()
 
 			// Check if we've finished
 			if (m_szTypewriterBuffer[m_iTypewriterPos] == '\0')
+			{
 				m_bTypewriterActive = false;
+				BeginButtonsFade();
+			}
 		}
 	}
 	else if (m_bTypewriterActive)
 	{
 		m_bTypewriterActive = false;
+		BeginButtonsFade();
 	}
 }
 
@@ -965,7 +1197,7 @@ void CDialoguePanel::OnCommand(const char* pcCommand)
 
 	char* ctx = NULL;
 	char* token = strtok_s(cmdBuf, ";", &ctx);
-	while (token)
+while (token)
 	{
 		// Trim leading spaces
 		while (*token == ' ')
@@ -1049,9 +1281,15 @@ void CDialoguePanel::ShowNode(const char* nodeName)
 	m_iTypewriterPos = 0;
 	m_flTypewriterSpeed = 1.0f;
 
+	// When switching nodes, stop any ongoing button fade and hide buttons
+	if (m_eAnimPhase == ANIM_BUTTONS_FADE)
+		m_eAnimPhase = ANIM_NONE;
+
+	// Hide buttons for the new node — they'll fade in after text finishes
 	for (int i = 0; i < 5; i++)
 	{
 		m_pOptions[i]->SetVisible(false);
+		m_pOptions[i]->SetAlpha(0);
 		m_pOptions[i]->SetEnabled(true);
 		m_pOptions[i]->SetText("");
 		m_pOptions[i]->SetCommand("");
@@ -1090,8 +1328,8 @@ void CDialoguePanel::ShowNode(const char* nodeName)
 		PlayGameSound(nodeSndGame);
 
 	const char* nodeCmd = pNode->GetString("command", "");
-	if (nodeCmd && nodeCmd[0] != '\0')
-		ExecuteCommand(nodeCmd);
+		if (nodeCmd && nodeCmd[0] != '\0')
+			ExecuteCommand(nodeCmd);
 
 	// --- Node-level default color (can be overridden by inline <color=...>) ---
 	const char* nodeColor = pNode->GetString("color", "");
@@ -1111,6 +1349,11 @@ void CDialoguePanel::ShowNode(const char* nodeName)
 	if (nodeTwSound && nodeTwSound[0] != '\0')
 		Q_strncpy(m_szTypewriterSound, nodeTwSound, sizeof(m_szTypewriterSound));
 
+	// --- Node-level action sound (can be overridden by inline <sound_action=...>) ---
+	const char* nodeActionSound = pNode->GetString("sound_action", "");
+	if (nodeActionSound && nodeActionSound[0] != '\0')
+		Q_strncpy(m_szCloseSound, nodeActionSound, sizeof(m_szCloseSound));
+
 	// --- Typewriter colored text output ---
 	const char* text = pNode->GetString("text", NULL);
 	if (text)
@@ -1121,14 +1364,18 @@ void CDialoguePanel::ShowNode(const char* nodeName)
 		{
 			Q_strncpy(m_szTypewriterBuffer, text, sizeof(m_szTypewriterBuffer));
 			m_iTypewriterPos = 0;
-			m_bTypewriterActive = true;
 
-			// Set tick interval based on speed so 1 char = 1 tick = 1 sound
-			UpdateTickInterval();
+			// If slide-in animation is still playing, typewriter starts when it finishes (in OnTick).
+			// Otherwise start immediately.
+			if (m_eAnimPhase != ANIM_SLIDE_IN)
+			{
+				m_bTypewriterActive = true;
+				UpdateTickInterval();
+			}
 		}
 		else
 		{
-			// Instant mode: parse tags and insert text immediately
+			// Instant mode: parse tags and insert text instantly
 			const char* p = text;
 			while (*p)
 			{
@@ -1176,18 +1423,18 @@ void CDialoguePanel::ShowNode(const char* nodeName)
 
 				if (p > start)
 				{
-					int len = p - start;
-					char buf[512];
-					if (len >= (int)sizeof(buf))
-						len = sizeof(buf) - 1;
-					Q_strncpy(buf, start, len + 1);
-					m_pDialogueText->InsertString(buf);
+				 int len = p - start;
+				 char buf[512];
+				 if (len >= (int)sizeof(buf))
+					 len = sizeof(buf) - 1;
+				 Q_strncpy(buf, start, len + 1);
+				 m_pDialogueText->InsertString(buf);
 				}
 			}
 		}
 	}
 	else
-	{
+{
 		m_pDialogueText->InsertString("...");
 	}
 
@@ -1247,4 +1494,40 @@ void CDialoguePanel::ShowNode(const char* nodeName)
 	// --- Closable (close X button) ---
 	if (pNode->FindKey("closable", false))
 		SetCloseButtonVisible(true);
+
+	// If text was instant (no typewriter) and slide-in is done,
+	// fade buttons in immediately.
+	if (!m_bTypewriterActive && m_eAnimPhase == ANIM_NONE)
+		BeginButtonsFade();
+
+	// Re-layout so buttons resize based on how many are visible
+	InvalidateLayout();
+}
+
+void CDialoguePanel::ApplySchemeSettings(vgui::IScheme *pScheme)
+{
+	BaseClass::ApplySchemeSettings(pScheme);
+
+	// Apply custom font after scheme is fully loaded
+	vgui::HFont hFont = pScheme->GetFont("DialogueFont");
+	if (hFont)
+	{
+		m_pCharacterName->SetFont(hFont);
+		m_pDialogueText->SetFont(hFont);
+		for (int i = 0; i < 5; i++)
+			m_pOptions[i]->SetFont(hFont);
+	}
+
+	// Re-apply colors that scheme would override
+	m_pCharacterName->SetFgColor(Color(255, 255, 255, 255));
+	m_pDialogueText->SetFgColor(Color(255, 255, 255, 255));
+
+	// BaseClass::ApplySchemeSettings resets child alpha to 255.
+	// Keep buttons hidden if typewriter is still printing or hasn't started yet.
+	if (m_eAnimPhase == ANIM_SLIDE_IN || m_bTypewriterActive ||
+		(m_eAnimPhase == ANIM_NONE && m_szTypewriterBuffer[0] != '\0' && m_iTypewriterPos == 0))
+	{
+		for (int i = 0; i < 5; i++)
+			m_pOptions[i]->SetAlpha(0);
+	}
 }

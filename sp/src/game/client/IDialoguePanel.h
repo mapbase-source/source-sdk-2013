@@ -1,3 +1,11 @@
+#ifndef IDIALOGUEPANEL_H
+#define IDIALOGUEPANEL_H
+#ifdef _WIN32
+#pragma once
+#endif
+
+#include <vgui/VGUI.h>
+
 class IDialoguePanel
 {
 public:
@@ -13,3 +21,5 @@ public:
 };
 
 extern IDialoguePanel* g_pDialoguePanel;
+
+#endif // IDIALOGUEPANEL_H

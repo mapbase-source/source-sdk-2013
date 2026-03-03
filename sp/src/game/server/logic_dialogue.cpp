@@ -236,7 +236,9 @@ CON_COMMAND_F(internal_dialogue_focus_update, "Updates dialogue focus position f
 	MessageEnd();
 }
 
-// Server command: play sound from the named entity's position
+// Server command: play sound from the named entity (with lip sync).
+// Uses enginesound->PrecacheSound for runtime precache (bypasses CBaseEntity
+// wrapper warnings) then EmitSound from the entity so lip sync works on NPCs.
 CON_COMMAND_F(internal_dialogue_sound, "Plays a sound from the named entity", FCVAR_HIDDEN)
 {
 	if (args.ArgC() < 3)
@@ -254,12 +256,13 @@ CON_COMMAND_F(internal_dialogue_sound, "Plays a sound from the named entity", FC
 	CBaseEntity* pEnt = gEntList.FindEntityByName(NULL, targetName);
 	if (!pEnt)
 	{
-		Warning("sv_dialogue_sound: Entity '%s' not found!\n", targetName);
+		Warning("internal_dialogue_sound: Entity '%s' not found!\n", targetName);
 		return;
 	}
 
-	if (!enginesound->IsSoundPrecached(soundName))
-		enginesound->PrecacheSound(soundName, true);
+	// Runtime precache via engine directly (no "Direct precache" warning).
+	// In SP, late additions to the sound precache string table still work.
+	enginesound->PrecacheSound(soundName, false);
 
 	CPASAttenuationFilter sndFilter(pEnt, SNDLVL_TALKING);
 	EmitSound_t ep;
@@ -316,15 +319,31 @@ CON_COMMAND_F(internal_dialogue_animate, "Makes the named NPC play an activity",
 	if (!pEnt)
 		return;
 
-	CAI_BaseNPC* pNPC = pEnt->MyNPCPointer();
-	if (!pNPC)
+	CBaseAnimating* pAnimating = pEnt->GetBaseAnimating();
+	if (!pAnimating)
 		return;
 
 	int iActivity = ActivityList_IndexForName(actName);
 	if (iActivity == kActivityLookup_Missing)
 		return;
 
-	pNPC->SetIdealActivity((Activity)iActivity);
+	// Force the sequence directly so a new animation always starts immediately,
+	// even if the previous one hasn't finished yet.
+	int iSequence = pAnimating->SelectWeightedSequence((Activity)iActivity);
+	if (iSequence == ACTIVITY_NOT_AVAILABLE)
+		return;
+
+	pAnimating->SetSequence(iSequence);
+	pAnimating->ResetSequenceInfo();
+
+	// If this is an NPC, also update its activity state so the AI
+	// doesn't immediately override our forced sequence.
+	CAI_BaseNPC* pNPC = pEnt->MyNPCPointer();
+	if (pNPC)
+	{
+		pNPC->SetActivity((Activity)iActivity);
+		pNPC->SetIdealActivity((Activity)iActivity);
+	}
 }
 
 // Server command for client to hide/show HUD during dialogue
