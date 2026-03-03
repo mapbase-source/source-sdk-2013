@@ -16,6 +16,8 @@
 #define DIALOGUE_MSG_NODE     2
 #define DIALOGUE_MSG_SETTINGS 3
 #define DIALOGUE_MSG_FOCUS    4
+#define DIALOGUE_MSG_UNLOCK   5
+#define DIALOGUE_MSG_LOCK     6
 
 class CLogicDialogue : public CLogicalEntity
 {
@@ -25,6 +27,8 @@ public:
 
 	void InputStartDialogue(inputdata_t& inputData);
 	void InputStopDialogue(inputdata_t& inputData);
+	void InputUnlockChoice(inputdata_t& inputData);
+	void InputLockChoice(inputdata_t& inputData);
 
 private:
 	// Helper functions
@@ -62,6 +66,8 @@ BEGIN_DATADESC(CLogicDialogue)
 
 	DEFINE_INPUTFUNC(FIELD_VOID, "StartDialogue", InputStartDialogue),
 	DEFINE_INPUTFUNC(FIELD_VOID, "StopDialogue", InputStopDialogue),
+	DEFINE_INPUTFUNC(FIELD_STRING, "UnlockChoice", InputUnlockChoice),
+	DEFINE_INPUTFUNC(FIELD_STRING, "LockChoice", InputLockChoice),
 
 	DEFINE_OUTPUT(m_OnDialogueStarted, "OnDialogueStarted"),
 	DEFINE_OUTPUT(m_OnDialogueStopped, "OnDialogueStopped"),
@@ -123,6 +129,44 @@ void CLogicDialogue::InputStopDialogue(inputdata_t& inputData)
 	SendDialogueMsg(pPlayer, DIALOGUE_MSG_STOP);
 
 	m_OnDialogueStopped.FireOutput(inputData.pActivator, this);
+}
+
+void CLogicDialogue::InputUnlockChoice(inputdata_t& inputData)
+{
+	CBasePlayer* pPlayer = UTIL_GetLocalPlayer();
+	if (!pPlayer)
+		return;
+
+	const char* condName = inputData.value.String();
+	if (!condName || !condName[0])
+		return;
+
+	CSingleUserRecipientFilter filter(pPlayer);
+	filter.MakeReliable();
+
+	UserMessageBegin(filter, "DialogueMsg");
+		WRITE_BYTE(DIALOGUE_MSG_UNLOCK);
+		WRITE_STRING(condName);
+	MessageEnd();
+}
+
+void CLogicDialogue::InputLockChoice(inputdata_t& inputData)
+{
+	CBasePlayer* pPlayer = UTIL_GetLocalPlayer();
+	if (!pPlayer)
+		return;
+
+	const char* condName = inputData.value.String();
+	if (!condName || !condName[0])
+		return;
+
+	CSingleUserRecipientFilter filter(pPlayer);
+	filter.MakeReliable();
+
+	UserMessageBegin(filter, "DialogueMsg");
+		WRITE_BYTE(DIALOGUE_MSG_LOCK);
+		WRITE_STRING(condName);
+	MessageEnd();
 }
 
 //-----------------------------------------------------------------------------

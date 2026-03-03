@@ -12,6 +12,9 @@
 #include "cliententitylist.h"
 #include "hud_macros.h"
 #include "engine/IEngineSound.h"
+#include "utlstring.h"
+#include "utlvector.h"
+#include "GameEventListener.h"
 
 #define DIALOGUE_DEFAULT_FOV 75    // Default player FOV
 #define DIALOGUE_ZOOM_RATE 0.3f    // How fast to zoom in/out (seconds)
@@ -36,6 +39,8 @@ using namespace vgui;
 #define DIALOGUE_MSG_NODE     2
 #define DIALOGUE_MSG_SETTINGS 3
 #define DIALOGUE_MSG_FOCUS    4
+#define DIALOGUE_MSG_UNLOCK   5
+#define DIALOGUE_MSG_LOCK     6
 
 void __MsgFunc_DialogueMsg(bf_read &msg)
 {
@@ -80,6 +85,22 @@ void __MsgFunc_DialogueMsg(bf_read &msg)
 			float y = msg.ReadFloat();
 			float z = msg.ReadFloat();
 			g_pDialoguePanel->ApplyFocusPosition(x, y, z);
+		}
+		break;
+
+	case DIALOGUE_MSG_UNLOCK:
+		{
+			char szCondName[64];
+			msg.ReadString(szCondName, sizeof(szCondName));
+			g_pDialoguePanel->UnlockCondition(szCondName);
+		}
+		break;
+
+	case DIALOGUE_MSG_LOCK:
+		{
+			char szCondName[64];
+			msg.ReadString(szCondName, sizeof(szCondName));
+			g_pDialoguePanel->LockCondition(szCondName);
 		}
 		break;
 	}
@@ -225,8 +246,11 @@ class CDialoguePanel : public vgui::Frame
 	virtual void ShowNode(const char* nodeName);
 	void ShowPanel(void);
 	void HidePanel(void);
+	void HidePanelImmediate(void);
 	void ApplyDialogueSettings(bool bTypewriter, float flSpeed, const char* szTypewriterSound, const char* szOpenSound, const char* szCloseSound);
 	void ApplyFocusPosition(float x, float y, float z);
+	void UnlockCondition(const char* condName);
+	void LockCondition(const char* condName);
 
 	protected:
 	virtual void OnTick();
@@ -245,6 +269,8 @@ class CDialoguePanel : public vgui::Frame
 		void SkipTypewriter(void);
 		void UpdateTickInterval(void);
 		void BeginButtonsFade(void);
+		bool IsConditionUnlocked(const char* condName);
+		void RefreshButtonStates(void);
 
 	KeyValues* m_pDialogueKV;
 	RichText* m_pDialogueText;
@@ -283,7 +309,8 @@ class CDialoguePanel : public vgui::Frame
 	//   ANIM_NONE         — idle, no animation
 	//   ANIM_SLIDE_IN     — panel slides up from off-screen to final position, fading in
 	//   ANIM_BUTTONS_FADE — buttons gradually become visible after typewriter finishes
-	enum AnimPhase { ANIM_NONE = 0, ANIM_SLIDE_IN, ANIM_BUTTONS_FADE };
+	//   ANIM_SLIDE_OUT    — panel slides down off-screen, fading out (on close)
+	enum AnimPhase { ANIM_NONE = 0, ANIM_SLIDE_IN, ANIM_BUTTONS_FADE, ANIM_SLIDE_OUT };
 	AnimPhase m_eAnimPhase;
 	float m_flAnimStartTime;
 	int   m_iAnimStartY;    // Y position at start of slide-in (off-screen)
@@ -295,6 +322,10 @@ class CDialoguePanel : public vgui::Frame
 	char  m_szTypewriterSound[256];
 	char  m_szOpenSound[256];
 	char  m_szCloseSound[256];
+
+	// Condition-based button enable/disable
+	CUtlVector<CUtlString> m_UnlockedConditions;
+	char m_szOptionCondition[5][64];  // Per-button condition string (empty = always enabled)
 };
 
 CDialoguePanel::CDialoguePanel(vgui::VPANEL parent)
@@ -343,6 +374,10 @@ CDialoguePanel::CDialoguePanel(vgui::VPANEL parent)
 	m_szTypewriterSound[0] = '\0';
 	m_szOpenSound[0] = '\0';
 	m_szCloseSound[0] = '\0';
+
+	// Initialize condition tracking
+	for (int i = 0; i < 5; i++)
+		m_szOptionCondition[i][0] = '\0';
 
 	SetKeyBoardInputEnabled(true);
 	SetMouseInputEnabled(true);
@@ -477,6 +512,44 @@ void CDialoguePanel::ShowPanel(void)
 
 void CDialoguePanel::HidePanel(void)
 {
+	// If already sliding out, ignore duplicate calls
+	if (m_eAnimPhase == ANIM_SLIDE_OUT)
+		return;
+
+	// Stop typewriter if still running
+	m_bTypewriterActive = false;
+	m_szTypewriterBuffer[0] = '\0';
+	m_iTypewriterPos = 0;
+
+	// Cancel any pending deferred hide — we're handling it now
+	m_bHidePending = false;
+
+	// Play close sound on CHAN_ITEM so it doesn't conflict with NPC voice or typewriter
+	if (m_szCloseSound[0])
+		PlayDialogueSound2D(m_szCloseSound, CHAN_ITEM);
+
+	// Start ANIM_SLIDE_OUT: panel slides down off-screen while fading out
+	int curX, curY;
+	GetPos(curX, curY);
+	m_iAnimStartY = curY;
+	m_eAnimPhase = ANIM_SLIDE_OUT;
+	m_flAnimStartTime = gpGlobals->realtime;
+
+	// Disable input immediately so player can't click during slide-out
+	SetKeyBoardInputEnabled(false);
+	SetMouseInputEnabled(false);
+
+	// Switch to fast tick rate for smooth animation
+	m_iCurrentTickInterval = DIALOGUE_ANIM_TICK_MS;
+	vgui::ivgui()->RemoveTickSignal(GetVPanel());
+	vgui::ivgui()->AddTickSignal(GetVPanel(), m_iCurrentTickInterval);
+}
+
+void CDialoguePanel::HidePanelImmediate(void)
+{
+	if (!m_bIsDialogueActive)
+		return;
+
 	m_bIsDialogueActive = false;
 	m_bShouldTrackTarget = false;
 	m_szFocusTargetName[0] = '\0';
@@ -487,15 +560,14 @@ void CDialoguePanel::HidePanel(void)
 	m_szTypewriterBuffer[0] = '\0';
 	m_iTypewriterPos = 0;
 
+	// Cancel any pending deferred hide
+	m_bHidePending = false;
+
 	// Stop animation
 	m_eAnimPhase = ANIM_NONE;
 	SetAlpha(255);
 	for (int i = 0; i < 5; i++)
 		m_pOptions[i]->SetAlpha(255);
-
-	// Play close sound on CHAN_ITEM so it doesn't conflict with NPC voice or typewriter
-	if (m_szCloseSound[0])
-		PlayDialogueSound2D(m_szCloseSound, CHAN_ITEM);
 
 	// Restore default FOV if we zoomed in
 	if (m_bZoomActive)
@@ -601,6 +673,61 @@ void CDialoguePanel::ApplyDialogueSettings(bool bTypewriter, float flSpeed, cons
 	Q_strncpy(m_szCloseSound, szCloseSound ? szCloseSound : "", sizeof(m_szCloseSound));
 }
 
+bool CDialoguePanel::IsConditionUnlocked(const char* condName)
+{
+	if (!condName || !condName[0])
+		return true;
+
+	for (int i = 0; i < m_UnlockedConditions.Count(); i++)
+	{
+		if (!Q_stricmp(m_UnlockedConditions[i].Get(), condName))
+			return true;
+	}
+	return false;
+}
+
+void CDialoguePanel::RefreshButtonStates(void)
+{
+	for (int i = 0; i < 5; i++)
+	{
+		if (!m_pOptions[i]->IsVisible())
+			continue;
+
+		if (m_szOptionCondition[i][0])
+			m_pOptions[i]->SetEnabled(IsConditionUnlocked(m_szOptionCondition[i]));
+	}
+}
+
+void CDialoguePanel::UnlockCondition(const char* condName)
+{
+	if (!condName || !condName[0])
+		return;
+
+	if (!IsConditionUnlocked(condName))
+		m_UnlockedConditions.AddToTail(CUtlString(condName));
+
+	if (m_bIsDialogueActive)
+		RefreshButtonStates();
+}
+
+void CDialoguePanel::LockCondition(const char* condName)
+{
+	if (!condName || !condName[0])
+		return;
+
+	for (int i = 0; i < m_UnlockedConditions.Count(); i++)
+	{
+		if (!Q_stricmp(m_UnlockedConditions[i].Get(), condName))
+		{
+			m_UnlockedConditions.Remove(i);
+			break;
+		}
+	}
+
+	if (m_bIsDialogueActive)
+		RefreshButtonStates();
+}
+
 class CDialoguePanelInterface : public IDialoguePanel
 {
 	private:
@@ -643,6 +770,13 @@ class CDialoguePanelInterface : public IDialoguePanel
 			m_pPanel->HidePanel();
 		}
 	}
+	void HideImmediate(void)
+	{
+		if (m_pPanel)
+		{
+			m_pPanel->HidePanelImmediate();
+		}
+	}
 	void LoadFile(const char* filePath)
 	{
 		if (m_pPanel)
@@ -671,9 +805,44 @@ class CDialoguePanelInterface : public IDialoguePanel
 			m_pPanel->ApplyFocusPosition(x, y, z);
 		}
 	}
+	void UnlockCondition(const char* condName)
+	{
+		if (m_pPanel)
+		{
+			m_pPanel->UnlockCondition(condName);
+		}
+	}
+	void LockCondition(const char* condName)
+	{
+		if (m_pPanel)
+		{
+			m_pPanel->LockCondition(condName);
+		}
+	}
 };
 static CDialoguePanelInterface g_DialoguePanel;
 IDialoguePanel* g_pDialoguePanel = (IDialoguePanel*)&g_DialoguePanel;
+
+//-----------------------------------------------------------------------------
+// Game event listener: closes dialogue immediately on player death,
+// map change, or save load (game_newmap fires for all three).
+//-----------------------------------------------------------------------------
+class CDialogueEventListener : public CGameEventListener
+{
+public:
+	CDialogueEventListener()
+	{
+		ListenForGameEvent("player_death");
+		ListenForGameEvent("game_newmap");
+	}
+
+	virtual void FireGameEvent(IGameEvent *event)
+	{
+		if (g_pDialoguePanel)
+			g_pDialoguePanel->HideImmediate();
+	}
+};
+static CDialogueEventListener s_DialogueEventListener;
 
 void CDialoguePanel::LookAtTarget(const char* targetName)
 {
@@ -836,8 +1005,17 @@ void CDialoguePanel::PerformLayout()
 	{
 		float flElapsed = gpGlobals->realtime - m_flAnimStartTime;
 		float flFraction = clamp(flElapsed / DIALOGUE_ANIM_DURATION, 0.0f, 1.0f);
+		// Ease-out: starts fast (off-screen), decelerates into final position
 		float flSmooth = 1.0f - (1.0f - flFraction) * (1.0f - flFraction);
 		actualY = m_iAnimStartY + (int)((float)(panelY - m_iAnimStartY) * flSmooth);
+	}
+	else if (m_eAnimPhase == ANIM_SLIDE_OUT)
+	{
+		float flElapsed = gpGlobals->realtime - m_flAnimStartTime;
+		float flFraction = clamp(flElapsed / DIALOGUE_ANIM_DURATION, 0.0f, 1.0f);
+		// Ease-in: starts slow, accelerates off-screen
+		float flSmooth = flFraction * flFraction;
+		actualY = m_iAnimStartY + (int)((float)(screenH - m_iAnimStartY) * flSmooth);
 	}
 
 	// Only update if changed — prevents infinite invalidation loop
@@ -930,6 +1108,7 @@ void CDialoguePanel::OnTick()
 	{
 		float flElapsed = gpGlobals->realtime - m_flAnimStartTime;
 		float flFraction = clamp(flElapsed / DIALOGUE_ANIM_DURATION, 0.0f, 1.0f);
+		// Ease-out: starts fast (off-screen), decelerates into final position
 		float flSmooth = 1.0f - (1.0f - flFraction) * (1.0f - flFraction);
 
 		// Interpolate alpha: 0 -> 255
@@ -987,6 +1166,38 @@ void CDialoguePanel::OnTick()
 
 			// Switch to lower tick rate
 			UpdateTickInterval();
+		}
+
+		return;
+	}
+
+	// =====================================================
+	// ANIM_SLIDE_OUT: panel slides down off-screen, fading out
+	// =====================================================
+	if (m_eAnimPhase == ANIM_SLIDE_OUT)
+	{
+		float flElapsed = gpGlobals->realtime - m_flAnimStartTime;
+		float flFraction = clamp(flElapsed / DIALOGUE_ANIM_DURATION, 0.0f, 1.0f);
+		// Ease-in curve (accelerating) — reverse of slide-in's ease-out
+		float flSmooth = flFraction * flFraction;
+
+		// Interpolate alpha: 255 -> 0
+		int iAlpha = (int)(255.0f * (1.0f - flSmooth));
+		SetAlpha(iAlpha);
+
+		// Interpolate Y position: current -> off-screen bottom
+		int screenW, screenH;
+		vgui::surface()->GetScreenSize(screenW, screenH);
+		int targetY = screenH;
+		int currentY = m_iAnimStartY + (int)((float)(targetY - m_iAnimStartY) * flSmooth);
+		int curX, curY;
+		GetPos(curX, curY);
+		if (curY != currentY)
+			SetPos(curX, currentY);
+
+		if (flFraction >= 1.0f)
+		{
+			HidePanelImmediate();
 		}
 
 		return;
@@ -1296,6 +1507,7 @@ void CDialoguePanel::ShowNode(const char* nodeName)
 		m_pOptions[i]->SetAsDefaultButton(false);
 		m_pOptions[i]->SetArmedSound("ui/buttonrollover.wav");
 		m_pOptions[i]->SetReleasedSound("common/bugreporter_succeeded.wav");
+		m_szOptionCondition[i][0] = '\0';
 	}
 
 	SetCloseButtonVisible(false);
@@ -1446,10 +1658,27 @@ void CDialoguePanel::ShowNode(const char* nodeName)
 			continue;
 
 		m_pOptions[i]->SetVisible(true);
-		m_pOptions[i]->SetEnabled(pNodeOption->GetBool("enabled", true));
 		m_pOptions[i]->SetArmedSound(pNodeOption->GetString("sound_hover", "ui/buttonrollover.wav"));
 		m_pOptions[i]->SetReleasedSound(pNodeOption->GetString("sound_press", "common/bugreporter_succeeded.wav"));
 		m_pOptions[i]->SetText(pNodeOption->GetString("text", "..."));
+
+		// "enabled" key: absent/empty = always enabled, "0" = always disabled, other string = condition name
+		const char* enabledVal = pNodeOption->GetString("enabled", "");
+		if (!enabledVal[0])
+		{
+			m_pOptions[i]->SetEnabled(true);
+			m_szOptionCondition[i][0] = '\0';
+		}
+		else if (!Q_stricmp(enabledVal, "0"))
+		{
+			m_pOptions[i]->SetEnabled(false);
+			m_szOptionCondition[i][0] = '\0';
+		}
+		else
+		{
+			Q_strncpy(m_szOptionCondition[i], enabledVal, sizeof(m_szOptionCondition[i]));
+			m_pOptions[i]->SetEnabled(IsConditionUnlocked(enabledVal));
+		}
 
 		if (pNodeOption->FindKey("exit", false))
 			m_pOptions[i]->SetAsDefaultButton(true);
@@ -1479,13 +1708,13 @@ void CDialoguePanel::ShowNode(const char* nodeName)
 		}
 		else if (bExit && !compositeCmd[0])
 		{
-			Q_strncpy(compositeCmd, "turnoff", sizeof(compositeCmd));
+		 Q_strncpy(compositeCmd, "turnoff", sizeof(compositeCmd));
 		}
 		else if (bExit)
 		{
 			char temp[512];
 			Q_snprintf(temp, sizeof(temp), "%s;turnoff", compositeCmd);
-			Q_strncpy(compositeCmd, temp, sizeof(compositeCmd));
+		 Q_strncpy(compositeCmd, temp, sizeof(compositeCmd));
 		}
 
 		m_pOptions[i]->SetCommand(compositeCmd);

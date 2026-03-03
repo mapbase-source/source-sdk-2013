@@ -5,7 +5,7 @@
 @PointClass base(Targetname, EnableDisable) iconsprite("editor/logic_dialogue.vmt") = logic_dialogue :
 	"Triggers a client-side dialogue panel."
 [
-	dialogue_file(string) : "Dialogue File" : "" : "Path to the dialogue file (e.g. resource/dialogues/sewers/blackguy_1.txt)"
+	dialogue_file(string) : "Dialogue File" : "" : "Path to the dialogue file"
 	start_node(string) : "Start Node" : "node_start" : "The node name to begin the dialogue at."
 
 	typewriter_enabled(choices) : "Typewriter Mode" : 1 : "Default typewriter mode. Individual nodes can override with 'typewriter' key." =
@@ -20,6 +20,8 @@
 
 	input StartDialogue(void) : "Opens the dialogue panel."
 	input StopDialogue(void) : "Closes the dialogue panel."
+	input UnlockChoice(string) : "Unlocks choices with this condition name. Choices using this string in their 'enabled' key become clickable."
+	input LockChoice(string) : "Locks choices with this condition name. Choices using this string in their 'enabled' key become disabled."
 
 	output OnDialogueStarted(void) : "Fired when the dialogue panel is opened."
 	output OnDialogueStopped(void) : "Fired when the dialogue panel is closed."

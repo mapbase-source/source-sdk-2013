@@ -14,6 +14,7 @@ Server (logic_dialogue.cpp)
   │  DIALOGUE_MSG_SETTINGS  ──►  Client stores defaults
   │  DIALOGUE_MSG_START     ──►  Client loads file, shows node, opens panel
   │  DIALOGUE_MSG_STOP      ──►  Client closes panel
+  │  DIALOGUE_MSG_FOCUS     ──►  Client receives entity focus position
   ▼
 Client (DialoguePanel.cpp)
   │  Reads .txt dialogue file (KeyValues)
@@ -33,18 +34,20 @@ Server (CON_COMMANDs)
 |----------------------|---------|--------------|------------------------------------------------------|
 | `dialogue_file`      | string  | `""`         | Path to dialogue `.txt` file (e.g. `resource/dialogues/npc_01.txt`) |
 | `start_node`         | string  | `node_start` | Node name to begin the dialogue at                   |
-| `typewriter_enabled`  | bool    | `1`          | Default typewriter mode (nodes can override)         |
-| `typewriter_speed`    | float   | `1.0`        | Default typewriter speed multiplier (nodes can override) |
-| `typewriter_sound`    | sound   | `""`         | Sound played each tick while typewriter prints       |
-| `open_sound`          | sound   | `""`         | Sound when dialogue panel opens                      |
-| `close_sound`         | sound   | `""`         | Sound when dialogue panel closes                     |
+| `typewriter_enabled` | bool    | `1`          | Default typewriter mode (nodes can override)         |
+| `typewriter_speed`   | float   | `1.0`        | Default typewriter speed multiplier (nodes can override) |
+| `typewriter_sound`   | sound   | `""`         | Sound played each tick while typewriter prints       |
+| `open_sound`         | sound   | `""`         | Sound when dialogue panel opens                      |
+| `close_sound`        | sound   | `""`         | Sound when dialogue panel closes                     |
 
 ### Inputs
 
-| Input            | Description                |
-|------------------|----------------------------|
-| `StartDialogue`  | Opens the dialogue panel   |
-| `StopDialogue`   | Closes the dialogue panel  |
+| Input            | Parameter | Description                                       |
+|------------------|-----------|---------------------------------------------------|
+| `StartDialogue`  | —         | Opens the dialogue panel                          |
+| `StopDialogue`   | —         | Closes the dialogue panel                         |
+| `UnlockChoice`   | string    | Unlocks choices with this condition name          |
+| `LockChoice`     | string    | Locks choices with this condition name            |
 
 ### Outputs
 
@@ -127,7 +130,7 @@ All keys are optional. If not specified, entity defaults from `logic_dialogue` a
 |--------------------|--------|------------------|--------------------------------------------------|
 | `typewriter`       | bool   | entity default   | `1` = typewriter mode, `0` = instant text        |
 | `speed`            | float  | entity default   | Typewriter speed multiplier (higher = faster)    |
-| `sound_typewriter` | string | entity default   | Typewriter tick sound (overrides entity default) |
+| `sound_typewriter` | string | entity default   | Typewriter tick sound (overrides entity default)  |
 
 ### Actions (executed once when node loads, before text)
 
@@ -138,6 +141,7 @@ All keys are optional. If not specified, entity defaults from `logic_dialogue` a
 | `sound_npc`    | string | Sound played from the focused NPC's position (`CHAN_VOICE`) |
 | `sound_world`  | string | Ambient sound played globally                        |
 | `command`      | string | Console command executed immediately                 |
+| `sound_action` | string | Overrides the panel close sound for this node        |
 
 ### UI
 
@@ -168,6 +172,12 @@ Used inside `"text"` values. Tags are not printed — they trigger actions mid-t
 | `<focus=NAME>`          | `<focus=info_camera_angle_1>`    | Move camera to entity mid-text       |
 | `<anim=ACT>`           | `<anim=ACT_GESTURE_WAVE>`        | Play NPC animation mid-text          |
 
+### Other
+
+| Tag                     | Example                               | Description                     |
+|-------------------------|---------------------------------------|---------------------------------|
+| `<command=CMD>`         | `<command=ent_fire relay trigger>`    | Execute console command mid-text |
+
 ### Sound
 
 | Tag                           | Example                                 | Description                          |
@@ -194,11 +204,36 @@ Choices are sub-keys named `choice1` through `choice5`.
 | `next`         | string | —                                 | Node name to navigate to on press    |
 | `command`      | string | —                                 | Console command to execute on press  |
 | `exit`         | flag   | —                                 | If present, closes dialogue on press |
-| `enabled`      | bool   | `1`                               | Whether the button is clickable      |
+| `enabled`      | string | —                                 | Condition for button availability (see below) |
 | `sound_hover`  | sound  | `ui/buttonrollover.wav`           | Sound on mouse hover                 |
 | `sound_press`  | sound  | `common/bugreporter_succeeded.wav`| Sound on click                       |
 
 `next`, `command`, and `exit` can be **combined freely**. Execution order: **command → next → exit**.
+
+### `enabled` — Condition System
+
+The `enabled` key controls whether a choice button is clickable:
+
+| Value          | Behavior                                                    |
+|----------------|-------------------------------------------------------------|
+| absent / empty | Button is always enabled (default)                          |
+| `"0"`          | Button is always disabled                                   |
+| any string     | Button is disabled until that condition name is unlocked    |
+
+Conditions are unlocked/locked via the `UnlockChoice` / `LockChoice` inputs on `logic_dialogue`. The condition state persists across nodes — once unlocked, it stays unlocked for the lifetime of the dialogue panel. When a node is shown, each button checks if its condition is currently unlocked.
+
+If an unlock/lock happens while the dialogue is open, buttons update immediately.
+
+**Example:** A choice that requires the player to find a key item:
+```
+"choice2"
+{
+    "text"      "Use the keycard"
+    "enabled"   "has_keycard"
+    "next"      "node_door_opened"
+}
+```
+In Hammer, fire `UnlockChoice` with parameter `has_keycard` on the `logic_dialogue` entity when the player picks up the keycard.
 
 ### Examples
 
@@ -258,16 +293,22 @@ Inline tags (<tag=value>)          ← per-character overrides
 
 ---
 
-## Sound Channels
+## Sound Playback
 
-Sounds use separate engine channels so they don't cut each other off:
+### Channels
 
-| Sound Type       | Channel       | Notes                                |
-|------------------|---------------|--------------------------------------|
-| Open / Close     | `CHAN_ITEM`   | UI feedback sounds                   |
-| Typewriter tick  | `CHAN_BODY`   | Repeats each tick while printing     |
-| NPC voice        | `CHAN_VOICE`  | Spatialized from NPC position        |
-| World ambient    | Ambient       | Global, no position                  |
+Different sound types use different playback methods so they don't cut each other off:
+
+| Sound Type       | Playback Method              | Notes                                |
+|------------------|------------------------------|--------------------------------------|
+| Open / Close     | `EmitSound` on `CHAN_ITEM`   | UI feedback, 2D (no attenuation)     |
+| Typewriter tick  | `vgui::surface()->PlaySound` | VGUI surface sound, repeats per char |
+| NPC voice        | `EmitSound` on `CHAN_VOICE`  | Spatialized from NPC, with lip sync  |
+| World ambient    | `EmitAmbientSound`           | Global, no position                  |
+
+### NPC Sound Details
+
+NPC sounds (`sound_npc` / `<sound_npc=...>`) are played server-side via `internal_dialogue_sound`. The engine precaches the sound at runtime and emits it from the entity using `CHAN_VOICE` at `SNDLVL_TALKING`, which enables automatic lip sync on NPCs that support it.
 
 ---
 
@@ -275,23 +316,62 @@ Sounds use separate engine channels so they don't cut each other off:
 
 The `focus` key / `<focus=...>` tag targets any entity by `targetname`:
 
-- **NPC:** Camera tracks head bone (`ValveBiped.Bip01_Head1`), NPC body turns to face player, NPC eyes look at player
-- **`info_target`:** Camera tracks entity origin — useful for cinematic camera angles without NPC involvement
+- **NPC:** Camera tracks head bone (`ValveBiped.Bip01_Head1`), NPC body turns to face player, NPC eyes look at player (via `AddLookTarget`)
+- **`info_target`:** Camera tracks entity position from server — useful for cinematic camera angles without NPC involvement
+- **Other entities:** Camera tracks `WorldSpaceCenter()` (client-side) or `GetAbsOrigin()` (server fallback)
 
-**FOV zoom** is automatic based on distance:
+Camera tracking is continuous — the client re-reads the entity position every tick so it follows moving targets.
 
-| Distance | FOV  | Feel              |
-|----------|------|-------------------|
-| 64 units | 30°  | Extreme close-up  |
-| 256 units| 55°  | Across a room     |
-| 512+ units| 65° | Far away, minimal zoom |
+For server-only entities (no client representation), the client requests position updates from the server each tick via `internal_dialogue_focus_update`.
+
+### FOV Zoom
+
+FOV zoom is automatic based on distance. The FOV is linearly interpolated between the near and far bounds:
+
+| Distance    | FOV  | Feel              |
+|-------------|------|-------------------|
+| ≤ 64 units  | 30°  | Extreme close-up  |
+| 256 units   | ~45° | Medium distance   |
+| ≥ 512 units | 65°  | Far away, minimal zoom |
+
+Formula: `FOV = RemapValClamped(distance, 64, 512, 30, 65)`, clamped to `[30, 75]`.
 
 ---
 
 ## Typewriter Behavior
 
-- Text is revealed character-by-character at `TYPEWRITER_BASE_SPEED × speed` characters per tick (100ms tick rate)
+- Text is revealed **one character per tick**; the tick interval is adjusted by the speed multiplier
+- Base interval: **50ms** per character (20 chars/sec at speed 1.0)
+- Interval formula: `interval = 50ms / speed`, clamped to **[10ms, 200ms]**
+- At speed 0.25 → 200ms per char (slow, dramatic); at speed 5.0 → 10ms per char (very fast)
 - Tags inside text are processed instantly (not printed) when the typewriter cursor reaches them
-- **Left-click** on the panel **skips** the typewriter — all remaining text appears instantly, all tags execute
-- Typewriter tick sound plays each tick while at least one character is revealed
+- **Left-click** on the panel **skips** the typewriter — all remaining text appears instantly, all pending tags execute
+- Typewriter tick sound plays via `vgui::surface()->PlaySound` once per character revealed
 - When typewriter finishes (or is skipped), the sound stops automatically
+- Supports UTF-8: multi-byte characters are printed as a single unit
+
+---
+
+## Panel Animations
+
+The dialogue panel uses a multi-phase animation system:
+
+### Slide-In (ANIM_SLIDE_IN)
+
+When the panel opens, it slides up from below the screen to its final position over **0.35 seconds** with a smooth ease-out curve. Panel alpha fades from 0 to 255 simultaneously. Choice buttons remain hidden (alpha 0) during this phase.
+
+The typewriter does **not** start until the slide-in animation completes.
+
+### Button Fade-In (ANIM_BUTTONS_FADE)
+
+After typewriter text finishes (or immediately if typewriter is disabled), choice buttons fade in over **0.25 seconds** with an ease-in curve.
+
+### Deferred Hide
+
+When a choice button or the close button is pressed, the panel waits **0.15 seconds** before actually hiding. This allows button press/release sounds to finish playing.
+
+---
+
+## HUD Behavior
+
+The HUD is automatically hidden when the dialogue panel opens and restored when it closes. This is done via the `internal_dialogue_hud` server command which sets/clears the `HIDEHUD_ALL` flag on the player.
