@@ -22,10 +22,10 @@
 #define DIALOGUE_ANIM_DURATION 0.35f // Slide-in animation duration (seconds)
 #define DIALOGUE_ANIM_TICK_MS 10   // Tick interval during animations (ms)
 #define DIALOGUE_BTN_FADE_DURATION 0.25f // Button fade-in duration (seconds)
+#define DIALOGUE_CAMERA_SMOOTH_SPEED 4.0f // Camera smoothing speed (higher = faster tracking)
 
-// Typewriter timing: we print exactly 1 character per tick.
-// The tick interval is adjusted based on speed so that:
-//   interval = BASE_INTERVAL / speed
+// Typewriter timing: characters are printed based on elapsed realtime.
+// The interval between characters = BASE_INTERVAL / speed (in milliseconds).
 // At speed 1.0 -> 50ms per char (20 chars/sec, natural reading pace)
 // At speed 0.25 -> 200ms per char (slow, dramatic)
 // At speed 5.0 -> 10ms per char (very fast)
@@ -224,18 +224,6 @@ static Vector GetClientEntityFocusPosition(C_BaseEntity* pEnt)
 	return pEnt->WorldSpaceCenter();
 }
 
-//-----------------------------------------------------------------------------
-// Calculates the tick interval in milliseconds for the current typewriter speed.
-// Clamped to [10, 200] ms range.
-//-----------------------------------------------------------------------------
-static int CalcTypewriterTickInterval(float flSpeed)
-{
-	if (flSpeed <= 0.0f)
-		flSpeed = 1.0f;
-	int interval = (int)(TYPEWRITER_BASE_INTERVAL_MS / flSpeed);
-	return clamp(interval, 10, 200);
-}
-
 class CDialoguePanel : public vgui::Frame
 {
 	DECLARE_CLASS_SIMPLE(CDialoguePanel, vgui::Frame);
@@ -290,6 +278,7 @@ class CDialoguePanel : public vgui::Frame
 	int m_iTypewriterPos;
 	bool m_bTypewriterActive;
 	float m_flTypewriterSpeed;
+	float m_flTypewriterLastCharTime; // Realtime when last character was printed
 	int m_iCurrentTickInterval;    // Current tick interval in ms (adjusted by speed)
 
 	// Focus tracking
@@ -298,6 +287,9 @@ class CDialoguePanel : public vgui::Frame
 	bool m_bHasServerFocusPos;
 	bool m_bShouldTrackTarget;
 	bool m_bZoomActive;
+
+	// Smooth camera tracking
+	float m_flCameraLastTime;        // Last realtime when camera was updated (for delta time)
 
 	bool m_bIsDialogueActive;
 
@@ -349,6 +341,7 @@ CDialoguePanel::CDialoguePanel(vgui::VPANEL parent)
 	m_iTypewriterPos = 0;
 	m_bTypewriterActive = false;
 	m_flTypewriterSpeed = 1.0f;
+	m_flTypewriterLastCharTime = 0.0f;
 	m_iCurrentTickInterval = TYPEWRITER_BASE_INTERVAL_MS;
 
 	// Initialize focus tracking
@@ -357,6 +350,9 @@ CDialoguePanel::CDialoguePanel(vgui::VPANEL parent)
 	m_bHasServerFocusPos = false;
 	m_bShouldTrackTarget = false;
 	m_bZoomActive = false;
+
+	// Initialize camera tracking
+	m_flCameraLastTime = 0.0f;
 
 	// Initialize deferred hide
 	m_bHidePending = false;
@@ -456,10 +452,11 @@ CDialoguePanel::~CDialoguePanel()
 
 void CDialoguePanel::UpdateTickInterval(void)
 {
-	int iNewInterval = CalcTypewriterTickInterval(m_flTypewriterSpeed);
-	if (iNewInterval != m_iCurrentTickInterval)
+	// Always use fast tick rate for smooth camera tracking.
+	// Typewriter speed is controlled by time-based accumulation, not tick interval.
+	if (m_iCurrentTickInterval != DIALOGUE_ANIM_TICK_MS)
 	{
-		m_iCurrentTickInterval = iNewInterval;
+		m_iCurrentTickInterval = DIALOGUE_ANIM_TICK_MS;
 		vgui::ivgui()->RemoveTickSignal(GetVPanel());
 		vgui::ivgui()->AddTickSignal(GetVPanel(), m_iCurrentTickInterval);
 	}
@@ -497,6 +494,10 @@ void CDialoguePanel::ShowPanel(void)
 	for (int i = 0; i < 5; i++)
 		m_pOptions[i]->SetAlpha(0);
 
+	// Pause typewriter during slide-in — it will resume when slide-in finishes.
+	// ShowNode may have already started it before ShowPanel was called.
+	m_bTypewriterActive = false;
+
 	// Start ANIM_SLIDE_IN: panel slides from off-screen to final position
 	int screenW, screenH;
 	vgui::surface()->GetScreenSize(screenW, screenH);
@@ -507,6 +508,7 @@ void CDialoguePanel::ShowPanel(void)
 
 	// Start receiving ticks at a fast rate for smooth animation
 	m_iCurrentTickInterval = DIALOGUE_ANIM_TICK_MS;
+	vgui::ivgui()->RemoveTickSignal(GetVPanel());
 	vgui::ivgui()->AddTickSignal(GetVPanel(), m_iCurrentTickInterval);
 }
 
@@ -827,6 +829,7 @@ IDialoguePanel* g_pDialoguePanel = (IDialoguePanel*)&g_DialoguePanel;
 // Game event listener: closes dialogue immediately on player death,
 // map change, or save load (game_newmap fires for all three).
 //-----------------------------------------------------------------------------
+
 class CDialogueEventListener : public CGameEventListener
 {
 public:
@@ -855,7 +858,10 @@ void CDialoguePanel::LookAtTarget(const char* targetName)
 	m_bShouldTrackTarget = true;
 	m_bHasServerFocusPos = false;
 
-	// Try to find the entity on the client right now for immediate look-at
+	// Reset camera tracking timer so first tick computes a proper delta
+	m_flCameraLastTime = gpGlobals->realtime;
+
+	// Try to find the entity on the client right now for zoom calculation
 	C_BaseEntity* pEnt = FindClientEntityByName(targetName);
 	if (pEnt)
 	{
@@ -863,11 +869,6 @@ void CDialoguePanel::LookAtTarget(const char* targetName)
 		Vector vecPlayerEye = pPlayer->EyePosition();
 		Vector vecDir = vecTarget - vecPlayerEye;
 		float flDistance = vecDir.Length();
-		VectorNormalize(vecDir);
-
-		QAngle angLookAt;
-		VectorAngles(vecDir, angLookAt);
-		engine->SetViewAngles(angLookAt);
 
 		// Apply distance-based zoom
 		if (!m_bZoomActive)
@@ -895,18 +896,12 @@ void CDialoguePanel::ApplyFocusPosition(float x, float y, float z)
 	m_bHasServerFocusPos = true;
 
 	// If the entity doesn't exist on the client (info_target, etc.), use this
-	// server position for the initial snap and zoom.
+	// server position for zoom calculation.
 	C_BaseEntity* pEnt = FindClientEntityByName(m_szFocusTargetName);
 	if (!pEnt)
 	{
 		Vector vecPlayerEye = pPlayer->EyePosition();
-		Vector vecDir = m_vecServerFocusPos - vecPlayerEye;
-		float flDistance = vecDir.Length();
-		VectorNormalize(vecDir);
-
-		QAngle angLookAt;
-		VectorAngles(vecDir, angLookAt);
-		engine->SetViewAngles(angLookAt);
+		float flDistance = (m_vecServerFocusPos - vecPlayerEye).Length();
 
 		if (!m_bZoomActive)
 		{
@@ -1024,7 +1019,7 @@ void CDialoguePanel::PerformLayout()
 	GetPos(oldX, oldY);
 	if (oldW != panelW || oldH != panelH)
 		SetSize(panelW, panelH);
-	if (oldX != panelX || oldY != actualY)
+	if (oldX != panelX || oldY != panelY)
 		SetPos(panelX, actualY);
 
 	// Cache for PaintBackground
@@ -1133,6 +1128,7 @@ void CDialoguePanel::OnTick()
 			if (m_szTypewriterBuffer[0] != '\0')
 			{
 				m_bTypewriterActive = true;
+				m_flTypewriterLastCharTime = gpGlobals->realtime;
 				UpdateTickInterval();
 			}
 			else
@@ -1163,12 +1159,9 @@ void CDialoguePanel::OnTick()
 			m_eAnimPhase = ANIM_NONE;
 			for (int i = 0; i < 5; i++)
 				m_pOptions[i]->SetAlpha(255);
-
-			// Switch to lower tick rate
-			UpdateTickInterval();
 		}
 
-		return;
+		// Don't return — fall through so camera tracking continues during button fade
 	}
 
 	// =====================================================
@@ -1214,7 +1207,10 @@ void CDialoguePanel::OnTick()
 		return;
 	}
 
-	// Track target: find entity by name each tick to handle moving targets
+	// =====================================================
+	// Smooth camera tracking: always use realtime-based delta
+	// for frame-independent exponential smoothing
+	// =====================================================
 	if (m_bShouldTrackTarget && m_szFocusTargetName[0])
 	{
 		C_BasePlayer* pPlayer = C_BasePlayer::GetLocalPlayer();
@@ -1247,18 +1243,34 @@ void CDialoguePanel::OnTick()
 				Vector vecDir = vecTarget - vecPlayerEye;
 				VectorNormalize(vecDir);
 
-				QAngle angLookAt;
-				VectorAngles(vecDir, angLookAt);
-				engine->SetViewAngles(angLookAt);
+				QAngle angGoal;
+				VectorAngles(vecDir, angGoal);
+
+				// Compute real delta time since last camera update
+				float flNow = gpGlobals->realtime;
+				float flDt = flNow - m_flCameraLastTime;
+				m_flCameraLastTime = flNow;
+				flDt = clamp(flDt, 0.001f, 0.1f);
+
+				// Exponential smoothing: fraction = 1 - e^(-speed * dt)
+				// This gives consistent, frame-rate independent smoothing.
+				float flFrac = 1.0f - expf(-DIALOGUE_CAMERA_SMOOTH_SPEED * flDt);
+
+				QAngle angCurrent;
+				engine->GetViewAngles(angCurrent);
+
+				QAngle angSmooth;
+				InterpolateAngles(angCurrent, angGoal, angSmooth, flFrac);
+				engine->SetViewAngles(angSmooth);
 			}
 		}
 	}
 
-	// Typewriter effect: print exactly one character per tick.
-	// Speed is controlled by the tick interval, not by printing multiple chars.
+	// Typewriter effect: time-based character printing.
+	// Tags are processed immediately; only visible characters are time-gated.
 	if (m_bTypewriterActive && m_szTypewriterBuffer[m_iTypewriterPos] != '\0')
 	{
-		// Skip over any tags before the next printable character
+		// Always process tags immediately, regardless of timing
 		while (m_szTypewriterBuffer[m_iTypewriterPos] == '<')
 		{
 			char tagValue[256];
@@ -1271,10 +1283,7 @@ void CDialoguePanel::OnTick()
 			{
 				float speed = (float)atof(tagValue);
 				if (speed > 0.0f)
-				{
 					m_flTypewriterSpeed = speed;
-					UpdateTickInterval();
-				}
 				m_iTypewriterPos += consumed;
 				bHandled = true;
 			}
@@ -1346,37 +1355,45 @@ void CDialoguePanel::OnTick()
 			}
 		}
 
-		// Print exactly one character
-		if (m_szTypewriterBuffer[m_iTypewriterPos] != '\0')
+		// Check if enough time has passed to print the next character
+		float flCharInterval = (float)TYPEWRITER_BASE_INTERVAL_MS / (m_flTypewriterSpeed * 1000.0f);
+		float flNow = gpGlobals->realtime;
+
+		if (flNow - m_flTypewriterLastCharTime >= flCharInterval)
 		{
-			// Figure out how many bytes this UTF-8 character occupies
-			unsigned char ch = (unsigned char)m_szTypewriterBuffer[m_iTypewriterPos];
-			int charBytes = 1;
-			if (ch >= 0xF0)      charBytes = 4;
-			else if (ch >= 0xE0) charBytes = 3;
-			else if (ch >= 0xC0) charBytes = 2;
-
-			// Extract this single character as a null-terminated string
-			char oneChar[8];
-			int j;
-			for (j = 0; j < charBytes && m_szTypewriterBuffer[m_iTypewriterPos + j] != '\0'; j++)
+			// Print exactly one character
+			if (m_szTypewriterBuffer[m_iTypewriterPos] != '\0')
 			{
-				oneChar[j] = m_szTypewriterBuffer[m_iTypewriterPos + j];
-			}
-			oneChar[j] = '\0';
+				// Figure out how many bytes this UTF-8 character occupies
+				unsigned char ch = (unsigned char)m_szTypewriterBuffer[m_iTypewriterPos];
+				int charBytes = 1;
+				if (ch >= 0xF0)      charBytes = 4;
+				else if (ch >= 0xE0) charBytes = 3;
+				else if (ch >= 0xC0) charBytes = 2;
 
-			m_pDialogueText->InsertString(oneChar);
-			m_iTypewriterPos += j;
+				// Extract this single character as a null-terminated string
+				char oneChar[8];
+				int j;
+				for (j = 0; j < charBytes && m_szTypewriterBuffer[m_iTypewriterPos + j] != '\0'; j++)
+				{
+					oneChar[j] = m_szTypewriterBuffer[m_iTypewriterPos + j];
+				}
+				oneChar[j] = '\0';
 
-			// Play typewriter sound — exactly one sound per character
-			if (m_szTypewriterSound[0])
-				vgui::surface()->PlaySound(m_szTypewriterSound);
+				m_pDialogueText->InsertString(oneChar);
+				m_iTypewriterPos += j;
+				m_flTypewriterLastCharTime = flNow;
 
-			// Check if we've finished
-			if (m_szTypewriterBuffer[m_iTypewriterPos] == '\0')
-			{
-				m_bTypewriterActive = false;
-				BeginButtonsFade();
+				// Play typewriter sound — exactly one sound per character
+				if (m_szTypewriterSound[0])
+					vgui::surface()->PlaySound(m_szTypewriterSound);
+
+				// Check if we've finished
+				if (m_szTypewriterBuffer[m_iTypewriterPos] == '\0')
+				{
+					m_bTypewriterActive = false;
+					BeginButtonsFade();
+				}
 			}
 		}
 	}
@@ -1582,6 +1599,7 @@ void CDialoguePanel::ShowNode(const char* nodeName)
 			if (m_eAnimPhase != ANIM_SLIDE_IN)
 			{
 				m_bTypewriterActive = true;
+				m_flTypewriterLastCharTime = gpGlobals->realtime;
 				UpdateTickInterval();
 			}
 		}
@@ -1606,7 +1624,7 @@ void CDialoguePanel::ShowNode(const char* nodeName)
 						if (ParseColorValue(tagValue, clr))
 							m_pDialogueText->InsertColorChange(clr);
 						p += consumed;
-						continue;
+					continue;
 					}
 
 					consumed = ParseTag(p, "focus", tagValue, sizeof(tagValue));
