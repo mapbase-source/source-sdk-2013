@@ -401,8 +401,8 @@ Disposition_t CNPC_PlayerCompanion::IRelationType( CBaseEntity *pTarget )
 				  (EntIsClass( ((CAI_BaseNPC *)pTarget)->GetActiveWeapon(), gm_iszShotgunClassname ) &&
 				  ( !GetActiveWeapon() || !EntIsClass( GetActiveWeapon(), gm_iszShotgunClassname ) ) ) )
 #else
-				  ((CAI_BaseNPC *)pTarget)->GetActiveWeapon()->ClassMatches( gm_iszShotgunClassname.ToCStr() ) &&
-				  ( !GetActiveWeapon() || !GetActiveWeapon()->ClassMatches( gm_iszShotgunClassname.ToCStr() ) ) )
+				  ((CAI_BaseNPC *)pTarget)->GetActiveWeapon()->ClassMatches( gm_iszShotgunClassname ) &&
+				  ( !GetActiveWeapon() || !GetActiveWeapon()->ClassMatches( gm_iszShotgunClassname ) ) )
 #endif
 		{
 			if ( (pTarget->GetAbsOrigin() - GetAbsOrigin()).LengthSqr() < Square( 25 * 12 ) )
@@ -2816,7 +2816,7 @@ bool CNPC_PlayerCompanion::Weapon_CanUse( CBaseCombatWeapon *pWeapon )
 #ifdef MAPBASE
 		if (EntIsClass(pWeapon, gm_iszShotgunClassname))
 #else
-		if (pWeapon->ClassMatches(gm_iszShotgunClassname.ToCStr()))
+		if( pWeapon->ClassMatches( gm_iszShotgunClassname ) )
 #endif
 		{
 			return (NumWeaponsInSquad("weapon_shotgun") < 1 );

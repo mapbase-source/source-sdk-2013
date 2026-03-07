@@ -220,7 +220,7 @@ CBaseEntity* CBaseCombatWeapon::Respawn( void )
 	}
 	else
 	{
-		Warning("Respawn failed to create %s!\n", GetClassname());
+		Warning("Respawn failed to create weapon \"%s\" with script \"%s\"!\n", STRING(m_iClassname), GetClassname());
 	}
 
 	return pNewWeapon;

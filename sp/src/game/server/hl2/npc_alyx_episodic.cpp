@@ -2585,7 +2585,7 @@ void CNPC_Alyx::Weapon_Drop( CBaseCombatWeapon *pWeapon, const Vector *pvecTarge
 {
 	BaseClass::Weapon_Drop( pWeapon, pvecTarget, pVelocity );
 
-	if(pWeapon && pWeapon->ClassMatches(CLASSNAME_ALYXGUN.ToCStr()))
+	if( pWeapon && pWeapon->ClassMatches( CLASSNAME_ALYXGUN ) )
 	{
 		pWeapon->SUB_Remove();
 	}
@@ -3256,7 +3256,7 @@ void CNPC_Alyx::OnChangeActiveWeapon( CBaseCombatWeapon *pOldWeapon, CBaseCombat
 void CNPC_Alyx::OnGivenWeapon( CBaseCombatWeapon *pNewWeapon )
 {
 	// HACK: This causes Alyx to pull her gun from a holstered position
-	if (pNewWeapon->ClassMatches(CLASSNAME_ALYXGUN.ToCStr()))
+	if ( pNewWeapon->ClassMatches( CLASSNAME_ALYXGUN ) )
 	{
 		// Put it away so we can pull it out properly
 		GetActiveWeapon()->Holster();
@@ -3279,7 +3279,7 @@ void CNPC_Alyx::Weapon_Equip( CBaseCombatWeapon *pWeapon )
 //-----------------------------------------------------------------------------
 bool CNPC_Alyx::Weapon_CanUse( CBaseCombatWeapon *pWeapon )
 {
-	if(!pWeapon->ClassMatches(CLASSNAME_SHOTGUN.ToCStr()))
+	if( !pWeapon->ClassMatches( CLASSNAME_SHOTGUN ) )
 		return false;
 
 	return BaseClass::Weapon_CanUse( pWeapon );
