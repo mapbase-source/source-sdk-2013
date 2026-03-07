@@ -429,20 +429,22 @@ const char* CBaseCombatWeapon::GetClassname()
 	return BaseClass::GetClassname();
 }
 
-//-----------------------------------------------------------------------------
-// Purpose: This is used by FClassnameIs to compare classname strings, we replace it with script name.
-//-----------------------------------------------------------------------------
-bool CBaseCombatWeapon::ClassMatches(const char* pszClassOrWildcard)
-{
-	return Matcher_NamesMatch(pszClassOrWildcard, GetClassname());
-}
-
+#if !defined( CLIENT_DLL )
 //-----------------------------------------------------------------------------
 // Purpose: This is used by FClassnameIs to compare classname strings, we replace it with script name.
 //-----------------------------------------------------------------------------
 bool CBaseCombatWeapon::ClassMatches(string_t nameStr)
 {
 	return Matcher_NamesMatch(nameStr.ToCStr(), GetClassname());
+}
+#endif
+
+//-----------------------------------------------------------------------------
+// Purpose: This is used by FClassnameIs to compare classname strings, we replace it with script name.
+//-----------------------------------------------------------------------------
+bool CBaseCombatWeapon::ClassMatches(const char* pszClassOrWildcard)
+{
+	return Matcher_NamesMatch(pszClassOrWildcard, GetClassname());
 }
 #endif
 
@@ -3594,8 +3596,16 @@ BEGIN_NETWORK_TABLE_NOBASE( CBaseCombatWeapon, DT_LocalWeaponData )
 	RecvPropIntWithMinusOneFlag( RECVINFO(m_iClip2 )),
 	RecvPropInt( RECVINFO(m_iPrimaryAmmoType )),
 	RecvPropInt( RECVINFO(m_iSecondaryAmmoType )),
+	
+#ifdef MAPBASE
+	SendPropInt(SENDINFO(m_iNeedsUpdate)), //needed for certain local weapon data (such as icons, weapon bucket pos, etc)
+#endif
 
 	RecvPropInt( RECVINFO( m_nViewModelIndex ) ),
+	
+#ifdef MAPBASE
+	RecvPropInt(RECVINFO(m_iNeedsUpdate)),
+#endif
 
 	RecvPropBool( RECVINFO( m_bFlipViewModel ) ),
 
