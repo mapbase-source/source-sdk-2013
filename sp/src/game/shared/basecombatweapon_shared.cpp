@@ -436,6 +436,14 @@ bool CBaseCombatWeapon::ClassMatches(const char* pszClassOrWildcard)
 {
 	return Matcher_NamesMatch(pszClassOrWildcard, GetClassname());
 }
+
+//-----------------------------------------------------------------------------
+// Purpose: This is used by FClassnameIs to compare classname strings, we replace it with script name.
+//-----------------------------------------------------------------------------
+bool CBaseCombatWeapon::ClassMatches(string_t nameStr)
+{
+	return Matcher_NamesMatch(nameStr.ToCStr(), GetClassname());
+}
 #endif
 
 //-----------------------------------------------------------------------------
@@ -2040,6 +2048,8 @@ void CBaseCombatWeapon::InputChangeScript(inputdata_t& inputdata)
 		Warning("Error reading weapon data file \"%s\".\n", pszNewScript);
 		return;
 	}
+	
+	pKV->deleteThis(); //free up memory
 
 	//copy new data for networked and stored
 	Q_strncpy(m_iszWeaponScriptName.GetForModify(), pszNewScript, MAX_WEAPON_STRING);
@@ -3574,10 +3584,6 @@ BEGIN_NETWORK_TABLE_NOBASE( CBaseCombatWeapon, DT_LocalWeaponData )
 	SendPropInt( SENDINFO( m_nViewModelIndex ), VIEWMODEL_INDEX_BITS, SPROP_UNSIGNED ),
 
 	SendPropInt( SENDINFO( m_bFlipViewModel ) ),
-	
-#ifdef MAPBASE
-	SendPropInt( SENDINFO( m_iNeedsUpdate ) ),
-#endif
 
 #if defined( TF_DLL )
 	SendPropExclude( "DT_AnimTimeMustBeFirst" , "m_flAnimTime" ),
@@ -3592,10 +3598,6 @@ BEGIN_NETWORK_TABLE_NOBASE( CBaseCombatWeapon, DT_LocalWeaponData )
 	RecvPropInt( RECVINFO( m_nViewModelIndex ) ),
 
 	RecvPropBool( RECVINFO( m_bFlipViewModel ) ),
-	
-#ifdef MAPBASE	
-	RecvPropInt( RECVINFO(m_iNeedsUpdate) ),
-#endif
 
 #endif
 END_NETWORK_TABLE()

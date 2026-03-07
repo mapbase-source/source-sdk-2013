@@ -219,6 +219,7 @@ public:
 	virtual bool			GetKeyValue( const char *szKeyName, char *szValue, int iMaxLen );
 	virtual const char*		GetClassname();
 	virtual bool			ClassMatches( const char* pszClassOrWildcard );
+	virtual bool			ClassMatches( string_t nameStr );
 #endif
 
 	void					MakeTracer( const Vector &vecTracerSrc, const trace_t &tr, int iTracerType );

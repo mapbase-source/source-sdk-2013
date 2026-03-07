@@ -945,6 +945,11 @@ void CNPC_Citizen::FixupMattWeapon()
 		extern bool g_bReceivedChainedActivate;
 		g_bReceivedChainedActivate = false;
 #endif
+
+#ifndef MAPBASE
+		pWeapon->Activate();
+		Weapon_Equip( pWeapon );
+#endif
 	}
 }
 
