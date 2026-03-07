@@ -507,7 +507,7 @@ void CBaseHudWeaponSelection::SetWeaponSelected( void )
 	Assert( GetSelectedWeapon() );
 
 	//Mark selection so that it's placed into next CUserCmd created if isn't active (or we'll get prediction glitch with custom scripts)
-	if(GetSelectedWeapon() != GetActiveWeapon())
+	if (GetSelectedWeapon() != GetActiveWeapon())
 		input->MakeWeaponSelection( GetSelectedWeapon() );
 }
 

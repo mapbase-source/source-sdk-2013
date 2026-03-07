@@ -341,7 +341,7 @@ void CBaseCombatWeapon::Precache( void )
 	{
 		// Couldn't read data file, remove myself
 #ifdef MAPBASE
-		Warning( "Error reading weapon data file for classname \"%s\" with script \"%s\".\n", m_iClassname, GetClassname());
+		Warning( "Error reading weapon data file for classname \"%s\" with script \"%s\".\n", STRING(m_iClassname), GetClassname());
 #else
 		Warning( "Error reading weapon data file for: %s\n", GetClassname() );
 #endif
@@ -421,7 +421,7 @@ bool CBaseCombatWeapon::GetKeyValue( const char *szKeyName, char *szValue, int i
 //-----------------------------------------------------------------------------
 const char* CBaseCombatWeapon::GetClassname()
 {
-	if (Q_strcmp(m_iszWeaponScriptName.Get(), "") > 0)
+	if (m_iszWeaponScriptName.Get()[0] != '\0')
 	{
 		return m_iszWeaponScriptName.Get();
 	}
@@ -637,10 +637,13 @@ int CBaseCombatWeapon::GetPosition( void ) const
 }
 
 //-----------------------------------------------------------------------------
-// Purpose: 
+// Purpose: Get classname from wpn data or use script name directly if not empty.
 //-----------------------------------------------------------------------------
 const char *CBaseCombatWeapon::GetName( void ) const
 {
+	if (m_iszWeaponScriptName.Get()[0] != '\0')
+		return m_iszWeaponScriptName.Get();
+
 	return GetWpnData().szClassName;
 }
 
