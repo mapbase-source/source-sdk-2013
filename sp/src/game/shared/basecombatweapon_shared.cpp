@@ -67,13 +67,13 @@ ConVar tf_weapon_criticals_bucket_default( "tf_weapon_criticals_bucket_default",
 
 #ifdef MAPBASE
 ConVar	sv_weapon_clips_reset_mode("sv_weapon_clips_reset_mode", "1", 
-	FCVAR_REPLICATED | FCVAR_CHEAT, 
+	FCVAR_REPLICATED, 
 	"Sets the way to reset clips:\n0 - No reset at all.\n1 - Set max clip value.\n2 - Set max clip value if more then max clip.",
 	true, 0.0f, true, 2.0f
 );
 
 ConVar	sv_weapon_vm_anim_reset_mode("sv_weapon_vm_anim_reset_mode", "0",
-	FCVAR_REPLICATED | FCVAR_CHEAT,
+	FCVAR_REPLICATED,
 	"Animation to set after weapon script change, 0 to use idle animation, 1 to use deploy animation.",
 	true, 0, true, 1
 );
@@ -388,7 +388,7 @@ bool CBaseCombatWeapon::KeyValue( const char *szKeyName, const char *szValue )
 	{
 		if (szValue[0] != '\0') //if not empty - use val, else get real classname
 		{
-			Q_strncpy(m_iszWeaponScriptName.GetForModify(), szValue, MAX_WEAPON_STRING);
+			Q_strncpy(m_iszWeaponScript.GetForModify(), szValue, MAX_WEAPON_STRING);
 		}
 
 		return true;
@@ -421,9 +421,9 @@ bool CBaseCombatWeapon::GetKeyValue( const char *szKeyName, char *szValue, int i
 //-----------------------------------------------------------------------------
 const char* CBaseCombatWeapon::GetClassname()
 {
-	if (m_iszWeaponScriptName.Get()[0] != '\0')
+	if (m_iszWeaponScript.Get()[0] != '\0')
 	{
-		return m_iszWeaponScriptName.Get();
+		return m_iszWeaponScript.Get();
 	}
 
 	return BaseClass::GetClassname();
@@ -641,8 +641,8 @@ int CBaseCombatWeapon::GetPosition( void ) const
 //-----------------------------------------------------------------------------
 const char *CBaseCombatWeapon::GetName( void ) const
 {
-	if (m_iszWeaponScriptName.Get()[0] != '\0')
-		return m_iszWeaponScriptName.Get();
+	if (m_iszWeaponScript.Get()[0] != '\0')
+		return m_iszWeaponScript.Get();
 
 	return GetWpnData().szClassName;
 }
@@ -2057,7 +2057,7 @@ void CBaseCombatWeapon::InputChangeScript(inputdata_t& inputdata)
 	pKV->deleteThis(); //free up memory
 
 	//copy new data for networked and stored
-	Q_strncpy(m_iszWeaponScriptName.GetForModify(), pszNewScript, MAX_WEAPON_STRING);
+	Q_strncpy(m_iszWeaponScript.GetForModify(), pszNewScript, MAX_WEAPON_STRING);
 
 	//finish reload before update
 	if (m_bInReload)
@@ -3422,7 +3422,7 @@ BEGIN_DATADESC( CBaseCombatWeapon )
 	DEFINE_FIELD( m_flHudHintMinDisplayTime, FIELD_TIME ),
 	
 #ifdef MAPBASE	
-	DEFINE_AUTO_ARRAY( m_iszWeaponScriptName, FIELD_CHARACTER ),
+	DEFINE_AUTO_ARRAY( m_iszWeaponScript, FIELD_CHARACTER ),
 	DEFINE_FIELD( m_iNeedsUpdate, FIELD_INTEGER ),
 #endif
 
@@ -3624,7 +3624,7 @@ BEGIN_NETWORK_TABLE(CBaseCombatWeapon, DT_BaseCombatWeapon)
 	
 #ifdef MAPBASE
 	SendPropModelIndex( SENDINFO(m_iDroppedModelIndex) ),
-	SendPropString( SENDINFO(m_iszWeaponScriptName) ),
+	SendPropString( SENDINFO(m_iszWeaponScript) ),
 	SendPropInt( SENDINFO(m_spawnflags), 8, SPROP_UNSIGNED ),
 	SendPropInt( SENDINFO(m_iNeedsUpdate), 0, SPROP_UNSIGNED ),
 #endif
@@ -3641,7 +3641,7 @@ BEGIN_NETWORK_TABLE(CBaseCombatWeapon, DT_BaseCombatWeapon)
 	RecvPropInt( RECVINFO(m_iDroppedModelIndex) ),
 	RecvPropInt( RECVINFO( m_spawnflags ) ),
 	RecvPropInt( RECVINFO(m_iNeedsUpdate) ),
-	RecvPropString( RECVINFO(m_iszWeaponScriptName) ),
+	RecvPropString( RECVINFO(m_iszWeaponScript) ),
 #endif
 
 #endif

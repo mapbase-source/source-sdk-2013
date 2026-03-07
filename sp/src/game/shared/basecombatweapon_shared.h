@@ -744,7 +744,7 @@ public:
 #ifdef CLIENT_DLL
 	int m_iOldNeedsUpdate = 0;			//client's variable to compare with networked and decide if update is needed
 #endif
-	CNetworkString( m_iszWeaponScriptName, MAX_WEAPON_STRING ); //networked weapon script name
+	CNetworkString( m_iszWeaponScript, MAX_WEAPON_STRING ); //networked weapon script name
 	CNetworkVar(int, m_iNeedsUpdate);	//mark for client in case if weapon script update is wanted
 #endif
 

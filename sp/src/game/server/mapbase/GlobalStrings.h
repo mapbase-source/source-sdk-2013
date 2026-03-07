@@ -79,7 +79,7 @@ inline bool EntIsClass( CBaseEntity *ent, string_t str2 )
 	if (!ent->IsBaseCombatWeapon())
 		return ent->m_iClassname == str2;
 
-	return static_cast<CBaseCombatWeapon*>(ent)->ClassMatches(str2);
+	return FStrEq(ent->GetClassname(), str2.ToCStr());
 }
 
 // -------------------------------------------------------------
