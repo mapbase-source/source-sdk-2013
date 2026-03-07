@@ -570,7 +570,7 @@ CBaseEntity *CGlobalEntityList::FindEntityByClassnameFast( CBaseEntity *pStartEn
 			continue;
 		}
 
-		if ( pEntity->m_iClassname == iszClassname)
+		if (FClassnameIs(pEntity, iszClassname.ToCStr()))
 		{
 			return pEntity;
 		}
@@ -1418,7 +1418,7 @@ CBaseEntity *CGlobalEntityList::FindEntityNearestFacing( const Vector &origin, c
 			continue;
 
 		// Ignore if worldspawn
-		if (!FStrEq( STRING(ent->m_iClassname), "worldspawn")  && !FStrEq( STRING(ent->m_iClassname), "soundent")) 
+		if (!FStrEq(ent->GetClassname(), "worldspawn")  && !FStrEq(ent->GetClassname(), "soundent"))
 		{
 			bestDot	= dot;
 			best_ent = ent;
