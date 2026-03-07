@@ -75,8 +75,9 @@ inline bool EntIsClass( CBaseEntity *ent, string_t str2 )
 
 	// Since classnames are pooled, the global string and the entity's classname should point to the same string in memory.
 	// As long as this rule is preserved, we only need a pointer comparison. A string comparison isn't necessary.
-	// The the exception is weapons, because weapons replace classname with script name, check if is weapon before comparing by pointer.
-	if (!ent->IsBaseCombatWeapon())
+	// The the exception is weapons, because weapons replace classname with script name.
+	// Check if it is not a weapon or it doesn't use a script before comparing by pointer.
+	if (!ent->IsBaseCombatWeapon() || static_cast<CBaseCombatWeapon*>(ent)->m_iszWeaponScript.Get()[0] != '\0')
 		return ent->m_iClassname == str2;
 
 	return FStrEq(ent->GetClassname(), str2.ToCStr());
