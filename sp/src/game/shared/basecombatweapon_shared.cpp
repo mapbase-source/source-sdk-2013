@@ -3591,23 +3591,21 @@ BEGIN_NETWORK_TABLE_NOBASE( CBaseCombatWeapon, DT_LocalWeaponData )
 	SendPropExclude( "DT_AnimTimeMustBeFirst" , "m_flAnimTime" ),
 #endif
 
+#ifdef MAPBASE
+	SendPropInt(SENDINFO(m_iNeedsUpdate)), //needed for certain local weapon data (such as icons, weapon bucket pos, etc)
+#endif
+
 #else
 	RecvPropIntWithMinusOneFlag( RECVINFO(m_iClip1 )),
 	RecvPropIntWithMinusOneFlag( RECVINFO(m_iClip2 )),
 	RecvPropInt( RECVINFO(m_iPrimaryAmmoType )),
 	RecvPropInt( RECVINFO(m_iSecondaryAmmoType )),
-	
-#ifdef MAPBASE
-	SendPropInt(SENDINFO(m_iNeedsUpdate)), //needed for certain local weapon data (such as icons, weapon bucket pos, etc)
-#endif
-
 	RecvPropInt( RECVINFO( m_nViewModelIndex ) ),
+	RecvPropBool( RECVINFO( m_bFlipViewModel ) ),
 	
 #ifdef MAPBASE
 	RecvPropInt(RECVINFO(m_iNeedsUpdate)),
 #endif
-
-	RecvPropBool( RECVINFO( m_bFlipViewModel ) ),
 
 #endif
 END_NETWORK_TABLE()

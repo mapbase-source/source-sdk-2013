@@ -2816,7 +2816,7 @@ bool CNPC_PlayerCompanion::Weapon_CanUse( CBaseCombatWeapon *pWeapon )
 #ifdef MAPBASE
 		if (EntIsClass(pWeapon, gm_iszShotgunClassname))
 #else
-		f(pWeapon->ClassMatches(gm_iszShotgunClassname.ToCStr()))
+		if (pWeapon->ClassMatches(gm_iszShotgunClassname.ToCStr()))
 #endif
 		{
 			return (NumWeaponsInSquad("weapon_shotgun") < 1 );
