@@ -2049,7 +2049,6 @@ void CBaseCombatWeapon::InputChangeScript(inputdata_t& inputdata)
 	//don't if file doesn't exists
 	if (!pKV)
 	{
-		pKV->deleteThis(); //free up memory
 		Warning("Error reading weapon data file \"%s\".\n", pszNewScript);
 		return;
 	}
@@ -2118,6 +2117,8 @@ void CBaseCombatWeapon::InputChangeScript(inputdata_t& inputdata)
 
 		if (UsesClipsForAmmo2())
 			m_iClip2 = GetMaxClip2();
+		
+		return;
 	}
 
 	//we want to set max clip only if this weapon has more ammo in clips than max
@@ -2128,6 +2129,8 @@ void CBaseCombatWeapon::InputChangeScript(inputdata_t& inputdata)
 
 		if (UsesClipsForAmmo2() && m_iClip2 > GetMaxClip2())
 			m_iClip2 = GetMaxClip2();
+		
+		return;
 	}
 }
 #endif

@@ -198,7 +198,7 @@ void C_BaseCombatWeapon::OnDataChanged( DataUpdateType_t updateType )
 		Precache(); //cache weapon on client again, otherwise the client will always use default script name while server not
 	}
 
-	//update script in case if wanted, but not when restored (because value isn't saved)
+	//update script in case if wanted, but not when restored (or it will cause hud issues)
 	if (m_iOldNeedsUpdate != m_iNeedsUpdate && !m_bJustRestored)
 	{
 		Precache();
@@ -222,6 +222,8 @@ void C_BaseCombatWeapon::OnDataChanged( DataUpdateType_t updateType )
 
 			if (UsesClipsForAmmo2())
 				m_iClip2 = GetMaxClip2();
+			
+			return;
 		}
 
 		//we want to set max clip only if this weapon has more ammo in clips than max
@@ -232,6 +234,8 @@ void C_BaseCombatWeapon::OnDataChanged( DataUpdateType_t updateType )
 
 			if (UsesClipsForAmmo2() && m_iClip2 > GetMaxClip2())
 				m_iClip2 = GetMaxClip2();
+			
+			return;
 		}
 	}
 #endif
