@@ -39,7 +39,6 @@
 #endif
 
 #ifdef MAPBASE
-	#include "gamestringpool.h"
 	#include "mapbase_matchers_base.h"
 #endif
 
@@ -2050,6 +2049,7 @@ void CBaseCombatWeapon::InputChangeScript(inputdata_t& inputdata)
 	//don't if file doesn't exists
 	if (!pKV)
 	{
+		pKV->deleteThis(); //free up memory
 		Warning("Error reading weapon data file \"%s\".\n", pszNewScript);
 		return;
 	}
