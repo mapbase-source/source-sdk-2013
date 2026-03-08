@@ -570,7 +570,7 @@ CBaseEntity *CGlobalEntityList::FindEntityByClassnameFast( CBaseEntity *pStartEn
 			continue;
 		}
 
-		if (!ent->IsBaseCombatWeapon() || static_cast<CBaseCombatWeapon*>(ent)->m_iszWeaponScript.Get()[0] == '\0')
+		if (!pEntity->IsBaseCombatWeapon() || static_cast<CBaseCombatWeapon*>(pEntity)->m_iszWeaponScript.Get()[0] == '\0')
 		{
 			if (pEntity->m_iClassname == iszClassname)
 				return pEntity;
