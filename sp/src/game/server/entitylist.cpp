@@ -1375,7 +1375,7 @@ CBaseEntity *CGlobalEntityList::FindEntityClassNearestFacing( const Vector &orig
 			if (FClassnameIs(ent,classname))
 			{
 				// Ignore if worldspawn
-				if (!FClassnameIs( ent, "worldspawn" )  && !FClassnameIs( ent, "soundent")) 
+				if (!FStrEq( STRING(ent->m_iClassname), "worldspawn")  && !FStrEq( STRING(ent->m_iClassname), "soundent")) 
 				{
 					bestDot	= dot;
 					best_ent = ent;
