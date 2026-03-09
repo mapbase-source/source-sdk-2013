@@ -7,6 +7,7 @@
 [
 	dialogue_file(string) : "Dialogue File" : "" : "Path to the dialogue file"
 	start_node(string) : "Start Node" : "node_start" : "The node name to begin the dialogue at."
+	default_npc(target_destination) : "Default NPC" : "" : "Targetname of the NPC tied to this dialogue. If this NPC dies while the dialogue is active, it closes automatically."
 
 	typewriter_enabled(choices) : "Typewriter Mode" : 1 : "Default typewriter mode. Individual nodes can override with 'typewriter' key." =
 	[

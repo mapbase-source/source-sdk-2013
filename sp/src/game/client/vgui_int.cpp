@@ -23,7 +23,7 @@
 #include <KeyValues.h>
 #include "filesystem.h"
 #include "matsys_controls/matsyscontrols.h"
-#include <IDialoguePanel.h>
+#include <tuksmod/IDialoguePanel.h>
 
 #ifdef SIXENSE
 #include "sixense/in_sixense.h"

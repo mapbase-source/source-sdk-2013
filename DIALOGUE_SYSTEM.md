@@ -15,6 +15,8 @@ Server (logic_dialogue.cpp)
   │  DIALOGUE_MSG_START     ──►  Client loads file, shows node, opens panel
   │  DIALOGUE_MSG_STOP      ──►  Client closes panel
   │  DIALOGUE_MSG_FOCUS     ──►  Client receives entity focus position
+  │  DIALOGUE_MSG_UNLOCK    ──►  Client unlocks a condition
+  │  DIALOGUE_MSG_LOCK      ──►  Client locks a condition
   ▼
 Client (DialoguePanel.cpp)
   │  Reads .txt dialogue file (KeyValues)
@@ -34,9 +36,10 @@ Server (CON_COMMANDs)
 |----------------------|---------|--------------|------------------------------------------------------|
 | `dialogue_file`      | string  | `""`         | Path to dialogue `.txt` file (e.g. `resource/dialogues/npc_01.txt`) |
 | `start_node`         | string  | `node_start` | Node name to begin the dialogue at                   |
+| `default_npc`        | string  | `""`         | Targetname of the NPC tied to this dialogue. If this NPC dies while the dialogue is active, it closes automatically and fires `OnDialogueStopped`. |
 | `typewriter_enabled` | bool    | `1`          | Default typewriter mode (nodes can override)         |
 | `typewriter_speed`   | float   | `1.0`        | Default typewriter speed multiplier (nodes can override) |
-| `typewriter_sound`   | sound   | `""`         | Sound played each tick while typewriter prints       |
+| `typewriter_sound`   | sound   | `""`         | Sound played per character while typewriter prints   |
 | `open_sound`         | sound   | `""`         | Sound when dialogue panel opens                      |
 | `close_sound`        | sound   | `""`         | Sound when dialogue panel closes                     |
 
@@ -54,7 +57,7 @@ Server (CON_COMMANDs)
 | Output               | Description                          |
 |----------------------|--------------------------------------|
 | `OnDialogueStarted`  | Fired when dialogue panel is opened  |
-| `OnDialogueStopped`  | Fired when dialogue panel is closed  |
+| `OnDialogueStopped`  | Fired when dialogue panel is closed (including auto-close from NPC death) |
 
 ---
 
@@ -172,12 +175,6 @@ Used inside `"text"` values. Tags are not printed — they trigger actions mid-t
 | `<focus=NAME>`          | `<focus=info_camera_angle_1>`    | Move camera to entity mid-text       |
 | `<anim=ACT>`           | `<anim=ACT_GESTURE_WAVE>`        | Play NPC animation mid-text          |
 
-### Other
-
-| Tag                     | Example                               | Description                     |
-|-------------------------|---------------------------------------|---------------------------------|
-| `<command=CMD>`         | `<command=ent_fire relay trigger>`    | Execute console command mid-text |
-
 ### Sound
 
 | Tag                           | Example                                 | Description                          |
@@ -186,7 +183,7 @@ Used inside `"text"` values. Tags are not printed — they trigger actions mid-t
 | `<sound_world=PATH>`          | `<sound_world=ambient/explosion.wav>`   | Play global ambient sound            |
 | `<sound_typewriter=PATH>`     | `<sound_typewriter=ui/glitch_tick.wav>` | Change typewriter tick sound         |
 
-### Other
+### Commands
 
 | Tag                     | Example                               | Description                     |
 |-------------------------|---------------------------------------|---------------------------------|
@@ -320,7 +317,7 @@ The `focus` key / `<focus=...>` tag targets any entity by `targetname`:
 - **`info_target`:** Camera tracks entity position from server — useful for cinematic camera angles without NPC involvement
 - **Other entities:** Camera tracks `WorldSpaceCenter()` (client-side) or `GetAbsOrigin()` (server fallback)
 
-Camera tracking is continuous — the client re-reads the entity position every tick so it follows moving targets.
+Camera tracking is continuous with exponential smoothing (`1 - e^(-speed * dt)`) for frame-rate independent movement. The client re-reads the entity position every tick so it follows moving targets.
 
 For server-only entities (no client representation), the client requests position updates from the server each tick via `internal_dialogue_focus_update`.
 
@@ -340,9 +337,9 @@ Formula: `FOV = RemapValClamped(distance, 64, 512, 30, 65)`, clamped to `[30, 75
 
 ## Typewriter Behavior
 
-- Text is revealed **one character per tick**; the tick interval is adjusted by the speed multiplier
+- The panel ticks at a fast fixed rate (**10ms**); characters are printed based on **elapsed realtime**, not tick count
 - Base interval: **50ms** per character (20 chars/sec at speed 1.0)
-- Interval formula: `interval = 50ms / speed`, clamped to **[10ms, 200ms]**
+- Interval formula: `interval = 50ms / speed`
 - At speed 0.25 → 200ms per char (slow, dramatic); at speed 5.0 → 10ms per char (very fast)
 - Tags inside text are processed instantly (not printed) when the typewriter cursor reaches them
 - **Left-click** on the panel **skips** the typewriter — all remaining text appears instantly, all pending tags execute
@@ -366,9 +363,33 @@ The typewriter does **not** start until the slide-in animation completes.
 
 After typewriter text finishes (or immediately if typewriter is disabled), choice buttons fade in over **0.25 seconds** with an ease-in curve.
 
+### Slide-Out (ANIM_SLIDE_OUT)
+
+When dialogue closes (via choice button, close button, or `StopDialogue`), the panel slides down off-screen over **0.35 seconds** with an ease-in curve. Panel alpha fades from 255 to 0 simultaneously. Input is disabled immediately so the player can't click during the animation.
+
 ### Deferred Hide
 
-When a choice button or the close button is pressed, the panel waits **0.15 seconds** before actually hiding. This allows button press/release sounds to finish playing.
+When a choice button or the close button is pressed, the panel waits **0.15 seconds** before starting the slide-out animation. This allows button press/release sounds to finish playing.
+
+---
+
+## Auto-Close Behavior
+
+The dialogue panel closes automatically in several situations:
+
+| Trigger                  | Mechanism                                                         |
+|--------------------------|-------------------------------------------------------------------|
+| **Player death**         | Client `OnTick` checks `IsAlive()` every tick; closes immediately if player is dead. Works in SP where the `player_death` event doesn't fire. |
+| **NPC death**            | If `default_npc` is set on `logic_dialogue`, the server `Think` checks the NPC every 0.1s. If the NPC is dead or removed, the dialogue stops and `OnDialogueStopped` fires. |
+| **Map change / load**    | Client listens for `game_newmap` game event; closes immediately.  |
+
+All auto-close paths call `HidePanelImmediate()` which restores FOV, HUD, and save/load access without playing the slide-out animation.
+
+---
+
+## Save/Load Blocking
+
+While the dialogue panel is open, `save`, `load`, `quicksave`, and `quickload` commands are blocked. The original engine commands are shadowed by overrides that check a global lock flag. When dialogue closes (by any means), the lock is released and save/load works normally again.
 
 ---
 
