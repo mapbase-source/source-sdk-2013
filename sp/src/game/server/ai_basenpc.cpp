@@ -15974,7 +15974,7 @@ void CAI_BaseNPC::CalculateValidEnemyInteractions( void )
 				if (Q_strstr(myweapon, "WEPCLASS"))
 					pass = (GetActiveWeapon()->WeaponClassFromString(myweapon) == GetActiveWeapon()->WeaponClassify()) ? !pass : pass;
 				else
-					pass = (FClassnameIs(pNPC->GetActiveWeapon(), pInteraction->iszTheirWeapon.ToCStr())) ? !pass : pass;
+					pass = (FClassnameIs(GetActiveWeapon(), pInteraction->iszMyWeapon.ToCStr())) ? !pass : pass;
 
 				if (!pass)
 					continue;
