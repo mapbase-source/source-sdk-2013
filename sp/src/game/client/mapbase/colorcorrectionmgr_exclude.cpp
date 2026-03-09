@@ -69,7 +69,7 @@ void CColorCorrectionMgr::UnregisterExclusionObject( C_BaseEntity *pEntity )
 
 void CColorCorrectionMgr::UnregisterExclusionObject( int nGlowObjectHandle )
 {
-	if ( m_ColCorrectExcludeDefs.Count() >= nGlowObjectHandle )
+	if ( m_ColCorrectExcludeDefs.Count() <= nGlowObjectHandle )
 		return;
 
 	Assert( !m_ColCorrectExcludeDefs[nGlowObjectHandle].IsUnused() );
