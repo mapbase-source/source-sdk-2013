@@ -2021,7 +2021,7 @@ void CBaseCombatWeapon::InputForceSecondaryFire( inputdata_t &inputdata )
 }
 
 //-----------------------------------------------------------------------------
-// Purpose: Input to change the weapon script name and re-Precache
+// Purpose: Input to change the weapon script.
 //-----------------------------------------------------------------------------
 void CBaseCombatWeapon::InputChangeScript(inputdata_t& inputdata)
 {
@@ -2033,8 +2033,8 @@ void CBaseCombatWeapon::InputChangeScript(inputdata_t& inputdata)
 
 	//don't update if other weapon that owns my owner uses the same script
 	if (GetOwner() && GetOwner()->Weapon_OwnsThisType(pszNewScript))
-			return;
-		
+		return;
+
 	char sz[128];
 	Q_snprintf(sz, sizeof(sz), "scripts/%s", pszNewScript);
 
@@ -2052,7 +2052,7 @@ void CBaseCombatWeapon::InputChangeScript(inputdata_t& inputdata)
 		Warning("Error reading weapon data file \"%s\".\n", pszNewScript);
 		return;
 	}
-	
+
 	pKV->deleteThis(); //free up memory
 
 	//copy new data for networked and stored
@@ -2065,34 +2065,42 @@ void CBaseCombatWeapon::InputChangeScript(inputdata_t& inputdata)
 	}
 
 	m_iNeedsUpdate++; //trigger client update
-	
+
 	Precache(); //update with new script
 
-	if (GetOwner() && GetOwner()->IsPlayer())
+	if (GetOwner())
 	{
-		//this updates wpn's vm at the same time as wpn's script, instead of waiting 2-6 seconds
-		if (GetOwner()->GetActiveWeapon() == this)
-			SetViewModel();
-
-		SetModel(GetViewModel()); //this fixes wrong sequence nums (DOESN'T AFFECT WORLD MODEL)
-
-		//use deploy anim if we want
-		if (GetOwner()->GetActiveWeapon() == this)
+		if (GetOwner()->IsPlayer() == false)
 		{
-			if (sv_weapon_vm_anim_reset_mode.GetBool())
+			//update model data for npc
+			SetModel(GetWorldModel());
+		}
+		else
+		{
+			//this updates wpn's vm at the same time as wpn's script, instead of waiting 2-6 seconds
+			if (GetOwner()->GetActiveWeapon() == this)
+				SetViewModel();
+
+			SetModel(GetViewModel()); //this fixes wrong sequence nums (DOESN'T AFFECT WORLD MODEL)
+
+			//use deploy anim if we want
+			if (GetOwner()->GetActiveWeapon() == this)
 			{
-				Deploy();
-			}
-			else
-			{
-				SendWeaponAnim(ACT_VM_IDLE);
+				if (sv_weapon_vm_anim_reset_mode.GetBool())
+				{
+					Deploy();
+				}
+				else
+				{
+					SendWeaponAnim(ACT_VM_IDLE);
+				}
 			}
 		}
 	}
 
 	//if i have no owner - reset collsion model with bbox + check if my new wm has collision
 	//NOTE: no need if owned by NPC or plr as they update collision when drop weapons
-	if (!GetOwner())
+	else
 	{
 		SetModel(GetWorldModel());
 		VPhysicsDestroyObject();
@@ -2108,7 +2116,7 @@ void CBaseCombatWeapon::InputChangeScript(inputdata_t& inputdata)
 	//we don't want to reset clips at all, return
 	if (sv_weapon_clips_reset_mode.GetInt() == 0)
 		return;
-	
+
 	//we want to set max clipw vals
 	if (sv_weapon_clips_reset_mode.GetInt() == 1)
 	{
@@ -2117,8 +2125,6 @@ void CBaseCombatWeapon::InputChangeScript(inputdata_t& inputdata)
 
 		if (UsesClipsForAmmo2())
 			m_iClip2 = GetMaxClip2();
-		
-		return;
 	}
 
 	//we want to set max clip only if this weapon has more ammo in clips than max
@@ -2129,8 +2135,6 @@ void CBaseCombatWeapon::InputChangeScript(inputdata_t& inputdata)
 
 		if (UsesClipsForAmmo2() && m_iClip2 > GetMaxClip2())
 			m_iClip2 = GetMaxClip2();
-		
-		return;
 	}
 }
 #endif

@@ -8349,8 +8349,7 @@ void CAI_BaseNPC::InputUnholsterWeapon( inputdata_t &inputdata )
 		{
 			for (int i=0;i<MAX_WEAPONS;i++)
 			{
-				// These are both pooled, so if they're the same classname they should point to the same address
-				if ( m_hMyWeapons[i].Get() && m_hMyWeapons[i]->m_iClassname == inputdata.value.StringID() )
+				if ( m_hMyWeapons[i].Get() && FClassnameIs(m_hMyWeapons[i], inputdata.value.StringID().ToCStr()) )
 				{
 					//Weapon_Switch(m_hMyWeapons[i]);
 					//DoHolster();
@@ -8504,8 +8503,7 @@ void CAI_BaseNPC::InputChangeWeapon( inputdata_t &inputdata )
 	int iSwitchTo; // Index in m_hMyWeapons
 	for (int i=0;i<MAX_WEAPONS;i++)
 	{
-		// These are both pooled, so if they're the same classname they should point to the same address
-		if ( m_hMyWeapons[i].Get() && m_hMyWeapons[i]->m_iClassname == inputdata.value.StringID() )
+		if ( m_hMyWeapons[i].Get() && FClassnameIs(m_hMyWeapons[i], inputdata.value.StringID().ToCStr()) )
 		{
 			pSwitchTo = m_hMyWeapons[i];
 			iSwitchTo = i;
@@ -15976,7 +15974,7 @@ void CAI_BaseNPC::CalculateValidEnemyInteractions( void )
 				if (Q_strstr(myweapon, "WEPCLASS"))
 					pass = (GetActiveWeapon()->WeaponClassFromString(myweapon) == GetActiveWeapon()->WeaponClassify()) ? !pass : pass;
 				else
-					pass = (GetActiveWeapon()->m_iClassname == pInteraction->iszMyWeapon) ? !pass : pass;
+					pass = (FClassnameIs(pNPC->GetActiveWeapon(), pInteraction->iszTheirWeapon.ToCStr())) ? !pass : pass;
 
 				if (!pass)
 					continue;
@@ -16005,7 +16003,7 @@ void CAI_BaseNPC::CalculateValidEnemyInteractions( void )
 				if (Q_strstr(theirweapon, "WEPCLASS"))
 					pass = (pNPC->GetActiveWeapon()->WeaponClassFromString(theirweapon) == pNPC->GetActiveWeapon()->WeaponClassify()) ? !pass : pass;
 				else
-					pass = (pNPC->GetActiveWeapon()->m_iClassname == pInteraction->iszTheirWeapon) ? !pass : pass;
+					pass = (FClassnameIs(pNPC->GetActiveWeapon(), pInteraction->iszTheirWeapon.ToCStr())) ? !pass : pass;
 
 				if (!pass)
 					continue;
