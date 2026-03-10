@@ -385,8 +385,28 @@ bool CBaseCombatWeapon::KeyValue( const char *szKeyName, const char *szValue )
 	}
 	if (FStrEq(szKeyName, "weaponscriptname"))
 	{
-		if (szValue[0] != '\0') //if not empty - use val, else get real classname
+		if (szValue[0] != '\0') //if not empty - use if file exists
 		{
+			char sz[128];
+			Q_snprintf(sz, sizeof(sz), "scripts/%s", szValue);
+
+			KeyValues* pKV = ReadEncryptedKVFile(filesystem, sz, GetEncryptionKey(),
+			#if defined( DOD_DLL )
+					true			// Only read .ctx files!
+			#else
+					false
+			#endif
+			);
+
+			//don't if file doesn't exists
+			if (!pKV)
+			{
+				Warning("Error reading weapon data file \"%s\".\n", szValue);
+				return;
+			}
+
+			pKV->deleteThis(); //free up memory
+			
 			Q_strncpy(m_iszWeaponScript.GetForModify(), szValue, MAX_WEAPON_STRING);
 		}
 
