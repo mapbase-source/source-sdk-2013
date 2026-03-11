@@ -317,7 +317,38 @@ void ClientModeShared::ReloadScheme( void )
 {
 	m_pViewport->ReloadScheme( "resource/ClientScheme.res" );
 	ClearKeyValuesCache();
+#ifdef MAPBASE
+	m_bResetSchemeOnUnload = false;
+#endif
 }
+
+#ifdef MAPBASE
+void ClientModeShared::SetCustomClientScheme( const char *pszFile )
+{
+	m_pViewport->ReloadScheme( pszFile );
+	ClearKeyValuesCache();
+	m_bResetSchemeOnUnload = true;
+}
+
+void ClientModeShared::SetCustomHudLayout( const char *pszFile )
+{
+	m_pViewport->SetCustomHUDLayout( pszFile );
+	if ( pszFile != NULL )
+		m_bResetSchemeOnUnload = true;
+}
+
+bool ClientModeShared::LoadCustomHudAnimations( const char *pszFile )
+{
+	m_bResetSchemeOnUnload = true;
+	return m_pViewport->LoadCustomHudAnimations( pszFile );
+}
+
+bool ClientModeShared::LoadCustomHudAnimationsManifest( const char *pszFile )
+{
+	m_bResetSchemeOnUnload = true;
+	return m_pViewport->LoadCustomHudAnimationsManifest( pszFile );
+}
+#endif
 
 
 //----------------------------------------------------------------------------
@@ -968,6 +999,14 @@ void ClientModeShared::LevelShutdown( void )
 		m_LerpEndPostProcessParameters = PostProcessParameters_t();
 		m_pCurrentPostProcessController = NULL;
 		SetPostProcessParams( &m_CurrentPostProcessParameters );
+	}
+
+	if ( m_bResetSchemeOnUnload )
+	{
+		// Restore default HUD
+		// (note that there is currently no way to destruct the old scheme)
+		m_pViewport->SetCustomHUDLayout( NULL );
+		ReloadScheme();
 	}
 #endif
 
