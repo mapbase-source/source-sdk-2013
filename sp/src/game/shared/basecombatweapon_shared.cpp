@@ -402,7 +402,7 @@ bool CBaseCombatWeapon::KeyValue( const char *szKeyName, const char *szValue )
 			if (!pKV)
 			{
 				Warning("Error reading weapon data file \"%s\".\n", szValue);
-				return;
+				return true;
 			}
 
 			pKV->deleteThis(); //free up memory
