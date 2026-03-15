@@ -540,6 +540,32 @@ void CGlowOverlay::UpdateSkyOverlays( float zFar, bool bCacheFullSceneState )
 	}
 }
 
+#ifdef MAPBASE
+void CGlowOverlay::DrawCCExcludeOverlays()
+{
+	VPROF("CGlowOverlay::DrawCCExcludeOverlays()");
+
+	CMatRenderContextPtr pRenderContext( materials );
+
+	bool bClippingEnabled = pRenderContext->EnableClipping( true );
+
+	unsigned short iNext;
+	for( unsigned short i=g_GlowOverlaySystem.m_GlowOverlays.Head(); i != g_GlowOverlaySystem.m_GlowOverlays.InvalidIndex(); i = iNext )
+	{
+		iNext = g_GlowOverlaySystem.m_GlowOverlays.Next( i );
+		CGlowOverlay *pOverlay = g_GlowOverlaySystem.m_GlowOverlays[i];
+		
+		if( !pOverlay->ExcludeFromColorCorrection() || !pOverlay->m_bActivated )
+			continue;
+
+		pRenderContext->EnableClipping( ((pOverlay->m_bInSky) ? (false):(bClippingEnabled)) ); //disable clipping in skybox, restore clipping to pre-existing state when not in skybox (it may be off as well)
+		pOverlay->Draw( true );
+	}
+
+	pRenderContext->EnableClipping( bClippingEnabled ); //restore clipping to original state
+}
+#endif
+
 
 
 

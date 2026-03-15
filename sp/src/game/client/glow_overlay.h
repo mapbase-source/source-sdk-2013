@@ -80,6 +80,11 @@ public:
 	static void		DrawOverlays( bool bCacheFullSceneState );
 	static void		UpdateSkyOverlays( float zFar, bool bCacheFullSceneState );
 
+#ifdef MAPBASE
+	static void		DrawCCExcludeOverlays();
+	virtual bool	ExcludeFromColorCorrection() { return false; }
+#endif
+
 #ifdef PORTAL
 	static void		BackupSkyOverlayData( int iBackupToSlot );
 	static void		RestoreSkyOverlayData( int iRestoreFromSlot );

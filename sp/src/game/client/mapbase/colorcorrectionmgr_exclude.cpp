@@ -12,6 +12,7 @@
 #include "view_shared.h"
 #include "viewpostprocess.h"
 #include "model_types.h"
+#include "glow_overlay.h"
 #include "materialsystem/imaterialvar.h"
 #include "materialsystem/itexture.h"
 
@@ -217,6 +218,8 @@ void CColorCorrectionMgr::RenderExclusionModels( ITexture *pRenderTarget, const 
 
 		m_ColCorrectExcludeDefs[i].DrawModel();
 	}	
+
+	CGlowOverlay::DrawCCExcludeOverlays();
 
 	if ( g_bDumpRenderTargets )
 	{
