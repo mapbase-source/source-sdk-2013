@@ -220,6 +220,7 @@ public:
 	virtual const char*		GetClassname();
 #if !defined( CLIENT_DLL )
 	virtual bool			ClassMatches( string_t nameStr );
+	void					SetCustomWeaponScriptName(const char* pszNewScript);
 #endif
 	virtual bool			ClassMatches( const char* pszClassOrWildcard );
 #endif

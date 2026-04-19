@@ -2041,12 +2041,18 @@ void CBaseCombatWeapon::InputForceSecondaryFire( inputdata_t &inputdata )
 }
 
 //-----------------------------------------------------------------------------
-// Purpose: Input to change the weapon script.
+// Purpose: Input to change the weapon script name and re-Precache
 //-----------------------------------------------------------------------------
 void CBaseCombatWeapon::InputChangeScript(inputdata_t& inputdata)
 {
-	const char* pszNewScript = inputdata.value.String();
+	SetCustomWeaponScriptName(inputdata.value.String());
+}
 
+//-----------------------------------------------------------------------------
+// Purpose: Changes weapon script by name
+//-----------------------------------------------------------------------------
+void CBaseCombatWeapon::SetCustomWeaponScriptName(const char* pszNewScript)
+{
 	//don't update if empty or already used this script
 	if (!pszNewScript || !pszNewScript[0] || FClassnameIs(this, pszNewScript))
 		return;
@@ -2145,7 +2151,7 @@ void CBaseCombatWeapon::InputChangeScript(inputdata_t& inputdata)
 
 		if (UsesClipsForAmmo2())
 			m_iClip2 = GetMaxClip2();
-		
+
 		return;
 	}
 
@@ -2157,7 +2163,7 @@ void CBaseCombatWeapon::InputChangeScript(inputdata_t& inputdata)
 
 		if (UsesClipsForAmmo2() && m_iClip2 > GetMaxClip2())
 			m_iClip2 = GetMaxClip2();
-		
+
 		return;
 	}
 }

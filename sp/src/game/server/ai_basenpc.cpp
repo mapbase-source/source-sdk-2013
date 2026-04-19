@@ -8051,7 +8051,30 @@ void CAI_BaseNPC::NPCInit ( void )
 	{	// Does this npc spawn with a weapon
 		if ( m_spawnEquipment != NULL_STRING && strcmp(STRING(m_spawnEquipment), "0"))
 		{
-			CBaseCombatWeapon *pWeapon = Weapon_Create( STRING(m_spawnEquipment) );
+			CBaseCombatWeapon *pWeapon;
+#ifdef MAPBASE
+			char szWeaponName[MAX_WEAPON_STRING] = "";
+			char szScriptName[MAX_WEAPON_STRING] = "";
+
+			//we can have a custom script name for the weapon on npc spawn, split by a comma
+			const char* pComma = strchr(m_spawnEquipment.ToCStr(), ',');
+			if (pComma)
+			{
+				size_t weaponLen = pComma - m_spawnEquipment.ToCStr();
+				if (weaponLen > 0 && weaponLen < sizeof(szWeaponName))
+				{
+					V_strncpy(szWeaponName, m_spawnEquipment.ToCStr(), weaponLen + 1);
+				}
+				V_strncpy(szScriptName, pComma + 1, sizeof(szScriptName));
+				Msg("Script %s\n", szScriptName);
+
+				m_spawnEquipment = MAKE_STRING(szWeaponName);
+				pWeapon = CBaseEntity::Create(szWeaponName, Vector(0, 0, 0), QAngle(0, 0, 0), this);
+			}
+			else
+#endif // MAPBASE
+				pWeapon = Weapon_Create( STRING(m_spawnEquipment) );
+				
 			if ( pWeapon )
 			{
 				// If I have a name, make my weapon match it with "_weapon" appended
@@ -8065,6 +8088,12 @@ void CAI_BaseNPC::NPCInit ( void )
 					// BUGBUG: if this NPC drops this weapon it will forevermore have no shadow
 					pWeapon->AddEffects( EF_NOSHADOW );
 				}
+
+#ifdef MAPBASE
+				//load script if not empty
+				if (szScriptName[0] != '\0')
+					pCombatWeapon->SetCustomWeaponScriptName(szScriptName);
+#endif // MAPBASE
 
 				Weapon_Equip( pWeapon );
 			}
