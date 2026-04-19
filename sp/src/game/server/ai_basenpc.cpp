@@ -8066,7 +8066,6 @@ void CAI_BaseNPC::NPCInit ( void )
 					V_strncpy(szWeaponName, m_spawnEquipment.ToCStr(), weaponLen + 1);
 				}
 				V_strncpy(szScriptName, pComma + 1, sizeof(szScriptName));
-				Msg("Script %s\n", szScriptName);
 
 				m_spawnEquipment = MAKE_STRING(szWeaponName);
 				pWeapon = CBaseEntity::Create(szWeaponName, Vector(0, 0, 0), QAngle(0, 0, 0), this);
