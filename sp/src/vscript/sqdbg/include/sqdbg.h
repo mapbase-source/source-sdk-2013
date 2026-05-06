@@ -60,8 +60,13 @@ SQDBG_API int sqdbg_listen_socket( HSQDEBUGSERVER dbg, unsigned short port );
 SQDBG_API void sqdbg_frame( HSQDEBUGSERVER dbg );
 
 // Copies the script to be able to source it to debugger clients
-SQDBG_API void sqdbg_on_script_compile( HSQDEBUGSERVER dbg, const SQChar *script, SQInteger size,
+SQDBG_API void sqdbg_on_script_compile( HSQDEBUGSERVER dbg,
+		const SQChar *script, SQInteger scriptlen,
 		const SQChar *sourcename, SQInteger sourcenamelen );
+
+// Check if a client is connected to the debugger
+// Returns 0 if there is no client connected
+SQDBG_API int sqdbg_is_client_connected( HSQDEBUGSERVER dbg );
 
 #ifdef __cplusplus
 }

@@ -315,6 +315,10 @@ public:
 	virtual bool			ShouldBlockPrimaryFire() { return false; }
 
 #ifdef CLIENT_DLL
+#ifdef MAPBASE
+	virtual bool			DispatchMuzzleEffect( const char *options, bool isFirstPerson );
+#endif
+
 	virtual void			CreateMove( float flInputSampleTime, CUserCmd *pCmd, const QAngle &vecOldViewAngles ) {}
 	virtual int				CalcOverrideModelIndex() OVERRIDE;
 #endif
@@ -427,12 +431,13 @@ public:
 	virtual bool			UsesClipsForAmmo2( void ) const;
 	bool					IsMeleeWeapon() const;
 #ifdef MAPBASE
-	float					GetViewmodelFOVOverride() const;
+	virtual float			GetViewmodelFOVOverride() const;
 	float					GetBobScale() const;
 	float					GetSwayScale() const;
 	float					GetSwaySpeedScale() const;
 	virtual const char		*GetDroppedModel( void ) const;
-	bool					UsesHands( void ) const;
+	virtual bool			UsesHands( void ) const;
+	virtual int				GetHandRig( void ) const;
 #endif
 
 	// derive this function if you mod uses encrypted weapon info files

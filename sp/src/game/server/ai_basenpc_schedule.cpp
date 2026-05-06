@@ -45,6 +45,10 @@ extern ConVar ai_use_think_optimizations;
 
 ConVar	ai_simulate_task_overtime( "ai_simulate_task_overtime", "0" );
 
+#ifdef MAPBASE
+ConVar	ai_enemy_memory_fixes( "ai_enemy_memory_fixes", "0", FCVAR_NONE, "Toggles Mapbase fixes for certain NPC AI not using enemy memory when it should." );
+#endif
+
 #define MAX_TASKS_RUN 10
 
 struct TaskTimings
@@ -276,6 +280,14 @@ void CAI_BaseNPC::NextScheduledTask ( void )
 void CAI_BaseNPC::BuildScheduleTestBits( void )
 {
 	//NOTENOTE: Always defined in the leaf classes
+	
+#ifdef MAPBASE_VSCRIPT
+	if (m_ScriptScope.IsInitialized() && g_Hook_BuildScheduleTestBits.CanRunInScope( m_ScriptScope ))
+	{
+		ScriptVariant_t functionReturn;
+		g_Hook_BuildScheduleTestBits.Call( m_ScriptScope, &functionReturn, NULL );
+	}
+#endif
 }
 
 
@@ -730,6 +742,23 @@ void CAI_BaseNPC::MaintainSchedule ( void )
 			AI_PROFILE_SCOPE_BEGIN_( pszTaskName );
 			AI_PROFILE_SCOPE_BEGIN(CAI_BaseNPC_StartTask);
 
+#ifdef MAPBASE_VSCRIPT
+			if (m_ScriptScope.IsInitialized() && g_Hook_StartTask.CanRunInScope( m_ScriptScope ))
+			{
+				// task, task_id, task_data
+				ScriptVariant_t functionReturn;
+				ScriptVariant_t args[] = { (bDebugTaskNames) ? pszTaskName : TaskName( pTask->iTask ), pTask->iTask, pTask->flTaskData };
+				if (g_Hook_StartTask.Call( m_ScriptScope, &functionReturn, args ))
+				{
+					// Returning false overrides original functionality
+					if (functionReturn.m_bool != false)
+						StartTask( pTask );
+				}
+				else
+					StartTask( pTask );
+			}
+			else
+#endif
 			StartTask( pTask );
 
 			AI_PROFILE_SCOPE_END();
@@ -766,6 +795,23 @@ void CAI_BaseNPC::MaintainSchedule ( void )
 				int j;
 				for (j = 0; j < 8; j++)
 				{
+#ifdef MAPBASE_VSCRIPT
+					if (m_ScriptScope.IsInitialized() && g_Hook_RunTask.CanRunInScope( m_ScriptScope ))
+					{
+						// task, task_id, task_data
+						ScriptVariant_t functionReturn;
+						ScriptVariant_t args[] = { (bDebugTaskNames) ? pszTaskName : TaskName( pTask->iTask ), pTask->iTask, pTask->flTaskData };
+						if (g_Hook_RunTask.Call( m_ScriptScope, &functionReturn, args ))
+						{
+							// Returning false overrides original functionality
+							if (functionReturn.m_bool != false)
+								RunTask( pTask );
+						}
+						else
+							RunTask( pTask );
+					}
+					else
+#endif
 					RunTask( pTask );
 
 					if ( GetTaskInterrupt() == 0 || TaskIsComplete() || HasCondition(COND_TASK_FAILED) )
@@ -918,7 +964,7 @@ void CAI_BaseNPC::StartTurn( float flDeltaYaw )
 {
 	float flCurrentYaw;
 	
-	flCurrentYaw = UTIL_AngleMod( GetLocalAngles().y );
+	flCurrentYaw = UTIL_AngleMod( GetAbsAngles().y );
 	GetMotor()->SetIdealYaw( UTIL_AngleMod( flCurrentYaw + flDeltaYaw ) );
 	SetTurnActivity();
 }
@@ -1111,7 +1157,7 @@ void CAI_BaseNPC::StartScriptMoveToTargetTask( int task )
 	{
 		TaskFail(FAIL_NO_TARGET);
 	}
-	else if ( (m_hTargetEnt->GetAbsOrigin() - GetLocalOrigin()).Length() < 1 )
+	else if ( (m_hTargetEnt->GetAbsOrigin() - GetAbsOrigin()).Length() < 1 )
 	{
 		TaskComplete();
 	}
@@ -1576,7 +1622,7 @@ void CAI_BaseNPC::StartTask( const Task_t *pTask )
 		break;
 
 	case TASK_SET_IDEAL_YAW_TO_CURRENT:
-		GetMotor()->SetIdealYaw( UTIL_AngleMod( GetLocalAngles().y ) );
+		GetMotor()->SetIdealYaw( UTIL_AngleMod( GetAbsAngles().y ) );
 		TaskComplete();
 		break;
 
@@ -1730,7 +1776,7 @@ void CAI_BaseNPC::StartTask( const Task_t *pTask )
 			{
 				TaskFail(FAIL_NO_TARGET);
 			}
-			else if ( (pTarget->GetAbsOrigin() - GetLocalOrigin()).Length() < 1 )
+			else if ( (pTarget->GetAbsOrigin() - GetAbsOrigin()).Length() < 1 )
 			{
 				TaskComplete();
 			}
@@ -1971,7 +2017,17 @@ void CAI_BaseNPC::StartTask( const Task_t *pTask )
 				flMaxRange = m_flDistTooFar;
 			}
 
+#ifdef MAPBASE
+			// By default, TASK_GET_PATH_TO_ENEMY_LKP_LOS acts identical to TASK_GET_PATH_TO_ENEMY_LOS.
+			// Considering the fact TASK_GET_PATH_TO_ENEMY_LKP doesn't use this code, this appears to be a mistake.
+			// In HL2, this task is used by Combine soldiers, metrocops, striders, and hunters.
+			// With this change, these NPCs will establish LOS according to enemy memory instead of where the enemy
+			// actually is. This may make the NPCs more consistent and fair, but their AI and levels built around it
+			// may have been designed around this bug, so this is currently being tied to a cvar.
+			Vector vecEnemy 	= ( task != TASK_GET_PATH_TO_ENEMY_LKP_LOS || !ai_enemy_memory_fixes.GetBool() ) ? GetEnemy()->GetAbsOrigin() : GetEnemyLKP();
+#else
 			Vector vecEnemy 	= ( task != TASK_GET_PATH_TO_ENEMY_LKP ) ? GetEnemy()->GetAbsOrigin() : GetEnemyLKP();
+#endif
 			Vector vecEnemyEye	= vecEnemy + GetEnemy()->GetViewOffset();
 
 			Vector posLos;
@@ -2965,7 +3021,7 @@ void CAI_BaseNPC::StartTask( const Task_t *pTask )
 		{
 			if ( m_hTargetEnt != NULL )
 			{
-				GetMotor()->SetIdealYaw( UTIL_AngleMod( m_hTargetEnt->GetLocalAngles().y ) );
+				GetMotor()->SetIdealYaw( UTIL_AngleMod( m_hTargetEnt->GetAbsAngles().y ) );
 			}
 
 			if ( m_scriptState != SCRIPT_CUSTOM_MOVE_TO_MARK )
@@ -3294,7 +3350,7 @@ void CAI_BaseNPC::RunTask( const Task_t *pTask )
 				pTarget = GetEnemy();
 			if ( pTarget )
 			{
-				GetMotor()->SetIdealYawAndUpdate( pTarget->GetAbsOrigin() - GetLocalOrigin() , AI_KEEP_YAW_SPEED );
+				GetMotor()->SetIdealYawAndUpdate( pTarget->GetAbsOrigin() - GetAbsOrigin(), AI_KEEP_YAW_SPEED );
 			}
 
 			if ( IsActivityFinished() )

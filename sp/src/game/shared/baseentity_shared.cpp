@@ -3033,7 +3033,7 @@ void CBaseEntity::ScriptSetContextThink( const char* szContext, HSCRIPT hFunc, f
 
 		float nextthink = gpGlobals->curtime + flTime;
 
-		pf->m_hfnThink = hFunc;
+		pf->m_hfnThink = g_pScriptVM->CopyObject( hFunc );
 		pf->m_flNextThink = nextthink;
 
 #ifdef GAME_DLL

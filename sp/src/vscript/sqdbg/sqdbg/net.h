@@ -602,6 +602,9 @@ public:
 
 	bool Listen()
 	{
+		if ( m_ServerSocket == INVALID_SOCKET )
+			return false;
+
 		timeval tv;
 		tv.tv_sec = 0;
 		tv.tv_usec = 0;
@@ -839,7 +842,7 @@ public:
 		m_pRecvBufPtr( m_pRecvBuf ),
 		m_bWSAInit( false )
 	{
-		Assert( sizeof(m_pRecvBuf) <= ( 1 << ( sizeof(CMessagePool::message_t::len) * 8 ) ) );
+		STATIC_ASSERT( sizeof(m_pRecvBuf) <= ( 1 << ( sizeof(CMessagePool::message_t::len) * 8 ) ) );
 	}
 };
 

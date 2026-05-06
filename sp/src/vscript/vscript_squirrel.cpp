@@ -115,7 +115,7 @@ public:
 	virtual bool Init() override;
 	virtual void Shutdown() override;
 
-	virtual bool ConnectDebugger( int port = 0 ) override;
+	virtual bool ConnectDebugger( int port = 0, float timeout = 0.0f ) override;
 	virtual void DisconnectDebugger() override;
 
 	virtual ScriptLanguage_t GetLanguage() override;
@@ -196,7 +196,7 @@ public:
 	// External instances. Note class will be auto-registered.
 	//--------------------------------------------------------
 
-	virtual HSCRIPT RegisterInstance(ScriptClassDesc_t* pDesc, void* pInstance, bool bAllowDestruct = false) override;
+	virtual HSCRIPT RegisterInstance(ScriptClassDesc_t* pDesc, void* pInstance, bool bRefCounted = false) override;
 	virtual void SetInstanceUniqeId(HSCRIPT hInstance, const char* pszId) override;
 	virtual void RemoveInstance(HSCRIPT hInstance) override;
 
@@ -227,6 +227,7 @@ public:
 
 	virtual void CreateArray(ScriptVariant_t &arr, int size = 0) override;
 	virtual bool ArrayAppend(HSCRIPT hArray, const ScriptVariant_t &val) override;
+	virtual HSCRIPT CopyObject(HSCRIPT obj) override;
 
 	//----------------------------------------------------------------------------
 
@@ -283,6 +284,14 @@ public:
 		WriteObject( (const SQObjectPtr&)obj, pBuffer, writeState );
 	}
 
+	void WriteObject( SQGenerator *pObj, CUtlBuffer* pBuffer, WriteStateMap& writeState )
+	{
+		SQObject obj;
+		obj._type = OT_GENERATOR;
+		obj._unVal.pUserPointer = pObj;
+		WriteObject( (const SQObjectPtr&)obj, pBuffer, writeState );
+	}
+
 	void ReadObject( SQObjectPtr &obj, CUtlBuffer* pBuffer, ReadStateMap& readState );
 
 	// Do not implicity add/remove ref
@@ -326,7 +335,16 @@ namespace SQVector
 		}
 
 		SQUserPointer p;
-		sq_getinstanceup(vm, 1, &p, 0);
+		if (SQ_FAILED(sq_getinstanceup(vm, 1, &p, 0)))
+		{
+			return SQ_ERROR;
+		}
+
+		if (!p)
+		{
+			return sq_throwerror(vm, "Accessed null instance");
+		}
+
 		new (p) Vector(x, y, z);
 
 		return 0;
@@ -342,7 +360,7 @@ namespace SQVector
 			return sq_throwerror(vm, "Expected Vector._get(string)");
 		}
 
-		if (key[0] < 'x' || key['0'] > 'z' || key[1] != '\0')
+		if (key[0] < 'x' || key[0] > 'z' || key[1] != '\0')
 		{
 			return sqstd_throwerrorf(vm, "the index '%.50s' does not exist", key);
 		}
@@ -368,7 +386,7 @@ namespace SQVector
 			return sq_throwerror(vm, "Expected Vector._set(string)");
 		}
 
-		if (key[0] < 'x' || key['0'] > 'z' || key[1] != '\0')
+		if (key[0] < 'x' || key[0] > 'z' || key[1] != '\0')
 		{
 			return sqstd_throwerrorf(vm, "the index '%.50s' does not exist", key);
 		}
@@ -1094,19 +1112,19 @@ namespace SQVector
 
 struct ClassInstanceData
 {
-	ClassInstanceData(void* instance, ScriptClassDesc_t* desc, const char* instanceId = nullptr, bool allowDestruct = false) :
+	ClassInstanceData(void* instance, ScriptClassDesc_t* desc, const char* instanceId = nullptr, bool refCounted = false) :
 		instance(instance),
 		desc(desc),
 		instanceId(instanceId),
-		allowDestruct(allowDestruct)
+		refCounted(refCounted)
 	{}
 
 	void* instance;
 	ScriptClassDesc_t* desc;
 	CUtlConstString instanceId;
 
-	// Indicates this game-created instance is a weak reference and can be destructed (Blixibon)
-	bool allowDestruct;
+	// keep for setting instance release hook in save/restore
+	bool refCounted;
 };
 
 bool CreateParamCheck(const ScriptFunctionBinding_t& func, char* output)
@@ -1232,6 +1250,8 @@ bool getVariant(HSQUIRRELVM vm, SQInteger idx, ScriptVariant_t& variant)
 	{
 	case OT_NULL:
 	{
+		variant.Free();
+		variant.m_flags = 0;
 		// TODO: Should this be (HSCRIPT)nullptr
 		variant.m_type = FIELD_VOID;
 		return true;
@@ -1243,6 +1263,7 @@ bool getVariant(HSQUIRRELVM vm, SQInteger idx, ScriptVariant_t& variant)
 		{
 			return false;
 		}
+		variant.Free();
 		variant = (int)val;
 		return true;
 	}
@@ -1253,6 +1274,7 @@ bool getVariant(HSQUIRRELVM vm, SQInteger idx, ScriptVariant_t& variant)
 		{
 			return false;
 		}
+		variant.Free();
 		variant = (float)val;
 		return true;
 	}
@@ -1263,6 +1285,7 @@ bool getVariant(HSQUIRRELVM vm, SQInteger idx, ScriptVariant_t& variant)
 		{
 			return false;
 		}
+		variant.Free();
 		variant = val ? true : false;
 		return true;
 	}
@@ -1274,7 +1297,8 @@ bool getVariant(HSQUIRRELVM vm, SQInteger idx, ScriptVariant_t& variant)
 		{
 			return false;
 		}
-		char* buffer = new char[size + 1];
+		variant.Free();
+		char* buffer = (char*)malloc(size + 1);
 		V_memcpy(buffer, val, size);
 		buffer[size] = 0;
 		variant = buffer;
@@ -1284,12 +1308,11 @@ bool getVariant(HSQUIRRELVM vm, SQInteger idx, ScriptVariant_t& variant)
 	case OT_INSTANCE:
 	{
 		Vector* v = nullptr;
-		SQUserPointer tag;
-		if (SQ_SUCCEEDED(sq_gettypetag(vm, idx, &tag)) &&
-			tag == TYPETAG_VECTOR &&
-			SQ_SUCCEEDED(sq_getinstanceup(vm, idx, (SQUserPointer*)&v, TYPETAG_VECTOR)))
+		if (SQ_SUCCEEDED(sq_getinstanceup(vm, idx, (SQUserPointer*)&v, TYPETAG_VECTOR)))
 		{
-			variant = new Vector(*v);
+			variant.Free();
+			variant = (Vector*)malloc(sizeof(Vector));
+			variant.EmplaceAllocedVector(*v);
 			variant.m_flags |= SV_FREE;
 			return true;
 		}
@@ -1297,6 +1320,7 @@ bool getVariant(HSQUIRRELVM vm, SQInteger idx, ScriptVariant_t& variant)
 	}
 	default:
 	{
+		variant.Free();
 		HSQOBJECT* obj = new HSQOBJECT;
 		sq_resetobject(obj);
 		sq_getstackobj(vm, idx, obj);
@@ -1313,14 +1337,13 @@ SQInteger function_stub(HSQUIRRELVM vm)
 {
 	SQInteger top = sq_gettop(vm);
 
-	SQUserPointer userptr = nullptr;
-	sq_getuserpointer(vm, top, &userptr);
+	ScriptFunctionBinding_t* pFunc = nullptr;
+	sq_getuserpointer(vm, top, (SQUserPointer*)&pFunc);
 
-	Assert(userptr);
+	Assert(pFunc);
 
-	ScriptFunctionBinding_t* pFunc = (ScriptFunctionBinding_t*)userptr;
-
-	auto nargs = pFunc->m_desc.m_Parameters.Count();
+	int nargs = pFunc->m_desc.m_Parameters.Count();
+	int nLastHScriptIdx = -1;
 
 	if (nargs > top)
 	{
@@ -1397,9 +1420,10 @@ SQInteger function_stub(HSQUIRRELVM vm)
 			{
 				HSQOBJECT* pObject = new HSQOBJECT;
 				*pObject = val;
-				sq_addref(vm, pObject);
 				params[i] = (HSCRIPT)pObject;
 			}
+
+			nLastHScriptIdx = i;
 			break;
 		}
 		default:
@@ -1412,46 +1436,98 @@ SQInteger function_stub(HSQUIRRELVM vm)
 
 	if (pFunc->m_flags & SF_MEMBER_FUNC)
 	{
-		SQUserPointer self;
-		sq_getinstanceup(vm, 1, &self, nullptr);
+		ClassInstanceData* classInstanceData;
+		if (SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&classInstanceData, 0)))
+		{
+			return SQ_ERROR;
+		}
 
-		if (!self)
+		if (!classInstanceData)
 		{
 			return sq_throwerror(vm, "Accessed null instance");
 		}
 
-		instance = ((ClassInstanceData*)self)->instance;
+		// check that the type of self, or any basetype, matches the function description
+		ScriptClassDesc_t *selfType = classInstanceData->desc;
+		while (selfType != pFunc->m_desc.m_pScriptClassDesc)
+		{
+			if (!selfType)
+			{
+				return sq_throwerror(vm, "Mismatched instance type");
+			}
+			selfType = selfType->m_pBaseDesc;
+			Assert(selfType != classInstanceData->desc); // there should be no infinite loop
+		}
+
+		instance = classInstanceData->instance;
 	}
 
-	ScriptVariant_t retval;
+	ScriptVariant_t script_retval;
+	ScriptVariantTemporaryStorage_t script_retval_storage;
 
 	SquirrelVM* pSquirrelVM = (SquirrelVM*)sq_getsharedforeignptr(vm);
 	Assert(pSquirrelVM);
 
-	sq_resetobject(&pSquirrelVM->lastError_);
+	bool call_success = (*pFunc->m_pfnBinding)(pFunc->m_pFunction, instance, params.Base(), nargs,
+		pFunc->m_desc.m_ReturnType == FIELD_VOID ? nullptr : &script_retval, script_retval_storage);
+	Assert(call_success);
+	(void)call_success;
 
-	(*pFunc->m_pfnBinding)(pFunc->m_pFunction, instance, params.Base(), nargs,
-		pFunc->m_desc.m_ReturnType == FIELD_VOID ? nullptr : &retval);
-
+	SQInteger sq_retval;
 	if (!sq_isnull(pSquirrelVM->lastError_))
 	{
 		sq_pushobject(vm, pSquirrelVM->lastError_);
+		sq_release(vm, &pSquirrelVM->lastError_);
 		sq_resetobject(&pSquirrelVM->lastError_);
-		return sq_throwobject(vm);
+		sq_retval = sq_throwobject(vm);
+	}
+	else
+	{
+		Assert(script_retval.m_type == pFunc->m_desc.m_ReturnType);
+		Assert( ( pFunc->m_desc.m_ReturnType != FIELD_VOID ) || !( pFunc->m_flags & SF_REFCOUNTED_RET ) );
+
+		if (pFunc->m_desc.m_ReturnType != FIELD_VOID)
+		{
+			PushVariant(vm, script_retval);
+
+			if ( ( pFunc->m_flags & SF_REFCOUNTED_RET ) && script_retval.m_hScript )
+			{
+				Assert( script_retval.m_type == FIELD_HSCRIPT );
+
+				// Release the intermediary ref held from RegisterInstance
+				sq_release(vm, (HSQOBJECT*)script_retval.m_hScript);
+				delete (HSQOBJECT*)script_retval.m_hScript;
+			}
+
+			sq_retval = 1;
+		}
+		else
+		{
+			sq_retval = 0;
+		}
 	}
 
-	PushVariant(vm, retval);
+	// strings never get copied here, Vector and QAngle are stored in script_retval_storage
+	// everything else is stored inline, so there should be no memory to free
+	Assert(!(script_retval.m_flags & SV_FREE));
 
-	if (retval.m_type == FIELD_VECTOR)
-		delete retval.m_pVector;
+	for ( int i = 0; i <= nLastHScriptIdx; ++i )
+	{
+		if ( pFunc->m_desc.m_Parameters[i] == FIELD_HSCRIPT )
+			delete (HSQOBJECT*)params[i].m_hScript;
+	}
 
-	return pFunc->m_desc.m_ReturnType != FIELD_VOID;
+	return sq_retval;
 }
 
 
 SQInteger destructor_stub(SQUserPointer p, SQInteger size)
 {
 	auto classInstanceData = (ClassInstanceData*)p;
+
+	// if instance is not deleted, then it's leaking
+	// this should never happen
+	Assert( classInstanceData->desc->m_pfnDestruct );
 
 	if (classInstanceData->desc->m_pfnDestruct)
 		classInstanceData->desc->m_pfnDestruct(classInstanceData->instance);
@@ -1463,7 +1539,7 @@ SQInteger destructor_stub(SQUserPointer p, SQInteger size)
 SQInteger destructor_stub_instance(SQUserPointer p, SQInteger size)
 {
 	auto classInstanceData = (ClassInstanceData*)p;
-	// We don't call destructor here because this is owned by the game
+	// This instance is owned by the game, don't delete it
 	classInstanceData->~ClassInstanceData();
 	return 0;
 }
@@ -1471,32 +1547,42 @@ SQInteger destructor_stub_instance(SQUserPointer p, SQInteger size)
 SQInteger constructor_stub(HSQUIRRELVM vm)
 {
 	ScriptClassDesc_t* pClassDesc = nullptr;
-	sq_gettypetag(vm, 1, (SQUserPointer*)&pClassDesc);
+	if (SQ_FAILED(sq_gettypetag(vm, 1, (SQUserPointer*)&pClassDesc)))
+	{
+		return sq_throwerror(vm, "Expected native class");
+	}
+
+	if (!pClassDesc || (void*)pClassDesc == TYPETAG_VECTOR)
+	{
+		return sq_throwerror(vm, "Unable to obtain native class description");
+	}
 
 	if (!pClassDesc->m_pfnConstruct)
 	{
 		return sqstd_throwerrorf(vm, "Unable to construct instances of %s", pClassDesc->m_pszScriptName);
 	}
 
-	SquirrelVM* pSquirrelVM = (SquirrelVM*)sq_getsharedforeignptr(vm);
-	Assert(pSquirrelVM);
+	SQUserPointer p;
+	if (SQ_FAILED(sq_getinstanceup(vm, 1, &p, 0)))
+	{
+		return SQ_ERROR;
+	}
 
-	sq_resetobject(&pSquirrelVM->lastError_);
+	if (!p)
+	{
+		return sq_throwerror(vm, "Accessed null instance");
+	}
 
 	void* instance = pClassDesc->m_pfnConstruct();
 
-	if (!sq_isnull(pSquirrelVM->lastError_))
-	{
-		sq_pushobject(vm, pSquirrelVM->lastError_);
-		sq_resetobject(&pSquirrelVM->lastError_);
-		return sq_throwobject(vm);
-	}
+#ifdef DBGFLAG_ASSERT
+	SquirrelVM* pSquirrelVM = (SquirrelVM*)sq_getsharedforeignptr(vm);
+	Assert(pSquirrelVM);
+	// expect construction to always succeed
+	Assert(sq_isnull(pSquirrelVM->lastError_));
+#endif
 
-	{
-		SQUserPointer p;
-		sq_getinstanceup(vm, 1, &p, 0);
-		new(p) ClassInstanceData(instance, pClassDesc, nullptr, true);
-	}
+	new(p) ClassInstanceData(instance, pClassDesc, nullptr, true);
 
 	sq_setreleasehook(vm, 1, &destructor_stub);
 
@@ -1506,7 +1592,10 @@ SQInteger constructor_stub(HSQUIRRELVM vm)
 SQInteger tostring_stub(HSQUIRRELVM vm)
 {
 	ClassInstanceData* classInstanceData = nullptr;
-	sq_getinstanceup(vm, 1, (SQUserPointer*)&classInstanceData, 0);
+	if (SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&classInstanceData, 0)))
+	{
+		return SQ_ERROR;
+	}
 
 	char buffer[128] = "";
 
@@ -1536,7 +1625,10 @@ SQInteger tostring_stub(HSQUIRRELVM vm)
 SQInteger get_stub(HSQUIRRELVM vm)
 {
 	ClassInstanceData* classInstanceData = nullptr;
-	sq_getinstanceup(vm, 1, (SQUserPointer*)&classInstanceData, 0);
+	if (SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&classInstanceData, 0)))
+	{
+		return SQ_ERROR;
+	}
 
 	const char* key = nullptr;
 	sq_getstring(vm, 2, &key);
@@ -1547,25 +1639,43 @@ SQInteger get_stub(HSQUIRRELVM vm)
 	}
 
 	ScriptVariant_t var;
+	SQInteger sq_retval = 0;
 	if (classInstanceData &&
 		classInstanceData->instance &&
 		classInstanceData->desc->pHelper &&
 		classInstanceData->desc->pHelper->Get(classInstanceData->instance, key, var))
 	{
 		PushVariant(vm, var);
+		sq_retval = 1;
 	}
 	else
 	{
-		return sqstd_throwerrorf(vm, "the index '%.50s' does not exist", key);
+		// Fallback
+		// Extra stack variables don't need to be popped, they are cleaned up on exit
+		sq_pushroottable(vm);
+		sq_push(vm, -2);
+
+		if ( SQ_SUCCEEDED( sq_rawget(vm, -2) ) )
+		{
+			sq_retval = 1;
+		}
+		else
+		{
+			sq_retval = sqstd_throwerrorf(vm, "the index '%.50s' does not exist", key);
+		}
 	}
 
-	return 1;
+	var.Free();
+	return sq_retval;
 }
 
 SQInteger set_stub(HSQUIRRELVM vm)
 {
 	ClassInstanceData* classInstanceData = nullptr;
-	sq_getinstanceup(vm, 1, (SQUserPointer*)&classInstanceData, 0);
+	if (SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&classInstanceData, 0)))
+	{
+		return SQ_ERROR;
+	}
 
 	const char* key = nullptr;
 	sq_getstring(vm, 2, &key);
@@ -1576,122 +1686,35 @@ SQInteger set_stub(HSQUIRRELVM vm)
 	}
 
 	ScriptVariant_t var;
+	SQInteger sq_retval = 0;
 	getVariant( vm, -1, var );
 
-	if (classInstanceData &&
+	if (!(
+		classInstanceData &&
 		classInstanceData->instance &&
 		classInstanceData->desc->pHelper &&
-		classInstanceData->desc->pHelper->Set(classInstanceData->instance, key, var))
+		classInstanceData->desc->pHelper->Set(classInstanceData->instance, key, var)
+	))
 	{
-		sq_pop(vm, 1);
-	}
-	else
-	{
-		sq_pop(vm, 1);
-		return sqstd_throwerrorf(vm, "the index '%.50s' does not exist", key);
-	}
+		// Fallback
+		sq_pushroottable(vm);
+		sq_push(vm, -3);
+		sq_push(vm, -3);
 
-	return 0;
-}
-
-SQInteger add_stub(HSQUIRRELVM vm)
-{
-	ClassInstanceData* classInstanceData = nullptr;
-	sq_getinstanceup(vm, 1, (SQUserPointer*)&classInstanceData, 0);
-
-	ScriptVariant_t var;
-	getVariant( vm, 1, var );
-
-	if (classInstanceData &&
-		classInstanceData->instance &&
-		classInstanceData->desc->pHelper)
-	{
-		ScriptVariant_t *result = classInstanceData->desc->pHelper->Add( classInstanceData->instance, var );
-		if (result != nullptr)
+		if ( SQ_SUCCEEDED( sq_rawset(vm, -3) ) )
 		{
-			PushVariant( vm, *result );
+			// rawset doesn't return correctly, pop env to return val
 			sq_pop(vm, 1);
-			return 1;
+			sq_retval = 1;
+		}
+		else
+		{
+			sq_retval = sqstd_throwerrorf(vm, "the index '%.50s' does not exist", key);
 		}
 	}
 
-	sq_pop(vm, 1);
-	return sqstd_throwerrorf(vm, "invalid arith op +");
-}
-
-SQInteger sub_stub(HSQUIRRELVM vm)
-{
-	ClassInstanceData* classInstanceData = nullptr;
-	sq_getinstanceup(vm, 1, (SQUserPointer*)&classInstanceData, 0);
-
-	ScriptVariant_t var;
-	getVariant( vm, 1, var );
-
-	if (classInstanceData &&
-		classInstanceData->instance &&
-		classInstanceData->desc->pHelper)
-	{
-		ScriptVariant_t *result = classInstanceData->desc->pHelper->Subtract( classInstanceData->instance, var );
-		if (result != nullptr)
-		{
-			PushVariant( vm, *result );
-			sq_pop(vm, 1);
-			return 1;
-		}
-	}
-
-	sq_pop(vm, 1);
-	return sqstd_throwerrorf(vm, "invalid arith op -");
-}
-
-SQInteger mul_stub(HSQUIRRELVM vm)
-{
-	ClassInstanceData* classInstanceData = nullptr;
-	sq_getinstanceup(vm, 1, (SQUserPointer*)&classInstanceData, 0);
-
-	ScriptVariant_t var;
-	getVariant( vm, 1, var );
-
-	if (classInstanceData &&
-		classInstanceData->instance &&
-		classInstanceData->desc->pHelper )
-	{
-		ScriptVariant_t *result = classInstanceData->desc->pHelper->Add( classInstanceData->instance, var );
-		if (result != nullptr)
-		{
-			PushVariant( vm, *result );
-			sq_pop(vm, 1);
-			return 1;
-		}
-	}
-
-	sq_pop(vm, 1);
-	return sqstd_throwerrorf(vm, "invalid arith op *");
-}
-
-SQInteger div_stub(HSQUIRRELVM vm)
-{
-	ClassInstanceData* classInstanceData = nullptr;
-	sq_getinstanceup(vm, 1, (SQUserPointer*)&classInstanceData, 0);
-
-	ScriptVariant_t var;
-	getVariant( vm, 1, var );
-
-	if (classInstanceData &&
-		classInstanceData->instance &&
-		classInstanceData->desc->pHelper )
-	{
-		ScriptVariant_t *result = classInstanceData->desc->pHelper->Add( classInstanceData->instance, var );
-		if (result != nullptr)
-		{
-			PushVariant( vm, *result );
-			sq_pop(vm, 1);
-			return 1;
-		}
-	}
-
-	sq_pop(vm, 1);
-	return sqstd_throwerrorf(vm, "invalid arith op /");
+	var.Free();
+	return sq_retval;
 }
 
 SQInteger IsValid_stub(HSQUIRRELVM vm)
@@ -2101,17 +2124,26 @@ void SquirrelVM::Shutdown()
 
 bool VScriptRunScript( const char *pszScriptName, HSCRIPT hScope, bool bWarnMissing );
 
-bool SquirrelVM::ConnectDebugger( int port )
+bool SquirrelVM::ConnectDebugger( int port, float timeout )
 {
 	if ( !debugger_ )
 	{
 		debugger_ = sqdbg_attach_debugger( vm_ );
 
-		if ( sqdbg_listen_socket( debugger_, port ) != 0 )
+		if ( sqdbg_listen_socket( debugger_, port ) == 0 && timeout )
 		{
-			sqdbg_destroy_debugger( vm_ );
-			debugger_ = nullptr;
-			return false;
+			float startTime = Plat_FloatTime();
+
+			while ( !sqdbg_is_client_connected( debugger_ ) )
+			{
+				float time = Plat_FloatTime();
+				if ( time - startTime > timeout )
+					break;
+
+				ThreadSleep( 50 );
+
+				sqdbg_frame( debugger_ );
+			}
 		}
 	}
 	else
@@ -2479,6 +2511,7 @@ void SquirrelVM::RegisterFunction(ScriptFunctionBinding_t* pScriptFunction)
 		return;
 
 	char typemask[64];
+	Assert(pScriptFunction->m_desc.m_Parameters.Count() < sizeof(typemask));
 	if (!CreateParamCheck(*pScriptFunction, typemask))
 	{
 		return;
@@ -2556,29 +2589,16 @@ bool SquirrelVM::RegisterClass(ScriptClassDesc_t* pClassDesc)
 	sq_newclosure(vm_, tostring_stub, 0);
 	sq_newslot(vm_, -3, SQFalse);
 
-	sq_pushstring(vm_, "_get", -1);
-	sq_newclosure(vm_, get_stub, 0);
-	sq_newslot(vm_, -3, SQFalse);
+	if ( pClassDesc->pHelper )
+	{
+		sq_pushstring(vm_, "_get", -1);
+		sq_newclosure(vm_, get_stub, 0);
+		sq_newslot(vm_, -3, SQFalse);
 
-	sq_pushstring(vm_, "_set", -1);
-	sq_newclosure(vm_, set_stub, 0);
-	sq_newslot(vm_, -3, SQFalse);
-
-	sq_pushstring(vm_, "_add", -1);
-	sq_newclosure(vm_, add_stub, 0);
-	sq_newslot(vm_, -3, SQFalse);
-
-	sq_pushstring(vm_, "_sub", -1);
-	sq_newclosure(vm_, sub_stub, 0);
-	sq_newslot(vm_, -3, SQFalse);
-
-	sq_pushstring(vm_, "_mul", -1);
-	sq_newclosure(vm_, mul_stub, 0);
-	sq_newslot(vm_, -3, SQFalse);
-
-	sq_pushstring(vm_, "_div", -1);
-	sq_newclosure(vm_, div_stub, 0);
-	sq_newslot(vm_, -3, SQFalse);
+		sq_pushstring(vm_, "_set", -1);
+		sq_newclosure(vm_, set_stub, 0);
+		sq_newslot(vm_, -3, SQFalse);
+	}
 
 	sq_pushstring(vm_, "IsValid", -1);
 	sq_newclosure(vm_, IsValid_stub, 0);
@@ -2598,6 +2618,7 @@ bool SquirrelVM::RegisterClass(ScriptClassDesc_t* pClassDesc)
 		auto& scriptFunction = pClassDesc->m_FunctionBindings[i];
 
 		char typemask[64];
+		Assert(scriptFunction.m_desc.m_Parameters.Count() < sizeof(typemask));
 		if (!CreateParamCheck(scriptFunction, typemask))
 		{
 			Warning("Unable to create param check for %s.%s\n",
@@ -2716,7 +2737,7 @@ void SquirrelVM::RegisterHook(ScriptHook_t* pHookDesc)
 	RegisterHookDocumentation(vm_, pHookDesc, pHookDesc->m_desc, nullptr);
 }
 
-HSCRIPT SquirrelVM::RegisterInstance(ScriptClassDesc_t* pDesc, void* pInstance, bool bAllowDestruct)
+HSCRIPT SquirrelVM::RegisterInstance(ScriptClassDesc_t* pDesc, void* pInstance, bool bRefCounted)
 {
 	SquirrelSafeCheck safeCheck(vm_);
 
@@ -2738,15 +2759,19 @@ HSCRIPT SquirrelVM::RegisterInstance(ScriptClassDesc_t* pDesc, void* pInstance, 
 	}
 
 	{
-		SQUserPointer p;
-		sq_getinstanceup(vm_, -1, &p, 0);
-		new(p) ClassInstanceData(pInstance, pDesc, nullptr, bAllowDestruct);
+		ClassInstanceData *self;
+		sq_getinstanceup(vm_, -1, (SQUserPointer*)&self, 0);
+		new(self) ClassInstanceData(pInstance, pDesc, nullptr, bRefCounted);
+
+		// can't delete the instance if it doesn't have a destructor
+		// if the instance doesn't have a constructor,
+		// the class needs to register the destructor with DEFINE_SCRIPT_REFCOUNTED_INSTANCE()
+		Assert( !bRefCounted || self->desc->m_pfnDestruct );
 	}
 
-	sq_setreleasehook(vm_, -1, bAllowDestruct ? &destructor_stub : &destructor_stub_instance);
+	sq_setreleasehook(vm_, -1, bRefCounted ? &destructor_stub : &destructor_stub_instance);
 
 	HSQOBJECT* obj = new HSQOBJECT;
-	sq_resetobject(obj);
 	sq_getstackobj(vm_, -1, obj);
 	sq_addref(vm_, obj);
 	sq_pop(vm_, 3);
@@ -2762,10 +2787,8 @@ void SquirrelVM::SetInstanceUniqeId(HSCRIPT hInstance, const char* pszId)
 	HSQOBJECT* obj = (HSQOBJECT*)hInstance;
 	sq_pushobject(vm_, *obj);
 
-	SQUserPointer self;
-	sq_getinstanceup(vm_, -1, &self, nullptr);
-
-	auto classInstanceData = (ClassInstanceData*)self;
+	ClassInstanceData* classInstanceData;
+	sq_getinstanceup(vm_, -1, (SQUserPointer*)&classInstanceData, nullptr);
 
 	classInstanceData->instanceId = pszId;
 
@@ -2774,22 +2797,22 @@ void SquirrelVM::SetInstanceUniqeId(HSCRIPT hInstance, const char* pszId)
 
 void SquirrelVM::RemoveInstance(HSCRIPT hInstance)
 {
+	if (!hInstance)
+		return;
+
 	SquirrelSafeCheck safeCheck(vm_);
 
-	if (!hInstance) return;
 	HSQOBJECT* obj = (HSQOBJECT*)hInstance;
+	ClassInstanceData *self;
+
 	sq_pushobject(vm_, *obj);
-
-	SQUserPointer self;
-	sq_getinstanceup(vm_, -1, &self, nullptr);
-
-	((ClassInstanceData*)self)->~ClassInstanceData();
-
+	sq_getinstanceup(vm_, -1, (SQUserPointer*)&self, nullptr);
 	sq_setinstanceup(vm_, -1, nullptr);
 	sq_setreleasehook(vm_, -1, nullptr);
 	sq_pop(vm_, 1);
-
 	sq_release(vm_, obj);
+
+	self->~ClassInstanceData();
 	delete obj;
 }
 
@@ -2823,11 +2846,10 @@ void* SquirrelVM::GetInstanceValue(HSCRIPT hInstance, ScriptClassDesc_t* pExpect
 	}
 
 	sq_pushobject(vm_, *obj);
-	SQUserPointer self;
-	sq_getinstanceup(vm_, -1, &self, nullptr);
+	ClassInstanceData* classInstanceData;
+	sq_getinstanceup(vm_, -1, (SQUserPointer*)&classInstanceData, nullptr);
 	sq_pop(vm_, 1);
 
-	auto classInstanceData = (ClassInstanceData*)self;
 
 	if (!classInstanceData)
 	{
@@ -3138,6 +3160,7 @@ void SquirrelVM::ReleaseValue(ScriptVariant_t& value)
 
 	// Let's prevent this being called again and giving some UB
 	value.m_type = FIELD_VOID;
+	value.m_flags = 0;
 }
 
 bool SquirrelVM::ClearValue(HSCRIPT hScope, const char* pszKey)
@@ -3220,6 +3243,17 @@ bool SquirrelVM::ArrayAppend(HSCRIPT hArray, const ScriptVariant_t &val)
 	sq_pop(vm_, 1);
 
 	return ret;
+}
+
+HSCRIPT SquirrelVM::CopyObject(HSCRIPT obj)
+{
+	if ( !obj )
+		return NULL;
+
+	HSQOBJECT *ret = new HSQOBJECT;
+	*ret = *(HSQOBJECT*)obj;
+	sq_addref( vm_, ret );
+	return (HSCRIPT)ret;
 }
 
 //-------------------------------------------------------------
@@ -3407,7 +3441,8 @@ void SquirrelVM::WriteObject( const SQObjectPtr &obj, CUtlBuffer* pBuffer, Write
 #ifdef _DEBUG
 		bool bAsserted = false;
 
-		if ( pThis->_noutervalues && pThis->_name._type == OT_STRING && pThis->_name._unVal.pString )
+		if ( pThis->_noutervalues && pThis->_name._type == OT_STRING && pThis->_name._unVal.pString &&
+				pThis->_outervalues[0]._type == OT_USERPOINTER )
 		{
 			Assert( pThis->_noutervalues == 1 );
 			Assert( pThis->_outervalues[0]._type == OT_USERPOINTER );
@@ -3651,7 +3686,7 @@ void SquirrelVM::WriteObject( const SQObjectPtr &obj, CUtlBuffer* pBuffer, Write
 					{
 						Assert( strlen(pData->instanceId.Get()) < NATIVE_NAME_READBUF_SIZE );
 						pBuffer->PutString( pData->instanceId );
-						pBuffer->PutChar( pData->allowDestruct ? 1 : 0 );
+						pBuffer->PutChar( pData->refCounted ? 1 : 0 );
 					}
 					else
 					{
@@ -3710,23 +3745,25 @@ void SquirrelVM::WriteObject( const SQObjectPtr &obj, CUtlBuffer* pBuffer, Write
 
 		if ( pThis->_callsstacksize )
 		{
-			int stackidx = -1;
-
-			for ( int i = pThis->_callsstacksize; i--; )
+			for ( int i = 0; i < pThis->_callsstacksize; i++ )
 			{
 				const SQVM::CallInfo *ci = &pThis->_callsstack[i];
 
-				if ( pThis->ci == ci )
-					stackidx = i;
-
-				Assert( !ci->_generator );
-				Assert( ci->_ip && ci->_ip >= ci->_closure._unVal.pClosure->_function->_instructions );
+				Assert( ci->_ip >= ci->_closure._unVal.pClosure->_function->_instructions &&
+						ci->_ip < ci->_closure._unVal.pClosure->_function->_instructions +
+							ci->_closure._unVal.pClosure->_function->_ninstructions );
 				Assert( pThis->_etraps.size() >= (SQUnsignedInteger)ci->_etraps );
 				Assert( ci->_closure._type == OT_CLOSURE && ci->_closure._unVal.pClosure );
 
 				WriteObject( ci->_closure, pBuffer, writeState );
 
-				int offset = (int)ci->_ip - (int)ci->_closure._unVal.pClosure->_function->_instructions;
+				Assert( ci->_ip - ci->_closure._unVal.pClosure->_function->_instructions <= INT_MAX );
+
+				pBuffer->PutChar( ci->_generator != 0 );
+				if ( ci->_generator )
+					WriteObject( ci->_generator, pBuffer, writeState );
+
+				int offset = ci->_ip - ci->_closure._unVal.pClosure->_function->_instructions;
 				pBuffer->PutInt( offset );
 				pBuffer->PutInt( ci->_etraps );
 				pBuffer->PutInt( ci->_prevstkbase );
@@ -3735,16 +3772,18 @@ void SquirrelVM::WriteObject( const SQObjectPtr &obj, CUtlBuffer* pBuffer, Write
 				pBuffer->PutInt( ci->_ncalls );
 				pBuffer->PutChar( ci->_root );
 
-				for ( int j = ci->_etraps; j--; )
+				for ( int j = 0; j < ci->_etraps; j++ )
 				{
 					const SQExceptionTrap &et = pThis->_etraps[j];
-					pBuffer->PutInt( et._extarget );
-					pBuffer->PutInt( et._stackbase );
 					pBuffer->PutInt( et._stacksize );
-					Assert( et._ip == ci->_ip );
+					pBuffer->PutInt( et._stackbase );
+					Assert( et._ip - ci->_ip <= INT_MAX );
+					pBuffer->PutInt( et._ip - ci->_ip );
+					pBuffer->PutInt( et._extarget );
 				}
 			}
 
+			int stackidx = pThis->ci - pThis->_callsstack;
 			Assert( stackidx >= 0 && stackidx < pThis->_callsstacksize );
 			pBuffer->PutInt( stackidx );
 		}
@@ -3775,29 +3814,37 @@ void SquirrelVM::WriteObject( const SQObjectPtr &obj, CUtlBuffer* pBuffer, Write
 
 		WriteObject( pThis->_closure, pBuffer, writeState );
 
-		const SQVM::CallInfo &ci = pThis->_ci;
+		const SQVM::CallInfo *ci = &pThis->_ci;
 
-		Assert( !ci._generator );
-		Assert( pThis->_closure._unVal.pClosure == ci._closure._unVal.pClosure );
-		Assert( ci._ip && ci._ip >= ci._closure._unVal.pClosure->_function->_instructions );
-		Assert( pThis->_etraps.size() >= (SQUnsignedInteger)ci._etraps );
+		Assert( pThis->_closure._unVal.pClosure == ci->_closure._unVal.pClosure );
+		Assert( ci->_ip >= ci->_closure._unVal.pClosure->_function->_instructions &&
+				ci->_ip < ci->_closure._unVal.pClosure->_function->_instructions +
+					ci->_closure._unVal.pClosure->_function->_ninstructions );
+		Assert( pThis->_etraps.size() >= (SQUnsignedInteger)ci->_etraps );
 
-		int offset = (int)ci._ip - (int)ci._closure._unVal.pClosure->_function->_instructions;
+		Assert( ci->_ip - ci->_closure._unVal.pClosure->_function->_instructions <= INT_MAX );
+
+		pBuffer->PutChar( ci->_generator != 0 );
+		if ( ci->_generator )
+			WriteObject( ci->_generator, pBuffer, writeState );
+
+		int offset = ci->_ip - ci->_closure._unVal.pClosure->_function->_instructions;
 		pBuffer->PutInt( offset );
-		pBuffer->PutInt( ci._etraps );
-		pBuffer->PutInt( ci._prevstkbase );
-		pBuffer->PutInt( ci._prevtop );
-		pBuffer->PutInt( ci._target );
-		pBuffer->PutInt( ci._ncalls );
-		pBuffer->PutChar( ci._root );
+		pBuffer->PutInt( ci->_etraps );
+		pBuffer->PutInt( ci->_prevstkbase );
+		pBuffer->PutInt( ci->_prevtop );
+		pBuffer->PutInt( ci->_target );
+		pBuffer->PutInt( ci->_ncalls );
+		pBuffer->PutChar( ci->_root );
 
-		for ( int j = ci._etraps; j--; )
+		for ( int j = 0; j < ci->_etraps; j++ )
 		{
 			const SQExceptionTrap &et = pThis->_etraps[j];
-			pBuffer->PutInt( et._extarget );
-			pBuffer->PutInt( et._stackbase );
 			pBuffer->PutInt( et._stacksize );
-			Assert( et._ip == ci._ip );
+			pBuffer->PutInt( et._stackbase );
+			Assert( et._ip - ci->_ip <= INT_MAX );
+			pBuffer->PutInt( et._ip - ci->_ip );
+			pBuffer->PutInt( et._extarget );
 		}
 
 		int stacksize = pThis->_stack.size();
@@ -3811,7 +3858,6 @@ void SquirrelVM::WriteObject( const SQObjectPtr &obj, CUtlBuffer* pBuffer, Write
 	}
 	case OT_USERDATA:
 	case OT_USERPOINTER:
-		Assert(0);
 		break;
 	default:
 		AssertMsgAlways( 0, "SquirrelVM::WriteObject: unknown type" );
@@ -3855,26 +3901,10 @@ void SquirrelVM::ReadObject( SQObjectPtr &pObj, CUtlBuffer* pBuffer, ReadStateMa
 	case OT_STRING:
 	{
 		int len = pBuffer->GetInt();
-		char *psz;
-
-		if ( len < 1024 )
-		{
-			psz = (char*)stackalloc( len );
-		}
-		else
-		{
-			psz = (char*)malloc( len );
-		}
-
-		pBuffer->Get( psz, len );
-
+		char *psz = (char*)pBuffer->PeekGet( 0 );
+		pBuffer->SeekGet( CUtlBuffer::SEEK_CURRENT, len );
+		Assert( pBuffer->IsValid() );
 		obj._unVal.pString = SQString::Create( _ss(vm_), psz, len );
-
-		if ( len >= 1024 )
-		{
-			free( psz );
-		}
-
 		break;
 	}
 	case OT_TABLE:
@@ -4262,7 +4292,7 @@ void SquirrelVM::ReadObject( SQObjectPtr &pObj, CUtlBuffer* pBuffer, ReadStateMa
 
 				if ( pszInstanceName[0] )
 				{
-					bool allowDestruct = ( pBuffer->GetChar() != 0 );
+					bool refCounted = ( pBuffer->GetChar() != 0 );
 
 					HSQOBJECT *hInstance = new HSQOBJECT;
 					hInstance->_type = OT_INSTANCE;
@@ -4274,8 +4304,8 @@ void SquirrelVM::ReadObject( SQObjectPtr &pObj, CUtlBuffer* pBuffer, ReadStateMa
 					if ( pInstance )
 					{
 						sq_addref( vm_, hInstance );
-						new( pThis->_userpointer ) ClassInstanceData( pInstance, pDesc, pszInstanceName, allowDestruct );
-						pThis->_hook = allowDestruct ? &destructor_stub : &destructor_stub_instance;
+						new( pThis->_userpointer ) ClassInstanceData( pInstance, pDesc, pszInstanceName, refCounted );
+						pThis->_hook = refCounted ? &destructor_stub : &destructor_stub_instance;
 					}
 					else
 					{
@@ -4360,10 +4390,10 @@ void SquirrelVM::ReadObject( SQObjectPtr &pObj, CUtlBuffer* pBuffer, ReadStateMa
 
 		if ( pThis->_callsstacksize )
 		{
-			if ( pThis->_callsstacksize >= pThis->_alloccallsstacksize )
+			while ( pThis->_callsstacksize >= pThis->_alloccallsstacksize )
 				pThis->GrowCallStack();
 
-			for ( int i = pThis->_callsstacksize; i--; )
+			for ( int i = 0; i < pThis->_callsstacksize; i++ )
 			{
 				SQVM::CallInfo *ci = &pThis->_callsstack[i];
 
@@ -4371,23 +4401,31 @@ void SquirrelVM::ReadObject( SQObjectPtr &pObj, CUtlBuffer* pBuffer, ReadStateMa
 				ReadObject( closure, pBuffer, readState );
 				Assert( closure._type == OT_CLOSURE && closure._unVal.pClosure );
 
-				int offset = pBuffer->GetInt();
-				int funcsize = sizeof(SQInstruction) * closure._unVal.pClosure->_function->_ninstructions;
-				int start = (int)(closure._unVal.pClosure->_function->_instructions);
-				int pos = start + offset;
-				ci->_ip = (SQInstruction*)pos;
-
-				Assert( pos < (start + funcsize) );
-
-				// don't read past boundary
-				if ( pos >= (start + funcsize) )
+				if ( pBuffer->GetChar() )
 				{
-					ci->_ip = (SQInstruction*)start;
+					SQObject generator;
+					ReadObject( generator, pBuffer, readState );
+					Assert( generator._type == OT_GENERATOR && generator._unVal.pGenerator );
+					ci->_generator = generator._unVal.pGenerator;
+				}
+				else
+				{
+					ci->_generator = NULL;
 				}
 
+				int offset = pBuffer->GetInt();
+				SQInstruction *start = closure._unVal.pClosure->_function->_instructions;
+				SQInstruction *end = start + closure._unVal.pClosure->_function->_ninstructions;
+				SQInstruction *pos = start + offset;
+
+				Assert( pos >= start && pos < end );
+
+				if ( pos < start || pos >= end )
+					pos = start;
+
+				ci->_ip = pos;
 				ci->_literals = closure._unVal.pClosure->_function->_literals;
 				ci->_closure = closure;
-				ci->_generator = NULL;
 				ci->_etraps = pBuffer->GetInt();
 				ci->_prevstkbase = pBuffer->GetInt();
 				ci->_prevtop = pBuffer->GetInt();
@@ -4397,13 +4435,13 @@ void SquirrelVM::ReadObject( SQObjectPtr &pObj, CUtlBuffer* pBuffer, ReadStateMa
 
 				pThis->_etraps.resize( ci->_etraps );
 
-				for ( int j = ci->_etraps; j--; )
+				for ( int j = 0; j < ci->_etraps; j++ )
 				{
 					SQExceptionTrap &et = pThis->_etraps[j];
-					et._extarget = pBuffer->GetInt();
-					et._stackbase = pBuffer->GetInt();
 					et._stacksize = pBuffer->GetInt();
-					et._ip = ci->_ip;
+					et._stackbase = pBuffer->GetInt();
+					et._ip = ci->_ip + pBuffer->GetInt();
+					et._extarget = pBuffer->GetInt();
 				}
 			}
 
@@ -4450,41 +4488,49 @@ void SquirrelVM::ReadObject( SQObjectPtr &pObj, CUtlBuffer* pBuffer, ReadStateMa
 
 		pThis->_state = (SQGenerator::SQGeneratorState)state;
 
-		SQVM::CallInfo &ci = pThis->_ci;
+		SQVM::CallInfo *ci = &pThis->_ci;
 
-		int offset = pBuffer->GetInt();
-		int funcsize = sizeof(SQInstruction) * closure._unVal.pClosure->_function->_ninstructions;
-		int start = (int)(closure._unVal.pClosure->_function->_instructions);
-		int pos = start + offset;
-		ci._ip = (SQInstruction*)pos;
-
-		Assert( pos < (start + funcsize) );
-
-		// don't read past boundary
-		if ( pos >= (start + funcsize) )
+		if ( pBuffer->GetChar() )
 		{
-			ci._ip = (SQInstruction*)start;
+			SQObject generator;
+			ReadObject( generator, pBuffer, readState );
+			Assert( generator._type == OT_GENERATOR && generator._unVal.pGenerator );
+			ci->_generator = generator._unVal.pGenerator;
+		}
+		else
+		{
+			ci->_generator = NULL;
 		}
 
-		ci._literals = closure._unVal.pClosure->_function->_literals;
-		ci._closure = closure;
-		ci._generator = NULL;
-		ci._etraps = pBuffer->GetInt();
-		ci._prevstkbase = pBuffer->GetInt();
-		ci._prevtop = pBuffer->GetInt();
-		ci._target = pBuffer->GetInt();
-		ci._ncalls = pBuffer->GetInt();
-		ci._root = pBuffer->GetChar();
+		int offset = pBuffer->GetInt();
+		SQInstruction *start = closure._unVal.pClosure->_function->_instructions;
+		SQInstruction *end = start + closure._unVal.pClosure->_function->_ninstructions;
+		SQInstruction *pos = start + offset;
 
-		pThis->_etraps.resize( ci._etraps );
+		Assert( pos >= start && pos < end );
 
-		for ( int j = ci._etraps; j--; )
+		if ( pos < start || pos >= end )
+			pos = start;
+
+		ci->_ip = pos;
+		ci->_literals = closure._unVal.pClosure->_function->_literals;
+		ci->_closure = closure;
+		ci->_etraps = pBuffer->GetInt();
+		ci->_prevstkbase = pBuffer->GetInt();
+		ci->_prevtop = pBuffer->GetInt();
+		ci->_target = pBuffer->GetInt();
+		ci->_ncalls = pBuffer->GetInt();
+		ci->_root = pBuffer->GetChar();
+
+		pThis->_etraps.resize( ci->_etraps );
+
+		for ( int j = 0; j < ci->_etraps; j++ )
 		{
 			SQExceptionTrap &et = pThis->_etraps[j];
-			et._extarget = pBuffer->GetInt();
-			et._stackbase = pBuffer->GetInt();
 			et._stacksize = pBuffer->GetInt();
-			et._ip = ci._ip;
+			et._stackbase = pBuffer->GetInt();
+			et._ip = ci->_ip + pBuffer->GetInt();
+			et._extarget = pBuffer->GetInt();
 		}
 
 		int stacksize = pBuffer->GetInt();
@@ -4498,10 +4544,7 @@ void SquirrelVM::ReadObject( SQObjectPtr &pObj, CUtlBuffer* pBuffer, ReadStateMa
 	}
 	case OT_USERDATA:
 	case OT_USERPOINTER:
-	{
-		Assert(0);
 		break;
-	}
 	default:
 		AssertMsgAlways( 0, "SquirrelVM::ReadObject: serialisation error" );
 	}

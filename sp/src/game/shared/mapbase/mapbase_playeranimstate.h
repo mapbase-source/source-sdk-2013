@@ -14,8 +14,8 @@
 // 
 //=============================================================================//
 
-#ifndef SINGLEPLAYER_ANIMSTATE_H
-#define SINGLEPLAYER_ANIMSTATE_H
+#ifndef MAPBASE_PLAYERANIMSTATE_H
+#define MAPBASE_PLAYERANIMSTATE_H
 #ifdef _WIN32
 #pragma once
 #endif
@@ -34,10 +34,10 @@
 #define SP_ANIM_STATE 1
 #endif
 
-class CSinglePlayerAnimState : public CBasePlayerAnimState
+class CMapbasePlayerAnimState : public CBasePlayerAnimState
 {
 public:
-    CSinglePlayerAnimState( CBasePlayer *pPlayer );
+    CMapbasePlayerAnimState( CBasePlayer *pPlayer );
     
 	Activity CalcMainActivity();
 	int CalcAimLayerSequence( float *flCycle, float *flAimSequenceWeight, bool bForceIdle );
@@ -49,9 +49,15 @@ public:
 	void ComputeSequences( CStudioHdr *pStudioHdr );
 
 	void AddMiscSequence( int iSequence, float flBlendIn = 0.0f, float flBlendOut = 0.0f, float flPlaybackRate = 1.0f, bool bHoldAtEnd = false, bool bOnlyWhenStill = false );
+	
+	void StartWeaponRelax();
+	void StopWeaponRelax();
 
     void ClearAnimationState();
     void ClearAnimationLayers();
+
+	inline bool IsJumping() const { return m_bJumping; }
+	inline bool IsDuckJumping() const { return m_bDuckJumping; }
 
 private:
 
@@ -60,12 +66,18 @@ private:
 	void ComputeFireSequence();
 	void ComputeReloadSequence();
 	void ComputeWeaponSwitchSequence();
+	void ComputeRelaxSequence();
 	void ComputeMiscSequence();
 
 	void UpdateLayerSequenceGeneric( int iLayer, bool &bEnabled, float &flCurCycle,
 									int &iSequence, bool bWaitAtEnd,
-									float fBlendIn=0.15f, float fBlendOut=0.15f, bool bMoveBlend = false, 
+									float fBlendIn=0.0f, float fBlendOut=0.0f, bool bMoveBlend = false, 
 									float fPlaybackRate=1.0f, bool bUpdateCycle = true );
+
+	bool			ShouldUseAimPoses() const;
+	float			GetAimPoseBlend() const;
+
+	float			SetOuterBodyYaw( float flValue );
 
     void                ComputePoseParam_BodyYaw( void );
     void                ComputePoseParam_BodyPitch( CStudioHdr *pStudioHdr );
@@ -76,6 +88,7 @@ private:
 
     // Current state variables.
     bool m_bJumping;			// Set on a jump event.
+    bool m_bDuckJumping;		// Jump started while ducking
     float m_flJumpStartTime;
     bool m_bFirstJumpFrame;
 
@@ -90,6 +103,9 @@ private:
 	float m_flWeaponSwitchCycle;
 	int m_iWeaponSwitchSequence;
 
+	bool m_bWeaponRelaxing;
+	float m_flWeaponRelaxAmount;
+
 	bool m_bPlayingMisc;
 	float m_flMiscCycle, m_flMiscBlendOut, m_flMiscBlendIn;
 	int m_iMiscSequence;
@@ -103,8 +119,10 @@ private:
 										// until it completes.
 	int m_iFireSequence;				// (For any sequences in the fire layer, including grenade throw).
 	float m_flFireCycle;
+
+	int m_nPoseAimYaw, m_nPoseAimPitch, m_nPoseHeadPitch, m_nPoseWeaponLower;
 };
 
-CSinglePlayerAnimState *CreatePlayerAnimationState( CBasePlayer *pPlayer );
+CMapbasePlayerAnimState *CreatePlayerAnimationState( CBasePlayer *pPlayer );
 
-#endif // SINGLEPLAYER_ANIMSTATE_H
+#endif // MAPBASE_PLAYERANIMSTATE_H

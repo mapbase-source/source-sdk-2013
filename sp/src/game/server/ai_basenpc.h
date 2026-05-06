@@ -1104,7 +1104,7 @@ public:
 	virtual void		OnLooked( int iDistance );
 	virtual void		OnListened();
 
-	virtual void		OnSeeEntity( CBaseEntity *pEntity ) {}
+	virtual void		OnSeeEntity( CBaseEntity *pEntity );
 
 	// If true, AI will try to see this entity regardless of distance.
 	virtual bool		ShouldNotDistanceCull() { return false; }
@@ -1180,6 +1180,11 @@ public:
 
 	void				SetDeathPose( const int &iDeathPose ) { m_iDeathPose = iDeathPose; }
 	void				SetDeathPoseFrame( const int &iDeathPoseFrame ) { m_iDeathFrame = iDeathPoseFrame; }
+
+#ifdef MAPBASE
+	int					GetDeathPose() { return m_iDeathPose; }
+	int					GetDeathPoseFrame() { return m_iDeathFrame; }
+#endif
 	
 	void				SelectDeathPose( const CTakeDamageInfo &info );
 	virtual bool		ShouldPickADeathPose( void ) { return true; }
@@ -1271,9 +1276,24 @@ private:
 	void				VScriptSetEnemy( HSCRIPT pEnemy );
 	Vector				VScriptGetEnemyLKP();
 
-	HSCRIPT				VScriptFindEnemyMemory( HSCRIPT pEnemy );
+	int					VScriptNumEnemies();
+
+	HSCRIPT				VScriptGetFirstEnemyMemory();
+	HSCRIPT				VScriptGetNextEnemyMemory( HSCRIPT hMemory );
+
+	HSCRIPT				VScriptFindEnemyMemory( HSCRIPT hEnemy );
+	bool				VScriptUpdateEnemyMemory( HSCRIPT hEnemy, const Vector &position, HSCRIPT hInformer );
+	void				VScriptClearEnemyMemory( HSCRIPT hEnemy );
+
+	void				VScriptSetFreeKnowledgeDuration( float flDuration );
+	void				VScriptSetEnemyDiscardTime( float flDuration );
 
 	int					VScriptGetState();
+	int					VScriptGetIdealState();
+	void				VScriptSetIdealState( int nNPCState );
+
+	HSCRIPT				VScriptGetTarget();
+	void				VScriptSetTarget( HSCRIPT hTarget );
 
 	void				VScriptWake( HSCRIPT hActivator ) { Wake( ToEnt(hActivator) ); }
 	void				VScriptSleep() { Sleep(); }
@@ -1308,12 +1328,29 @@ private:
 	void				VScriptSetCondition( const char *szCondition ) { SetCondition( GetConditionID( szCondition ) ); }
 	void				VScriptClearCondition( const char *szCondition ) { ClearCondition( GetConditionID( szCondition ) ); }
 
+	void				VScriptSetCustomInterruptCondition( const char *szCondition ) { SetCustomInterruptCondition( GetConditionID( szCondition ) ); }
+	bool				VScriptIsCustomInterruptConditionSet( const char *szCondition ) { return IsCustomInterruptConditionSet( GetConditionID( szCondition ) ); }
+	void				VScriptClearCustomInterruptCondition( const char *szCondition ) { ClearCustomInterruptCondition( GetConditionID( szCondition ) ); }
+
+	void				VScriptChainStartTask( const char *szTask, float flTaskData ) { ChainStartTask( AI_RemapFromGlobal( GetTaskID( szTask ) ), flTaskData ); }
+	void				VScriptChainRunTask( const char *szTask, float flTaskData ) { ChainRunTask( AI_RemapFromGlobal( GetTaskID( szTask ) ), flTaskData ); }
+	void				VScriptFailTask( const char *szFailReason ) { TaskFail( szFailReason ); }
+	void				VScriptCompleteTask() { TaskComplete(); }
+	int					VScriptGetTaskStatus() { return (int)GetTaskStatus(); }
+
 	HSCRIPT				VScriptGetExpresser();
 
 	HSCRIPT				VScriptGetCine();
 	int					GetScriptState() { return m_scriptState; }
 
 	HSCRIPT				VScriptGetSquad();
+
+	HSCRIPT				VScriptGetBestSound( int validTypes );
+	HSCRIPT				VScriptGetFirstHeardSound();
+	HSCRIPT				VScriptGetNextHeardSound( HSCRIPT hSound );
+
+	HSCRIPT				VScriptGetFirstSeenEntity( int nSeenType );
+	HSCRIPT				VScriptGetNextSeenEntity( HSCRIPT hEnt, int nSeenType );
 #endif
 
 	//-----------------------------------------------------
@@ -2399,6 +2436,14 @@ public:
 	static ScriptHook_t	g_Hook_GetActualShootPosition;
 	static ScriptHook_t	g_Hook_OverrideMove;
 	static ScriptHook_t	g_Hook_ShouldPlayFakeSequenceGesture;
+	static ScriptHook_t	g_Hook_IsValidEnemy;
+	static ScriptHook_t	g_Hook_CanBeAnEnemyOf;
+	static ScriptHook_t	g_Hook_UpdateEnemyMemory;
+	static ScriptHook_t	g_Hook_OnSeeEntity;
+	static ScriptHook_t	g_Hook_OnListened;
+	static ScriptHook_t	g_Hook_BuildScheduleTestBits;
+	static ScriptHook_t	g_Hook_StartTask;
+	static ScriptHook_t	g_Hook_RunTask;
 #endif
 
 private:

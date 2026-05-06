@@ -38,6 +38,11 @@ ConVar sk_combine_guard_kick( "sk_combine_guard_kick", "0");
 ConVar combine_guard_spawn_health( "combine_guard_spawn_health", "1" );
 
 extern ConVar sk_plr_dmg_buckshot;	
+
+#ifdef MAPBASE
+	ConVar sk_combine_head_dmg_multiplier( "sk_combine_head_dmg_multiplier", "2" );
+#endif
+
 extern ConVar sk_plr_num_shotgun_pellets;
 
 //Whether or not the combine should spawn health on death
@@ -222,8 +227,14 @@ float CNPC_CombineS::GetHitgroupDamageMultiplier( int iHitGroup, const CTakeDama
 	{
 	case HITGROUP_HEAD:
 		{
+			
+#ifdef MAPBASE
+			// Now you can change the multiplier of headshot damage in console!
+			return sk_combine_head_dmg_multiplier.GetFloat();
+#else
 			// Soldiers take double headshot damage
 			return 2.0f;
+#endif
 		}
 	}
 

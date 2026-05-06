@@ -33,6 +33,8 @@ END_DATADESC()
 
 #ifdef MAPBASE_VSCRIPT
 BEGIN_SCRIPTDESC_ROOT( CTakeDamageInfo, "Damage information handler." )
+	DEFINE_SCRIPT_REFCOUNTED_INSTANCE()
+
 	DEFINE_SCRIPTFUNC_NAMED( ScriptGetInflictor, "GetInflictor", "Gets the inflictor." )
 	DEFINE_SCRIPTFUNC_NAMED( ScriptSetInflictor, "SetInflictor", "Sets the inflictor." )
 	DEFINE_SCRIPTFUNC_NAMED( ScriptGetWeapon, "GetWeapon", "Gets the weapon." )

@@ -58,6 +58,7 @@
 #ifdef MAPBASE
 #include "triggers.h"
 #include "mapbase/variant_tools.h"
+#include "mapbase/protagonist_system.h"
 #endif
 
 // memdbgon must be the last include file in a .cpp file!!!
@@ -121,6 +122,7 @@ ConVar player_autoswitch_enabled( "player_autoswitch_enabled", "1", FCVAR_NONE, 
 
 #ifdef SP_ANIM_STATE
 ConVar hl2_use_sp_animstate( "hl2_use_sp_animstate", "1", FCVAR_NONE, "Allows SP HL2 players to use HL2:DM animations for custom player models. (changes may not apply until model is reloaded)" );
+ConVar player_process_scene_events( "player_process_scene_events", "1", FCVAR_NONE, "Allows players to process scene events." );
 #endif
 
 #endif
@@ -267,6 +269,7 @@ public:
 	void InputSetHandModelBodyGroup( inputdata_t &inputdata );
 
 	void InputSetPlayerModel( inputdata_t &inputdata );
+	void InputSetPlayerDrawLegs( inputdata_t &inputdata );
 	void InputSetPlayerDrawExternally( inputdata_t &inputdata );
 #endif
 
@@ -591,6 +594,8 @@ BEGIN_DATADESC( CHL2_Player )
 	DEFINE_INPUTFUNC( FIELD_VOID, "DisableGeigerCounter", InputDisableGeigerCounter ),
 	DEFINE_INPUTFUNC( FIELD_VOID, "ShowSquadHUD", InputShowSquadHUD ),
 	DEFINE_INPUTFUNC( FIELD_VOID, "HideSquadHUD", InputHideSquadHUD ),
+
+	DEFINE_INPUTFUNC( FIELD_STRING, "SetProtagonist", InputSetProtagonist ),
 #endif
 
 	DEFINE_SOUNDPATCH( m_sndLeeches ),
@@ -604,6 +609,10 @@ BEGIN_DATADESC( CHL2_Player )
 	DEFINE_FIELD( m_hLocatorTargetEntity, FIELD_EHANDLE ),
 
 	DEFINE_FIELD( m_flTimeNextLadderHint, FIELD_TIME ),
+
+#ifdef MAPBASE
+	DEFINE_KEYFIELD( m_iszProtagonistName, FIELD_STRING, "ProtagonistName" ),
+#endif
 
 	//DEFINE_FIELD( m_hPlayerProxy, FIELD_EHANDLE ), //Shut up class check!
 
@@ -623,6 +632,9 @@ BEGIN_ENT_SCRIPTDESC( CHL2_Player, CBasePlayer, "The HL2 player entity." )
 	DEFINE_SCRIPTFUNC( RemoveCustomSuitDevice, "Removes a custom suit device ID. (1-3)" )
 	DEFINE_SCRIPTFUNC( IsCustomSuitDeviceActive, "Checks if a custom suit device is active." )
 
+	DEFINE_SCRIPTFUNC( GetProtagonistName, "Gets the player's protagonist name." )
+	DEFINE_SCRIPTFUNC( SetProtagonist, "Sets the player's protagonist entry." )
+
 #ifdef SP_ANIM_STATE
 	DEFINE_SCRIPTFUNC( AddAnimStateLayer, "Adds a custom sequence index as a misc. layer for the singleplayer anim state, wtih parameters for blending in/out, setting the playback rate, holding the animation at the end, and only playing when the player is still." )
 #endif
@@ -638,6 +650,10 @@ CHL2_Player::CHL2_Player()
 
 	m_flArmorReductionTime = 0.0f;
 	m_iArmorReductionFrom = 0;
+
+#ifdef MAPBASE
+	m_nProtagonistIndex = -1;
+#endif
 }
 
 //
@@ -672,8 +688,12 @@ CSuitPowerDevice SuitDeviceCustom[] =
 IMPLEMENT_SERVERCLASS_ST(CHL2_Player, DT_HL2_Player)
 	SendPropDataTable(SENDINFO_DT(m_HL2Local), &REFERENCE_SEND_TABLE(DT_HL2Local), SendProxy_SendLocalDataTable),
 	SendPropBool( SENDINFO(m_fIsSprinting) ),
+#ifdef MAPBASE
+	SendPropInt( SENDINFO( m_nProtagonistIndex ), 8, SPROP_UNSIGNED ),
+#endif
 #ifdef SP_ANIM_STATE
 	SendPropFloat( SENDINFO(m_flAnimRenderYaw), 0, SPROP_NOSCALE ),
+	SendPropFloat( SENDINFO(m_flAnimRenderZ), 0, SPROP_NOSCALE ),
 #endif
 END_SEND_TABLE()
 
@@ -1166,6 +1186,18 @@ void CHL2_Player::PostThink( void )
 		m_pPlayerAnimState->Update( angEyeAngles.y, angEyeAngles.x );
 
 		m_flAnimRenderYaw.Set( m_pPlayerAnimState->GetRenderAngles().y );
+
+		if (m_pPlayerAnimState->IsJumping() && !m_pPlayerAnimState->IsDuckJumping())
+		{
+			m_flAnimRenderZ.Set( -(GetViewOffset().z) );
+		}
+		else
+			m_flAnimRenderZ.Set( 0.0f );
+
+		if (player_process_scene_events.GetBool())
+		{
+			ProcessSceneEvents();
+		}
 	}
 #endif
 }
@@ -1244,6 +1276,11 @@ void CHL2_Player::Activate( void )
 #endif
 
 	GetPlayerProxy();
+
+#ifdef MAPBASE
+	if (m_iszProtagonistName != NULL_STRING)
+		SetProtagonist( STRING( m_iszProtagonistName ) );
+#endif
 }
 
 //------------------------------------------------------------------------------
@@ -1483,7 +1520,10 @@ CStudioHdr *CHL2_Player::OnNewModel()
 }
 
 extern char g_szDefaultPlayerModel[MAX_PATH];
+extern bool g_bDefaultPlayerLegs;
 extern bool g_bDefaultPlayerDrawExternally;
+
+extern char g_szDefaultProtagonist[MAX_PROTAGONIST_NAME];
 #endif
 
 //-----------------------------------------------------------------------------
@@ -1515,7 +1555,14 @@ void CHL2_Player::Spawn(void)
 		RemoveEffects( EF_NODRAW );
 	}
 
+	SetDrawPlayerLegs( g_bDefaultPlayerLegs );
 	SetDrawPlayerModelExternally( g_bDefaultPlayerDrawExternally );
+
+	if (m_iszProtagonistName == NULL_STRING && *g_szDefaultProtagonist)
+		m_iszProtagonistName = MAKE_STRING( g_szDefaultProtagonist );
+	
+	if (m_iszProtagonistName != NULL_STRING)
+		SetProtagonist( STRING( m_iszProtagonistName ) );
 #endif
 
 	//
@@ -3349,6 +3396,11 @@ void CHL2_Player::Weapon_Equip( CBaseCombatWeapon *pWeapon )
 	if( GetActiveWeapon() == NULL )
 	{
 		m_HL2Local.m_bWeaponLowered = false;
+
+#ifdef SP_ANIM_STATE
+		if (m_pPlayerAnimState)
+			m_pPlayerAnimState->StopWeaponRelax();
+#endif
 	}
 
 	BaseClass::Weapon_Equip( pWeapon );
@@ -3754,6 +3806,11 @@ bool CHL2_Player::Weapon_Lower( void )
 
 	m_HL2Local.m_bWeaponLowered = true;
 
+#ifdef SP_ANIM_STATE
+	if (m_pPlayerAnimState)
+		m_pPlayerAnimState->StartWeaponRelax();
+#endif
+
 	CBaseCombatWeapon *pWeapon = dynamic_cast<CBaseCombatWeapon *>(GetActiveWeapon());
 
 	if ( pWeapon == NULL )
@@ -3775,6 +3832,11 @@ bool CHL2_Player::Weapon_Ready( void )
 		return true;
 
 	m_HL2Local.m_bWeaponLowered = false;
+
+#ifdef SP_ANIM_STATE
+	if (m_pPlayerAnimState)
+		m_pPlayerAnimState->StopWeaponRelax();
+#endif
 
 	CBaseCombatWeapon *pWeapon = dynamic_cast<CBaseCombatWeapon *>(GetActiveWeapon());
 
@@ -3989,6 +4051,21 @@ void CHL2_Player::OnRestore()
 {
 	BaseClass::OnRestore();
 	m_pPlayerAISquad = g_AI_SquadManager.FindCreateSquad(AllocPooledString(PLAYER_SQUADNAME));
+
+#ifdef SP_ANIM_STATE
+	if ( m_pPlayerAnimState == NULL )
+	{
+		if ( GetModelPtr() && GetModelPtr()->HaveSequenceForActivity(ACT_HL2MP_IDLE) && hl2_use_sp_animstate.GetBool() )
+		{
+			// Here we create and init the player animation state.
+			m_pPlayerAnimState = CreatePlayerAnimationState(this);
+		}
+		else
+		{
+			m_flAnimRenderYaw = FLT_MAX;
+		}
+	}
+#endif
 }
 
 //---------------------------------------------------------
@@ -4039,6 +4116,10 @@ bool CHL2_Player::Weapon_Switch( CBaseCombatWeapon *pWeapon, int viewmodelindex 
 	{
 		StopZooming();
 	}
+
+#ifdef MAPBASE
+	RefreshProtagonistWeaponData( pWeapon );
+#endif
 
 	return BaseClass::Weapon_Switch( pWeapon, viewmodelindex );
 }
@@ -4435,6 +4516,144 @@ bool CHL2_Player::IsCustomSuitDeviceActive( int iDeviceID )
 
 	return SuitPower_IsDeviceActive( SuitDeviceCustom[iDeviceID] );
 }
+
+//-----------------------------------------------------------------------------
+// Purpose: Gets our protagonist name, if we have one
+//-----------------------------------------------------------------------------
+const char *CHL2_Player::GetProtagonistName() const
+{
+	return STRING( m_iszProtagonistName );
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: Gets our protagonist index, if we have one
+//-----------------------------------------------------------------------------
+int CHL2_Player::GetProtagonistIndex() const
+{
+	return m_nProtagonistIndex;
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: Sets our protagonist to the specified entry
+//-----------------------------------------------------------------------------
+void CHL2_Player::InputSetProtagonist( inputdata_t &inputdata )
+{
+	SetProtagonist( inputdata.value.String() );
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: Sets our protagonist to the specified entry
+//-----------------------------------------------------------------------------
+void CHL2_Player::SetProtagonist( const char *pszProtagonist )
+{
+	if (!pszProtagonist || !*pszProtagonist)
+	{
+		ResetProtagonist();
+		return;
+	}
+
+	int nIndex = g_ProtagonistSystem.FindProtagonistIndex( pszProtagonist );
+	if (nIndex == -1)
+	{
+		Warning( "\"%s\" is not a valid protagonist\n", pszProtagonist );
+		return;
+	}
+
+	if (m_nProtagonistIndex != -1)
+	{
+		// Flush any pre-existing data
+		ResetProtagonist();
+	}
+	
+	m_nProtagonistIndex = nIndex;
+	m_iszProtagonistName = AllocPooledString( pszProtagonist );
+
+	RefreshProtagonistData();
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: Resets protagonist data
+//-----------------------------------------------------------------------------
+void CHL2_Player::ResetProtagonist()
+{
+	SetModel( g_szDefaultPlayerModel );
+	m_nSkin = 0;
+	m_nBody = 0;
+
+	CBaseViewModel *vm = GetViewModel( 1 );
+	if (vm)
+	{
+		extern char g_szDefaultHandsModel[MAX_PATH];
+		vm->SetWeaponModel( g_szDefaultHandsModel, NULL );
+
+		vm->m_nSkin = 0;
+		vm->m_nBody = 0;
+	}
+
+	// RemoveContext will automatically remove contexts by name, regardless of how values are specified
+	char szContexts[128] = { 0 };
+	g_ProtagonistSystem.GetProtagonist_ResponseContexts( this, szContexts, sizeof( szContexts ) );
+	if (szContexts[0])
+		RemoveContext( szContexts );
+
+	m_iszProtagonistName = NULL_STRING;
+	m_nProtagonistIndex = -1;
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: Refreshes protagonist data
+//-----------------------------------------------------------------------------
+void CHL2_Player::RefreshProtagonistData()
+{
+	if (m_nProtagonistIndex == -1)
+		return;
+
+	g_ProtagonistSystem.PrecacheProtagonist( this, m_nProtagonistIndex );
+
+	const char *pszProtagModel = g_ProtagonistSystem.GetProtagonist_PlayerModel( this );
+	if (pszProtagModel)
+		SetModel( pszProtagModel );
+
+	m_nSkin = g_ProtagonistSystem.GetProtagonist_PlayerModelSkin( this );
+	m_nBody = g_ProtagonistSystem.GetProtagonist_PlayerModelBody( this );
+
+	char szContexts[128] = { 0 };
+	g_ProtagonistSystem.GetProtagonist_ResponseContexts( this, szContexts, sizeof( szContexts ) );
+	if (szContexts[0])
+		AddContext( szContexts );
+
+	RefreshProtagonistWeaponData( GetActiveWeapon() );
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: Refreshes protagonist data
+//-----------------------------------------------------------------------------
+void CHL2_Player::RefreshProtagonistWeaponData( CBaseCombatWeapon *pWeapon )
+{
+	if (m_nProtagonistIndex == -1)
+		return;
+
+	CBaseViewModel *vm = GetViewModel( 1 );
+	if (vm)
+	{
+		const char *pszHandModel = g_ProtagonistSystem.GetProtagonist_HandModel( this, pWeapon );
+		if (pszHandModel)
+		{
+			vm->SetWeaponModel( pszHandModel, NULL );
+
+			vm->m_nSkin = g_ProtagonistSystem.GetProtagonist_HandModelSkin( this, pWeapon );
+			vm->m_nBody = g_ProtagonistSystem.GetProtagonist_HandModelBody( this, pWeapon );
+		}
+		else
+		{
+			extern char g_szDefaultHandsModel[MAX_PATH];
+			vm->SetWeaponModel( g_szDefaultHandsModel, NULL );
+
+			vm->m_nSkin = 0;
+			vm->m_nBody = 0;
+		}
+	}
+}
 #endif
 
 //-----------------------------------------------------------------------------
@@ -4594,6 +4813,7 @@ BEGIN_DATADESC( CLogicPlayerProxy )
 	DEFINE_INPUTFUNC( FIELD_INTEGER, "SetHandModelSkin", InputSetHandModelSkin ),
 	DEFINE_INPUTFUNC( FIELD_INTEGER, "SetHandModelBodyGroup", InputSetHandModelBodyGroup ),
 	DEFINE_INPUTFUNC( FIELD_STRING,	"SetPlayerModel", InputSetPlayerModel ),
+	DEFINE_INPUTFUNC( FIELD_BOOLEAN, "SetPlayerDrawLegs", InputSetPlayerDrawLegs ),
 	DEFINE_INPUTFUNC( FIELD_BOOLEAN, "SetPlayerDrawExternally", InputSetPlayerDrawExternally ),
 	DEFINE_INPUT( m_MaxArmor, FIELD_INTEGER, "SetMaxInputArmor" ),
 	DEFINE_INPUT( m_SuitZoomFOV, FIELD_INTEGER, "SetSuitZoomFOV" ),
@@ -5070,6 +5290,15 @@ void CLogicPlayerProxy::InputSetPlayerModel( inputdata_t &inputdata )
 	SetModelName( m_hPlayer->GetModelName() );
 
 	m_hPlayer->SetModel( STRING(iszModel) );
+}
+
+void CLogicPlayerProxy::InputSetPlayerDrawLegs( inputdata_t &inputdata )
+{
+	if (!m_hPlayer)
+		return;
+
+	CBasePlayer *pPlayer = static_cast<CBasePlayer*>(m_hPlayer.Get());
+	pPlayer->SetDrawPlayerLegs( inputdata.value.Bool() );
 }
 
 void CLogicPlayerProxy::InputSetPlayerDrawExternally( inputdata_t &inputdata )

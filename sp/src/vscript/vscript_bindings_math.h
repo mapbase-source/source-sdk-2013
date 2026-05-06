@@ -40,11 +40,6 @@ class CScriptQuaternionInstanceHelper : public IScriptInstanceHelper
 
 	bool Get( void *p, const char *pszKey, ScriptVariant_t &variant );
 	bool Set( void *p, const char *pszKey, ScriptVariant_t &variant );
-
-	ScriptVariant_t *Add( void *p, ScriptVariant_t &variant );
-	//ScriptVariant_t *Subtract( void *p, ScriptVariant_t &variant );
-	//ScriptVariant_t *Multiply( void *p, ScriptVariant_t &variant );
-	//ScriptVariant_t *Divide( void *p, ScriptVariant_t &variant );
 };
 
 inline Quaternion *ToQuaternion( HSCRIPT hQuat ) { return HScriptToClass<Quaternion>( hQuat ); }

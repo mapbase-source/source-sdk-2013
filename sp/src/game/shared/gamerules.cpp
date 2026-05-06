@@ -27,6 +27,9 @@
 	#include "player_resource.h"
 	#include "tactical_mission.h"
 	#include "gamestats.h"
+#ifdef MAPBASE
+	#include "maprules.h"
+#endif
 
 #endif
 
@@ -619,6 +622,27 @@ bool CGameRules::ClientCommand( CBaseEntity *pEdict, const CCommand &args )
 	{
 		if( GetVoiceGameMgr()->ClientCommand( static_cast<CBasePlayer*>(pEdict), args ) )
 			return true;
+
+#ifdef MAPBASE
+		if ( FStrEq( args[0], "menuselect" ) )
+		{
+			if ( args.ArgC() >= 2 )
+			{
+				int slot = atoi( args[1] );
+
+				// See if this is from a game_menu
+				for ( int i = 0; i < IGameMenuAutoList::AutoList().Count(); i++ )
+				{
+					CGameMenu *pMenu = static_cast<CGameMenu*>( IGameMenuAutoList::AutoList()[i] );
+					if ( pMenu->IsActiveOnTarget( pEdict ) )
+					{
+						pMenu->MenuSelected( slot, pEdict );
+						return true;
+					}
+				}
+			}
+		}
+#endif
 	}
 
 	return false;

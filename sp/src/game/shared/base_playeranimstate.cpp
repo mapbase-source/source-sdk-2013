@@ -18,12 +18,12 @@
 	#include "c_baseplayer.h"
 	#include "engine/ivdebugoverlay.h"
 
-	ConVar cl_showanimstate( "cl_showanimstate", "-1", FCVAR_CHEAT | FCVAR_DEVELOPMENTONLY, "Show the (client) animation state for the specified entity (-1 for none)." );
-	ConVar showanimstate_log( "cl_showanimstate_log", "0", FCVAR_CHEAT | FCVAR_DEVELOPMENTONLY, "1 to output cl_showanimstate to Msg(). 2 to store in AnimStateClient.log. 3 for both." );
+	ConVar cl_showanimstate( "cl_showanimstate", "-1", FCVAR_CHEAT /*| FCVAR_DEVELOPMENTONLY*/, "Show the (client) animation state for the specified entity (-1 for none)." );
+	ConVar showanimstate_log( "cl_showanimstate_log", "0", FCVAR_CHEAT /*| FCVAR_DEVELOPMENTONLY*/, "1 to output cl_showanimstate to Msg(). 2 to store in AnimStateClient.log. 3 for both." );
 #else
 	#include "player.h"
-	ConVar sv_showanimstate( "sv_showanimstate", "-1", FCVAR_CHEAT | FCVAR_DEVELOPMENTONLY, "Show the (server) animation state for the specified entity (-1 for none)." );
-	ConVar showanimstate_log( "sv_showanimstate_log", "0", FCVAR_CHEAT | FCVAR_DEVELOPMENTONLY, "1 to output sv_showanimstate to Msg(). 2 to store in AnimStateServer.log. 3 for both." );
+	ConVar sv_showanimstate( "sv_showanimstate", "-1", FCVAR_CHEAT /*| FCVAR_DEVELOPMENTONLY*/, "Show the (server) animation state for the specified entity (-1 for none)." );
+	ConVar showanimstate_log( "sv_showanimstate_log", "0", FCVAR_CHEAT /*| FCVAR_DEVELOPMENTONLY*/, "1 to output sv_showanimstate to Msg(). 2 to store in AnimStateServer.log. 3 for both." );
 #endif
 
 
@@ -654,9 +654,11 @@ void CBasePlayerAnimState::ComputePoseParam_MoveYaw( CStudioHdr *pStudioHdr )
 	
 	if ( m_AnimConfig.m_LegAnimType == LEGANIM_9WAY )
 	{
+#ifndef MAPBASE // This causes problems with entities that rely on the player having a pitch (TODO: gate behind virtual function?)
 #ifndef CLIENT_DLL
 		//Adrian: Make the model's angle match the legs so the hitboxes match on both sides.
 		GetOuter()->SetLocalAngles( QAngle( 0, m_flCurrentFeetYaw, 0 ) );
+#endif
 #endif
 
 		int iMoveX = GetOuter()->LookupPoseParameter( pStudioHdr, "move_x" );
@@ -942,6 +944,15 @@ void CBasePlayerAnimState::GetOuterAbsVelocity( Vector& vel ) const
 #else
 	vel = GetOuter()->GetAbsVelocity();
 #endif
+
+#ifdef MAPBASE
+	if (GetOuter()->IsPlayer())
+	{
+		CBasePlayer *pPlayer = ToBasePlayer( GetOuter() );
+		if (pPlayer->GetLaggedMovementValue() != 1.0f)
+			vel *= pPlayer->GetLaggedMovementValue();
+	}
+#endif
 }
 
 
@@ -1024,9 +1035,15 @@ void CBasePlayerAnimState::DebugShowAnimState( int iStartLine )
 			(float)pLayer->m_flWeight );
 	}
 
+#ifdef MAPBASE
+	for ( int i=0; i < m_pOuter->GetNumAnimOverlays(); i++ )
+	{
+		CAnimationLayer *pLayer = m_pOuter->GetAnimOverlay( i );
+#else
 	for ( int i=0; i < m_pOuter->GetNumAnimOverlays()-1; i++ )
 	{
 		CAnimationLayer *pLayer = m_pOuter->GetAnimOverlay( AIMSEQUENCE_LAYER + i );
+#endif
 #ifdef CLIENT_DLL
 		AnimStatePrintf( iLine++, "%s(%d), weight: %.2f, cycle: %.2f, order (%d), aim (%d)", 
 			!pLayer->IsActive() ? "-- ": (pLayer->m_nSequence == 0 ? "-- " : GetSequenceName( m_pOuter->GetModelPtr(), pLayer->m_nSequence ) ), 

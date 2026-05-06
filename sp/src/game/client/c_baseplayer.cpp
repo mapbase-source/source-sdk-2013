@@ -125,6 +125,16 @@ ConVar demo_fov_override( "demo_fov_override", "0", FCVAR_CLIENTDLL | FCVAR_DONT
 // This value is found by hand, and a good value depends more on the in-game models than on actual human shapes.
 ConVar cl_meathook_neck_pivot_ingame_up( "cl_meathook_neck_pivot_ingame_up", "7.0" );
 ConVar cl_meathook_neck_pivot_ingame_fwd( "cl_meathook_neck_pivot_ingame_fwd", "3.0" );
+#ifdef MAPBASE
+ConVar cl_meathook_neck_pivot_override( "cl_meathook_neck_pivot_override", "0", FCVAR_NONE, "Overrides playermodel values for meathook and uses cvars only" );
+
+//-------------------------------------------------------------------------------------
+
+ConVar cl_playermodel_draw_externally_override( "cl_playermodel_draw_externally_override", "-1", FCVAR_ARCHIVE, "Overrides developer-placed options to draw the player's model externally." );
+
+ConVar cl_playermodel_legs_override( "cl_playermodel_legs_override", "-1", FCVAR_ARCHIVE, "Overrides developer-placed options to draw the player's model below the camera." );
+ConVar cl_playermodel_legs_scale_bones( "cl_playermodel_legs_scale_bones", "1" );
+#endif
 
 void RecvProxy_LocalVelocityX( const CRecvProxyData *pData, void *pStruct, void *pOut );
 void RecvProxy_LocalVelocityY( const CRecvProxyData *pData, void *pStruct, void *pOut );
@@ -280,6 +290,7 @@ END_RECV_TABLE()
 		// See baseplayer_shared.h for more details.
 		RecvPropInt			( RECVINFO( m_spawnflags ), 0, RecvProxy_ShiftPlayerSpawnflags ),
 
+		RecvPropBool		( RECVINFO( m_bDrawPlayerLegs ) ),
 		RecvPropBool		( RECVINFO( m_bDrawPlayerModelExternally ) ),
 		RecvPropBool		( RECVINFO( m_bInTriggerFall ) ),
 #endif
@@ -1486,13 +1497,186 @@ bool C_BasePlayer::ShouldInterpolate()
 }
 
 
+#ifdef MAPBASE
+bool C_BasePlayer::InPerspectiveView() const
+{
+	// VIEW_NONE is used by the water intersection view, see CAboveWaterView::CIntersectionView::Draw()
+	// (TODO: Consider changing the view ID at the source to VIEW_REFRACTION? VIEW_NONE could be an oversight)
+	view_id_t viewID = CurrentViewID();
+	return (viewID == VIEW_MAIN || viewID == VIEW_INTRO_CAMERA || viewID == VIEW_REFRACTION || viewID == VIEW_NONE);
+}
+
+bool C_BasePlayer::DrawingPlayerModelExternally() const
+{
+	if (cl_playermodel_draw_externally_override.GetInt() > -1)
+		return cl_playermodel_draw_externally_override.GetBool();
+
+	return m_bDrawPlayerModelExternally;
+}
+
+bool C_BasePlayer::DrawingLegs() const
+{
+	if (cl_playermodel_legs_override.GetInt() > -1)
+		return cl_playermodel_legs_override.GetBool();
+
+	// For now, don't draw legs if looking up in any way
+	// (fixes issues with some animations causing clipping with chest)
+	if (GetAbsAngles().x < 0.0f)
+		return false;
+
+	return m_bDrawPlayerLegs;
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+CStudioHdr *C_BasePlayer::OnNewModel( void )
+{
+	CStudioHdr *hdr = BaseClass::OnNewModel();
+	if (!hdr)
+		return NULL;
+
+	KeyValues *modelKeyValues = new KeyValues( "" );
+	CUtlBuffer buf( 1024, 0, CUtlBuffer::TEXT_BUFFER );
+
+	// Init values
+	m_FirstPersonModelData.Reset();
+
+	if (!modelinfo->GetModelKeyValue( GetModel(), buf ))
+	{
+		modelKeyValues->deleteThis();
+		return hdr;
+	}
+
+	if (modelKeyValues->LoadFromBuffer( modelinfo->GetModelName( GetModel() ), buf ))
+	{
+		CUtlVector<string_t> iszUsedNames;
+		for (KeyValues *pkvModelBlock = modelKeyValues; pkvModelBlock != nullptr; pkvModelBlock = pkvModelBlock->GetNextKey())
+		{
+			KeyValues *pkvPlayerModelData = pkvModelBlock->FindKey( "playermodel_data" );
+			if (pkvPlayerModelData)
+			{
+				m_FirstPersonModelData.ParseModelData( this, pkvPlayerModelData );
+				break;
+			}
+		}
+	}
+
+	modelKeyValues->deleteThis();
+	
+	return hdr;
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+void C_BasePlayer::FirstPersonModelData_t::ParseModelData( C_BasePlayer *pPlayer, KeyValues *pkvPlayerModelData )
+{
+	m_flFirstPersonNeckPivotUp = pkvPlayerModelData->GetFloat( "neck_pivot_up", FLT_MAX );
+	m_flFirstPersonNeckPivotFwd = pkvPlayerModelData->GetFloat( "neck_pivot_fwd", FLT_MAX );
+
+	m_flFirstPersonNeckPivotDuckUp = pkvPlayerModelData->GetFloat( "neck_pivot_duck_up", FLT_MAX );
+	m_flFirstPersonNeckPivotDuckFwd = pkvPlayerModelData->GetFloat( "neck_pivot_duck_fwd", FLT_MAX );
+
+	KeyValues *pkvBoneScales = pkvPlayerModelData->FindKey( "bone_transforms" );
+	if (pkvBoneScales)
+	{
+		KeyValues *pkvSpineTransforms = pkvBoneScales->FindKey( "spine" );
+		if (pkvSpineTransforms)
+		{
+			for (KeyValues *pkvBone = pkvSpineTransforms->GetFirstSubKey(); pkvBone != nullptr; pkvBone = pkvBone->GetNextKey())
+			{
+				int nBone = pPlayer->LookupBone( pkvBone->GetName() );
+				if (nBone == -1)
+					continue;
+
+				m_FirstPersonBoneScales[BoneScales_Spine].Insert(nBone, pkvBone->GetFloat());
+			}
+		}
+
+		KeyValues *pkvArmsTransforms = pkvBoneScales->FindKey( "arms" );
+		if (pkvArmsTransforms)
+		{
+			for (KeyValues *pkvBone = pkvArmsTransforms->GetFirstSubKey(); pkvBone != nullptr; pkvBone = pkvBone->GetNextKey())
+			{
+				int nBone = pPlayer->LookupBone( pkvBone->GetName() );
+				if (nBone == -1)
+					continue;
+
+				m_FirstPersonBoneScales[BoneScales_Arms].Insert( nBone, pkvBone->GetFloat() );
+			}
+		}
+	}
+}
+
+//-----------------------------------------------------------------------------
+// Purpose:	move position and rotation transforms into global matrices
+//-----------------------------------------------------------------------------
+void C_BasePlayer::BuildTransformations( CStudioHdr *hdr, Vector *pos, Quaternion *q, const matrix3x4_t &cameraTransform, int boneMask, CBoneBitList &boneComputed )
+{
+	BaseClass::BuildTransformations( hdr, pos, q, cameraTransform, boneMask, boneComputed );
+
+	if (DrawingLegs() && InPerspectiveView() && InFirstPersonView())
+	{
+		//BuildFirstPersonMeathookTransformations( hdr, pos, q, cameraTransform, boneMask, boneComputed, "ValveBiped.Bip01_Head1" );
+
+		if (cl_playermodel_legs_scale_bones.GetBool())
+		{
+			// For now, only do transforms when we have an active weapon
+			// (since we typically just cull stuff influenced by viewmodels and upper-body weapon posture, like arms)
+			if ((GetActiveWeapon() && !GetActiveWeapon()->IsEffectActive( EF_NODRAW )) || GetUseEntity())
+			{
+				matrix3x4_t *pFirstZero = NULL;
+				
+				for (int nMap = 0; nMap < FirstPersonModelData_t::BoneScales_Max; nMap++)
+				{
+					const CUtlMap<int, float> &scaleMap = m_FirstPersonModelData.m_FirstPersonBoneScales[nMap];
+					FOR_EACH_MAP( scaleMap, i )
+					{
+						int nBone = scaleMap.Key(i);
+						if (nBone == -1)
+							continue;
+
+						if (!(hdr->boneFlags( nBone ) & boneMask))
+							continue;
+
+						float flScale = scaleMap.Element(i);
+
+						matrix3x4_t &mTransform = GetBoneForWrite( nBone );
+
+						if (flScale == 0.0f)
+						{
+							if (!pFirstZero)
+							{
+								MatrixScaleByZero( mTransform );
+								pFirstZero = &mTransform;
+							}
+							else
+							{
+								// Keep zeroes in one place
+								MatrixCopy( *pFirstZero, mTransform );
+							}
+						}
+						else
+						{
+							MatrixScaleBy( flScale, mTransform );
+						}
+					}
+				}
+			}
+		}
+	}
+}
+#endif
+
+
 bool C_BasePlayer::ShouldDraw()
 {
 #ifdef MAPBASE
 	// We have to "always draw" a player with m_bDrawPlayerModelExternally in order to show up in whatever rendering list all of the views use, 
 	// but we can't put this in ShouldDrawThisPlayer() because we would have no way of knowing if it stomps the other checks that draw the player model anyway.
 	// As a result, we have to put it here in the central ShouldDraw() function. DrawModel() makes sure we only draw in non-main views and nothing's drawing the model anyway.
-	return (ShouldDrawThisPlayer() || m_bDrawPlayerModelExternally) && BaseClass::ShouldDraw();
+	return (ShouldDrawThisPlayer() || DrawingPlayerModelExternally() || DrawingLegs()) && BaseClass::ShouldDraw();
 #else
 	return ShouldDrawThisPlayer() && BaseClass::ShouldDraw();
 #endif
@@ -1501,12 +1685,16 @@ bool C_BasePlayer::ShouldDraw()
 int C_BasePlayer::DrawModel( int flags )
 {
 #ifdef MAPBASE
-	if (m_bDrawPlayerModelExternally)
+	if (DrawingLegs() && InFirstPersonView() && InPerspectiveView())
+	{
+		return BaseClass::DrawModel( flags );
+	}
+
+	if (DrawingPlayerModelExternally())
 	{
 		// Draw the player in any view except the main or "intro" view, both of which are default first-person views.
 		// HACKHACK: Also don't draw in shadow depth textures if the player's flashlight is on, as that causes the playermodel to block it.
-		view_id_t viewID = CurrentViewID();
-		if (viewID == VIEW_MAIN || viewID == VIEW_INTRO_CAMERA || (viewID == VIEW_SHADOW_DEPTH_TEXTURE && IsEffectActive(EF_DIMLIGHT)))
+		if (InPerspectiveView() || (CurrentViewID() == VIEW_SHADOW_DEPTH_TEXTURE && IsEffectActive(EF_DIMLIGHT)))
 		{
 			// Make sure the player model wouldn't draw anyway...
 			if (!ShouldDrawThisPlayer())
@@ -3057,13 +3245,21 @@ void C_BasePlayer::BuildFirstPersonMeathookTransformations( CStudioHdr *hdr, Vec
 		return;
 	}
 
+#ifdef MAPBASE
+	if ( !InPerspectiveView() )
+#else
 	if ( !DrawingMainView() )
+#endif
 	{
 		return;
 	}
 
 	// If we aren't drawing the player anyway, don't mess with the bones. This can happen in Portal.
+#ifdef MAPBASE
+	if ( !ShouldDrawThisPlayer() && !DrawingPlayerModelExternally() && !DrawingLegs() )
+#else
 	if( !ShouldDrawThisPlayer() )
+#endif
 	{
 		return;
 	}
@@ -3084,6 +3280,63 @@ void C_BasePlayer::BuildFirstPersonMeathookTransformations( CStudioHdr *hdr, Vec
 	Vector vHeadTransformTranslation ( mHeadTransform[0][3], mHeadTransform[1][3], mHeadTransform[2][3] );
 
 
+	float flNeckPivotUp = cl_meathook_neck_pivot_ingame_up.GetFloat();
+	float flNeckPivotFwd = cl_meathook_neck_pivot_ingame_fwd.GetFloat();
+#ifdef MAPBASE
+	if (DrawingLegs() && !cl_meathook_neck_pivot_override.GetBool())
+	{
+		if (m_FirstPersonModelData.m_flFirstPersonNeckPivotUp != FLT_MAX || m_FirstPersonModelData.m_flFirstPersonNeckPivotFwd != FLT_MAX)
+		{
+			if (m_FirstPersonModelData.m_flFirstPersonNeckPivotUp != FLT_MAX)
+				flNeckPivotUp = m_FirstPersonModelData.m_flFirstPersonNeckPivotUp;
+			if (m_FirstPersonModelData.m_flFirstPersonNeckPivotFwd != FLT_MAX)
+				flNeckPivotFwd = m_FirstPersonModelData.m_flFirstPersonNeckPivotFwd;
+
+			if (GetFlags() & FL_DUCKING || m_Local.m_flDucktime > 0.0f)
+			{
+				if (!IsLocalPlayer() || m_Local.m_flDucktime <= 0.0f)
+				{
+					if (m_FirstPersonModelData.m_flFirstPersonNeckPivotDuckUp != FLT_MAX)
+						flNeckPivotUp = m_FirstPersonModelData.m_flFirstPersonNeckPivotDuckUp;
+					if (m_FirstPersonModelData.m_flFirstPersonNeckPivotDuckFwd != FLT_MAX)
+						flNeckPivotFwd = m_FirstPersonModelData.m_flFirstPersonNeckPivotDuckFwd;
+				}
+				else
+				{
+					bool bDucking;
+					if (IsLocalPlayer())
+						bDucking = input->GetButtonBits(0) & IN_DUCK;
+					else
+						bDucking = GetCurrentUserCommand()->buttons & IN_DUCK;
+
+					// HACKHACK using constants from game movement
+					float flPerc = SimpleSpline( RemapValClamped( m_Local.m_flDucktime, bDucking ? 600.0f : 800.0f, 1000.0f, 0.0f, 1.0f ) );
+
+					if (bDucking)
+					{
+						// Ducking
+						//Msg( "Ducking with perc %f (%f)\n", flPerc, m_Local.m_flDucktime );
+						if (m_FirstPersonModelData.m_flFirstPersonNeckPivotDuckUp != FLT_MAX)
+							flNeckPivotUp = FLerp( m_FirstPersonModelData.m_flFirstPersonNeckPivotDuckUp, flNeckPivotUp, flPerc );
+						if (m_FirstPersonModelData.m_flFirstPersonNeckPivotDuckFwd != FLT_MAX)
+							flNeckPivotFwd = FLerp( m_FirstPersonModelData.m_flFirstPersonNeckPivotDuckFwd, flNeckPivotFwd, flPerc );
+					}
+					else
+					{
+						// Unducking
+						//Msg( "Unducking with perc %f (%f)\n", flPerc, m_Local.m_flDucktime );
+						if (m_FirstPersonModelData.m_flFirstPersonNeckPivotDuckUp != FLT_MAX)
+							flNeckPivotUp = FLerp( flNeckPivotUp, m_FirstPersonModelData.m_flFirstPersonNeckPivotDuckUp, flPerc );
+						if (m_FirstPersonModelData.m_flFirstPersonNeckPivotDuckFwd != FLT_MAX)
+							flNeckPivotFwd = FLerp( flNeckPivotFwd, m_FirstPersonModelData.m_flFirstPersonNeckPivotDuckFwd, flPerc );
+					}
+				}
+			}
+		}
+	}
+#endif
+
+
 	// Find out where the player's head (driven by the HMD) is in the world.
 	// We can't move this with animations or effects without causing nausea, so we need to move
 	// the whole body so that the animated head is in the right place to match the player-controlled head.
@@ -3100,7 +3353,7 @@ void C_BasePlayer::BuildFirstPersonMeathookTransformations( CStudioHdr *hdr, Vec
 		// The head bone is the neck pivot point of the in-game character.
 
 		Vector vRealMidEyePos = mWorldFromMideye.GetTranslation();
-		vRealPivotPoint = vRealMidEyePos - ( mWorldFromMideye.GetUp() * cl_meathook_neck_pivot_ingame_up.GetFloat() ) - ( mWorldFromMideye.GetForward() * cl_meathook_neck_pivot_ingame_fwd.GetFloat() );
+		vRealPivotPoint = vRealMidEyePos - ( mWorldFromMideye.GetUp() * flNeckPivotUp ) - ( mWorldFromMideye.GetForward() * flNeckPivotFwd );
 	}
 	else
 	{
@@ -3108,7 +3361,7 @@ void C_BasePlayer::BuildFirstPersonMeathookTransformations( CStudioHdr *hdr, Vec
 		Vector vForward, vRight, vUp;
 		AngleVectors( MainViewAngles(), &vForward, &vRight, &vUp );
 		
-		vRealPivotPoint = MainViewOrigin() - ( vUp * cl_meathook_neck_pivot_ingame_up.GetFloat() ) - ( vForward * cl_meathook_neck_pivot_ingame_fwd.GetFloat() );		
+		vRealPivotPoint = MainViewOrigin() - ( vUp * flNeckPivotUp ) - ( vForward * flNeckPivotFwd );		
 	}
 
 	Vector vDeltaToAdd = vRealPivotPoint - vHeadTransformTranslation;

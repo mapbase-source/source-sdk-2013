@@ -1,6 +1,6 @@
 //=========================================================================================================================
 
-               Mapbase v7.3 - Source 2013
+               Mapbase v8.0 - Source 2013
 	https://github.com/mapbase-source/source-sdk-2013
 		https://www.moddb.com/mods/mapbase
 	
@@ -52,6 +52,7 @@ Mapbase uses content from the following non-Source SDK 2013 Valve games or SDKs:
 -- Alien Swarm (Used to port assets from the aforementioned SDK code features, e.g. game instructor icons)
 -- Left 4 Dead (Used to port certain animations as well as assets from the aforementioned SDK code features, e.g. particle rain)
 -- Half-Life: Source (Used to port friction tool textures)
+-- Half-Life 2: Survivor (Used to port Gordon Freeman model)
 
 Valve allows assets from these titles to be distributed for modding purposes. Note that ported assets are only used in the release build, not the code repository.
 
@@ -118,7 +119,9 @@ Direct contributions:
 - https://github.com/mapbase-source/source-sdk-2013/pull/245 (ViewPunch random fix by Mr0maks)
 - https://github.com/mapbase-source/source-sdk-2013/pull/248 (soundlevel_t conversation warning fix by Mechami)
 - https://github.com/mapbase-source/source-sdk-2013/pull/266 ("OnPhysGunPull" output in CPhysicsProp by rlenhub)
+- https://github.com/mapbase-source/source-sdk-2013/pull/281 (npc_combinedropship DropStrider input by Bronzehawk75)
 - https://github.com/mapbase-source/source-sdk-2013/pull/292 (env_headcrabcanister random spawn type by arbabf)
+- https://github.com/mapbase-source/source-sdk-2013/pull/293 (Restore text selection code by SanyaSho)
 - https://github.com/mapbase-source/source-sdk-2013/pull/294 (SDK_LightmappedGeneric editor blend swap fix by azzyr)
 - https://github.com/mapbase-source/source-sdk-2013/pull/308 (BlurFilterY fix by Wikot235)
 - https://github.com/mapbase-source/source-sdk-2013/pull/312 (Zombie improvements by Wikot235)
@@ -126,17 +129,33 @@ Direct contributions:
 - https://github.com/mapbase-source/source-sdk-2013/pull/324 (server-only info/func_null by SirYodaJedi)
 - https://github.com/mapbase-source/source-sdk-2013/pull/333 (Cvar to transition levels while in MOVETYPE_NOCLIP by Wikot235)
 - https://github.com/mapbase-source/source-sdk-2013/pull/342 (NaN particle cull radius fix by celisej567)
+- https://github.com/mapbase-source/source-sdk-2013/pull/360 (.gitignore update by Unusuario2)
+- https://github.com/mapbase-source/source-sdk-2013/pull/381 (color_correction_volume crash fix by Nbc66)
+- https://github.com/mapbase-source/source-sdk-2013/pull/385 (VRAD -ultrafast command by Unusuario2)
+- https://github.com/mapbase-source/source-sdk-2013/pull/391 (VRAD -extrapasses command by Unusuario2)
+- https://github.com/mapbase-source/source-sdk-2013/pull/393 (Additional VBSP options doc by Unusuario2)
+- https://github.com/mapbase-source/source-sdk-2013/pull/397 (Viewmodel camera bone by Nbc66)
+- https://github.com/mapbase-source/source-sdk-2013/pull/412 (Compile tool negative threads support by Unusuario2)
+- https://github.com/mapbase-source/source-sdk-2013/pull/414 (VRAD %alphatexture by SirYodaJedi)
+- https://github.com/mapbase-source/source-sdk-2013/pull/415 (Parallax corrected cubemaps optimization and fix by Zeldaboy14 and White_Red_Dragons)
+- https://github.com/mapbase-source/source-sdk-2013/pull/418 (Server ragdoll death poses by AnOldLady)
+- https://github.com/mapbase-source/source-sdk-2013/pull/419 (npc_helicopter removal crash fix by Wikot235)
+- https://github.com/mapbase-source/source-sdk-2013/pull/420 (sk_combine_head_dmg_multiplier cvar by Wikot235)
+- https://github.com/mapbase-source/source-sdk-2013/pull/422 (Expanded HL2 NPC custom model support by Maestra Fenix [committed by Blixibon])
 - https://github.com/mapbase-source/mapbase-game-src/pull/1 (Advanced video options duplicate field name fix by arbabf; This is asset-based and not reflected in the code)
 - https://github.com/mapbase-source/mapbase-game-src/pull/2 (gameinfo.txt typo fix by CarePackage17; This is asset-based and not reflected in the code)
 - https://github.com/mapbase-source/mapbase-game-src/pull/3 (HudMessage cutoff fix by arbabf; This is asset-based and not reflected in the code)
 - Demo autorecord code provided by Klems
 - cc_emit crash fix provided by 1upD
+- npc_barnacle poison zombie crash fix provided by Agrimar
 - Custom HL2 ammo crate models created by Rykah (Textures created by Blixibon; This is asset-based and, aside from the SLAM crate, not reflected in the code)
 - Combine lock hardware on door01_left.mdl created by Kralich (This is asset-based and not reflected in the code)
 - npc_vehicledriver fixes provided by CrAzY
 - npc_combine cover behavior patches provided by iohnnyboy
 - logic_playmovie icon created by URAKOLOUY5 (This is asset-based and not reflected in the code)
 - Dropship APC save/load fix provided by Cvoxulary
+- c_arms support on HL2 viewmodels by Inaki and ReverendV92 (This is asset-based and not reflected in the code)
+- Custom c_arms for HL2 characters by Notewell (This is asset-based and not reflected in the code)
 
 == Contributions from samisalreadytaken:
 =-- https://github.com/mapbase-source/source-sdk-2013/pull/47 (VScript utility/consistency changes)
@@ -154,11 +173,19 @@ Direct contributions:
 =-- https://github.com/mapbase-source/source-sdk-2013/pull/192 (VScript hook manager and fixes)
 =-- https://github.com/mapbase-source/source-sdk-2013/pull/206 (Fix CScriptNetMsgHelper::WriteEntity())
 =-- https://github.com/mapbase-source/source-sdk-2013/pull/213 (VScript HUD visibility control, optimizations for 3D skybox angles/fake worldportals)
+=-- https://github.com/mapbase-source/source-sdk-2013/pull/221 (VScript serialization rewrite)
 =-- https://github.com/mapbase-source/source-sdk-2013/pull/229 (VScript VGUI HUD viewport parenting, game_text and vgui_text_display VScript font fallback)
 =-- https://github.com/mapbase-source/source-sdk-2013/pull/260 (CScriptNetPropManager rewrite)
 =-- https://github.com/mapbase-source/source-sdk-2013/pull/261 (Misc VScript additions)
 =-- https://github.com/mapbase-source/source-sdk-2013/pull/279 (weapon_custom_scripted fixes)
+=-- https://github.com/mapbase-source/source-sdk-2013/pull/302 (VScript debugger)
+=-- https://github.com/mapbase-source/source-sdk-2013/pull/331 (VScript leak fixes)
 =-- https://github.com/mapbase-source/source-sdk-2013/pull/332 (Fix OOB access)
+=-- https://github.com/mapbase-source/source-sdk-2013/pull/411 (VScript debugger cleanup)
+=-- https://github.com/mapbase-source/source-sdk-2013/pull/423 (GetPropFloatArray Vector indexing fix)
+=-- https://github.com/mapbase-source/source-sdk-2013/pull/431 (VScript save/restore and debugger fixes)
+=-- https://github.com/mapbase-source/source-sdk-2013/pull/441 (VScript instance helper fallback)
+=-- https://github.com/mapbase-source/source-sdk-2013/pull/447 (Update VScript sqdbg)
 
 == Contributions from z33ky:
 =-- https://github.com/mapbase-source/source-sdk-2013/pull/21 (Various GCC/Linux compilation fixes)
@@ -172,7 +199,10 @@ Direct contributions:
 =-- https://github.com/mapbase-source/source-sdk-2013/pull/159 (Additional GCC/Linux compilation fixes)
 =-- https://github.com/mapbase-source/source-sdk-2013/pull/162 (VS2019 exception specification fix)
 =-- https://github.com/mapbase-source/source-sdk-2013/pull/170 (HL2 non-Episodic build fix)
+=-- https://github.com/mapbase-source/source-sdk-2013/pull/320 (Fix ScriptHook_t initialization order)
+=-- https://github.com/mapbase-source/source-sdk-2013/pull/321 (Prevent return of dangling Vector/QAngle to VScript)
 =-- https://github.com/mapbase-source/source-sdk-2013/pull/322 (Small Mapbase fixes)
+=-- https://github.com/mapbase-source/source-sdk-2013/pull/436 (VScript member function call safety)
 
 == Contributions from Petercov:
 =-- https://github.com/mapbase-source/source-sdk-2013/pull/182 (NPCs load dynamic interactions from all animation MDLs)
@@ -183,6 +213,7 @@ Direct contributions:
 =-- https://github.com/mapbase-source/source-sdk-2013/pull/230 (Caption fixes)
 =-- https://github.com/mapbase-source/source-sdk-2013/pull/231 (Sentence source bug fix)
 =-- https://github.com/mapbase-source/source-sdk-2013/pull/264 (Outputs for vgui_screen)
+=-- https://github.com/mapbase-source/source-sdk-2013/pull/427 (CBaseCombatWeapon::WeaponClassFromString typo fix [committed by vizzys])
 
 //-------------------------------------------------------------------------------------------------------------------------
 

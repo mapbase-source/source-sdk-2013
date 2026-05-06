@@ -31,6 +31,9 @@
 
 #ifdef GAME_DLL
 #include "sceneentity.h"
+#ifdef MAPBASE
+#include "mapbase/choreosentence.h"
+#endif
 #endif
 
 #include "networkstringtabledefs.h"
@@ -492,6 +495,17 @@ void CGameResponseSystem::Precache()
 					CBaseEntity::PrecacheScriptSound( response.value );
 				}
 				break;
+#ifdef MAPBASE
+			case RESPONSE_CHOREOSENTENCE:
+				{
+					const ChoreoSentence_t *pSentence = LookupChoreoSentence( NULL, response.value );
+					if (pSentence)
+						PrecacheChoreoSentence( *pSentence );
+					else
+						Msg( "Choreo scene '%s' not found\n", response.value );
+				}
+				break;
+#endif
 			}
 		}
 	}

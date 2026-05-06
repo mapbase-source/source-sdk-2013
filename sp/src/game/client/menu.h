@@ -26,10 +26,14 @@ class CHudMenu : public CHudElement, public vgui::Panel
 public:
 	CHudMenu( const char *pElementName );
 	void Init( void );
+	void LevelInit( void );
 	void VidInit( void );
 	void Reset( void );
 	virtual bool ShouldDraw( void );
 	void MsgFunc_ShowMenu( bf_read &msg );
+#ifdef MAPBASE
+	void MsgFunc_ShowMenuComplex( bf_read &msg );
+#endif
 	void HideMenu( void );
 	void ShowMenu( const char * menuName, int keySlot );
 	void ShowMenu_KeyValueItems( KeyValues *pKV );
@@ -42,6 +46,8 @@ private:
 	virtual void Paint();
 	virtual void ApplySchemeSettings(vgui::IScheme *pScheme);
 private:
+	float		GetMenuTime( void );
+
 	void		ProcessText( void );
 
 	void PaintString( const wchar_t *text, int textlen, vgui::HFont& font, int x, int y );
@@ -59,6 +65,7 @@ private:
 
 	int				m_nMaxPixels;
 	int				m_nHeight;
+	int				m_nBorder;
 
 	bool			m_bMenuDisplayed;
 	int				m_bitsValidSlots;
@@ -68,6 +75,12 @@ private:
 	bool			m_bMenuTakesInput;
 
 	float			m_flSelectionTime;
+
+#ifdef MAPBASE
+	// Indicates this menu is defined by game_menu
+	bool			m_bMapDefinedMenu;
+	bool			m_bPlayingFadeout;
+#endif
 
 	CPanelAnimationVar( float, m_flOpenCloseTime, "OpenCloseTime", "1" );
 

@@ -18,7 +18,7 @@
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-static HSCRIPT VMFKV_CreateBlank()
+static HSCRIPT_RC VMFKV_CreateBlank()
 {
 	KeyValues *pKV = new KeyValues("VMF");
 
@@ -28,7 +28,7 @@ static HSCRIPT VMFKV_CreateBlank()
 		pWorld->SetString( "classname", "worldspawn" );
 	}
 
-	return scriptmanager->CreateScriptKeyValues( g_pScriptVM, pKV, true );
+	return scriptmanager->CreateScriptKeyValues( g_pScriptVM, pKV );
 }
 
 static bool VMFKV_SaveToFile( const char *szFile, HSCRIPT hKV )
@@ -69,7 +69,7 @@ static bool VMFKV_SaveToFile( const char *szFile, HSCRIPT hKV )
 	return res;
 }
 
-static HSCRIPT VMFKV_LoadFromFile( const char *szFile )
+static HSCRIPT_RC VMFKV_LoadFromFile( const char *szFile )
 {
 	char pszFullName[MAX_PATH];
 	V_snprintf( pszFullName, sizeof(pszFullName), NULL, szFile );
@@ -87,7 +87,7 @@ static HSCRIPT VMFKV_LoadFromFile( const char *szFile )
 		return NULL;
 	}
 
-	HSCRIPT hScript = scriptmanager->CreateScriptKeyValues( g_pScriptVM, pKV, true ); // bAllowDestruct is supposed to automatically remove the involved KV
+	HSCRIPT hScript = scriptmanager->CreateScriptKeyValues( g_pScriptVM, pKV );
 
 	return hScript;
 }
@@ -142,7 +142,7 @@ static HSCRIPT VMFKV_AddEntityFromTables( HSCRIPT hVMF, HSCRIPT hKV, HSCRIPT hIO
 		}
 	}
 
-	return scriptmanager->CreateScriptKeyValues( g_pScriptVM, pEnt, false );
+	return scriptmanager->CreateScriptKeyValues( g_pScriptVM, pEnt, true );
 }
 
 //-----------------------------------------------------------------------------

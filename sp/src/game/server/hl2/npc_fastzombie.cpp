@@ -396,7 +396,7 @@ static const char *s_pLegsModel = "models/gibs/fast_zombie_legs.mdl";
 //-----------------------------------------------------------------------------
 void CFastZombie::Precache( void )
 {
-	PrecacheModel("models/zombie/fast.mdl");
+	PrecacheModel( DefaultOrCustomModel( "models/zombie/fast.mdl" ) );
 #ifdef HL2_EPISODIC
 	PrecacheModel("models/zombie/Fast_torso.mdl");
 	PrecacheScriptSound( "NPC_FastZombie.CarEnter1" );
@@ -773,7 +773,7 @@ void CFastZombie::SetZombieModel( void )
 	}
 	else
 	{
-		SetModel( "models/zombie/fast.mdl" );
+		SetModel( DefaultOrCustomModel( "models/zombie/fast.mdl" ) );
 		SetHullType(HULL_HUMAN);
 	}
 

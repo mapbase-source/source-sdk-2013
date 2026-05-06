@@ -49,6 +49,14 @@ BEGIN_VS_SHADER( SDK_Cable_DX9, "Help for SplineRope" )
 	{
 		bool bShaderSrgbRead = ( IsX360() && params[SHADERSRGBREAD360]->GetIntValue() );
 		bool bShadowDepth = ( params[SHADOWDEPTH]->GetIntValue() != 0 );
+
+#ifdef MAPBASE
+		BlendType_t nBlendType = EvaluateBlendRequirements( BASETEXTURE, true );
+		bool bFullyOpaque = (nBlendType != BT_BLENDADD) && (nBlendType != BT_BLEND) && !IS_FLAG_SET( MATERIAL_VAR_ALPHATEST ); //dest alpha is free for special use
+#else
+		bool bFullyOpaque = true;
+#endif
+
 		SHADOW_STATE
 		{
 			// draw back-facing because of yaw spin
@@ -65,8 +73,19 @@ BEGIN_VS_SHADER( SDK_Cable_DX9, "Help for SplineRope" )
 			}
 			else
 			{
+#ifdef MAPBASE
+				if (IS_FLAG_SET( MATERIAL_VAR_TRANSLUCENT ))
+				{
+					pShaderShadow->EnableDepthWrites( false );
+					pShaderShadow->EnableBlending( true );
+					pShaderShadow->BlendFunc( SHADER_BLEND_SRC_ALPHA, SHADER_BLEND_ONE_MINUS_SRC_ALPHA );
+				}
+
+				pShaderShadow->EnableAlphaTest( IS_FLAG_SET( MATERIAL_VAR_ALPHATEST ) );
+#endif
+
 				// We need to write to dest alpha for depth feathering.
-				pShaderShadow->EnableAlphaWrites( true );
+				pShaderShadow->EnableAlphaWrites( bFullyOpaque );
 
 				// base texture
 				pShaderShadow->EnableTexture( SHADER_SAMPLER0, true );
@@ -150,7 +169,7 @@ BEGIN_VS_SHADER( SDK_Cable_DX9, "Help for SplineRope" )
 			if ( g_pHardwareConfig->SupportsPixelShaders_2_b() )
 			{
 				DECLARE_DYNAMIC_PIXEL_SHADER( sdk_splinerope_ps20b );
-				SET_DYNAMIC_PIXEL_SHADER_COMBO( WRITE_DEPTH_TO_DESTALPHA, pShaderAPI->ShouldWriteDepthToDestAlpha() );
+				SET_DYNAMIC_PIXEL_SHADER_COMBO( WRITE_DEPTH_TO_DESTALPHA, bFullyOpaque && pShaderAPI->ShouldWriteDepthToDestAlpha() );
 				//SET_DYNAMIC_PIXEL_SHADER_COMBO( PIXELFOGTYPE, pShaderAPI->GetSceneFogMode() == MATERIAL_FOG_LINEAR_BELOW_FOG_Z );
 				SET_DYNAMIC_PIXEL_SHADER_COMBO( PIXELFOGTYPE, pShaderAPI->GetPixelFogCombo() );
 				SET_DYNAMIC_PIXEL_SHADER( sdk_splinerope_ps20b );

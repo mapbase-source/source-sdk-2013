@@ -38,8 +38,8 @@ public:
 	void InputReload( inputdata_t &inputdata );
 
 #ifdef MAPBASE_VSCRIPT
-	HSCRIPT			ScriptGetKeyValues( void );
-	HSCRIPT			ScriptGetKeyValueBlock( void );
+	HSCRIPT_RC			ScriptGetKeyValues( void );
+	HSCRIPT_RC			ScriptGetKeyValueBlock( void );
 
 	void			ScriptSetKeyValues( HSCRIPT hKV );
 	void			ScriptSetKeyValueBlock( HSCRIPT hKV );
@@ -275,7 +275,7 @@ void CLogicExternalData::InputReload( inputdata_t &inputdata )
 #ifdef MAPBASE_VSCRIPT
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-HSCRIPT CLogicExternalData::ScriptGetKeyValues( void )
+HSCRIPT_RC CLogicExternalData::ScriptGetKeyValues( void )
 {
 	if (m_bReloadBeforeEachAction)
 		LoadFile();
@@ -283,8 +283,9 @@ HSCRIPT CLogicExternalData::ScriptGetKeyValues( void )
 	HSCRIPT hScript = NULL;
 	if (m_pRoot)
 	{
-		// Does this need to be destructed or freed? m_pScriptModelKeyValues apparently doesn't.
-		hScript = scriptmanager->CreateScriptKeyValues( g_pScriptVM, m_pRoot, false );
+		KeyValues *pCopy = new KeyValues( NULL );
+		*pCopy = *m_pRoot;
+		hScript = scriptmanager->CreateScriptKeyValues( g_pScriptVM, pCopy );
 	}
 
 	return hScript;
@@ -292,7 +293,7 @@ HSCRIPT CLogicExternalData::ScriptGetKeyValues( void )
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-HSCRIPT CLogicExternalData::ScriptGetKeyValueBlock( void )
+HSCRIPT_RC CLogicExternalData::ScriptGetKeyValueBlock( void )
 {
 	if (m_bReloadBeforeEachAction)
 		LoadFile();
@@ -300,8 +301,9 @@ HSCRIPT CLogicExternalData::ScriptGetKeyValueBlock( void )
 	HSCRIPT hScript = NULL;
 	if (m_pBlock)
 	{
-		// Does this need to be destructed or freed? m_pScriptModelKeyValues apparently doesn't.
-		hScript = scriptmanager->CreateScriptKeyValues( g_pScriptVM, m_pBlock, false );
+		KeyValues *pCopy = new KeyValues( NULL );
+		*pCopy = *m_pBlock;
+		hScript = scriptmanager->CreateScriptKeyValues( g_pScriptVM, pCopy );
 	}
 
 	return hScript;
@@ -321,7 +323,8 @@ void CLogicExternalData::ScriptSetKeyValues( HSCRIPT hKV )
 	KeyValues *pKV = scriptmanager->GetKeyValuesFromScriptKV( g_pScriptVM, hKV );
 	if (pKV)
 	{
-		m_pRoot = pKV;
+		m_pRoot = new KeyValues( NULL );
+		*m_pRoot = *pKV;
 	}
 }
 
@@ -336,7 +339,8 @@ void CLogicExternalData::ScriptSetKeyValueBlock( HSCRIPT hKV )
 	KeyValues *pKV = scriptmanager->GetKeyValuesFromScriptKV( g_pScriptVM, hKV );
 	if (pKV)
 	{
-		m_pBlock = pKV;
+		m_pBlock = new KeyValues( NULL );
+		*m_pBlock = *pKV;
 	}
 }
 

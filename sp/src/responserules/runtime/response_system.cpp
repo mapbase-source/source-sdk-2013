@@ -1494,23 +1494,35 @@ void CResponseSystem::ParseInclude()
 #ifdef MAPBASE
 	char scriptfile[256];
 	GetCurrentScript( scriptfile, sizeof( scriptfile ) );
+	V_RemoveDotSlashes( scriptfile );
+
+	const char *pScriptFile = scriptfile;
+	if (pScriptFile[0] == CORRECT_PATH_SEPARATOR || pScriptFile[0] == INCORRECT_PATH_SEPARATOR)
+		pScriptFile++;
 
 	// Gets first path
 	// (for example, an #include from a file in resource/script/resp will return resource)
-	size_t len = strlen(scriptfile)-1;
+	size_t len = strlen( pScriptFile )-1;
 	for (size_t i = 0; i < len; i++)
 	{
-		if (scriptfile[i] == CORRECT_PATH_SEPARATOR || scriptfile[i] == INCORRECT_PATH_SEPARATOR)
+		if (pScriptFile[i] == CORRECT_PATH_SEPARATOR || pScriptFile[i] == INCORRECT_PATH_SEPARATOR)
 		{
 			len = i;
 		}
 	}
-	Q_strncpy(includefile, scriptfile, len+1);
+	Q_strncpy(includefile, pScriptFile, len+1);
 
-	if (len+1 != strlen(scriptfile))
+	if (len+1 != strlen( pScriptFile ))
 	{
-		Q_strncat( includefile, "/", sizeof( includefile ) );
-		Q_strncat( includefile, token, sizeof( includefile ) );
+		if (!includefile[0])
+		{
+			CGMsg( 1, CON_GROUP_RESPONSE_SYSTEM, "%s: Unable to parse first folder from parent script \"%s\", falling back to 'scripts/'\n", token, pScriptFile );
+		}
+		else
+		{
+			Q_strncat( includefile, CORRECT_PATH_SEPARATOR_S, sizeof( includefile ) );
+			Q_strncat( includefile, token, sizeof( includefile ) );
+		}
 	}
 	else
 		includefile[0] = '\0';
@@ -1643,6 +1655,8 @@ inline ResponseType_t ComputeResponseType( const char *s )
 			return RESPONSE_VSCRIPT_FILE;
 		else
 			return RESPONSE_VSCRIPT;
+	case 'c':
+		return RESPONSE_CHOREOSENTENCE;
 #endif
 	}
 

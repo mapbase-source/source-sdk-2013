@@ -46,8 +46,12 @@ $Project
 			$File	"$SRCDIR\game\shared\mapbase\MapEdit.h"
 			$File	"$SRCDIR\game\shared\mapbase\matchers.cpp"
 			$File	"$SRCDIR\game\shared\mapbase\matchers.h"
-			$File	"$SRCDIR\game\shared\mapbase\singleplayer_animstate.cpp"
-			$File	"$SRCDIR\game\shared\mapbase\singleplayer_animstate.h"
+			$File	"$SRCDIR\game\shared\mapbase\mapbase_playeranimstate.cpp"
+			$File	"$SRCDIR\game\shared\mapbase\mapbase_playeranimstate.h"
+			$File	"$SRCDIR\game\shared\mapbase\protagonist_system.cpp"
+			$File	"$SRCDIR\game\shared\mapbase\protagonist_system.h"
+			$File	"$SRCDIR\game\shared\mapbase\game_timer.cpp"
+			$File	"$SRCDIR\game\shared\mapbase\game_timer.h"
 			$File	"$SRCDIR\game\shared\mapbase\vscript_funcs_shared.cpp" [$MAPBASE_VSCRIPT]
 			$File	"$SRCDIR\game\shared\mapbase\vscript_funcs_shared.h" [$MAPBASE_VSCRIPT]
 			$File	"$SRCDIR\game\shared\mapbase\vscript_singletons.cpp" [$MAPBASE_VSCRIPT]
@@ -63,6 +67,8 @@ $Project
 			$File	"mapbase\ai_grenade.h"
 			$File	"mapbase\ai_monitor.cpp"
 			$File	"mapbase\ai_weaponmodifier.cpp"
+			$File	"mapbase\choreosentence.cpp"
+			$File	"mapbase\choreosentence.h"
 			$File	"mapbase\custom_weapon_factory.cpp"
 			$File	"mapbase\custom_weapon_factory.h"
 			$File	"mapbase\closecaption_entity.cpp"

@@ -256,7 +256,7 @@ END_DATADESC()
 //-----------------------------------------------------------------------------
 void CNPC_PoisonZombie::Precache( void )
 {
-	PrecacheModel("models/zombie/poison.mdl");
+	PrecacheModel( DefaultOrCustomModel( "models/zombie/poison.mdl" ) );
 
 	PrecacheScriptSound( "NPC_PoisonZombie.Die" );
 	PrecacheScriptSound( "NPC_PoisonZombie.ThrowWarn" );
@@ -509,7 +509,7 @@ void CNPC_PoisonZombie::SetZombieModel( void )
 	}
 	else
 	{
-		SetModel( "models/zombie/poison.mdl" );
+		SetModel( DefaultOrCustomModel( "models/zombie/poison.mdl" ) );
 		SetHullType(HULL_HUMAN);
 	}
 

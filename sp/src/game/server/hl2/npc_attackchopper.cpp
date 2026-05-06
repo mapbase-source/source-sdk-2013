@@ -44,6 +44,7 @@
 
 #ifdef MAPBASE
 #include "filters.h"
+#include "ai_hint.h"
 #endif
 
 // memdbgon must be the last include file in a .cpp file!!!
@@ -164,6 +165,15 @@ ConVar	g_helicopter_bullrush_mega_bomb_health( "g_helicopter_bullrush_mega_bomb_
 
 ConVar	g_helicopter_bomb_danger_radius( "g_helicopter_bomb_danger_radius", "120" );
 
+#ifdef MAPBASE
+ConVar	g_helicopter_crashpoint_nearest( "g_helicopter_crashpoint_nearest", "1", 0, "Selects the nearest crash point instead of just the first in the entity list." );
+
+#ifdef HL2_EPISODIC
+ConVar	g_helicopter_phys_follow_while_crashing( "g_helicopter_phys_follow_while_crashing", "0", 0, "Allows the phys_bone_followers to follow the helicopter while flying to crash point" );
+#endif
+
+#endif
+
 Activity ACT_HELICOPTER_DROP_BOMB;
 Activity ACT_HELICOPTER_CRASHING;
 
@@ -191,7 +201,60 @@ enum
 
 #define GRENADE_HELICOPTER_MODEL "models/combine_helicopter/helicopter_bomb01.mdl"
 
+#ifdef MAPBASE
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+class CTargetHelicopterCrash : public CPointEntity
+{
+	DECLARE_CLASS( CTargetHelicopterCrash, CPointEntity );
+public:
+	DECLARE_DATADESC();	
+
+	void	InputEnable( inputdata_t &inputdata )
+	{
+		m_bDisabled = false;
+	}
+	void	InputDisable( inputdata_t &inputdata )
+	{
+		m_bDisabled = true;
+	}
+	bool	IsDisabled( void )
+	{
+		return m_bDisabled;
+	}
+	void	HelicopterCrashedOnTarget( CBaseHelicopter *pChopper )
+	{
+		m_OnCrashed.FireOutput( pChopper, this );
+	}
+	void	HelicopterAcquiredCrashTarget( CBaseHelicopter *pChopper )
+	{
+		m_OnBeginCrash.FireOutput( pChopper, this );
+	}
+
+private:
+	bool			m_bDisabled;
+
+	COutputEvent	m_OnCrashed;
+	COutputEvent	m_OnBeginCrash;
+};
+
+LINK_ENTITY_TO_CLASS( info_target_helicopter_crash, CTargetHelicopterCrash );
+
+BEGIN_DATADESC( CTargetHelicopterCrash )
+	DEFINE_FIELD( m_bDisabled, FIELD_BOOLEAN ),
+
+	// Inputs
+	DEFINE_INPUTFUNC( FIELD_VOID, "Enable", InputEnable ),
+	DEFINE_INPUTFUNC( FIELD_VOID, "Disable", InputDisable ),
+
+	// Outputs
+	DEFINE_OUTPUT( m_OnCrashed,			"OnCrashed" ),
+	DEFINE_OUTPUT( m_OnBeginCrash,			"OnBeginCrash" ),
+END_DATADESC()
+#else
 LINK_ENTITY_TO_CLASS( info_target_helicopter_crash, CPointEntity );
+#endif
 
 
 //------------------------------------------------------------------------------
@@ -499,6 +562,13 @@ private:
 	// Death, etc.
 	void	InputSelfDestruct( inputdata_t &inputdata );
 
+#ifdef MAPBASE
+	// This is identical to SelfDestruct, except the helicopter won't throw out chunks while flying to a crash point.
+	// This input is meant to be used when the pilot is killed and there's nothing wrong with the helicopter itself.
+	// If there are no crash points, the helicopter will explode in place as normal.
+	void	InputSelfDestructNoFX( inputdata_t &inputdata );
+#endif
+
 	// Enemy visibility check
 	CBaseEntity *FindTrackBlocker( const Vector &vecViewPoint, const Vector &vecTargetPos );
 
@@ -522,6 +592,7 @@ private:
 
 	// Various states of the helicopter firing...
 	bool PoseGunTowardTargetDirection( const Vector &vTargetDir );
+	float GetGunPoseSpeed() const;
 
 	// Compute the position to fire at (vehicle + non-vehicle case)
 	void ComputeFireAtPosition( Vector *pVecActualTargetPosition );
@@ -532,6 +603,17 @@ private:
 	bool DoGunCharging( );
 	bool DoGunFiring( const Vector &vBasePos, const Vector &vGunDir, const Vector &vecFireAtPosition );
 	void FireElectricityGun( );
+
+#ifdef MAPBASE
+	// Idle aiming
+	bool FindIdleAimTarget();
+	bool ValidIdleAimTarget( CBaseEntity *pAimTarget );
+
+	bool FValidateHintType( CAI_Hint *pHint );
+
+	inline CBaseEntity *GetIdleAimTarget() const { return m_hIdleAimTarget; }
+	inline void SetIdleAimTarget( CBaseEntity *pNewAimTarget ) { m_hIdleAimTarget = pNewAimTarget; }
+#endif
 
 	// Chooses a point within the circle of death to fire in
 	void PickDirectionToCircleOfDeath( const Vector &vBasePos, const Vector &vecFireAtPosition, Vector *pResult );
@@ -650,6 +732,7 @@ private:
 	void SpotlightStartup();
 	void SpotlightShutdown();
 
+	CBaseEntity *FindCrashPoint();
 	CBaseEntity *GetCrashPoint()	{ return m_hCrashPoint.Get(); }
 
 private:
@@ -720,6 +803,17 @@ private:
 	float		m_flGracePeriod;
 	bool		m_bBombsExplodeOnContact;
 	bool		m_bNonCombat;
+
+#ifdef MAPBASE
+	bool		m_bIdleAimAround;
+	EHANDLE		m_hIdleAimTarget;
+	Vector		m_vecIdleAimDir;
+	float		m_flNextIdleAimTime;
+
+	bool		m_bDisableSmokeTrails;
+	bool		m_bDisableCorpses;
+	bool		m_bDisableExplosions;
+#endif
 
 	int			m_nNearShots;
 	int			m_nMaxNearShots;
@@ -860,6 +954,15 @@ BEGIN_DATADESC( CNPC_AttackHelicopter )
 
 #ifdef MAPBASE
 	DEFINE_KEYFIELD( m_flFieldOfView,	FIELD_FLOAT, "FieldOfView" ),
+
+	DEFINE_KEYFIELD( m_bIdleAimAround, FIELD_BOOLEAN, "IdleAimAround" ),
+	DEFINE_FIELD( m_hIdleAimTarget, FIELD_EHANDLE ),
+	DEFINE_FIELD( m_vecIdleAimDir, FIELD_VECTOR ),
+	DEFINE_FIELD( m_flNextIdleAimTime, FIELD_TIME ),
+
+	DEFINE_KEYFIELD( m_bDisableSmokeTrails, FIELD_BOOLEAN, "DisableSmokeTrails" ),
+	DEFINE_KEYFIELD( m_bDisableCorpses, FIELD_BOOLEAN, "DisableCorpses" ),
+	DEFINE_KEYFIELD( m_bDisableExplosions, FIELD_BOOLEAN, "DisableExplosions" ),
 #endif
 
 	DEFINE_FIELD( m_hCrashPoint,		FIELD_EHANDLE ),
@@ -896,6 +999,9 @@ BEGIN_DATADESC( CNPC_AttackHelicopter )
 	DEFINE_INPUTFUNC( FIELD_VOID, "EnablePathVisibilityTests", InputEnablePathVisibilityTests ),
 
 	DEFINE_INPUTFUNC( FIELD_VOID, "SelfDestruct", InputSelfDestruct ),
+#ifdef MAPBASE
+	DEFINE_INPUTFUNC( FIELD_VOID, "SelfDestructNoFX", InputSelfDestructNoFX ),
+#endif
 
 	DEFINE_THINKFUNC( BlinkLightsThink ),
 	DEFINE_THINKFUNC( SpotlightThink ),
@@ -1646,6 +1752,21 @@ void CNPC_AttackHelicopter::InputSelfDestruct( inputdata_t &inputdata )
 	TakeDamage( info );
 }
 
+#ifdef MAPBASE
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+void CNPC_AttackHelicopter::InputSelfDestructNoFX( inputdata_t &inputdata )
+{
+	m_bDisableSmokeTrails = true;
+	m_bDisableCorpses = true;
+	m_bDisableExplosions = true;
+
+	m_lifeState = LIFE_ALIVE; // Force to die properly.
+	CTakeDamageInfo info( this, this, Vector(0, 0, 1), WorldSpaceCenter(), GetMaxHealth(), CLASS_MISSILE );
+	TakeDamage( info );
+}
+#endif
+
 //-----------------------------------------------------------------------------
 // For scripted times where it *has* to shoot
 //-----------------------------------------------------------------------------
@@ -2245,27 +2366,43 @@ bool CNPC_AttackHelicopter::PoseGunTowardTargetDirection( const Vector &vTargetD
 		}
 	}
 
+	float flPoseSpeed = GetGunPoseSpeed();
+
 	if (angles.x > m_angGun.x)
 	{
-		m_angGun.x = MIN( angles.x, m_angGun.x + 12 );
+		m_angGun.x = MIN( angles.x, m_angGun.x + flPoseSpeed );
 	}
 	if (angles.x < m_angGun.x)
 	{
-		m_angGun.x = MAX( angles.x, m_angGun.x - 12 );
+		m_angGun.x = MAX( angles.x, m_angGun.x - flPoseSpeed );
 	}
 	if (angles.y > m_angGun.y)
 	{
-		m_angGun.y = MIN( angles.y, m_angGun.y + 12 );
+		m_angGun.y = MIN( angles.y, m_angGun.y + flPoseSpeed );
 	}
 	if (angles.y < m_angGun.y)
 	{
-		m_angGun.y = MAX( angles.y, m_angGun.y - 12 );
+		m_angGun.y = MAX( angles.y, m_angGun.y - flPoseSpeed );
 	}
 
 	SetPoseParameter( m_poseWeapon_Pitch, -m_angGun.x );
 	SetPoseParameter( m_poseWeapon_Yaw, m_angGun.y );
 
 	return true;
+}
+
+
+//------------------------------------------------------------------------------
+// Various states of the helicopter firing...
+//------------------------------------------------------------------------------
+float CNPC_AttackHelicopter::GetGunPoseSpeed() const
+{
+#ifdef MAPBASE
+	if (m_bIdleAimAround && !GetEnemy())
+		return 4.0f;
+#endif
+
+	return 12.0f;
 }
 
 
@@ -2361,6 +2498,87 @@ bool CNPC_AttackHelicopter::DoGunIdle( const Vector &vGunDir, const Vector &vTar
 
 	return true;	
 }
+
+
+#ifdef MAPBASE
+//-----------------------------------------------------------------------------
+// Finds an idle aim target. Based on CNPC_PlayerCompanion code
+//-----------------------------------------------------------------------------
+bool CNPC_AttackHelicopter::FindIdleAimTarget()
+{
+	CAI_Hint *pHint;
+	CHintCriteria hintCriteria;
+	CBaseEntity *pPriorAimTarget = GetIdleAimTarget();
+
+	hintCriteria.SetHintType( HINT_WORLD_VISUALLY_INTERESTING );
+	hintCriteria.SetFlag( bits_HINT_NODE_VISIBLE | bits_HINT_NODE_IN_VIEWCONE | bits_HINT_NPC_IN_NODE_FOV | bits_HINT_NODE_USE_GROUP | bits_HINT_NODE_NEAREST );
+	hintCriteria.AddIncludePosition( GetAbsOrigin(), CHOPPER_MAX_GUN_DIST );
+	pHint = CAI_HintManager::FindHint( this, hintCriteria );
+
+	if( pHint )
+	{
+		if ( !ValidIdleAimTarget( pHint ) )
+		{
+			return false;
+		}
+
+		if ( pHint != pPriorAimTarget )
+		{
+			// Notify of the change.
+			SetIdleAimTarget( pHint );
+			return true;
+		}
+	}
+
+	// Didn't find an aim target, or found the same one.
+	return false;
+}
+
+//-----------------------------------------------------------------------------
+// Finds an idle aim target. Based on CNPC_PlayerCompanion code
+//-----------------------------------------------------------------------------
+bool CNPC_AttackHelicopter::ValidIdleAimTarget( CBaseEntity *pAimTarget )
+{
+	Vector vecTargetOrigin = pAimTarget->GetAbsOrigin();
+
+	Vector vBasePos;
+	GetAttachment( m_nGunBaseAttachment, vBasePos );
+
+	if ( vecTargetOrigin.z > vBasePos.z || (vecTargetOrigin - vBasePos).Length() < 128.0f )
+	{
+		// Too close!
+		return false;
+	}
+
+	trace_t tr;
+	UTIL_TraceLine( vBasePos, vecTargetOrigin, MASK_BLOCKLOS, this, COLLISION_GROUP_NONE, &tr );
+
+	if ( tr.fraction < 1.0f && tr.m_pEnt != pAimTarget )
+	{
+		// No LOS
+		return false;
+	}
+
+	return true;
+}
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+bool CNPC_AttackHelicopter::FValidateHintType( CAI_Hint *pHint )
+{
+	switch( pHint->HintType() )
+	{
+	case HINT_WORLD_VISUALLY_INTERESTING:
+		return true;
+		break;
+
+	default:
+		break;
+	}
+
+	return BaseClass::FValidateHintType( pHint );
+}
+#endif
 
 
 //------------------------------------------------------------------------------
@@ -3653,12 +3871,20 @@ int CNPC_AttackHelicopter::OnTakeDamage_Alive( const CTakeDamageInfo &info )
 			}
 		}
 
+#ifdef MAPBASE
+		if ( ShouldTriggerDamageEffect( nPrevHealth, MAX_SMOKE_TRAILS ) && !m_bDisableSmokeTrails )
+#else
 		if ( ShouldTriggerDamageEffect( nPrevHealth, MAX_SMOKE_TRAILS ) )
+#endif
 		{
 			AddSmokeTrail( info.GetDamagePosition() );
 		}
 
+#ifdef MAPBASE
+		if ( ShouldTriggerDamageEffect( nPrevHealth, MAX_CORPSES ) && !m_bDisableCorpses )
+#else
 		if ( ShouldTriggerDamageEffect( nPrevHealth, MAX_CORPSES ) )
+#endif
 		{
 			if ( nPrevHealth != GetMaxHealth() )
 			{
@@ -3666,7 +3892,11 @@ int CNPC_AttackHelicopter::OnTakeDamage_Alive( const CTakeDamageInfo &info )
 			}
 		}
 
+#ifdef MAPBASE
+		if ( ShouldTriggerDamageEffect( nPrevHealth, MAX_EXPLOSIONS ) && !m_bDisableExplosions )
+#else
 		if ( ShouldTriggerDamageEffect( nPrevHealth, MAX_EXPLOSIONS ) )
+#endif
 		{
 			ExplodeAndThrowChunk( info.GetDamagePosition() );
 		}
@@ -3775,6 +4005,46 @@ void Chopper_BecomeChunks( CBaseEntity *pChopper )
 }
 
 //-----------------------------------------------------------------------------
+// Purpose: Find a valid crash point
+//-----------------------------------------------------------------------------
+CBaseEntity *CNPC_AttackHelicopter::FindCrashPoint()
+{
+#ifdef MAPBASE
+	float flNearest = MAX_TRACE_LENGTH * MAX_TRACE_LENGTH;
+	CTargetHelicopterCrash *pNearest = NULL;
+	CBaseEntity *pEnt = NULL;
+	while( (pEnt = gEntList.FindEntityByClassname(pEnt, "info_target_helicopter_crash")) != NULL )
+	{
+		CTargetHelicopterCrash *pCrashTarget = assert_cast<CTargetHelicopterCrash*>(pEnt);
+		if ( pCrashTarget->IsDisabled() )
+			continue;
+
+		if (g_helicopter_crashpoint_nearest.GetBool())
+		{
+			float flDist = ( pEnt->WorldSpaceCenter() - WorldSpaceCenter() ).LengthSqr();
+			if( flDist < flNearest )
+			{
+				pNearest = pCrashTarget;
+				flNearest = flDist;
+			}
+		}
+		else
+		{
+			pNearest = pCrashTarget;
+			break;
+		}
+	}
+
+	if (pNearest)
+		pNearest->HelicopterAcquiredCrashTarget( this );
+
+	return pNearest;
+#else
+	return gEntList.FindEntityByClassname( NULL, "info_target_helicopter_crash" );
+#endif
+}
+
+//-----------------------------------------------------------------------------
 // Purpose: Start us crashing
 //-----------------------------------------------------------------------------
 void CNPC_AttackHelicopter::Event_Killed( const CTakeDamageInfo &info )
@@ -3785,13 +4055,16 @@ void CNPC_AttackHelicopter::Event_Killed( const CTakeDamageInfo &info )
 	}
 
 	m_lifeState			= LIFE_DYING;
-
-	CSoundEnvelopeController &controller = CSoundEnvelopeController::GetController();
-	controller.SoundChangeVolume( m_pGunFiringSound, 0.0, 0.1f );
+	
+	if ( GetSleepState() != AISS_WAITING_FOR_INPUT )
+	{
+		CSoundEnvelopeController& controller = CSoundEnvelopeController::GetController();
+		controller.SoundChangeVolume( m_pGunFiringSound, 0.0, 0.1f );
+	}
 
 	if( GetCrashPoint() == NULL )
 	{
-		CBaseEntity *pCrashPoint = gEntList.FindEntityByClassname( NULL, "info_target_helicopter_crash" );
+		CBaseEntity *pCrashPoint = FindCrashPoint();
 		if( pCrashPoint != NULL )
 		{
 			m_hCrashPoint.Set( pCrashPoint );
@@ -3812,6 +4085,12 @@ void CNPC_AttackHelicopter::Event_Killed( const CTakeDamageInfo &info )
 			return;
 		}
 	}
+#ifdef MAPBASE
+	else
+	{
+		assert_cast<CTargetHelicopterCrash*>( GetCrashPoint() )->HelicopterCrashedOnTarget( this );
+	}
+#endif
 
 	Chopper_BecomeChunks( this );
 	StopLoopingSounds();
@@ -3869,7 +4148,11 @@ void CNPC_AttackHelicopter::PrescheduleThink( void )
 				SetDesiredPosition( GetCrashPoint()->WorldSpaceCenter() );
 			}
 
+#ifdef MAPBASE
+			if ( !m_bDisableExplosions && random->RandomInt( 0, 4 ) == 0 )
+#else
 			if ( random->RandomInt( 0, 4 ) == 0 )
+#endif
 			{
 				Vector	explodePoint;		
 				CollisionProp()->RandomPointInBounds( Vector(0.25,0.25,0.25), Vector(0.75,0.75,0.75), &explodePoint );
@@ -4821,6 +5104,15 @@ void CNPC_AttackHelicopter::Hunt( void )
 	{
 		Flight();
 		UpdatePlayerDopplerShift( );
+
+#if defined(MAPBASE) && defined(HL2_EPISODIC)
+		if (g_helicopter_phys_follow_while_crashing.GetBool())
+		{
+			// Update our bone followers
+			m_BoneFollowerManager.UpdateBoneFollowers( this );
+		}
+#endif // HL2_EPISODIC
+
 		return;
 	}
 
@@ -4884,6 +5176,55 @@ void CNPC_AttackHelicopter::Hunt( void )
 		}
 #endif
 	}
+
+#ifdef MAPBASE
+	if (m_bIdleAimAround)
+	{
+		if (!GetEnemy())
+		{
+			if (GetIdleAimTarget())
+			{
+				if (!ValidIdleAimTarget( GetIdleAimTarget() ))
+				{
+					SetIdleAimTarget( NULL );
+					m_flNextIdleAimTime = gpGlobals->curtime;
+				}
+			}
+
+			if (m_flNextIdleAimTime < gpGlobals->curtime)
+			{
+				if (!FindIdleAimTarget())
+				{
+					SetIdleAimTarget( NULL );
+
+					// Find a random direction in front of us instead
+					Vector vBasePos, vecForward, vecRight, vecUp;
+					GetAttachment( m_nGunBaseAttachment, vBasePos, &vecForward, &vecRight, &vecUp );
+
+					m_vecIdleAimDir = vecForward + (vecRight * RandomFloat( -0.25f, 0.25f )) + (vecUp * RandomFloat( -0.8f, -0.25f ));
+				}
+
+				m_flNextIdleAimTime = gpGlobals->curtime + RandomFloat( 4.0f, 6.0f );
+			}
+
+			if (GetIdleAimTarget())
+			{
+				// Get gun attachment points
+				Vector vBasePos;
+				GetAttachment( m_nGunBaseAttachment, vBasePos );
+
+				m_vecIdleAimDir = GetIdleAimTarget()->GetAbsOrigin() - vBasePos;
+				VectorNormalize( m_vecIdleAimDir );
+			}
+
+			PoseGunTowardTargetDirection( m_vecIdleAimDir );
+		}
+		else if (GetIdleAimTarget())
+		{
+			SetIdleAimTarget( NULL );
+		}
+	}
+#endif
 
 #ifdef HL2_EPISODIC
 	// Update our bone followers

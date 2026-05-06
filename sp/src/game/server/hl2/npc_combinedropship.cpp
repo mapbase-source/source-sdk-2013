@@ -921,7 +921,7 @@ CNPC_CombineDropship::~CNPC_CombineDropship(void)
 void CNPC_CombineDropship::Spawn( void )
 {
 	Precache( );
-	SetModel( "models/combine_dropship.mdl" );
+	SetModel( DefaultOrCustomModel( "models/combine_dropship.mdl" ) );
 
 #ifdef _XBOX
 	AddEffects( EF_NOSHADOW );
@@ -1188,7 +1188,7 @@ void CNPC_CombineDropship::Activate( void )
 void CNPC_CombineDropship::Precache( void )
 {
 	// Models
-	PrecacheModel("models/combine_dropship.mdl");
+	PrecacheModel( DefaultOrCustomModel( "models/combine_dropship.mdl" ) );
 	switch ( m_iCrateType )
 	{
 	case CRATE_SOLDIER:

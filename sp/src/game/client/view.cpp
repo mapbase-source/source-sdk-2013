@@ -129,6 +129,7 @@ ConVar	gl_clear_randomcolor( "gl_clear_randomcolor", "0", FCVAR_CHEAT, "Clear th
 static ConVar r_farz( "r_farz", "-1", FCVAR_CHEAT, "Override the far clipping plane. -1 means to use the value in env_fog_controller." );
 #ifdef MAPBASE
 static ConVar r_nearz( "r_nearz", "-1", FCVAR_CHEAT, "Override the near clipping plane. -1 means to use the default value (usually 7)." );
+static ConVar cl_camera_anim_intensity("cl_camera_anim_intensity", "1.0", FCVAR_ARCHIVE, "Intensity of cambone animations");
 #endif
 static ConVar cl_demoviewoverride( "cl_demoviewoverride", "0", 0, "Override view during demo playback" );
 
@@ -1306,6 +1307,37 @@ void CViewRender::Render( vrect_t *rect )
 				g_ClientVirtualReality.OverlayHUDQuadWithUndistort( view, bDoUndistort, g_pClientMode->ShouldBlackoutAroundHUD(), bTranslucent );
 			}
 		}
+
+#ifdef MAPBASE
+		//--------------------------------
+		// Handle camera anims
+		//--------------------------------
+		if (!UseVR() && pPlayer && cl_camera_anim_intensity.GetFloat() > 0)
+		{
+			if (pPlayer->GetViewModel(0))
+			{
+				int attachment = pPlayer->GetViewModel(0)->LookupAttachment("camera");
+				if (attachment != -1)
+				{
+					int rootBone = pPlayer->GetViewModel(0)->LookupAttachment("camera_root");
+					Vector cameraOrigin = Vector(0, 0, 0);
+					QAngle cameraAngles = QAngle(0, 0, 0);
+					Vector rootOrigin = Vector(0, 0, 0);
+					QAngle rootAngles = QAngle(0, 0, 0);
+
+					pPlayer->GetViewModel(0)->GetAttachmentLocal(attachment, cameraOrigin, cameraAngles);
+					if (rootBone != -1)
+					{
+						pPlayer->GetViewModel(0)->GetAttachmentLocal(rootBone, rootOrigin, rootAngles);
+						cameraOrigin -= rootOrigin;
+						cameraAngles -= rootAngles;
+					}
+					view.angles += cameraAngles * cl_camera_anim_intensity.GetFloat();
+					view.origin += cameraOrigin * cl_camera_anim_intensity.GetFloat();
+				}
+			}
+		}
+#endif // MAPBASE
     }
 
 

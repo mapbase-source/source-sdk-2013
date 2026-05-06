@@ -12,10 +12,10 @@
 
 inline void DAP_Serialise( CBuffer *buffer )
 {
-	Assert( buffer->size() > 0 && buffer->size() < INT_MAX );
+	Assert( buffer->Size() > 0 && buffer->Size() < INT_MAX );
 
-	char *mem = buffer->base();
-	int contentSize = buffer->size() - DAP_HEADER_MAXSIZE;
+	char *mem = buffer->Base();
+	int contentSize = buffer->Size() - DAP_HEADER_MAXSIZE;
 	int digits = countdigits( contentSize );
 	int padding = FMT_UINT32_LEN - digits;
 
@@ -31,8 +31,8 @@ inline void DAP_Serialise( CBuffer *buffer )
 		// add padding in the end to match
 		padding--;
 		digits++;
-		buffer->_base.Ensure( buffer->size() + 1 );
-		mem[buffer->_size++] = ' ';
+		buffer->base.Ensure( buffer->Size() + 1 );
+		mem[buffer->size++] = ' ';
 	}
 
 	memcpy( mem, DAP_HEADER_CONTENTLENGTH ": ", STRLEN(DAP_HEADER_CONTENTLENGTH ": ") );
@@ -53,10 +53,10 @@ inline void DAP_Serialise( CBuffer *buffer )
 
 inline void DAP_Free( CBuffer *buffer )
 {
-	buffer->_size = 0;
+	buffer->size = 0;
 }
 
-static inline void ParseFieldName( const char *pMemEnd, char *pStart, int *len )
+static inline int ParseFieldName( const char *pMemEnd, char *pStart )
 {
 	char *c = pStart;
 
@@ -65,56 +65,39 @@ static inline void ParseFieldName( const char *pMemEnd, char *pStart, int *len )
 		if ( IN_RANGE_CHAR( ((unsigned char*)c)[0], 0x20, 0x7E ) )
 		{
 			if ( c + 1 >= pMemEnd )
-			{
-				*len = -1;
-				return;
-			}
+				return -1;
 
 			if ( c[0] == ':' )
 			{
 				if ( c[1] == ' ' )
-				{
-					*len = c - pStart;
-					return;
-				}
+					return c - pStart;
 
-				*len = 0;
-				return;
+				return 0;
 			}
 
 			c++;
 		}
 		else
 		{
-			*len = 0;
-			return;
+			return 0;
 		}
 	}
 }
 
-static inline void ParseFieldValue( const char *pMemEnd, char *pStart, int *len )
+static inline int ParseFieldValue( const char *pMemEnd, char *pStart )
 {
 	char *c = pStart;
 
 	for (;;)
 	{
 		if ( c + 1 >= pMemEnd )
-		{
-			*len = -1;
-			return;
-		}
+			return -1;
 
 		if ( c[0] == '\n' )
-		{
-			*len = 0;
-			return;
-		}
+			return 0;
 
 		if ( c[0] == '\r' && c[1] == '\n' )
-		{
-			*len = c - pStart;
-			return;
-		}
+			return c - pStart;
 
 		c++;
 	}
@@ -128,8 +111,7 @@ inline bool DAP_ReadHeader( char **ppMsg, int *pLength )
 
 	for (;;)
 	{
-		int len;
-		ParseFieldName( pMemEnd, pMsg, &len );
+		int len = ParseFieldName( pMemEnd, pMsg );
 
 		if ( len == 0 )
 			goto invalid;
@@ -151,7 +133,7 @@ inline bool DAP_ReadHeader( char **ppMsg, int *pLength )
 				if ( pMsg >= pMemEnd )
 					return false;
 
-				if ( IN_RANGE_CHAR( *(unsigned char*)pMsg, '0', '9' ) )
+				if ( IN_RANGE_CHAR( *pMsg, '0', '9' ) )
 				{
 					nContentLength = nContentLength * 10 + *pMsg - '0';
 					pMsg++;
@@ -187,7 +169,7 @@ inline bool DAP_ReadHeader( char **ppMsg, int *pLength )
 ignore:
 			pMsg += len + 2;
 
-			ParseFieldValue( pMemEnd, pMsg, &len );
+			len = ParseFieldValue( pMemEnd, pMsg );
 
 			if ( len == 0 )
 				goto invalid;
@@ -216,13 +198,13 @@ invalid:
 }
 
 #ifdef SQDBG_VALIDATE_SENT_MSG
-inline void DAP_Test( CScratch< JSON_SCRATCH_CHUNK_SIZE > *scratch, CBuffer *buffer )
+inline void DAP_Test( CScratch< true, JSON_SCRATCH_CHUNK_SIZE > *scratch, CBuffer *buffer )
 {
-	char *pMsg = buffer->base();
-	int nLength = buffer->size();
+	char *pMsg = buffer->Base();
+	int nLength = buffer->Size();
 
 	bool res = DAP_ReadHeader( &pMsg, &nLength );
-	Assert( res && nLength < buffer->size() );
+	Assert( res && nLength < buffer->Size() );
 
 	if ( res )
 	{
@@ -238,7 +220,7 @@ inline void DAP_Test( CScratch< JSON_SCRATCH_CHUNK_SIZE > *scratch, CBuffer *buf
 
 #define _DAP_INIT_BUF( _buf ) \
 	CBufTmpCache _bufcache( (_buf) ); \
-	(_buf)->_size = DAP_HEADER_MAXSIZE; \
+	(_buf)->size = DAP_HEADER_MAXSIZE; \
 	(void)0
 
 #define DAP_START_REQUEST( _seq, _cmd ) \
@@ -262,10 +244,10 @@ if ( IsClientConnected() ) \
 		packet.SetBool( "success", _suc );
 
 #define DAP_START_RESPONSE( _seq, _cmd ) \
-		_DAP_START_RESPONSE( _seq, _cmd, true );
+		_DAP_START_RESPONSE( _seq, _cmd, true )
 
 #define DAP_ERROR_RESPONSE( _seq, _cmd ) \
-		_DAP_START_RESPONSE( _seq, _cmd, false );
+		_DAP_START_RESPONSE( _seq, _cmd, false )
 
 #define DAP_ERROR_BODY( _id, _fmt ) \
 		wjson_table_t body = packet.SetTable( "body" ); \
@@ -292,7 +274,7 @@ if ( IsClientConnected() ) \
 	} \
 \
 	DAP_Serialise( &m_SendBuf ); \
-	Send( m_SendBuf.base(), m_SendBuf.size() ); \
+	Send( m_SendBuf.Base(), m_SendBuf.Size() ); \
 	DAP_Test( &m_ReadBuf, &m_SendBuf ); \
 	DAP_Free( &m_SendBuf ); \
 }

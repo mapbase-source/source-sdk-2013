@@ -13,6 +13,10 @@ $Conditional VS2019	"0" // Toggles Visual Studio 2019 (v142) toolset
 $Conditional VS2022	"1" // Toggles Visual Studio 2022 (v143) toolset
 
 // 
+// WARNING: If you do not have Visual Studio 2013 installed and try to use VPC, it may produce an error about a missing RegKey.
+// You can fix this without installing VS2013 by running newer_vs_toolsets_regkey_fix.reg, which is in the same directory as this file.
+// This .reg file adds a registry key which is normally created by installing VS2013. You will only have to do this once per machine.
+// 
 // VPC may still say "Generating for Visual Studio 2013" even when using one of the above toolsets. This message is irrelevant and can be ignored.
 // 
 // The following projects currently do not compile with any of the above toolsets and are not included in their solutions:

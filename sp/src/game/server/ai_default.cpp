@@ -500,6 +500,13 @@ public:
 		g_AI_SensedObjectsManager.Init();
 	}
 
+#ifdef MAPBASE_VSCRIPT
+	virtual void RegisterVScript()
+	{
+		g_pScriptVM->RegisterInstance( &g_AI_SensedObjectsManager, "SensedObjectsManager" );
+	}
+#endif
+
 	void LevelShutdownPreEntity()
 	{
 		CBaseCombatCharacter::ResetVisibilityCache();

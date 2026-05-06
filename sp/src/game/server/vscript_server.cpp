@@ -23,7 +23,7 @@
 extern ScriptClassDesc_t * GetScriptDesc( CBaseEntity * );
 
 #ifdef MAPBASE_VSCRIPT
-extern int vscript_debugger_port;
+ConVar script_connect_debugger_on_mapspawn( "script_connect_debugger_on_mapspawn", "0" );
 #endif
 
 // #define VMPROFILE 1
@@ -668,10 +668,13 @@ bool VScriptServerInit()
 #endif
 
 #ifdef MAPBASE_VSCRIPT
-				if ( vscript_debugger_port )
+				if ( script_connect_debugger_on_mapspawn.GetInt() == 2 )
+				{
+					g_pScriptVM->ConnectDebugger( vscript_debugger_port, 10.0f );
+				}
+				else if ( script_connect_debugger_on_mapspawn.GetInt() != 0 )
 				{
 					g_pScriptVM->ConnectDebugger( vscript_debugger_port );
-					vscript_debugger_port = 0;
 				}
 #endif
 

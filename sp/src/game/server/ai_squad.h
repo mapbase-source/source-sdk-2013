@@ -107,6 +107,12 @@ public:
 
 	void					SquadNewEnemy ( CBaseEntity *pEnemy );
 	void					UpdateEnemyMemory( CAI_BaseNPC *pUpdater, CBaseEntity *pEnemy, const Vector &position );
+#ifdef MAPBASE
+	// The idea behind this is that, if one squad member fails to locate the enemy, nobody in the squad knows where the enemy is
+	// Makes combat utilizing elusion a bit smoother
+	// (gated by ai_squad_broadcast_elusion cvar)
+	void					MarkEnemyAsEluded( CAI_BaseNPC *pUpdater, CBaseEntity *pEnemy );
+#endif
 
 	bool 					OccupyStrategySlotRange( CBaseEntity *pEnemy, int slotIDStart, int slotIDEnd, int *pSlot );
 	void 					VacateStrategySlot( CBaseEntity *pEnemy, int slot);
@@ -186,8 +192,8 @@ private:
 
 	bool					ScriptIsSilentMember( HSCRIPT hNPC );
 
-	void					ScriptSetSquadData( int iSlot, const char *data );
-	const char				*ScriptGetSquadData( int iSlot );
+	void					ScriptSetSquadData( int iSlot, int data );
+	int						ScriptGetSquadData( int iSlot );
 #endif
 
 private:

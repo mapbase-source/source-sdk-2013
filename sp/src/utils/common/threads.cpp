@@ -112,7 +112,11 @@ WIN32
 ===================================================================
 */
 
+#ifdef MAPBASE
+int		numthreads = -(MAX_TOOL_THREADS + 1);
+#else
 int		numthreads = -1;
+#endif
 CRITICAL_SECTION		crit;
 static int enter;
 
@@ -133,18 +137,36 @@ void SetLowPriority()
 	SetPriorityClass( GetCurrentProcess(), IDLE_PRIORITY_CLASS );
 }
 
-
+//Threads can be negative; if so, they will be subtracted from the total thread count.
 void ThreadSetDefault (void)
 {
 	SYSTEM_INFO info;
 
+#ifdef MAPBASE
+	if (numthreads == -(MAX_TOOL_THREADS + 1))	// not set manually
+#else
 	if (numthreads == -1)	// not set manually
+#endif
 	{
 		GetSystemInfo (&info);
 		numthreads = info.dwNumberOfProcessors;
-		if (numthreads < 1 || numthreads > 32)
+#ifdef MAPBASE
+		if (numthreads > 32)
+#else
+		if (numthreads < 1 ||numthreads > 32)
+#endif
 			numthreads = 1;
 	}
+
+#ifdef MAPBASE
+	if (numthreads <= 0) 
+	{
+		GetSystemInfo(&info);
+		numthreads = info.dwNumberOfProcessors + numthreads;
+		if (numthreads <= 0)
+			Error("\nIncrease the number of threads! Threads: %i, they cannot be negative or 0.\n", numthreads);
+	}
+#endif
 
 	Msg ("%i threads\n", numthreads);
 }

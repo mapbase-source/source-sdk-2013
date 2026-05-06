@@ -75,7 +75,11 @@ public:
 
 	// locals
 	void InitRagdollAnimation( void );
+#ifdef MAPBASE
+	void InitRagdoll( const Vector& forceVector, int forceBone, const Vector& forcePos, matrix3x4_t* pPrevBones, matrix3x4_t* pBoneToWorld, float dt, int collisionGroup, bool activateRagdoll, bool bWakeRagdoll = true, bool bDeathPose = false );
+#else
 	void InitRagdoll( const Vector &forceVector, int forceBone, const Vector &forcePos, matrix3x4_t *pPrevBones, matrix3x4_t *pBoneToWorld, float dt, int collisionGroup, bool activateRagdoll, bool bWakeRagdoll = true );
+#endif
 	
 	void RecheckCollisionFilter( void );
 	void SetDebrisThink();

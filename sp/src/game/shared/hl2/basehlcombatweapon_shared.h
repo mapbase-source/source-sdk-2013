@@ -53,6 +53,13 @@ public:
 
 	virtual void	ItemHolsterFrame( void );
 
+#ifdef MAPBASE
+	virtual const char *GetViewModel( int viewmodelindex = 0 ) const;
+	virtual float	GetViewmodelFOVOverride() const;
+	virtual bool	UsesHands( void ) const;
+	virtual int		GetHandRig( void ) const;
+#endif
+
 	int				m_iPrimaryAttacks;		// # of primary attacks performed with this weapon
 	int				m_iSecondaryAttacks;	// # of secondary attacks performed with this weapon
 

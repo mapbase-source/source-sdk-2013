@@ -99,6 +99,7 @@ namespace ResponseRules
 #ifdef MAPBASE
 		RESPONSE_VSCRIPT, // Run VScript code
 		RESPONSE_VSCRIPT_FILE, // Run a VScript file (bypasses ugliness and character limits when just using IncludeScript() with RESPONSE_VSCRIPT)
+		RESPONSE_CHOREOSENTENCE, // Sentences put together as VCDs, see choreosentence.h for more information
 #endif
 
 		NUM_RESPONSES,

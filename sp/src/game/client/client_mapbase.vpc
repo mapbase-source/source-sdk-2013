@@ -47,8 +47,12 @@ $Project
 			$File	"$SRCDIR\game\shared\mapbase\MapEdit.h"
 			$File	"$SRCDIR\game\shared\mapbase\matchers.cpp"
 			$File	"$SRCDIR\game\shared\mapbase\matchers.h"
-			$File	"$SRCDIR\game\shared\mapbase\singleplayer_animstate.cpp"
-			$File	"$SRCDIR\game\shared\mapbase\singleplayer_animstate.h"
+			$File	"$SRCDIR\game\shared\mapbase\mapbase_playeranimstate.cpp"
+			$File	"$SRCDIR\game\shared\mapbase\mapbase_playeranimstate.h"
+			$File	"$SRCDIR\game\shared\mapbase\protagonist_system.cpp"
+			$File	"$SRCDIR\game\shared\mapbase\protagonist_system.h"
+			$File	"$SRCDIR\game\shared\mapbase\game_timer.cpp"
+			$File	"$SRCDIR\game\shared\mapbase\game_timer.h"
 			$File	"$SRCDIR\game\shared\mapbase\vscript_funcs_shared.cpp" [$MAPBASE_VSCRIPT]
 			$File	"$SRCDIR\game\shared\mapbase\vscript_funcs_shared.h" [$MAPBASE_VSCRIPT]
 			$File	"$SRCDIR\game\shared\mapbase\vscript_singletons.cpp" [$MAPBASE_VSCRIPT]
@@ -71,6 +75,7 @@ $Project
 			$File	"mapbase\c_vgui_text_display.cpp"
 			$File	"mapbase\c_weapon_custom_hl2.cpp"
 			$File	"mapbase\mapbase_autocubemap.cpp"
+			$File	"mapbase\hud_generic_timer.cpp"
 		}
 		
 		$Folder "HL2 DLL"

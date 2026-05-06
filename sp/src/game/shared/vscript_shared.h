@@ -47,6 +47,12 @@ class CBaseEntityScriptInstanceHelper : public IScriptInstanceHelper
 extern CBaseEntityScriptInstanceHelper g_BaseEntityScriptInstanceHelper;
 
 #ifdef MAPBASE_VSCRIPT
+#ifdef GAME_DLL
+const int vscript_debugger_port = 1212;
+#else
+const int vscript_debugger_port = 1213;
+#endif
+
 void RegisterSharedScriptConstants();
 void RegisterSharedScriptFunctions();
 

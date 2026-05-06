@@ -100,7 +100,11 @@ void CHudSuitPower::OnThink( void )
 	}
 
 	bool flashlightActive = pPlayer->IsFlashlightActive();
+#ifdef MAPBASE
+	bool sprintActive = pPlayer->IsSprintActive();
+#else
 	bool sprintActive = pPlayer->IsSprinting();
+#endif
 	bool breatherActive = pPlayer->IsBreatherActive();
 	int activeDevices = (int)flashlightActive + (int)sprintActive + (int)breatherActive;
 
@@ -250,7 +254,11 @@ void CHudSuitPower::Paint()
 			ypos += text2_gap;
 		}
 
+#ifdef MAPBASE
+		if (pPlayer->IsSprintActive())
+#else
 		if (pPlayer->IsSprinting())
+#endif
 		{
 			tempString = g_pVGuiLocalize->Find("#Valve_Hud_SPRINT");
 

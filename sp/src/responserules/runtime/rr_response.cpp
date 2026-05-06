@@ -260,6 +260,8 @@ const char *CRR_Response::DescribeResponse( ResponseType_t type )
 		return "RESPONSE_VSCRIPT";
 	case ResponseRules::RESPONSE_VSCRIPT_FILE:
 		return "RESPONSE_VSCRIPT_FILE";
+	case ResponseRules::RESPONSE_CHOREOSENTENCE:
+		return "RESPONSE_CHOREOSENTENCE";
 #endif
 	}
 

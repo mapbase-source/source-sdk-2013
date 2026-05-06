@@ -111,7 +111,44 @@ public:
 	}
 };
 
-template< int MEM_CACHE_CHUNKS_ALIGN = 2048 >
+// GCC requires this to be outside of the class
+template < bool S >
+struct _CScratch_members;
+
+template <>
+struct _CScratch_members< true >
+{
+	int m_LastFreeChunk;
+	int m_LastFreeIndex;
+	int m_PrevChunk;
+	int m_PrevIndex;
+
+	int LastFreeChunk() { return m_LastFreeChunk; }
+	int LastFreeIndex() { return m_LastFreeIndex; }
+	int PrevChunk() { return m_PrevChunk; }
+	int PrevIndex() { return m_PrevIndex; }
+
+	void SetLastFreeChunk( int i ) { m_LastFreeChunk = i; }
+	void SetLastFreeIndex( int i ) { m_LastFreeIndex = i; }
+	void SetPrevChunk( int i ) { m_PrevChunk = i; }
+	void SetPrevIndex( int i ) { m_PrevIndex = i; }
+};
+
+template <>
+struct _CScratch_members< false >
+{
+	int LastFreeChunk() { return 0; }
+	int LastFreeIndex() { return 0; }
+	int PrevChunk() { return 0; }
+	int PrevIndex() { return 0; }
+
+	void SetLastFreeChunk( int ) {}
+	void SetLastFreeIndex( int ) {}
+	void SetPrevChunk( int ) {}
+	void SetPrevIndex( int ) {}
+};
+
+template< bool SEQUENTIAL, int MEM_CACHE_CHUNKS_ALIGN = 2048 >
 class CScratch
 {
 public:
@@ -126,8 +163,7 @@ public:
 
 	chunk_t *m_Memory;
 	int m_MemChunkCount;
-	int m_LastFreeChunk;
-	int m_LastFreeIndex;
+	_CScratch_members< SEQUENTIAL > m;
 
 	char *Get( int index )
 	{
@@ -145,7 +181,7 @@ public:
 		return &chunk->ptr[ msgIdx * MEM_CACHE_CHUNKSIZE ];
 	}
 
-	char *Alloc( int size, int *index = NULL, bool sequential = true )
+	char *Alloc( int size, int *index = NULL )
 	{
 		if ( !m_Memory )
 		{
@@ -166,11 +202,11 @@ public:
 		int chunkIdx;
 		int matchedChunks = 0;
 
-		if ( sequential )
+		if ( SEQUENTIAL )
 		{
 			requiredChunks = ( size - 1 ) / MEM_CACHE_CHUNKSIZE + 1;
-			msgIdx = m_LastFreeIndex;
-			chunkIdx = m_LastFreeChunk;
+			msgIdx = m.LastFreeIndex();
+			chunkIdx = m.LastFreeChunk();
 		}
 		else
 		{
@@ -184,14 +220,17 @@ public:
 			chunk_t *chunk = &m_Memory[ chunkIdx ];
 			Assert( chunk->count && chunk->ptr );
 
-			if ( sequential )
+			if ( SEQUENTIAL )
 			{
 				int remainingChunks = chunk->count - msgIdx;
 
 				if ( remainingChunks >= requiredChunks )
 				{
-					m_LastFreeIndex = msgIdx + requiredChunks;
-					m_LastFreeChunk = chunkIdx;
+					m.SetPrevChunk( m.LastFreeChunk() );
+					m.SetPrevIndex( m.LastFreeIndex() );
+
+					m.SetLastFreeIndex( msgIdx + requiredChunks );
+					m.SetLastFreeChunk( chunkIdx );
 
 					if ( index )
 					{
@@ -267,6 +306,7 @@ public:
 
 	void Free( void *ptr )
 	{
+		STATIC_ASSERT( !SEQUENTIAL );
 		Assert( m_Memory );
 		Assert( ptr );
 
@@ -290,7 +330,8 @@ public:
 
 		Assert( found );
 
-		(*(unsigned char**)&ptr)[ *(int*)ptr + sizeof(int) - 1 ] = 0xdd;
+		if ( *(int*)ptr )
+			(*(unsigned char**)&ptr)[ *(int*)ptr + sizeof(int) - 1 ] = 0xdd;
 #endif
 
 		memset( (char*)ptr, 0, *(int*)ptr + sizeof(int) );
@@ -315,12 +356,16 @@ public:
 
 		m_Memory = NULL;
 		m_MemChunkCount = 4;
-		m_LastFreeChunk = 0;
-		m_LastFreeIndex = 0;
+		m.SetLastFreeChunk( 0 );
+		m.SetLastFreeIndex( 0 );
+		m.SetPrevChunk( 0 );
+		m.SetPrevIndex( 0 );
 	}
 
 	void ReleaseShrink()
 	{
+		STATIC_ASSERT( SEQUENTIAL );
+
 		if ( !m_Memory )
 			return;
 
@@ -359,13 +404,17 @@ public:
 			AssertOOM( m_Memory, m_MemChunkCount * sizeof(chunk_t) );
 		}
 
-		m_LastFreeChunk = 0;
-		m_LastFreeIndex = 0;
+		m.SetLastFreeChunk( 0 );
+		m.SetLastFreeIndex( 0 );
+		m.SetPrevChunk( 0 );
+		m.SetPrevIndex( 0 );
 	}
 
 	void Release()
 	{
-		if ( !m_Memory || ( !m_LastFreeChunk && !m_LastFreeIndex ) )
+		STATIC_ASSERT( SEQUENTIAL );
+
+		if ( !m_Memory || ( !m.LastFreeChunk() && !m.LastFreeIndex() ) )
 			return;
 
 #ifdef _DEBUG
@@ -380,8 +429,18 @@ public:
 		}
 #endif
 
-		m_LastFreeChunk = 0;
-		m_LastFreeIndex = 0;
+		m.SetLastFreeChunk( 0 );
+		m.SetLastFreeIndex( 0 );
+		m.SetPrevChunk( 0 );
+		m.SetPrevIndex( 0 );
+	}
+
+	void ReleaseTop()
+	{
+		STATIC_ASSERT( SEQUENTIAL );
+
+		m.SetLastFreeChunk( m.PrevChunk() );
+		m.SetLastFreeIndex( m.PrevIndex() );
 	}
 };
 
@@ -391,212 +450,212 @@ class vector
 public:
 	typedef unsigned int I;
 
-	CAllocator _base;
-	I _size;
+	CAllocator base;
+	I size;
 
-	vector() : _base(), _size(0)
+	vector() : base(), size(0)
 	{
-		Assert( !bExternalMem );
+		STATIC_ASSERT( !bExternalMem );
 	}
 
-	vector( CAllocator &a ) : _base(a), _size(0)
+	vector( CAllocator &a ) : base(a), size(0)
 	{
-		Assert( bExternalMem );
+		STATIC_ASSERT( bExternalMem );
 	}
 
-	vector( I count ) : _base(), _size(0)
+	vector( I count ) : base(), size(0)
 	{
-		Assert( !bExternalMem );
-		_base.Alloc( count * sizeof(T) );
+		STATIC_ASSERT( !bExternalMem );
+		base.Alloc( count * sizeof(T) );
 	}
 
-	vector( const vector< T > &src ) : _base()
+	vector( const vector< T > &src ) : base()
 	{
-		Assert( !bExternalMem );
-		_base.Alloc( src._base.Size() );
-		_size = src._size;
+		STATIC_ASSERT( !bExternalMem );
+		base.Alloc( src.base.Size() );
+		size = src.size;
 
-		for ( I i = 0; i < _size; i++ )
-			new( &_base[ i * sizeof(T) ] ) T( (T&)src._base[ i * sizeof(T) ] );
+		for ( I i = 0; i < size; i++ )
+			new( &base[ i * sizeof(T) ] ) T( (T&)src.base[ i * sizeof(T) ] );
 	}
 
 	~vector()
 	{
-		Assert( (unsigned int)_size <= _base.Size() );
+		Assert( (unsigned int)size <= base.Size() );
 
-		for ( I i = 0; i < _size; i++ )
-			((T&)(_base[ i * sizeof(T) ])).~T();
+		for ( I i = 0; i < size; i++ )
+			((T&)(base[ i * sizeof(T) ])).~T();
 
 		if ( !bExternalMem )
-			_base.Free();
+			base.Free();
 	}
 
 	T &operator[]( I i ) const
 	{
-		Assert( _size > 0 );
-		Assert( i >= 0 && i < _size );
-		Assert( _size * sizeof(T) <= _base.Size() );
-		return (T&)_base[ i * sizeof(T) ];
+		Assert( size > 0 );
+		Assert( i >= 0 && i < size );
+		Assert( size * sizeof(T) <= base.Size() );
+		return (T&)base[ i * sizeof(T) ];
 	}
 
-	T *base()
+	T *Base()
 	{
-		return _base.Base();
+		return base.Base();
 	}
 
-	I size() const
+	I Size() const
 	{
-		return _size;
+		return size;
 	}
 
-	I capacity() const
+	I Capacity() const
 	{
-		return _base.Size() / sizeof(T);
+		return base.Size() / sizeof(T);
 	}
 
-	T &top() const
+	T &Top() const
 	{
-		Assert( _size > 0 );
-		return (T&)_base[ ( _size - 1 ) * sizeof(T) ];
+		Assert( size > 0 );
+		return (T&)base[ ( size - 1 ) * sizeof(T) ];
 	}
 
-	void pop()
+	void Pop()
 	{
-		Assert( _size > 0 );
-		((T&)_base[ --_size * sizeof(T) ]).~T();
+		Assert( size > 0 );
+		((T&)base[ --size * sizeof(T) ]).~T();
 	}
 
-	T &append()
+	T &Append()
 	{
-		_base.Ensure( ++_size * sizeof(T) );
-		Assert( _size * sizeof(T) <= _base.Size() );
-		return *( new( &_base[ ( _size - 1 ) * sizeof(T) ] ) T() );
+		base.Ensure( ++size * sizeof(T) );
+		Assert( size * sizeof(T) <= base.Size() );
+		return *( new( &base[ ( size - 1 ) * sizeof(T) ] ) T() );
 	}
 
-	void append( const T &src )
+	void Append( const T &src )
 	{
-		_base.Ensure( ++_size * sizeof(T) );
-		Assert( _size * sizeof(T) <= _base.Size() );
-		new( &_base[ ( _size - 1 ) * sizeof(T) ] ) T( src );
+		base.Ensure( ++size * sizeof(T) );
+		Assert( size * sizeof(T) <= base.Size() );
+		new( &base[ ( size - 1 ) * sizeof(T) ] ) T( src );
 	}
 
-	T &insert( I i )
+	T &Insert( I i )
 	{
-		Assert( i >= 0 && i <= _size );
+		Assert( i >= 0 && i <= size );
 
-		_base.Ensure( ++_size * sizeof(T) );
-		Assert( _size * sizeof(T) <= _base.Size() );
+		base.Ensure( ++size * sizeof(T) );
+		Assert( size * sizeof(T) <= base.Size() );
 
-		if ( i != _size - 1 )
+		if ( i != size - 1 )
 		{
-			memmove( &_base[ ( i + 1 ) * sizeof(T) ],
-					&_base[ i * sizeof(T) ],
-					( _size - ( i + 1 ) ) * sizeof(T) );
+			memmove( &base[ ( i + 1 ) * sizeof(T) ],
+					&base[ i * sizeof(T) ],
+					( size - ( i + 1 ) ) * sizeof(T) );
 		}
 
-		return *( new( &_base[ i * sizeof(T) ] ) T() );
+		return *( new( &base[ i * sizeof(T) ] ) T() );
 	}
 
-	void remove( I i )
+	void Remove( I i )
 	{
-		Assert( _size > 0 );
-		Assert( i >= 0 && i < _size );
+		Assert( size > 0 );
+		Assert( i >= 0 && i < size );
 
-		((T&)_base[ i * sizeof(T) ]).~T();
+		((T&)base[ i * sizeof(T) ]).~T();
 
-		if ( i != _size - 1 )
+		if ( i != size - 1 )
 		{
-			memmove( &_base[ i * sizeof(T) ],
-					&_base[ ( i + 1 ) * sizeof(T) ],
-					( _size - ( i + 1 ) ) * sizeof(T) );
+			memmove( &base[ i * sizeof(T) ],
+					&base[ ( i + 1 ) * sizeof(T) ],
+					( size - ( i + 1 ) ) * sizeof(T) );
 		}
 
-		_size--;
+		size--;
 	}
 
-	void clear()
+	void Clear()
 	{
-		for ( I i = 0; i < _size; i++ )
-			((T&)_base[ i * sizeof(T) ]).~T();
+		for ( I i = 0; i < size; i++ )
+			((T&)base[ i * sizeof(T) ]).~T();
 
-		_size = 0;
+		size = 0;
 	}
 
-	void sort( int (*fn)(const T *, const T *) )
+	void Sort( int (*fn)(const T *, const T *) )
 	{
-		Assert( _size * sizeof(T) <= _base.Size() );
+		Assert( size * sizeof(T) <= base.Size() );
 
-		if ( _size > 1 )
+		if ( size > 1 )
 		{
-			qsort( _base.Base(), _size, sizeof(T), (int (*)(const void *, const void *))fn );
+			qsort( base.Base(), size, sizeof(T), (int (*)(const void *, const void *))fn );
 		}
 	}
 
-	void reserve( I count )
+	void Reserve( I count )
 	{
-		Assert( (unsigned int)_size <= _base.Size() );
+		Assert( (unsigned int)size <= base.Size() );
 
 		if ( count == 0 )
 			count = 4;
 
-		if ( (unsigned int)count == _base.Size() )
+		if ( (unsigned int)count == base.Size() )
 			return;
 
-		for ( I i = count; i < _size; i++ )
-			((T&)_base[ i * sizeof(T) ]).~T();
+		for ( I i = count; i < size; i++ )
+			((T&)base[ i * sizeof(T) ]).~T();
 
-		_base.Alloc( count * sizeof(T) );
+		base.Alloc( count * sizeof(T) );
 	}
 
-	void purge()
+	void Purge()
 	{
-		Assert( _size * sizeof(T) <= _base.Size() );
+		Assert( size * sizeof(T) <= base.Size() );
 
-		for ( I i = 0; i < _size; i++ )
-			((T&)_base[ i * sizeof(T) ]).~T();
+		for ( I i = 0; i < size; i++ )
+			((T&)base[ i * sizeof(T) ]).~T();
 
-		_base.Free();
-		_size = 0;
+		base.Free();
+		size = 0;
 	}
 };
 
 class CBuffer
 {
 public:
-	CMemory _base;
-	int _size;
-	int _offset;
+	CMemory base;
+	int size;
+	int offset;
 
-	char *base()
+	char *Base()
 	{
-		return _base.Base() + _offset;
+		return base.Base() + offset;
 	}
 
-	int size() const
+	int Size() const
 	{
-		return _size;
+		return size;
 	}
 
-	int capacity() const
+	int Capacity() const
 	{
-		return _base.Size();
+		return base.Size();
 	}
 
-	void reserve( int count )
+	void Reserve( int count )
 	{
-		Assert( (unsigned int)_size <= _base.Size() );
+		Assert( (unsigned int)size <= base.Size() );
 
-		if ( (unsigned int)count == _base.Size() )
+		if ( (unsigned int)count == base.Size() )
 			return;
 
-		_base.Alloc( count );
+		base.Alloc( count );
 	}
 
-	void purge()
+	void Purge()
 	{
-		_base.Free();
-		_size = 0;
-		_offset = 0;
+		base.Free();
+		size = 0;
+		offset = 0;
 	}
 };
 
@@ -608,16 +667,16 @@ public:
 
 	CBufTmpCache( CBuffer *b ) :
 		buffer(b),
-		size(buffer->_size)
+		size(buffer->size)
 	{
-		buffer->_offset += buffer->_size;
-		buffer->_size = 0;
+		buffer->offset += buffer->size;
+		buffer->size = 0;
 	}
 
 	~CBufTmpCache()
 	{
-		buffer->_offset -= size;
-		buffer->_size = size;
+		buffer->offset -= size;
+		buffer->size = size;
 	}
 };
 

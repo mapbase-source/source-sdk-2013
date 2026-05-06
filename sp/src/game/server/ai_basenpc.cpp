@@ -318,6 +318,14 @@ ScriptHook_t	CAI_BaseNPC::g_Hook_TranslateSchedule;
 ScriptHook_t	CAI_BaseNPC::g_Hook_GetActualShootPosition;
 ScriptHook_t	CAI_BaseNPC::g_Hook_OverrideMove;
 ScriptHook_t	CAI_BaseNPC::g_Hook_ShouldPlayFakeSequenceGesture;
+ScriptHook_t	CAI_BaseNPC::g_Hook_IsValidEnemy;
+ScriptHook_t	CAI_BaseNPC::g_Hook_CanBeAnEnemyOf;
+ScriptHook_t	CAI_BaseNPC::g_Hook_UpdateEnemyMemory;
+ScriptHook_t	CAI_BaseNPC::g_Hook_OnSeeEntity;
+ScriptHook_t	CAI_BaseNPC::g_Hook_OnListened;
+ScriptHook_t	CAI_BaseNPC::g_Hook_BuildScheduleTestBits;
+ScriptHook_t	CAI_BaseNPC::g_Hook_StartTask;
+ScriptHook_t	CAI_BaseNPC::g_Hook_RunTask;
 #endif
 
 //
@@ -746,10 +754,19 @@ Vector CAI_BaseNPC::VScriptGetEnemyLKP()
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-HSCRIPT CAI_BaseNPC::VScriptFindEnemyMemory( HSCRIPT pEnemy )
+int CAI_BaseNPC::VScriptNumEnemies()
+{
+	return GetEnemies()->NumEnemies();
+}
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+HSCRIPT CAI_BaseNPC::VScriptGetFirstEnemyMemory()
 {
 	HSCRIPT hScript = NULL;
-	AI_EnemyInfo_t *info = GetEnemies()->Find( ToEnt(pEnemy) );
+
+	AIEnemiesIter_t iter;
+	AI_EnemyInfo_t *info = GetEnemies()->GetFirst( &iter );
 	if (info)
 	{
 		hScript = g_pScriptVM->RegisterInstance( reinterpret_cast<Script_AI_EnemyInfo_t*>(info) );
@@ -760,9 +777,101 @@ HSCRIPT CAI_BaseNPC::VScriptFindEnemyMemory( HSCRIPT pEnemy )
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
+HSCRIPT CAI_BaseNPC::VScriptGetNextEnemyMemory( HSCRIPT hMemory )
+{
+	Script_AI_EnemyInfo_t *pCurEMemory = HScriptToClass<Script_AI_EnemyInfo_t>( hMemory );
+	if (!pCurEMemory)
+		return NULL;
+
+	HSCRIPT hScript = NULL;
+
+	AIEnemiesIter_t iter = (AIEnemiesIter_t)GetEnemies()->FindIndex( pCurEMemory->hEnemy );
+	AI_EnemyInfo_t *pEMemory = GetEnemies()->GetNext( &iter );
+	if (pEMemory)
+	{
+		hScript = g_pScriptVM->RegisterInstance( reinterpret_cast<Script_AI_EnemyInfo_t*>(pEMemory) );
+	}
+
+	return hScript;
+}
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+HSCRIPT CAI_BaseNPC::VScriptFindEnemyMemory( HSCRIPT hEnemy )
+{
+	HSCRIPT hScript = NULL;
+	AI_EnemyInfo_t *info = GetEnemies()->Find( ToEnt(hEnemy) );
+	if (info)
+	{
+		hScript = g_pScriptVM->RegisterInstance( reinterpret_cast<Script_AI_EnemyInfo_t*>(info) );
+	}
+
+	return hScript;
+}
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+bool CAI_BaseNPC::VScriptUpdateEnemyMemory( HSCRIPT hEnemy, const Vector &position, HSCRIPT hInformer )
+{
+	return UpdateEnemyMemory( ToEnt( hEnemy ), position, ToEnt( hInformer ) );
+}
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+void CAI_BaseNPC::VScriptClearEnemyMemory( HSCRIPT hEnemy )
+{
+	CBaseEntity *pEnemy = ToEnt( hEnemy );
+	if (!pEnemy)
+		return;
+
+	GetEnemies()->ClearMemory( pEnemy );
+}
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+void CAI_BaseNPC::VScriptSetFreeKnowledgeDuration( float flDuration )
+{
+	GetEnemies()->SetFreeKnowledgeDuration( flDuration );
+}
+
+void CAI_BaseNPC::VScriptSetEnemyDiscardTime( float flDuration )
+{
+	GetEnemies()->SetEnemyDiscardTime( flDuration );
+}
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 int CAI_BaseNPC::VScriptGetState()
 {
 	return (int)GetState();
+}
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+int CAI_BaseNPC::VScriptGetIdealState()
+{
+	return (int)GetIdealState();
+}
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+void CAI_BaseNPC::VScriptSetIdealState( int nNPCState )
+{
+	SetIdealState( (NPC_STATE)nNPCState );
+}
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+HSCRIPT CAI_BaseNPC::VScriptGetTarget()
+{
+	return ToHScript( GetTarget() );
+}
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+void CAI_BaseNPC::VScriptSetTarget( HSCRIPT hTarget )
+{
+	SetTarget( ToEnt( hTarget ) );
 }
 
 //-----------------------------------------------------------------------------
@@ -832,7 +941,7 @@ int CAI_BaseNPC::VScriptGetTaskID()
 	const Task_t *pTask = GetTask();
 	int iID = -1;
 	if (pTask)
-		iID = GetTaskID( TaskName( pTask->iTask ) );
+		iID = AI_RemapFromGlobal( GetTaskID( TaskName( pTask->iTask ) ) );
 
 	return iID;
 }
@@ -866,6 +975,70 @@ HSCRIPT CAI_BaseNPC::VScriptGetSquad()
 	}
 
 	return hScript;
+}
+
+HSCRIPT CAI_BaseNPC::VScriptGetBestSound( int validTypes )
+{
+	HSCRIPT hScript = NULL;
+	CSound *pSound = GetBestSound( validTypes );
+	if (pSound)
+	{
+		hScript = g_pScriptVM->RegisterInstance( pSound );
+	}
+
+	return hScript;
+}
+
+HSCRIPT CAI_BaseNPC::VScriptGetFirstHeardSound()
+{
+	HSCRIPT hScript = NULL;
+
+	AISoundIter_t iter;
+	CSound *pSound = GetSenses()->GetFirstHeardSound( &iter );
+	if (pSound)
+	{
+		hScript = g_pScriptVM->RegisterInstance( pSound );
+	}
+
+	return hScript;
+}
+HSCRIPT CAI_BaseNPC::VScriptGetNextHeardSound( HSCRIPT hSound )
+{
+	CSound *pCurSound = HScriptToClass<CSound>( hSound );
+	if (!pCurSound)
+		return NULL;
+
+	int iCurrent = pCurSound->m_iNextAudible;
+	if ( iCurrent == SOUNDLIST_EMPTY )
+		return NULL;
+
+	HSCRIPT hScript = NULL;
+
+	CSound *pNextSound = CSoundEnt::SoundPointerForIndex( iCurrent );
+	if (pNextSound)
+	{
+		hScript = g_pScriptVM->RegisterInstance( pNextSound );
+	}
+
+	return hScript;
+}
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+HSCRIPT CAI_BaseNPC::VScriptGetFirstSeenEntity( int nSeenType )
+{
+	AISightIter_t iter;
+	return ToHScript( GetSenses()->GetFirstSeenEntity( &iter, (seentype_t)nSeenType ) );
+}
+
+HSCRIPT CAI_BaseNPC::VScriptGetNextSeenEntity( HSCRIPT hEnt, int nSeenType )
+{
+	CBaseEntity *pEnt = ToEnt( hEnt );
+
+	AISightIter_t iter;
+	GetSenses()->GetSeenEntityIndex( &iter, pEnt, (seentype_t)nSeenType );
+
+	return ToHScript( GetSenses()->GetNextSeenEntity( &iter ) );
 }
 #endif
 
@@ -2595,6 +2768,29 @@ void CAI_BaseNPC::OnListened()
 	{
 		m_OnHearCombat.FireOutput(this, this);
 	}
+
+#ifdef MAPBASE_VSCRIPT
+	if (m_ScriptScope.IsInitialized() && g_Hook_OnListened.CanRunInScope( m_ScriptScope ))
+	{
+		ScriptVariant_t functionReturn;
+		g_Hook_OnListened.Call( m_ScriptScope, &functionReturn, NULL );
+	}
+#endif
+}
+
+//-----------------------------------------------------------------------------
+
+void CAI_BaseNPC::OnSeeEntity( CBaseEntity *pEntity )
+{
+#ifdef MAPBASE_VSCRIPT
+	if (m_ScriptScope.IsInitialized() && g_Hook_OnSeeEntity.CanRunInScope( m_ScriptScope ))
+	{
+		// entity
+		ScriptVariant_t functionReturn;
+		ScriptVariant_t args[] = { ToHScript( pEntity ) };
+		g_Hook_OnSeeEntity.Call( m_ScriptScope, &functionReturn, args );
+	}
+#endif
 }
 
 //=========================================================
@@ -2847,7 +3043,7 @@ void CAI_BaseNPC::SetHeadDirection( const Vector &vTargetPos, float flInterval)
 	//--------------------------------------
 	// Set head yaw
 	//--------------------------------------
-	float flDesiredYaw = VecToYaw(vTargetPos - GetLocalOrigin()) - GetLocalAngles().y;
+	float flDesiredYaw = VecToYaw(vTargetPos - GetAbsOrigin()) - GetAbsAngles().y;
 	if (flDesiredYaw > 180)
 		flDesiredYaw -= 360;
 	if (flDesiredYaw < -180)
@@ -6107,6 +6303,22 @@ bool CAI_BaseNPC::UpdateEnemyMemory( CBaseEntity *pEnemy, const Vector &position
 	
 	if ( GetEnemies() )
 	{
+#ifdef MAPBASE_VSCRIPT
+		if (m_ScriptScope.IsInitialized() && g_Hook_UpdateEnemyMemory.CanRunInScope( m_ScriptScope ))
+		{
+			// enemy, position, informer
+			ScriptVariant_t functionReturn;
+			ScriptVariant_t args[] = { ToHScript( pEnemy ), position, ToHScript( pInformer ) };
+			if (g_Hook_UpdateEnemyMemory.Call( m_ScriptScope, &functionReturn, args ))
+			{
+				// Returning false normally indicates this is a known enemy
+				// Most uses of that functionality involve checking for new enemies, so this is acceptable
+				if (functionReturn.m_bool == false)
+					return false;
+			}
+		}
+#endif
+
 		// If the was eluding me and allow the NPC to play a sound
 		if (GetEnemies()->HasEludedMe(pEnemy))
 		{
@@ -7791,7 +8003,7 @@ void CAI_BaseNPC::NPCInit ( void )
 
 	SetGravity(1.0);	// Don't change
 	m_takedamage		= DAMAGE_YES;
-	GetMotor()->SetIdealYaw( GetLocalAngles().y );
+	GetMotor()->SetIdealYaw( GetAbsAngles().y );
 	m_iMaxHealth		= m_iHealth;
 	m_lifeState			= LIFE_ALIVE;
 	SetIdealState( NPC_STATE_IDLE );// Assume npc will be idle, until proven otherwise
@@ -8979,6 +9191,20 @@ bool CAI_BaseNPC::IsValidEnemy( CBaseEntity *pEnemy )
 	if ( m_hEnemyFilter.Get()!= NULL && m_hEnemyFilter->PassesFilter( this, pEnemy ) == false )
 		return false;
 
+#ifdef MAPBASE_VSCRIPT
+	if (m_ScriptScope.IsInitialized() && g_Hook_IsValidEnemy.CanRunInScope(m_ScriptScope))
+	{
+		// enemy
+		ScriptVariant_t functionReturn;
+		ScriptVariant_t args[] = { ToHScript( pEnemy ) };
+		if (g_Hook_IsValidEnemy.Call( m_ScriptScope, &functionReturn, args ))
+		{
+			if (functionReturn.m_bool == false)
+				return false;
+		}
+	}
+#endif
+
 	return true;
 }
 
@@ -8987,6 +9213,20 @@ bool CAI_BaseNPC::CanBeAnEnemyOf( CBaseEntity *pEnemy )
 { 
 	if ( GetSleepState() > AISS_WAITING_FOR_THREAT )
 		return false;
+
+#ifdef MAPBASE_VSCRIPT
+	if (m_ScriptScope.IsInitialized() && g_Hook_CanBeAnEnemyOf.CanRunInScope(m_ScriptScope))
+	{
+		// enemy
+		ScriptVariant_t functionReturn;
+		ScriptVariant_t args[] = { ToHScript( pEnemy ) };
+		if (g_Hook_CanBeAnEnemyOf.Call( m_ScriptScope, &functionReturn, args ))
+		{
+			if (functionReturn.m_bool == false)
+				return false;
+		}
+	}
+#endif
 
 	return true; 
 }
@@ -9404,14 +9644,14 @@ float CAI_BaseNPC::CalcIdealYaw( const Vector &vecTarget )
 		vecProjection.x = -vecTarget.y;
 		vecProjection.y = vecTarget.x;
 
-		return UTIL_VecToYaw( vecProjection - GetLocalOrigin() );
+		return UTIL_VecToYaw( vecProjection - GetAbsOrigin() );
 	}
 	else if ( GetNavigator()->GetMovementActivity() == ACT_STRAFE_RIGHT )
 	{
 		vecProjection.x = vecTarget.y;
 		vecProjection.y = vecTarget.x;
 
-		return UTIL_VecToYaw( vecProjection - GetLocalOrigin() );
+		return UTIL_VecToYaw( vecProjection - GetAbsOrigin() );
 	}
 #ifdef MAPBASE
 	// Allow hint nodes to override the yaw without needing to control AI
@@ -9422,7 +9662,7 @@ float CAI_BaseNPC::CalcIdealYaw( const Vector &vecTarget )
 #endif
 	else
 	{
-		return UTIL_VecToYaw ( vecTarget - GetLocalOrigin() );
+		return UTIL_VecToYaw ( vecTarget - GetAbsOrigin() );
 	}
 }
 
@@ -9622,7 +9862,7 @@ void CAI_BaseNPC::HandleAnimEvent( animevent_t *pEvent )
 			//DevMsg( "Turned!\n" );
 			SetIdealActivity( ACT_IDLE );
 			Forget( bits_MEMORY_TURNING );
-			SetBoneController( 0, GetLocalAngles().y );
+			SetBoneController( 0, GetAbsAngles().y );
 			IncrementInterpolationFrame();
 			break;
 		}
@@ -10901,7 +11141,7 @@ Vector CAI_BaseNPC::GetShootEnemyDir( const Vector &shootOrigin, bool bNoisy )
 	else
 	{
 		Vector forward;
-		AngleVectors( GetLocalAngles(), &forward );
+		AngleVectors( GetAbsAngles(), &forward );
 		return forward;
 	}
 }
@@ -11529,6 +11769,13 @@ float CAI_BaseNPC::GetEnemyLastTimeSeen() const
 void CAI_BaseNPC::MarkEnemyAsEluded()
 {
 	GetEnemies()->MarkAsEluded( GetEnemy() );
+
+#ifdef MAPBASE
+	if (m_pSquad)
+	{
+		m_pSquad->MarkEnemyAsEluded( this, GetEnemy() );
+	}
+#endif
 }
 
 void CAI_BaseNPC::ClearEnemyMemory()
@@ -12307,7 +12554,17 @@ BEGIN_ENT_SCRIPTDESC( CAI_BaseNPC, CBaseCombatCharacter, "The base class all NPC
 	DEFINE_SCRIPTFUNC_NAMED( VScriptSetEnemy, "SetEnemy", "Set the NPC's current enemy." )
 	DEFINE_SCRIPTFUNC_NAMED( VScriptGetEnemyLKP, "GetEnemyLKP", "Get the last known position of the NPC's current enemy." )
 
+	DEFINE_SCRIPTFUNC_NAMED( VScriptNumEnemies, "NumEnemies", "Get the number of enemies this NPC knows about." )
+
+	DEFINE_SCRIPTFUNC_NAMED( VScriptGetFirstEnemyMemory, "GetFirstEnemyMemory", "Get information about the NPC's first enemy." )
+	DEFINE_SCRIPTFUNC_NAMED( VScriptGetNextEnemyMemory, "GetNextEnemyMemory", "Get information about the NPC's next enemy." )
+
 	DEFINE_SCRIPTFUNC_NAMED( VScriptFindEnemyMemory, "FindEnemyMemory", "Get information about the NPC's current enemy." )
+	DEFINE_SCRIPTFUNC_NAMED( VScriptUpdateEnemyMemory, "UpdateEnemyMemory", "Update information on this enemy. First parameter is the enemy, second is the position we now know the enemy is at, third parameter is the informer (e.g. squadmate who sees enemy, null if I see it myself). Returns true if this is a new enemy." )
+	DEFINE_SCRIPTFUNC_NAMED( VScriptClearEnemyMemory, "ClearEnemyMemory", "Makes the NPC forget about the specified enemy." )
+
+	DEFINE_SCRIPTFUNC_NAMED( VScriptSetFreeKnowledgeDuration, "SetFreeKnowledgeDuration", "Sets the amount of time the NPC can always know an enemy's location after losing sight." )
+	DEFINE_SCRIPTFUNC_NAMED( VScriptSetEnemyDiscardTime, "SetEnemyDiscardTime", "Sets the amount of time needed before the NPC discards an unseen enemy's memory." )
 
 	DEFINE_SCRIPTFUNC( GetLastAttackTime, "Get the last time the NPC has used an attack (e.g. fired a bullet from a gun)." )
 	DEFINE_SCRIPTFUNC( GetLastDamageTime, "Get the last time the NPC has been damaged." )
@@ -12315,6 +12572,11 @@ BEGIN_ENT_SCRIPTDESC( CAI_BaseNPC, CBaseCombatCharacter, "The base class all NPC
 	DEFINE_SCRIPTFUNC( GetLastEnemyTime, "Get the last time the NPC has seen an enemy." )
 
 	DEFINE_SCRIPTFUNC_NAMED( VScriptGetState, "GetNPCState", "Get the NPC's current state." )
+	DEFINE_SCRIPTFUNC_NAMED( VScriptGetIdealState, "GetIdealNPCState", "Get the NPC's ideal state." )
+	DEFINE_SCRIPTFUNC_NAMED( VScriptSetIdealState, "SetIdealNPCState", "Set the NPC's ideal state." )
+
+	DEFINE_SCRIPTFUNC_NAMED( VScriptGetTarget, "GetNPCTarget", "Get the NPC's AI target." )
+	DEFINE_SCRIPTFUNC_NAMED( VScriptSetTarget, "SetNPCTarget", "Set the NPC's AI target." )
 
 	DEFINE_SCRIPTFUNC_NAMED( VScriptWake, "Wake", "Awakens the NPC if it is currently asleep." )
 	DEFINE_SCRIPTFUNC_NAMED( VScriptSleep, "Sleep", "Puts the NPC into a sleeping state." )
@@ -12362,6 +12624,16 @@ BEGIN_ENT_SCRIPTDESC( CAI_BaseNPC, CBaseCombatCharacter, "The base class all NPC
 	DEFINE_SCRIPTFUNC_NAMED( VScriptClearCondition, "ClearCondition", "Clear a condition on the NPC." )
 	DEFINE_SCRIPTFUNC_NAMED( ClearCondition, "ClearConditionID", "Clear a condition on the NPC by ID." )
 
+	DEFINE_SCRIPTFUNC_NAMED( VScriptSetCustomInterruptCondition, "SetCustomInterruptCondition", "Use with BuildScheduleTestBits to define conditions which should interrupt the schedule." )
+	DEFINE_SCRIPTFUNC_NAMED( VScriptIsCustomInterruptConditionSet, "IsCustomInterruptConditionSet", "Use with BuildScheduleTestBits to define conditions which should interrupt the schedule." )
+	DEFINE_SCRIPTFUNC_NAMED( VScriptClearCustomInterruptCondition, "ClearCustomInterruptCondition", "Use with BuildScheduleTestBits to define conditions which should interrupt the schedule." )
+
+	DEFINE_SCRIPTFUNC_NAMED( VScriptChainStartTask, "ChainStartTask", "Use with StartTask to redirect to the specified task." )
+	DEFINE_SCRIPTFUNC_NAMED( VScriptChainRunTask, "ChainRunTask", "Use with RunTask to redirect to the specified task." )
+	DEFINE_SCRIPTFUNC_NAMED( VScriptFailTask, "FailTask", "Fails the currently running task with the specified error message." )
+	DEFINE_SCRIPTFUNC_NAMED( VScriptCompleteTask, "CompleteTask", "Completes the currently running task." )
+	DEFINE_SCRIPTFUNC_NAMED( VScriptGetTaskStatus, "GetTaskStatus", "Gets the current task's status." )
+
 	DEFINE_SCRIPTFUNC( IsMoving, "Check if the NPC is moving." )
 
 	DEFINE_SCRIPTFUNC_NAMED( VScriptGetExpresser, "GetExpresser", "Get a handle for this NPC's expresser." )
@@ -12380,6 +12652,13 @@ BEGIN_ENT_SCRIPTDESC( CAI_BaseNPC, CBaseCombatCharacter, "The base class all NPC
 	DEFINE_SCRIPTFUNC( IsCrouching, "Returns true if the NPC is crouching." )
 	DEFINE_SCRIPTFUNC( Crouch, "Tells the NPC to crouch." )
 	DEFINE_SCRIPTFUNC( Stand, "Tells the NPC to stand if it is crouching." )
+		
+	DEFINE_SCRIPTFUNC_NAMED( VScriptGetBestSound, "GetBestSound", "Get the NPC's best sound of the specified type(s). Use 'ALL_SOUNDS' to get any sound." )
+	DEFINE_SCRIPTFUNC_NAMED( VScriptGetFirstHeardSound, "GetFirstHeardSound", "Get the NPC's first heard sound." )
+	DEFINE_SCRIPTFUNC_NAMED( VScriptGetNextHeardSound, "GetNextHeardSound", "Get the NPC's next heard sound." )
+
+	DEFINE_SCRIPTFUNC_NAMED( VScriptGetFirstSeenEntity, "GetFirstSeenEntity", "Get the NPC's first seen entity in the specified 'SEEN_' list." )
+	DEFINE_SCRIPTFUNC_NAMED( VScriptGetNextSeenEntity, "GetNextSeenEntity", "Get the NPC's next seen entity in the specified 'SEEN_' list." )
 
 	// 
 	// Hooks
@@ -12408,6 +12687,32 @@ BEGIN_ENT_SCRIPTDESC( CAI_BaseNPC, CBaseCombatCharacter, "The base class all NPC
 	BEGIN_SCRIPTHOOK( CAI_BaseNPC::g_Hook_ShouldPlayFakeSequenceGesture, "ShouldPlayFakeSequenceGesture", FIELD_BOOLEAN, "Called when an activity is set on a NPC. Returning true will make the NPC convert the activity into a gesture (if a gesture is available) and continue their current activity instead." )
 		DEFINE_SCRIPTHOOK_PARAM( "activity", FIELD_CSTRING )
 		DEFINE_SCRIPTHOOK_PARAM( "translatedActivity", FIELD_CSTRING )
+	END_SCRIPTHOOK()
+	BEGIN_SCRIPTHOOK( CAI_BaseNPC::g_Hook_IsValidEnemy, "IsValidEnemy", FIELD_BOOLEAN, "Whether or not the specified enemy should be considered valid." )
+		DEFINE_SCRIPTHOOK_PARAM( "enemy", FIELD_HSCRIPT )
+	END_SCRIPTHOOK()
+	BEGIN_SCRIPTHOOK( CAI_BaseNPC::g_Hook_CanBeAnEnemyOf, "CanBeAnEnemyOf", FIELD_BOOLEAN, "Whether or not this NPC can be an enemy of another NPC." )
+		DEFINE_SCRIPTHOOK_PARAM( "enemy", FIELD_HSCRIPT )
+	END_SCRIPTHOOK()
+	BEGIN_SCRIPTHOOK( CAI_BaseNPC::g_Hook_UpdateEnemyMemory, "UpdateEnemyMemory", FIELD_BOOLEAN, "Whether or not this NPC can be an enemy of another NPC." )
+		DEFINE_SCRIPTHOOK_PARAM( "enemy", FIELD_HSCRIPT )
+		DEFINE_SCRIPTHOOK_PARAM( "position", FIELD_VECTOR )
+		DEFINE_SCRIPTHOOK_PARAM( "informer", FIELD_HSCRIPT )
+	END_SCRIPTHOOK()
+	BEGIN_SCRIPTHOOK( CAI_BaseNPC::g_Hook_OnSeeEntity, "OnSeeEntity", FIELD_VOID, "Called when the NPC sees an entity." )
+		DEFINE_SCRIPTHOOK_PARAM( "entity", FIELD_HSCRIPT )
+	END_SCRIPTHOOK()
+	DEFINE_SIMPLE_SCRIPTHOOK( CAI_BaseNPC::g_Hook_OnListened, "OnListened", FIELD_VOID, "Called when the NPC assigns sound conditions after checking for sounds it hears." )
+	DEFINE_SIMPLE_SCRIPTHOOK( CAI_BaseNPC::g_Hook_BuildScheduleTestBits, "BuildScheduleTestBits", FIELD_VOID, "Called when the NPC is determining which conditions can interrupt the current schedule." )
+	BEGIN_SCRIPTHOOK( CAI_BaseNPC::g_Hook_StartTask, "StartTask", FIELD_VOID, "Called when a task is starting. The task is provided in both string and ID form. Return false to override actual task functionality." )
+		DEFINE_SCRIPTHOOK_PARAM( "task", FIELD_CSTRING )
+		DEFINE_SCRIPTHOOK_PARAM( "task_id", FIELD_INTEGER )
+		DEFINE_SCRIPTHOOK_PARAM( "task_data", FIELD_FLOAT )
+	END_SCRIPTHOOK()
+	BEGIN_SCRIPTHOOK( CAI_BaseNPC::g_Hook_RunTask, "RunTask", FIELD_VOID, "Called every think while the task is running. The task is provided in both string and ID form. Return false to override actual task functionality." )
+		DEFINE_SCRIPTHOOK_PARAM( "task", FIELD_CSTRING )
+		DEFINE_SCRIPTHOOK_PARAM( "task_id", FIELD_INTEGER )
+		DEFINE_SCRIPTHOOK_PARAM( "task_data", FIELD_FLOAT )
 	END_SCRIPTHOOK()
 
 END_SCRIPTDESC();
@@ -13874,7 +14179,7 @@ bool CAI_BaseNPC::OverrideMove( float flInterval )
 float CAI_BaseNPC::VecToYaw( const Vector &vecDir )
 {
 	if (vecDir.x == 0 && vecDir.y == 0 && vecDir.z == 0)
-		return GetLocalAngles().y;
+		return GetAbsAngles().y;
 
 	return UTIL_VecToYaw( vecDir );
 }
