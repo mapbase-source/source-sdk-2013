@@ -77,6 +77,7 @@
 #ifdef MAPBASE
 #include "mapbase/c_func_fake_worldportal.h"
 #include "colorcorrectionmgr.h"
+#include "fmtstr.h"
 #endif
 
 // Projective textures
@@ -126,6 +127,7 @@ static ConVar r_threaded_renderables( "r_threaded_renderables", "0" );
 
 #ifdef MAPBASE
 static ConVar r_skybox_use_complex_views( "r_skybox_use_complex_views", "0", FCVAR_CHEAT, "Enable complex views in skyboxes, like reflective glass" );
+static ConVar r_skybox_use_new_renderer( "r_skybox_use_new_renderer", "1", FCVAR_NONE, "Use game client's 2D SkyBox renderer" );
 #endif
 
 // FIXME: This is not static because we needed to turn it off for TF2 playtests
@@ -1992,6 +1994,119 @@ void CViewRender::CleanupMain3DView( const CViewSetup &view )
 {
 	render->PopView( GetFrustum() );
 }
+
+
+#ifdef MAPBASE
+//-----------------------------------------------------------------------------
+// Builds and draws the 2D SkyBox faces
+//-----------------------------------------------------------------------------
+CViewRender::skyface_t CViewRender::s_rgSkyFaces[ k_ESkyFaceCount ] =
+{
+	{ "LF", {-1.f, 0.f, 0.f }, { 0.f, 1.f, 0.f }, { 0.f, 0.f, 1.f } },
+	{ "RT", { 1.f, 0.f, 0.f }, { 0.f,-1.f, 0.f }, { 0.f, 0.f, 1.f } },
+	{ "FT", { 0.f,-1.f, 0.f }, {-1.f, 0.f, 0.f }, { 0.f, 0.f, 1.f } },
+	{ "BK", { 0.f, 1.f, 0.f }, { 1.f, 0.f, 0.f }, { 0.f, 0.f, 1.f } },
+	{ "UP", { 0.f, 0.f, 1.f }, { 0.f,-1.f, 0.f }, {-1.f, 0.f, 0.f } },
+	{ "DN", { 0.f, 0.f,-1.f }, { 0.f,-1.f, 0.f }, { 1.f, 0.f, 0.f } },
+};
+
+bool CViewRender::BSetupSkyBox( const char *pszSkyName )
+{
+	bool bRetVal = true;
+	for ( int iFace = k_ESkyFaceFirst; iFace <= k_ESkyFaceLast; iFace++ )
+	{
+		auto &sf = s_rgSkyFaces[ iFace ];
+
+		sf.pMaterial.Init( CFmtStr( "SkyBox/%s%s", pszSkyName, sf.pszPostfix ), TEXTURE_GROUP_SKYBOX );
+		sf.nSamplingResolution = 256;
+
+		if ( IsErrorMaterial( sf.pMaterial ) )
+		{
+			bRetVal = false; // Mark as failed, but try to get rest of the faces..
+			continue;
+		}
+
+		// Get at the texture and it's mapping dimensions, since IMaterial::GetMappingWidth/Height is busted here
+		bool bFound;
+		IMaterialVar *pBaseTextureVar = sf.pMaterial->FindVar( "$BaseTexture", &bFound, false );
+		if ( bFound )
+		{
+			ITexture *pTexture = NULL;
+			switch ( pBaseTextureVar->GetType() )
+			{
+			case MATERIAL_VAR_TYPE_STRING:
+				pTexture = g_pMaterialSystem->FindTexture( pBaseTextureVar->GetStringValue(), TEXTURE_GROUP_SKYBOX, false );
+				break;
+			case MATERIAL_VAR_TYPE_TEXTURE:
+				pTexture = pBaseTextureVar->GetTextureValue();
+				break;
+			default:
+				Assert( NULL );
+			}
+			if ( pTexture )
+			{
+				sf.nSamplingResolution = Min( pTexture->GetMappingWidth(), pTexture->GetMappingHeight() );
+			}
+		}
+	}
+	return bRetVal;
+}
+
+void CViewRender::DrawSkyBox( const CViewSetup &View, bool bNoHeightClip )
+{
+	CMatRenderContextPtr pRenderContext( g_pMaterialSystem );
+
+	MaterialHeightClipMode_t ePrevClipMode = pRenderContext->GetHeightClipMode();
+	if ( bNoHeightClip )
+	{
+		pRenderContext->SetHeightClipMode( MATERIAL_HEIGHTCLIPMODE_DISABLE );
+	}
+
+	float flDist = View.zFar / 2.f;
+
+	// Draw a quad for each face of the sky around the camera
+	for ( int iFace = k_ESkyFaceFirst; iFace <= k_ESkyFaceLast; iFace++ )
+	{
+		auto &sf = s_rgSkyFaces[ iFace ];
+
+		Vector vecCenter = flDist * sf.vecNormal + View.origin;
+		Vector vecRight  = flDist * sf.vecRight;
+		Vector vecUp     = flDist * sf.vecUp;
+
+		float flMinUV = .5f / ( float )sf.nSamplingResolution;
+		float flMaxUV = 1.f - flMinUV;
+
+		IMesh *pMesh = pRenderContext->GetDynamicMesh( true, NULL, NULL, sf.pMaterial );
+
+		CMeshBuilder MeshBuilder;
+		MeshBuilder.Begin( pMesh, MATERIAL_QUADS, 1 );
+
+		MeshBuilder.Position3fv( ( vecCenter - vecRight + vecUp ).Base() );
+		MeshBuilder.TexCoord2f( 0, flMinUV, flMinUV );
+		MeshBuilder.AdvanceVertexF< VTX_HAVEPOS, 1 >();
+
+		MeshBuilder.Position3fv( ( vecCenter + vecRight + vecUp ).Base() );
+		MeshBuilder.TexCoord2f( 0, flMaxUV, flMinUV );
+		MeshBuilder.AdvanceVertexF< VTX_HAVEPOS, 1 >();
+
+		MeshBuilder.Position3fv( ( vecCenter + vecRight - vecUp ).Base() );
+		MeshBuilder.TexCoord2f( 0, flMaxUV, flMaxUV );
+		MeshBuilder.AdvanceVertexF< VTX_HAVEPOS, 1 >();
+
+		MeshBuilder.Position3fv( ( vecCenter - vecRight - vecUp ).Base() );
+		MeshBuilder.TexCoord2f( 0, flMinUV, flMaxUV );
+		MeshBuilder.AdvanceVertexF< VTX_HAVEPOS, 1 >();
+
+		MeshBuilder.End();
+		pMesh->Draw();
+	}
+
+	if ( bNoHeightClip )
+	{
+		pRenderContext->SetHeightClipMode( ePrevClipMode );
+	}
+}
+#endif //MAPBASE
 
 
 //-----------------------------------------------------------------------------
@@ -4102,7 +4217,25 @@ void CRendering3dView::DrawWorld( float waterZAdjust )
 		return;
 	}
 
+#ifdef MAPBASE
+	unsigned long engineFlags;
+	if ( r_skybox_use_new_renderer.GetBool() )
+	{
+		if ( m_DrawFlags & DF_DRAWSKYBOX )
+		{
+			// Hook up our own 2D sky draw routine
+			m_pMainView->DrawSkyBox( ( *this ), !( m_DrawFlags & DF_CLIP_SKYBOX ) );
+		}
+
+		engineFlags = BuildEngineDrawWorldListFlags( m_DrawFlags & ~DF_DRAWSKYBOX );
+	}
+	else
+	{
+		engineFlags = BuildEngineDrawWorldListFlags( m_DrawFlags );
+	}
+#else
 	unsigned long engineFlags = BuildEngineDrawWorldListFlags( m_DrawFlags );
+#endif //MAPBASE
 
 	render->DrawWorldLists( m_pWorldRenderList, engineFlags, waterZAdjust );
 }

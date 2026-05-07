@@ -8,6 +8,10 @@
 #include "cbase.h"
 #include "movevars_shared.h"
 
+#if defined( CLIENT_DLL ) && defined( MAPBASE )
+#include "iviewrender.h"
+#endif // CLIENT_DLL && MAPBASE
+
 #if defined( TF_CLIENT_DLL ) || defined( TF_DLL )
 #include "tf_gamerules.h"
 #endif
@@ -102,7 +106,22 @@ ConVar	sv_backspeed	( "sv_backspeed", "0.6", FCVAR_ARCHIVE | FCVAR_REPLICATED | 
 ConVar  sv_waterdist	( "sv_waterdist","12", FCVAR_REPLICATED | FCVAR_DEVELOPMENTONLY, "Vertical view fixup when eyes are near water plane." );
 #endif // CSTRIKE_DLL
 
-ConVar	sv_skyname		( "sv_skyname", "sky_urb01", FCVAR_ARCHIVE | FCVAR_REPLICATED, "Current name of the skybox texture" );
+#if defined( CLIENT_DLL ) && defined( MAPBASE )
+static void OnSkyNameChanged( IConVar *pCVar, const char *pszOldValue, float flOldValue )
+{
+	// Tell the view renderer that we have swapped skies
+	if ( !view->BSetupSkyBox( sv_skyname.GetString() ) )
+	{
+		Warning( "Some/all faces of the \"%s\" SkyBox are missing or corrupted.\n", sv_skyname.GetString() );
+	}
+}
+#endif // CLIENT_DLL && MAPBASE
+
+ConVar	sv_skyname		( "sv_skyname", "sky_urb01", FCVAR_ARCHIVE | FCVAR_REPLICATED, "Current name of the skybox texture"
+#if defined( CLIENT_DLL ) && defined( MAPBASE )
+						  , OnSkyNameChanged
+#endif // CLIENT_DLL && MAPBASE
+);
 
 // Vehicle convars
 ConVar r_VehicleViewDampen( "r_VehicleViewDampen", "1", FCVAR_CHEAT | FCVAR_NOTIFY | FCVAR_REPLICATED );
