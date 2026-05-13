@@ -33,7 +33,7 @@ jobs:
     with:
       configuration: ${{ matrix.configuration }}
       branch: 'sp'
-      game: 'episodic' # Change this if your mod is not using HL2/Episodic game projects
+      game: 'fp' # Change this if your mod is not using HL2/Episodic game projects
       project-group: 'game'
       solution-name: 'games'
       build-on-linux: true # Disable this if you don't want to compile for Linux
