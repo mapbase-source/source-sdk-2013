@@ -984,6 +984,18 @@ find_field:
 		return NULL;
 	}
 
+	static char* GetPropDataBase( CBaseEntity *pEnt, const varinfo_t *pInfo )
+	{
+		if ( !pInfo->isNotNetworked )
+		{
+			if ( dynamic_cast<CGameRulesProxy *>(pEnt) )
+			{
+				return (char *)GameRules();
+			}
+		}
+		return (char *)pEnt;
+	}
+
 public:
 	// FIXME: Cannot get datatable/arrays at the moment
 	bool HasProp( HSCRIPT hEnt, const char *szProp )
@@ -1074,28 +1086,32 @@ public:
 		{
 			case types::_DAR_EHANDLE:
 			{
-				CUtlVector< EHANDLE > &vec = *(CUtlVector< EHANDLE >*)((char*)pEnt + pInfo->offset);
+				char *pBase = GetPropDataBase( pEnt, pInfo );
+				CUtlVector< EHANDLE > &vec = *(CUtlVector< EHANDLE >*)(pBase + pInfo->offset);
 				if ( !vec.Base() )
 					return -1;
 				return vec.Count();
 			}
 			case types::_DAR_CLASSPTR:
 			{
-				CUtlVector< CBaseEntity* > &vec = *(CUtlVector< CBaseEntity* >*)((char*)pEnt + pInfo->offset);
+				char *pBase = GetPropDataBase( pEnt, pInfo );
+				CUtlVector< CBaseEntity* > &vec = *(CUtlVector< CBaseEntity* >*)(pBase + pInfo->offset);
 				if ( !vec.Base() )
 					return -1;
 				return vec.Count();
 			}
 			case types::_DAR_INT:
 			{
-				CUtlVector< int > &vec = *(CUtlVector< int >*)((char*)pEnt + pInfo->offset);
+				char *pBase = GetPropDataBase( pEnt, pInfo );
+				CUtlVector< int > &vec = *(CUtlVector< int >*)(pBase + pInfo->offset);
 				if ( !vec.Base() )
 					return -1;
 				return vec.Count();
 			}
 			case types::_DAR_FLOAT:
 			{
-				CUtlVector< float > &vec = *(CUtlVector< float >*)((char*)pEnt + pInfo->offset);
+				char *pBase = GetPropDataBase( pEnt, pInfo );
+				CUtlVector< float > &vec = *(CUtlVector< float >*)(pBase + pInfo->offset);
 				if ( !vec.Base() )
 					return -1;
 				return vec.Count();
@@ -1124,28 +1140,30 @@ public:
 		if ( index < 0 || (unsigned int)index >= pInfo->arraysize )
 			return -1;
 
+		char *pBase = GetPropDataBase( pEnt, pInfo );
+
 		if ( pInfo->isNotNetworked )
 		{
 			switch ( pInfo->datatype )
 			{
 			case types::_INT32:
 				if ( pInfo->isUnsigned )
-					return *(unsigned int*)((char*)pEnt + pInfo->GetOffset( index ));
-				return *(int*)((char*)pEnt + pInfo->GetOffset( index ));
+					return *(unsigned int*)(pBase + pInfo->GetOffset( index ));
+				return *(int*)(pBase + pInfo->GetOffset( index ));
 			case types::_INT1:
-				return *(bool*)((char*)pEnt + pInfo->GetOffset( index ));
+				return *(bool*)(pBase + pInfo->GetOffset( index ));
 			case types::_INT8:
 				if ( pInfo->isUnsigned )
-					return *(unsigned char*)((char*)pEnt + pInfo->GetOffset( index ));
-				return *(char*)((char*)pEnt + pInfo->GetOffset( index ));
+					return *(unsigned char*)(pBase + pInfo->GetOffset( index ));
+				return *(char*)(pBase + pInfo->GetOffset( index ));
 			case types::_INT16:
 				if ( pInfo->isUnsigned )
-					return *(unsigned short*)((char*)pEnt + pInfo->GetOffset( index ));
-				return *(short*)((char*)pEnt + pInfo->GetOffset( index ));
+					return *(unsigned short*)(pBase + pInfo->GetOffset( index ));
+				return *(short*)(pBase + pInfo->GetOffset( index ));
 #ifdef GAME_DLL
 			case types::_DAR_INT:
 			{
-				CUtlVector< int > &vec = *(CUtlVector< int >*)((char*)pEnt + pInfo->offset);
+				CUtlVector< int > &vec = *(CUtlVector< int >*)(pBase + pInfo->offset);
 				if ( !vec.Base() )
 					return -1;
 				if ( index >= vec.Count() )
@@ -1160,7 +1178,7 @@ public:
 			switch ( pInfo->datatype )
 			{
 			case types::_INT32:
-				return (*(int*)((char*)pEnt + pInfo->GetOffset( index ))) & pInfo->mask;
+				return (*(int*)(pBase + pInfo->GetOffset( index ))) & pInfo->mask;
 			}
 		}
 
@@ -1185,6 +1203,8 @@ public:
 		if ( index < 0 || (unsigned int)index >= pInfo->arraysize )
 			return;
 
+		char *pBase = GetPropDataBase( pEnt, pInfo );
+
 		if ( pInfo->isNotNetworked )
 		{
 			switch ( pInfo->datatype )
@@ -1192,41 +1212,41 @@ public:
 			case types::_INT32:
 				if ( pInfo->isUnsigned )
 				{
-					*(unsigned int*)((char*)pEnt + pInfo->GetOffset( index )) = value;
+					*(unsigned int*)(pBase + pInfo->GetOffset( index )) = value;
 					NetworkStateChanged( pEnt, pInfo->GetOffset( index ) );
 					break;
 				}
-				*(int*)((char*)pEnt + pInfo->GetOffset( index )) = value;
+				*(int*)(pBase + pInfo->GetOffset( index )) = value;
 				NetworkStateChanged( pEnt, pInfo->GetOffset( index ) );
 				break;
 			case types::_INT1:
-				*(bool*)((char*)pEnt + pInfo->GetOffset( index )) = value;
+				*(bool*)(pBase + pInfo->GetOffset( index )) = value;
 				NetworkStateChanged( pEnt, pInfo->GetOffset( index ) );
 				break;
 			case types::_INT8:
 				if ( pInfo->isUnsigned )
 				{
-					*(unsigned char*)((char*)pEnt + pInfo->GetOffset( index )) = value;
+					*(unsigned char*)(pBase + pInfo->GetOffset( index )) = value;
 					NetworkStateChanged( pEnt, pInfo->GetOffset( index ) );
 					break;
 				}
-				*(char*)((char*)pEnt + pInfo->GetOffset( index )) = value;
+				*(char*)(pBase + pInfo->GetOffset( index )) = value;
 				NetworkStateChanged( pEnt, pInfo->GetOffset( index ) );
 				break;
 			case types::_INT16:
 				if ( pInfo->isUnsigned )
 				{
-					*(unsigned short*)((char*)pEnt + pInfo->GetOffset( index )) = value;
+					*(unsigned short*)(pBase + pInfo->GetOffset( index )) = value;
 					NetworkStateChanged( pEnt, pInfo->GetOffset( index ) );
 					break;
 				}
-				*(short*)((char*)pEnt + pInfo->GetOffset( index )) = value;
+				*(short*)(pBase + pInfo->GetOffset( index )) = value;
 				NetworkStateChanged( pEnt, pInfo->GetOffset( index ) );
 				break;
 #ifdef GAME_DLL
 			case types::_DAR_INT:
 			{
-				CUtlVector< int > &vec = *(CUtlVector< int >*)((char*)pEnt + pInfo->offset);
+				CUtlVector< int > &vec = *(CUtlVector< int >*)(pBase + pInfo->offset);
 				if ( !vec.Base() )
 					return;
 				if ( index >= vec.Count() )
@@ -1244,7 +1264,7 @@ public:
 			{
 			case types::_INT32:
 			{
-				int *dest = (int*)((char*)pEnt + pInfo->GetOffset( index ));
+				int *dest = (int*)(pBase + pInfo->GetOffset( index ));
 				*dest = (*dest & ~pInfo->mask) | (value & pInfo->mask);
 				NetworkStateChanged( pEnt, pInfo->GetOffset( index ) );
 				break;
@@ -1276,16 +1296,18 @@ public:
 		if ( index < 0 || (unsigned int)index >= arraysize )
 			return -1;
 
+		char *pBase = GetPropDataBase( pEnt, pInfo );
+
 		switch ( pInfo->datatype )
 		{
 		case types::_FLOAT:
-			return *(float*)((char*)pEnt + pInfo->GetOffset( index ));
+			return *(float*)(pBase + pInfo->GetOffset( index ));
 		case types::_VEC3:
-			return ((float*)((char*)pEnt + pInfo->GetOffset( index / 3 )))[ index % 3 ];
+			return ((float*)(pBase + pInfo->GetOffset( index / 3 )))[index % 3];
 #ifdef GAME_DLL
 		case types::_DAR_FLOAT:
 		{
-			CUtlVector< float > &vec = *(CUtlVector< float >*)((char*)pEnt + pInfo->offset);
+			CUtlVector< float > &vec = *(CUtlVector< float >*)(pBase + pInfo->offset);
 			if ( !vec.Base() )
 				return -1;
 			if ( index >= vec.Count() )
@@ -1321,20 +1343,22 @@ public:
 		if ( index < 0 || (unsigned int)index >= arraysize )
 			return;
 
+		char *pBase = GetPropDataBase( pEnt, pInfo );
+
 		switch ( pInfo->datatype )
 		{
 		case types::_FLOAT:
-			*(float*)((char*)pEnt + pInfo->GetOffset( index )) = value;
+			*(float*)(pBase + pInfo->GetOffset( index )) = value;
 			NetworkStateChanged( pEnt, pInfo->GetOffset( index ) );
 			break;
 		case types::_VEC3:
-			((float*)((char*)pEnt + pInfo->GetOffset( index / 3 )))[ index % 3 ] = value;
+			((float*)(pBase + pInfo->GetOffset( index / 3 )))[ index % 3 ] = value;
 			NetworkStateChanged( pEnt, pInfo->GetOffset( index / 3 ) );
 			break;
 #ifdef GAME_DLL
 		case types::_DAR_FLOAT:
 		{
-			CUtlVector< float > &vec = *(CUtlVector< float >*)((char*)pEnt + pInfo->offset);
+			CUtlVector< float > &vec = *(CUtlVector< float >*)(pBase + pInfo->offset);
 			if ( !vec.Base() )
 				return;
 			if ( index >= vec.Count() )
@@ -1365,27 +1389,29 @@ public:
 		if ( index < 0 || (unsigned int)index >= pInfo->arraysize )
 			return NULL;
 
+		char *pBase = GetPropDataBase( pEnt, pInfo );
+
 		switch ( pInfo->datatype )
 		{
 		case types::_EHANDLE:
 		{
-			EHANDLE &iEHandle = *(EHANDLE*)((char*)pEnt + pInfo->GetOffset( index ));
+			EHANDLE &iEHandle = *(EHANDLE*)(pBase + pInfo->GetOffset( index ));
 			return ToHScript( iEHandle );
 		}
 #ifdef GAME_DLL
 		case types::_CLASSPTR:
 		{
-			CBaseEntity* ptr = *(CBaseEntity**)((char*)pEnt + pInfo->GetOffset( index ));
+			CBaseEntity* ptr = *(CBaseEntity**)(pBase + pInfo->GetOffset( index ));
 			return ToHScript( ptr );
 		}
 		case types::_EDICT:
 		{
-			edict_t* ptr = *(edict_t**)((char*)pEnt + pInfo->GetOffset( index ));
+			edict_t* ptr = *(edict_t**)(pBase + pInfo->GetOffset( index ));
 			return ToHScript( GetContainingEntity( ptr ) );
 		}
 		case types::_DAR_EHANDLE:
 		{
-			CUtlVector< EHANDLE > &vec = *(CUtlVector< EHANDLE >*)((char*)pEnt + pInfo->offset);
+			CUtlVector< EHANDLE > &vec = *(CUtlVector< EHANDLE >*)(pBase + pInfo->offset);
 			if ( !vec.Base() )
 				return NULL;
 			if ( index >= vec.Count() )
@@ -1394,7 +1420,7 @@ public:
 		}
 		case types::_DAR_CLASSPTR:
 		{
-			CUtlVector< CBaseEntity* > &vec = *(CUtlVector< CBaseEntity* >*)((char*)pEnt + pInfo->offset);
+			CUtlVector< CBaseEntity* > &vec = *(CUtlVector< CBaseEntity* >*)(pBase + pInfo->offset);
 			if ( !vec.Base() )
 				return NULL;
 			if ( index >= vec.Count() )
@@ -1404,7 +1430,7 @@ public:
 #endif
 		case types::_PHYS:
 		{
-			IPhysicsObject* ptr = *(IPhysicsObject**)((char*)pEnt + pInfo->GetOffset( index ));
+			IPhysicsObject* ptr = *(IPhysicsObject**)(pBase + pInfo->GetOffset( index ));
 			return ptr ? g_pScriptVM->RegisterInstance( ptr ) : NULL;
 		}
 		}
@@ -1430,27 +1456,29 @@ public:
 		if ( index < 0 || (unsigned int)index >= pInfo->arraysize )
 			return;
 
+		char *pBase = GetPropDataBase( pEnt, pInfo );
+
 		switch ( pInfo->datatype )
 		{
 		case types::_EHANDLE:
-			*(EHANDLE*)((char*)pEnt + pInfo->GetOffset( index )) = ToEnt( value );
+			*(EHANDLE*)(pBase + pInfo->GetOffset( index )) = ToEnt( value );
 			NetworkStateChanged( pEnt, pInfo->GetOffset( index ) );
 			break;
 #ifdef GAME_DLL
 		case types::_CLASSPTR:
-			*(CBaseEntity**)((char*)pEnt + pInfo->GetOffset( index )) = ToEnt( value );
+			*(CBaseEntity**)(pBase + pInfo->GetOffset( index )) = ToEnt( value );
 			NetworkStateChanged( pEnt, pInfo->GetOffset( index ) );
 			break;
 		case types::_EDICT:
 		{
 			CBaseEntity* ptr = ToEnt( value );
-			*(edict_t**)((char*)pEnt + pInfo->GetOffset( index )) = ptr ? ptr->edict() : NULL;
+			*(edict_t**)(pBase + pInfo->GetOffset( index )) = ptr ? ptr->edict() : NULL;
 			NetworkStateChanged( pEnt, pInfo->GetOffset( index ) );
 			break;
 		}
 		case types::_DAR_EHANDLE:
 		{
-			CUtlVector< EHANDLE > &vec = *(CUtlVector< EHANDLE >*)((char*)pEnt + pInfo->offset);
+			CUtlVector< EHANDLE > &vec = *(CUtlVector< EHANDLE >*)(pBase + pInfo->offset);
 			if ( !vec.Base() )
 				return;
 			if ( index >= vec.Count() )
@@ -1461,7 +1489,7 @@ public:
 		}
 		case types::_DAR_CLASSPTR:
 		{
-			CUtlVector< CBaseEntity* > &vec = *(CUtlVector< CBaseEntity* >*)((char*)pEnt + pInfo->offset);
+			CUtlVector< CBaseEntity* > &vec = *(CUtlVector< CBaseEntity* >*)(pBase + pInfo->offset);
 			if ( !vec.Base() )
 				return;
 			if ( index >= vec.Count() )
@@ -1492,10 +1520,12 @@ public:
 		if ( index < 0 || (unsigned int)index >= pInfo->arraysize )
 			return vec3_invalid;
 
+		char *pBase = GetPropDataBase( pEnt, pInfo );
+
 		switch ( pInfo->datatype )
 		{
 		case types::_VEC3:
-			return *(Vector*)((char*)pEnt + pInfo->GetOffset( index ));
+			return *(Vector*)(pBase + pInfo->GetOffset( index ));
 		}
 
 		return vec3_invalid;
@@ -1519,10 +1549,12 @@ public:
 		if ( index < 0 || (unsigned int)index >= pInfo->arraysize )
 			return;
 
+		char *pBase = GetPropDataBase( pEnt, pInfo );
+
 		switch ( pInfo->datatype )
 		{
 		case types::_VEC3:
-			*(Vector*)((char*)pEnt + pInfo->GetOffset( index )) = value;
+			*(Vector*)(pBase + pInfo->GetOffset( index )) = value;
 			NetworkStateChanged( pEnt, pInfo->GetOffset( index ) );
 			break;
 		}
@@ -1546,18 +1578,20 @@ public:
 		if ( index < 0 || (unsigned int)index >= pInfo->arraysize )
 			return NULL;
 
+		char *pBase = GetPropDataBase( pEnt, pInfo );
+
 		switch ( pInfo->datatype )
 		{
 		case types::_CSTRING:
-			return (const char*)((char*)pEnt + pInfo->GetOffset( index ));
+			return (const char*)(pBase + pInfo->GetOffset( index ));
 		case types::_STRING_T: // Identical to _CSTRING on client
-			return STRING( *(string_t*)((char*)pEnt + pInfo->GetOffset( index )) );
+			return STRING( *(string_t*)(pBase + pInfo->GetOffset( index )) );
 		case types::_INT8:
 		{
 			if ( !pInfo->stringsize )
 				return NULL;
 
-			char * const pVar = ((char*)pEnt + pInfo->GetOffset( index ));
+			char * const pVar = (pBase + pInfo->GetOffset( index ));
 
 			// Is this null terminated?
 			int i = 0;
@@ -1575,7 +1609,7 @@ public:
 		}
 #ifdef GAME_DLL
 		case types::_STDSTRING:
-			return ( (std::string*)((char*)pEnt + pInfo->GetOffset( index )) )->c_str();
+			return ( (std::string*)(pBase + pInfo->GetOffset( index )) )->c_str();
 #endif
 		}
 
@@ -1600,6 +1634,8 @@ public:
 		if ( index < 0 || (unsigned int)index >= pInfo->arraysize )
 			return;
 
+		char *pBase = GetPropDataBase( pEnt, pInfo );
+
 		switch ( pInfo->datatype )
 		{
 		case types::_CSTRING:
@@ -1607,7 +1643,7 @@ public:
 		{
 			if ( pInfo->stringsize )
 			{
-				V_strncpy( (char*)pEnt + pInfo->GetOffset( index ), value, pInfo->stringsize );
+				V_strncpy( pBase + pInfo->GetOffset( index ), value, pInfo->stringsize );
 				NetworkStateChanged( pEnt, pInfo->GetOffset( index ) );
 				break;
 			}
@@ -1621,9 +1657,9 @@ public:
 			if ( src == NULL_STRING )
 				src = AllocPooledString( value );
 #ifdef GAME_DLL
-			*(string_t*)((char*)pEnt + pInfo->GetOffset( index )) = src;
+			*(string_t*)(pBase + pInfo->GetOffset( index )) = src;
 #else
-			V_strcpy( (char*)pEnt + pInfo->GetOffset( index ), src );
+			V_strcpy( pBase + pInfo->GetOffset( index ), src );
 #endif
 			NetworkStateChanged( pEnt, pInfo->GetOffset( index ) );
 			break;
@@ -1631,7 +1667,7 @@ public:
 #ifdef GAME_DLL
 		case types::_STDSTRING:
 		{
-			( (std::string*)((char*)pEnt + pInfo->GetOffset( index )) )->assign( value, V_strlen(value) );
+			( (std::string*)(pBase + pInfo->GetOffset( index )) )->assign( value, V_strlen(value) );
 			NetworkStateChanged( pEnt, pInfo->GetOffset( index ) );
 			break;
 		}
