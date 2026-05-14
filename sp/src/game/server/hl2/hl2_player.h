@@ -14,6 +14,10 @@
 #include "hl2_playerlocaldata.h"
 #include "simtimer.h"
 #include "soundenvelope.h"
+#ifdef FP
+#include "attachments/attachment_inventory.h"
+#endif // FP
+
 
 // In HL2MP we need to inherit from  BaseMultiplayerPlayer!
 #if defined ( HL2MP )
@@ -291,6 +295,11 @@ public:
 	virtual bool		Weapon_Switch( CBaseCombatWeapon *pWeapon, int viewmodelindex = 0 );
 	virtual bool		Weapon_CanSwitchTo( CBaseCombatWeapon *pWeapon );
 
+#ifdef FP
+	CAttachmentInventory* GetAttachmentInventory() { return &m_AttachmentInventory; }
+#endif // FP
+
+
 	void FirePlayerProxyOutput( const char *pszOutputName, variant_t variant, CBaseEntity *pActivator, CBaseEntity *pCaller );
 
 	CLogicPlayerProxy	*GetPlayerProxy( void );
@@ -451,6 +460,10 @@ private:
 	
 	friend class CHL2GameMovement;
 
+#ifdef FP
+	CAttachmentInventory m_AttachmentInventory;
+#endif // FP
+
 #ifdef MAPBASE
 	// Protagonist used by protagonist_system.h
 	string_t			m_iszProtagonistName;
@@ -483,5 +496,26 @@ void CHL2_Player::DisableCappedPhysicsDamage()
 	m_bUseCappedPhysicsDamageTable = false;
 }
 
+inline CHL2_Player* ToHL2Player(CBaseEntity* pEntity)
+{
+	if (!pEntity || !pEntity->IsPlayer())
+		return NULL;
+#if _DEBUG
+	return dynamic_cast<CHL2_Player*>(pEntity);
+#else
+	return static_cast<CHL2_Player*>(pEntity);
+#endif
+}
+
+inline const CHL2_Player* ToHL2Player(const CBaseEntity* pEntity)
+{
+	if (!pEntity || !pEntity->IsPlayer())
+		return NULL;
+#if _DEBUG
+	return dynamic_cast<const CHL2_Player*>(pEntity);
+#else
+	return static_cast<const CHL2_Player*>(pEntity);
+#endif
+}
 
 #endif	//HL2_PLAYER_H

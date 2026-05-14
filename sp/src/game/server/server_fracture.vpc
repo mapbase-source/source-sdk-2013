@@ -61,14 +61,12 @@ $Project "Server (Fracture Point)"
 			{
 				$File "$SRCDIR\game\shared\modular_weapons\basemodularweapon.cpp"
 				$File "$SRCDIR\game\shared\modular_weapons\basemodularweapon.h"
-				$File "$SRCDIR\game\shared\modular_weapons\baseattachment.h"
-				$File "$SRCDIR\game\shared\modular_weapons\baseattachment.cpp"
 			}
 			
 			$Folder "Weapons"
 			{
 			    $File	"episodic\weapon_glock18c.cpp"
-                $File	"episodic\weapon_glock18c.h"
+			    $File	"episodic\weapon_glock18c.h"
 			}
 		}
 

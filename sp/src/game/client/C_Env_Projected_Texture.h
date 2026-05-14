@@ -13,6 +13,7 @@
 
 #include "c_baseentity.h"
 #include "basetypes.h"
+#include "video/ivideoservices.h"
 
 #ifdef ASW_PROJECTED_TEXTURES
 
@@ -26,6 +27,7 @@ public:
 	DECLARE_CLIENTCLASS();
 
 	void SetMaterial( IMaterial *pMaterial );
+	void SetVideoMaterial( IMaterial* pVidMat );
 	void SetLightColor( byte r, byte g, byte b, byte a );
 	void SetSize( float flSize );
 	void SetRotation( float flRotation );
@@ -102,6 +104,10 @@ private:
 	Vector	m_vecExtentsMax;
 
 	static float m_flVisibleBBoxMinHeight;
+
+	ITexture* m_pVideoMatTexture;
+
+	friend class C_EnvProjectedVideo;
 };
 
 

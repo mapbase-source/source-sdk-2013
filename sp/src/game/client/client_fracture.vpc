@@ -48,17 +48,15 @@ $Project "Client (Fracture Point)"
 		
 		$Folder "FRACTURE DLL"
 		{
-            $Folder "UI"
-            {
-                $File "fracture_point\UI\attachment_ui.cpp"
-                $File "fracture_point\UI\attachment_ui.h"
-            }
+			$Folder "UI"
+			{
+				$File "fracture_point\UI\attachment_ui.cpp"
+				$File "fracture_point\UI\attachment_ui.h"
+			}
 			$Folder "modular_weapons"
 			{
 				$File "$SRCDIR\game\shared\modular_weapons\basemodularweapon.cpp"
 				$File "$SRCDIR\game\shared\modular_weapons\basemodularweapon.h"
-				$File "$SRCDIR\game\shared\modular_weapons\baseattachment.h"
-				$File "$SRCDIR\game\shared\modular_weapons\baseattachment.cpp"
 			}
 		}
 	

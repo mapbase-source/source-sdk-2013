@@ -518,6 +518,7 @@ BEGIN_DATADESC( CHL2_Player )
 
 	DEFINE_FIELD( m_nControlClass, FIELD_INTEGER ),
 	DEFINE_EMBEDDED( m_HL2Local ),
+	DEFINE_EMBEDDED( m_AttachmentInventory ),
 
 	DEFINE_FIELD( m_bSprintEnabled, FIELD_BOOLEAN ),
 	DEFINE_FIELD( m_flTimeAllSuitDevicesOff, FIELD_TIME ),
