@@ -2622,9 +2622,11 @@ public:
 		m_output.SetBufferType( true, false );
 		IndentStart();
 
+		void *pNetBase = dynamic_cast< CGameRulesProxy* >( pEnt ) ? (void*)GameRules() : (void*)pEnt;
+
 		Print( "<NetTable>\n" );
 		Print( "(%s)\n", GetNetTable( GetNetworkClass(pEnt) )->GetName() );
-		DumpNetTable_r( pEnt, GetNetTable( GetNetworkClass(pEnt) ) );
+		DumpNetTable_r( pNetBase, GetNetTable( GetNetworkClass(pEnt) ) );
 		Print( "\n</NetTable>\n" );
 
 		Print( "<DataDesc>\n" );
