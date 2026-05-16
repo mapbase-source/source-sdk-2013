@@ -2013,7 +2013,6 @@ private:
 			case DPT_DataTable:
 			{
 				NetTable* pArray = pProp->GetDataTable();
-				Assert( pArray->GetNumProps() );
 
 				if ( V_strcmp( pProp->GetName(), pArray->GetName() ) != 0 )
 				{
@@ -2021,6 +2020,8 @@ private:
 					DumpNetTable_r( pVar, pArray );
 					break;
 				}
+
+				Assert( pArray->GetNumProps() );
 
 				// Double check that each element is the same size
 				// Array indexing ints gets element size from this
