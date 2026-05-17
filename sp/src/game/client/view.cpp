@@ -59,6 +59,9 @@
 #include "c_prop_portal.h" //portal surface rendering functions
 #endif
 
+#ifdef MAPBASE
+#include "movevars_shared.h"
+#endif //MAPBASE
 	
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -343,6 +346,11 @@ void CViewRender::LevelInit( void )
 		m_rbTakeFreezeFrame[ i ] = false;
 	}
 	m_flFreezeFrameUntil = 0;
+
+#ifdef MAPBASE
+	// Ensure the sky is properly loaded
+	BSetupSkyBox( sv_skyname.GetString() );
+#endif //MAPBASE
 
 	// Clear our overlay materials
 	m_ScreenOverlayMaterial.Init( NULL );
