@@ -64,7 +64,10 @@ public:
 	bool				IsWeaponLowered( void ) { return m_HL2Local.m_bWeaponLowered; }
 
 #ifdef MAPBASE
+	virtual void	ModifyEmitSoundParams( EmitSound_t &params );
+
 	int				GetProtagonistIndex() const { return m_nProtagonistIndex; }
+	virtual void	OnChangeProtagonist();
 #endif
 
 #ifdef SP_ANIM_STATE
@@ -96,6 +99,7 @@ private:
 
 #ifdef MAPBASE
 	int					m_nProtagonistIndex;
+	int					m_nOldProtagonistIndex;
 #endif
 	
 #ifdef MAPBASE_MP
