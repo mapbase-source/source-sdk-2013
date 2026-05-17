@@ -967,7 +967,7 @@ int CHLClient::Init( CreateInterfaceFn appSystemFactory, CreateInterfaceFn physi
 	if (!g_pMatSystemSurface)
 		return false;
 
-	if ( !CommandLine()->CheckParm( "-noscripting") )
+	if ( !CommandLine()->CheckParm( "-noscripting" ) && !CommandLine()->CheckParm( "-noscripting_client" ) )
 	{
 		scriptmanager = (IScriptManager *)appSystemFactory( VSCRIPT_INTERFACE_VERSION, NULL );
 
