@@ -106,6 +106,9 @@ float4 main( PS_INPUT i ) : COLOR
 	float3 spotColor = float3(0,0,0);
 	float3 vProjCoords = i.spotTexCoord.xyz / i.spotTexCoord.w;
 
+    float2 tmp = max(-vProjCoords.xy, vProjCoords.xy - 1);
+    clip(-max(tmp.x, tmp.y));
+	
 #if ( defined( _X360 ) )
 
 	float3 ltz = vProjCoords.xyz < float3( 0.0f, 0.0f, 0.0f );

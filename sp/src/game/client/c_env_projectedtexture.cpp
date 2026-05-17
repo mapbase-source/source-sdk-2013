@@ -20,6 +20,7 @@
 #include "view_shared.h"
 #include "texture_group_names.h"
 #include "tier0/icommandline.h"
+#include "materialsystem/imaterialvar.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -129,6 +130,27 @@ void C_EnvProjectedTexture::ShutDownLightHandle( void )
 	}
 }
 
+
+void C_EnvProjectedTexture::SetVideoMaterial( IMaterial* pVidMat )
+{
+	IMaterial* mat = pVidMat;
+
+	if (mat)
+	{
+		bool found = false;
+		IMaterialVar* var = mat->FindVar("$basetexture", &found);
+
+		if (var && found)
+		{
+			ITexture* tex = var->GetTextureValue();
+			if (tex)
+			{
+				m_pVideoMatTexture = tex;
+				ShutDownLightHandle();
+			}
+		}
+	}
+}
 
 void C_EnvProjectedTexture::SetLightColor( byte r, byte g, byte b, byte a )
 {
@@ -302,6 +324,20 @@ void C_EnvProjectedTexture::UpdateLight( void )
 			fHighFOV = m_flLightHorFOV;
 
 		state.m_fHorizontalFOVDegrees = m_flLightHorFOV;
+		// If we have a video texture, compute horizontal FOV from video aspect (keep vertical FOV)
+		if (m_pVideoMatTexture)
+		{
+			int vidW = m_pVideoMatTexture->GetActualWidth();
+			int vidH = m_pVideoMatTexture->GetActualHeight();
+
+			if (vidW > 0 && vidH > 0)
+			{
+				const float aspect = (float)vidW / (float)vidH;
+				const float vfovRad = m_flLightFOV * (M_PI / 180.0f);
+				const float hfovRad = 2.0f * atanf(aspect * tanf(vfovRad * 0.5f));
+				state.m_fHorizontalFOVDegrees = hfovRad * (180.0f / M_PI);
+			}
+		}
 #else
 		state.m_fHorizontalFOVDegrees = m_flLightFOV;
 #endif
@@ -420,7 +456,12 @@ void C_EnvProjectedTexture::UpdateLight( void )
 		state.m_flShadowDepthBias = g_pMaterialSystemHardwareConfig->GetShadowDepthBias();
 #endif
 		state.m_bEnableShadows = m_bEnableShadows;
-		state.m_pSpotlightTexture = m_SpotlightTexture;
+#ifdef MAPBASE
+		if (m_pVideoMatTexture)
+			state.m_pSpotlightTexture = m_pVideoMatTexture;
+		else
+#endif // MAPBASE
+			state.m_pSpotlightTexture = m_SpotlightTexture;
 		state.m_nSpotlightTextureFrame = m_nSpotlightTextureFrame;
 
 		state.m_nShadowQuality = m_nShadowQuality; // Allow entity to affect shadow quality
