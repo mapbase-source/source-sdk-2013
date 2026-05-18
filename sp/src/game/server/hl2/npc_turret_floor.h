@@ -45,6 +45,7 @@ enum eyeState_t
 #define SF_FLOOR_TURRET_CITIZEN				0x00000200	// Citizen modified turret
 #ifdef MAPBASE
 #define SF_FLOOR_TURRET_NO_SPRITE			0x00000400
+#define SF_FLOOR_TURRET_DIE_PERMANENTLY		0x00000800
 #endif
 
 class CTurretTipController;
@@ -70,6 +71,10 @@ public:
 	virtual void	PlayerPenetratingVPhysics( void );
 	virtual int		VPhysicsTakeDamage( const CTakeDamageInfo &info );
 	virtual bool	CanBecomeServerRagdoll( void ) { return false; }
+#ifdef MAPBASE
+	virtual void	Event_Killed( const CTakeDamageInfo& info );
+	void			Explode();
+#endif
 
 #ifdef HL2_EPISODIC
 	// We don't want to be NPCSOLID because we'll collide with NPC clips
@@ -214,6 +219,10 @@ protected:
 	void	DryFire( void );
 	void	UpdateMuzzleMatrix();
 
+#ifdef MAPBASE
+	void InputChangeAmmoCount( inputdata_t& inputdata );
+#endif
+
 protected:
 	matrix3x4_t m_muzzleToWorld;
 	int		m_muzzleToWorldTick;
@@ -237,6 +246,16 @@ protected:
 	float	m_flPlayerDropTime;
 #ifndef MAPBASE // Replaced with m_nSkin.
 	int		m_iKeySkin;
+#endif
+#ifdef MAPBASE
+	int		m_iAmmoCount;
+	bool	m_bImmovable;
+	bool	m_bKillable;
+	
+	int		m_bBehaviorOnFall;
+	// 0 - normal
+	// 1 - deactivate and never come back
+	// 2 - explode
 #endif
 
 	CHandle<CBaseCombatCharacter> m_hLastNPCToKickMe;		// Stores the last NPC who tried to knock me over
@@ -267,6 +286,8 @@ protected:
 	COutputEvent m_OnPhysGunDrop;
 #ifdef MAPBASE
 	COutputEvent m_OnStartTipped;
+	COutputEvent m_OnDepletedAmmo;
+	COutputEvent m_OnExploded;
 #endif
 
 	bool	m_bHackedByAlyx;
