@@ -779,7 +779,7 @@ bool CBreakableProp::HandleInteraction( int interactionType, void *data, CBaseCo
 	// Allows flares to ignite barnacles.
 	if ( interactionType == g_interactionBarnacleVictimBite )
 	{
-		if ( npc_barnacle_ignite.GetBool() && sourceEnt->IsOnFire() == false )
+		if ( npc_barnacle_ignite.GetBool() && sourceEnt->IsOnFire() == false && m_hFlareEnt )
 		{
 			sourceEnt->Ignite( 25.0f );
 			KillFlare( this, m_hFlareEnt, PROP_FLARE_IGNITE_SUBSTRACT );
