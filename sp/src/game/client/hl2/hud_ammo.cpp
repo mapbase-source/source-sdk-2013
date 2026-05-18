@@ -375,10 +375,10 @@ void CHudAmmo::Paint( void )
 	//   fullauto : Y max, X max    (split vertically AND horizontally)
 	// Staging: extending -> Y leads, X waits for Y. Retracting -> X leads,
 	// Y waits for X. This keeps the fullauto->single wrap reading correctly.
-	const float MAX_Y_OFFSET = 15.0f;
+	const float MAX_Y_OFFSET = scheme()->GetProportionalScaledValue( 7 );
 	const float MAX_X_OFFSET = MAX_Y_OFFSET / 2.0f;   // 7.5
 
-	float ySpeed = gpGlobals->frametime * 150.0f;
+	float ySpeed = gpGlobals->frametime * scheme()->GetProportionalScaledValue( 67 );
 	float xSpeed = ySpeed * 0.5f;
 
 	// Final resting targets per fire mode.
