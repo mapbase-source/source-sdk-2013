@@ -42,6 +42,10 @@ protected:
 	virtual void	ApplySchemeSettings( vgui::IScheme *scheme );
 	virtual void	Paint();
 	
+#ifdef MAPBASE
+	void PaintNewCrosshair();
+#endif
+
 	// Crosshair sprite and colors
 	CHudTexture		*m_pCrosshair;
 	CHudTexture		*m_pDefaultCrosshair;

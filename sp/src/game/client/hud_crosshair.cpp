@@ -32,6 +32,27 @@
 ConVar crosshair( "crosshair", "1", FCVAR_ARCHIVE );
 ConVar cl_observercrosshair( "cl_observercrosshair", "1", FCVAR_ARCHIVE );
 
+#ifdef MAPBASE
+
+ConVar cl_crosshair_new_enable( "cl_crosshair_new_enable", "0", FCVAR_ARCHIVE );
+ConVar cl_crosshair_size( "cl_crosshair_size", "10", FCVAR_ARCHIVE );
+ConVar cl_crosshair_thickness( "cl_crosshair_thickness", "2", FCVAR_ARCHIVE );
+ConVar cl_crosshair_gap_size( "cl_crosshair_gap_size", "10", FCVAR_ARCHIVE );
+ConVar cl_crosshair_dot( "cl_crosshair_dot", "1", FCVAR_ARCHIVE );
+ConVar cl_crosshair_t_shape( "cl_crosshair_t_shape", "0", FCVAR_ARCHIVE );
+
+ConVar cl_crosshair_red( "cl_crosshair_red", "255", FCVAR_ARCHIVE );
+ConVar cl_crosshair_green( "cl_crosshair_green", "255", FCVAR_ARCHIVE );
+ConVar cl_crosshair_blue( "cl_crosshair_blue", "255", FCVAR_ARCHIVE );
+
+ConVar cl_crosshair_outline( "cl_crosshair_outline", "1", FCVAR_ARCHIVE );
+ConVar cl_crosshair_outline_thickness( "cl_crosshair_outline_thickness", "1", FCVAR_ARCHIVE );
+ConVar cl_crosshair_outline_red( "cl_crosshair_outline_red", "0", FCVAR_ARCHIVE );
+ConVar cl_crosshair_outline_green( "cl_crosshair_outline_green", "0", FCVAR_ARCHIVE );
+ConVar cl_crosshair_outline_blue( "cl_crosshair_outline_blue", "0", FCVAR_ARCHIVE );
+
+#endif
+
 using namespace vgui;
 
 int ScreenTransform( const Vector& point, Vector& screen );
@@ -229,6 +250,111 @@ void CHudCrosshair::GetDrawPosition ( float *pX, float *pY, bool *pbBehindCamera
 	*pbBehindCamera = bBehindCamera;
 }
 
+#ifdef MAPBASE
+void CHudCrosshair::PaintNewCrosshair()
+{
+	float Screenratio;
+	Screenratio = ScreenHeight() / 1080.f;
+
+	int size = RoundFloatToInt( cl_crosshair_size.GetInt() * Screenratio );
+	int thickness = RoundFloatToInt( cl_crosshair_thickness.GetInt() * Screenratio );
+	int outline_thickness = RoundFloatToInt( cl_crosshair_outline_thickness.GetInt() * Screenratio );
+	int gap_size = RoundFloatToInt( cl_crosshair_gap_size.GetInt() * Screenratio );
+
+	int Crosshair0x = ScreenWidth() / 2 - thickness / 2;
+	int Crosshair0y = ScreenHeight() / 2 - thickness / 2;
+
+	// Draws the outline
+	if ( cl_crosshair_outline.GetInt() == 1 && outline_thickness != 0 )
+	{
+		vgui::surface()->DrawSetColor( cl_crosshair_outline_red.GetInt(), cl_crosshair_outline_green.GetInt(), cl_crosshair_outline_blue.GetInt(), 255 );
+
+		// Dot
+		if ( cl_crosshair_dot.GetInt() == 1 )
+		{
+			vgui::surface()->DrawFilledRect(
+				Crosshair0x - outline_thickness,
+				Crosshair0y - outline_thickness,
+				Crosshair0x + thickness + outline_thickness,
+				Crosshair0y + thickness + outline_thickness );
+		}
+
+		// Left
+		vgui::surface()->DrawFilledRect(
+			Crosshair0x - gap_size - size - outline_thickness,
+			Crosshair0y - outline_thickness,
+			Crosshair0x + outline_thickness - gap_size,
+			Crosshair0y + thickness + outline_thickness );
+
+		// Right
+		vgui::surface()->DrawFilledRect(
+			Crosshair0x + gap_size + thickness - outline_thickness,
+			Crosshair0y - outline_thickness,
+			Crosshair0x + gap_size + thickness + size + outline_thickness,
+			Crosshair0y + thickness + outline_thickness );
+
+		// Top
+		if ( cl_crosshair_t_shape.GetInt() == 0 )
+		{
+			vgui::surface()->DrawFilledRect(
+				Crosshair0x - outline_thickness,
+				Crosshair0y - size - gap_size - outline_thickness,
+				Crosshair0x + thickness + outline_thickness,
+				Crosshair0y - gap_size + outline_thickness );
+		}
+
+		// Down
+		vgui::surface()->DrawFilledRect(
+			Crosshair0x - outline_thickness,
+			Crosshair0y + gap_size + thickness - outline_thickness,
+			Crosshair0x + thickness + outline_thickness,
+			Crosshair0y + gap_size + size + thickness + outline_thickness );
+
+	}
+
+	// Dot
+	vgui::surface()->DrawSetColor( cl_crosshair_red.GetInt(), cl_crosshair_green.GetInt(), cl_crosshair_blue.GetInt(), 255 );
+	if ( cl_crosshair_dot.GetInt() == 1 )
+	{
+		vgui::surface()->DrawFilledRect(
+			Crosshair0x,
+			Crosshair0y,
+			Crosshair0x + thickness,
+			Crosshair0y + thickness );
+	}
+
+	// Left
+	vgui::surface()->DrawFilledRect(
+		Crosshair0x - gap_size - size,
+		Crosshair0y,
+		Crosshair0x - gap_size,
+		Crosshair0y + thickness );
+
+	// Right
+	vgui::surface()->DrawFilledRect(
+		Crosshair0x + gap_size + thickness,
+		Crosshair0y,
+		Crosshair0x + gap_size + size + thickness,
+		Crosshair0y + thickness );
+
+	// Top
+	if ( cl_crosshair_t_shape.GetInt() == 0 )
+	{
+		vgui::surface()->DrawFilledRect(
+			Crosshair0x,
+			Crosshair0y - size - gap_size,
+			Crosshair0x + thickness,
+			Crosshair0y - gap_size );
+	}
+
+	// Down
+	vgui::surface()->DrawFilledRect(
+		Crosshair0x,
+		Crosshair0y + gap_size + thickness,
+		Crosshair0x + thickness,
+		Crosshair0y + gap_size + size + thickness );
+}
+#endif
 
 void CHudCrosshair::Paint( void )
 {
@@ -237,6 +363,14 @@ void CHudCrosshair::Paint( void )
 
 	if ( !IsCurrentViewAccessAllowed() )
 		return;
+
+#ifdef MAPBASE
+	if ( cl_crosshair_new_enable.GetInt() == 1 && cl_crosshair_thickness.GetInt() != 0 )
+	{
+		PaintNewCrosshair();
+		return;
+	}
+#endif
 
 	C_BasePlayer* pPlayer = C_BasePlayer::GetLocalPlayer();
 	if ( !pPlayer )
