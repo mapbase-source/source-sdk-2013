@@ -276,6 +276,11 @@ extern bool         g_bNoSkyRecurse;
 extern bool			bDumpNormals;
 extern bool			g_bFastAmbient;
 extern float		maxchop;
+
+#ifdef MAPBASE
+extern bool			g_bExportLightmaps;
+#endif
+
 extern FileHandle_t	pFileSamples[4][4];
 extern qboolean		g_bLowPriority;
 extern qboolean		do_fast;
@@ -363,6 +368,12 @@ void BuildFacelights (int facenum, int threadnum);
 void PrecompLightmapOffsets();
 void FinalLightFace (int threadnum, int facenum);
 void PvsForOrigin (Vector& org, byte *pvs);
+
+#ifdef MAPBASE
+void BuildPalettedLightmaps();
+void CompressConstantLightmaps(int constantThreshold);
+#endif
+
 void ConvertRGBExp32ToRGBA8888( const ColorRGBExp32 *pSrc, unsigned char *pDst );
 
 inline byte PVSCheck( const byte *pvs, int iCluster )

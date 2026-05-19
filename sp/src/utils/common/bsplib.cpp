@@ -694,6 +694,11 @@ int					g_PhysDispSize = 0;
 CUtlVector<doccluderdata_t>	g_OccluderData( 256, 256 );
 CUtlVector<doccluderpolydata_t>	g_OccluderPolyData( 1024, 1024 );
 CUtlVector<int>	g_OccluderVertexIndices( 2048, 2048 );
+
+#ifdef MAPBASE
+CUtlVector<dlightmappage_t>		g_dLightmapPages;
+CUtlVector<dlightmappageinfo_t> g_dLightmapPageInfos;
+#endif
  
 template <class T> static void WriteData( T *pData, int count = 1 );
 template <class T> static void WriteData( int fieldType, T *pData, int count = 1 );

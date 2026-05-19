@@ -23,6 +23,10 @@
 #include "bitmap/imageformat.h"
 #include "coordsize.h"
 
+#ifdef MAPBASE
+#include "vtf/swizzler.h"
+#endif
+
 enum
 {
 	AMBIENT_ONLY = 0x1,
@@ -3419,6 +3423,12 @@ void PrecompLightmapOffsets()
 	pdlightdata->SetSize( lightdatasize );
 }
 
+#ifdef MAPBASE
+CUtlVector<CImagePacker>	g_ImagePackers;
+CUtlVector<byte*>			g_rawLightmapPages;
+char						g_currentMaterialName[256];
+#endif
+
 // Clamp the three values for bumped lighting such that we trade off directionality for brightness.
 static void ColorClampBumped( Vector& color1, Vector& color2, Vector& color3 )
 {
@@ -3575,3 +3585,859 @@ void ConvertRGBExp32ToRGBA8888( const ColorRGBExp32 *pSrc, unsigned char *pDst )
 	pDst[3] = 255;
 }
 
+#ifdef MAPBASE
+void SwizzleRect(const byte* pSource, byte* pTarget, int texWidth, int texHeight, int bytesPerPixel)
+{
+	int			x;
+	int			y;
+	int			n;
+	byte* pDst;
+	const byte* pSrc;
+
+	// Initialize a swizzler. The swizzler lets us easily convert texel
+	// addresses when the texture is swizzled.
+	Swizzler swizzle(texWidth, texHeight, 0);
+
+	// Loop through and touch the texels. Note that SetU()/SetV() and
+	// IncU()/IncV() are used to control texture addressed. This way,
+	// the Get2D() function can be used to get the current address.
+	// Initialize the V texture coordinate
+	swizzle.SetV(0);
+
+	for (y = 0; y < texHeight; y++)
+	{
+		swizzle.SetU(0);
+		pSrc = pSource + y * texWidth * bytesPerPixel;
+		for (x = 0; x < texWidth; x++)
+		{
+			pDst = pTarget + swizzle.Get2D() * bytesPerPixel;
+			for (n = 0; n < bytesPerPixel; n++)
+			{
+				pDst[n] = pSrc[n];
+			}
+
+			swizzle.IncU();
+			pSrc += bytesPerPixel;
+		}
+		swizzle.IncV();
+	}
+}
+
+
+//-----------------------------------------------------------------------------
+// Ensure the material names compare correctly by removing path or case disparity.
+//-----------------------------------------------------------------------------
+static int MaterialNameCompare(const char* pName1, const char* pName2)
+{
+	char	buff1[256];
+	char	buff2[256];
+	Assert(strlen(pName1) < sizeof(buff1));
+	Assert(strlen(pName2) < sizeof(buff2));
+
+	// normalize
+	strcpy(buff1, pName1);
+	strlwr(buff1);
+	Q_FixSlashes(buff1, '/');
+
+	// normalize
+	strcpy(buff2, pName2);
+	strlwr(buff2);
+	Q_FixSlashes(buff2, '/');
+
+	return strcmp(buff1, buff2);
+}
+
+
+//-----------------------------------------------------------------------------
+// Allocate a surface's lightmap onto a page
+// The materials must be presented in sorted order.
+// Lightmaps are allocated onto succesive pages, and do not backfill.
+//-----------------------------------------------------------------------------
+static int AllocateLightmap(int width, int height, int offsetIntoLightmapPage[2], const char* pMaterialName)
+{
+	// material change
+	int			i;
+	int			lightmapPage = -1;
+	int			nPackCount;
+	static int	imagePackerBase = 0;
+	bool		bMaterialChange;
+
+	bMaterialChange = false;
+	nPackCount = g_ImagePackers.Count();
+	if (g_currentMaterialName[0] && MaterialNameCompare(g_currentMaterialName, pMaterialName))
+	{
+		// advance the lightmap page base to track the start of the active image packers
+		// the closed out image packers are not suitable candidates for any further allocations
+		if (nPackCount)
+		{
+			imagePackerBase = nPackCount - 1;
+		}
+		bMaterialChange = true;
+	}
+
+	strcpy(g_currentMaterialName, pMaterialName);
+
+	// Try to add it to any of the active image packers
+	bool bAdded = false;
+	for (i = imagePackerBase; i < nPackCount; ++i)
+	{
+		bAdded = g_ImagePackers[i].AddBlock(width, height, &offsetIntoLightmapPage[0], &offsetIntoLightmapPage[1]);
+		if (bAdded)
+		{
+			lightmapPage = i;
+			break;
+		}
+	}
+
+	if (!bAdded)
+	{
+		// allocate a new page
+		lightmapPage = g_ImagePackers.AddToTail();
+		g_ImagePackers[lightmapPage].Reset(MAX_LIGHTMAPPAGE_WIDTH, MAX_LIGHTMAPPAGE_HEIGHT);
+
+		bAdded = g_ImagePackers[lightmapPage].AddBlock(width, height, &offsetIntoLightmapPage[0], &offsetIntoLightmapPage[1]);
+		if (!bAdded)
+		{
+			// couldn't add to new empty page, undo the new allocation
+			g_ImagePackers.Remove(lightmapPage);
+			return -1;
+		}
+
+		g_rawLightmapPages.AddToTail();
+		g_rawLightmapPages[lightmapPage] = (byte*)malloc(MAX_LIGHTMAPPAGE_WIDTH * MAX_LIGHTMAPPAGE_HEIGHT * 4);
+		for (int n = 0; n < MAX_LIGHTMAPPAGE_WIDTH * MAX_LIGHTMAPPAGE_HEIGHT; n++)
+		{
+			if (g_bExportLightmaps)
+			{
+				// debugging, fill empty areas with bright green
+				((unsigned int*)g_rawLightmapPages[lightmapPage])[n] = 0xFF00FF00;
+			}
+			else
+			{
+				// fill empty areas with pure opaque black
+				((unsigned int*)g_rawLightmapPages[lightmapPage])[n] = 0xFF000000;
+			}
+		}
+
+		if (bMaterialChange && imagePackerBase == nPackCount - 1)
+		{
+			// failed to add new material's lightmap to last open lightmap page, so forced to new page
+			// then succeeded on new page
+			// for integrity, ensure no further allocations end up on the old page
+			imagePackerBase++;
+		}
+	}
+
+	return lightmapPage;
+}
+
+//-----------------------------------------------------------------------------
+// Rectangular blit from RGBExp32 lightmaps to final bumped format in lightmap page
+//-----------------------------------------------------------------------------
+static void BlitBumpedLightmapsToPage32bpp(byte* pSource0, byte* pSource1, byte* pSource2, byte* pSource3, byte* pTarget, int targetX, int targetY, int targetW, int targetH, int targetStride)
+{
+	int			x;
+	int			y;
+	byte* pDst0;
+	byte* pDst1;
+	byte* pDst2;
+	byte* pDst3;
+	byte* pSrc0;
+	byte* pSrc1;
+	byte* pSrc2;
+	byte* pSrc3;
+	float		linearColor[3];
+	float		linearBumpColor1[3];
+	float		linearBumpColor2[3];
+	float		linearBumpColor3[3];
+	byte		color[4];
+	byte		bumpColor1[4];
+	byte		bumpColor2[4];
+	byte		bumpColor3[4];
+
+	// add the ColorRGBExp32 bits to the page
+	pSrc0 = pSource0;
+	pSrc1 = pSource1;
+	pSrc2 = pSource2;
+	pSrc3 = pSource3;
+	for (y = 0; y < targetH; ++y)
+	{
+		pDst0 = pTarget + ((y + targetY) * targetStride + targetX + 0 * targetW) * sizeof(ColorRGBExp32);
+		pDst1 = pTarget + ((y + targetY) * targetStride + targetX + 1 * targetW) * sizeof(ColorRGBExp32);
+		pDst2 = pTarget + ((y + targetY) * targetStride + targetX + 2 * targetW) * sizeof(ColorRGBExp32);
+		pDst3 = pTarget + ((y + targetY) * targetStride + targetX + 3 * targetW) * sizeof(ColorRGBExp32);
+		for (x = 0; x < targetW; ++x)
+		{
+			// convert from ColorRGBExp32 to linear space
+			linearColor[0] = TexLightToLinear(((ColorRGBExp32*)pSrc0)->r, ((ColorRGBExp32*)pSrc0)->exponent);
+			linearColor[1] = TexLightToLinear(((ColorRGBExp32*)pSrc0)->g, ((ColorRGBExp32*)pSrc0)->exponent);
+			linearColor[2] = TexLightToLinear(((ColorRGBExp32*)pSrc0)->b, ((ColorRGBExp32*)pSrc0)->exponent);
+
+			linearBumpColor1[0] = TexLightToLinear(((ColorRGBExp32*)pSrc1)->r, ((ColorRGBExp32*)pSrc1)->exponent);
+			linearBumpColor1[1] = TexLightToLinear(((ColorRGBExp32*)pSrc1)->g, ((ColorRGBExp32*)pSrc1)->exponent);
+			linearBumpColor1[2] = TexLightToLinear(((ColorRGBExp32*)pSrc1)->b, ((ColorRGBExp32*)pSrc1)->exponent);
+
+			linearBumpColor2[0] = TexLightToLinear(((ColorRGBExp32*)pSrc2)->r, ((ColorRGBExp32*)pSrc2)->exponent);
+			linearBumpColor2[1] = TexLightToLinear(((ColorRGBExp32*)pSrc2)->g, ((ColorRGBExp32*)pSrc2)->exponent);
+			linearBumpColor2[2] = TexLightToLinear(((ColorRGBExp32*)pSrc2)->b, ((ColorRGBExp32*)pSrc2)->exponent);
+
+			linearBumpColor3[0] = TexLightToLinear(((ColorRGBExp32*)pSrc3)->r, ((ColorRGBExp32*)pSrc3)->exponent);
+			linearBumpColor3[1] = TexLightToLinear(((ColorRGBExp32*)pSrc3)->g, ((ColorRGBExp32*)pSrc3)->exponent);
+			linearBumpColor3[2] = TexLightToLinear(((ColorRGBExp32*)pSrc3)->b, ((ColorRGBExp32*)pSrc3)->exponent);
+
+			LinearToBumpedLightmap(
+				linearColor,
+				linearBumpColor1,
+				linearBumpColor2,
+				linearBumpColor3,
+				color,
+				bumpColor1,
+				bumpColor2,
+				bumpColor3);
+
+			pDst0[0] = color[0];
+			pDst0[1] = color[1];
+			pDst0[2] = color[2];
+			pDst0[3] = 255;
+
+			pDst1[0] = bumpColor1[0];
+			pDst1[1] = bumpColor1[1];
+			pDst1[2] = bumpColor1[2];
+			pDst1[3] = 255;
+
+			pDst2[0] = bumpColor2[0];
+			pDst2[1] = bumpColor2[1];
+			pDst2[2] = bumpColor2[2];
+			pDst2[3] = 255;
+
+			pDst3[0] = bumpColor3[0];
+			pDst3[1] = bumpColor3[1];
+			pDst3[2] = bumpColor3[2];
+			pDst3[3] = 255;
+
+			pSrc0 += sizeof(ColorRGBExp32);
+			pSrc1 += sizeof(ColorRGBExp32);
+			pSrc2 += sizeof(ColorRGBExp32);
+			pSrc3 += sizeof(ColorRGBExp32);
+
+			pDst0 += 4;
+			pDst1 += 4;
+			pDst2 += 4;
+			pDst3 += 4;
+		}
+	}
+}
+
+
+//-----------------------------------------------------------------------------
+// Rectangular blit from RGBExp32 lightmaps to final color format in lightmap page
+//-----------------------------------------------------------------------------
+static void BlitLightmapToPage32bpp(byte* pSource, byte* pTarget, int targetX, int	targetY, int targetW, int targetH, int targetStride)
+{
+	int			x;
+	int			y;
+	byte* pDst;
+	byte* pSrc;
+
+	// add the ColorRGBExp32 bits to the page
+	pSrc = pSource;
+	for (y = 0; y < targetH; ++y)
+	{
+		pDst = pTarget + ((y + targetY) * targetStride + targetX) * 4;
+		for (x = 0; x < targetW; ++x)
+		{
+			ConvertRGBExp32ToRGBA8888((ColorRGBExp32*)pSrc, pDst);
+
+			pSrc += sizeof(ColorRGBExp32);
+			pDst += 4;
+		}
+	}
+}
+
+
+//-----------------------------------------------------------------------------
+// Prepare and drive the allocation of the surface's lightmap
+//-----------------------------------------------------------------------------
+static void RegisterLightmappedSurface(dface_t* pFace)
+{
+	int			lightmapWidth;
+	int			lightmapHeight;
+	int			allocationWidth;
+	int			allocationHeight;
+	int			offsetIntoLightmapPage[2];
+	const char* pMaterialName;
+	int			lightmapPage;
+	bool		bBump;
+
+	pMaterialName = TexDataStringTable_GetString(dtexdata[texinfo[pFace->texinfo].texdata].nameStringTableID);
+
+	lightmapWidth = pFace->m_LightmapTextureSizeInLuxels[0] + 1;
+	lightmapHeight = pFace->m_LightmapTextureSizeInLuxels[1] + 1;
+
+	allocationWidth = lightmapWidth;
+	allocationHeight = lightmapHeight;
+	bBump = (texinfo[pFace->texinfo].flags & SURF_BUMPLIGHT) > 0;
+	if (bBump)
+	{
+		// Allocate all bumped lightmaps next to each other so that we can just 
+		// increment the s texcoord by pSurf->bumpSTexCoordOffset to render the next
+		// of the three lightmaps
+		allocationWidth *= NUM_BUMP_VECTS + 1;
+	}
+
+	// register this surface's lightmap
+	lightmapPage = AllocateLightmap(allocationWidth, allocationHeight, offsetIntoLightmapPage, pMaterialName);
+
+	//	Warning( "%s: page %d (%dx%d)\n", pMaterialName, lightmapPage, allocationWidth, allocationHeight );
+
+	if (lightmapPage >= 0)
+	{
+		// rectlinear transfer each page
+		if (!bBump)
+		{
+			BlitLightmapToPage32bpp(
+				pdlightdata->Base() + pFace->lightofs,
+				g_rawLightmapPages[lightmapPage],
+				offsetIntoLightmapPage[0],
+				offsetIntoLightmapPage[1],
+				lightmapWidth,
+				lightmapHeight,
+				MAX_LIGHTMAPPAGE_WIDTH);
+		}
+		else
+		{
+			int bumpMapSize = lightmapWidth * lightmapHeight * sizeof(ColorRGBExp32);
+			BlitBumpedLightmapsToPage32bpp(
+				pdlightdata->Base() + pFace->lightofs + 0 * bumpMapSize,
+				pdlightdata->Base() + pFace->lightofs + 1 * bumpMapSize,
+				pdlightdata->Base() + pFace->lightofs + 2 * bumpMapSize,
+				pdlightdata->Base() + pFace->lightofs + 3 * bumpMapSize,
+				g_rawLightmapPages[lightmapPage],
+				offsetIntoLightmapPage[0],
+				offsetIntoLightmapPage[1],
+				lightmapWidth,
+				lightmapHeight,
+				MAX_LIGHTMAPPAGE_WIDTH);
+		}
+
+		// build a new lightmap page info
+		// lightstyles are xbox deprecated, only need single average light color for static style 0
+		int pageInfo = g_dLightmapPageInfos.AddToTail();
+		g_dLightmapPageInfos[pageInfo].page = lightmapPage;
+		g_dLightmapPageInfos[pageInfo].offset[0] = offsetIntoLightmapPage[0];
+		g_dLightmapPageInfos[pageInfo].offset[1] = offsetIntoLightmapPage[1];
+		g_dLightmapPageInfos[pageInfo].avgColor = *dface_AvgLightColor(pFace, 0);
+
+		// hijack lightofs, to index into page infos instead
+		pFace->lightofs = pageInfo;
+	}
+	else
+	{
+		Error("AllocateLightmap: (%s) lightmap (%dx%d) too big to fit in page (%dx%d)\n",
+			pMaterialName, allocationWidth, allocationHeight, MAX_LIGHTMAPPAGE_WIDTH, MAX_LIGHTMAPPAGE_HEIGHT);
+
+		// mark as unallocated
+		pFace->lightofs = -1;
+	}
+}
+
+
+//-----------------------------------------------------------------------------
+// Quantize the 32b lightmap pages into a palettized equivalent ready for serialization
+//-----------------------------------------------------------------------------
+void PalettizeLightmaps(void)
+{
+	uint8* pPixels;
+	uint8* pPalette3;
+	uint8* pPalette4;
+	int		i;
+	int		j;
+
+	g_dLightmapPages.Purge();
+	g_dLightmapPages.EnsureCount(g_rawLightmapPages.Count());
+
+	if (g_bExportLightmaps)
+	{
+		// write out the raw 32bpp lightmap page
+		for (i = 0; i < g_rawLightmapPages.Count(); ++i)
+		{
+			char	buff[256];
+			sprintf(buff, "lightmap_%2.2d.tga", i);
+
+			CUtlBuffer outBuf;
+			TGAWriter::WriteToBuffer(
+				g_rawLightmapPages[i], outBuf, MAX_LIGHTMAPPAGE_WIDTH,
+				MAX_LIGHTMAPPAGE_HEIGHT, IMAGE_FORMAT_RGBA8888, IMAGE_FORMAT_RGBA8888);
+			g_pFileSystem->WriteFile(buff, NULL, outBuf);
+		}
+	}
+
+	pPixels = (uint8*)malloc(MAX_LIGHTMAPPAGE_WIDTH * MAX_LIGHTMAPPAGE_HEIGHT);
+	pPalette3 = (uint8*)malloc(256 * 3);
+	pPalette4 = (uint8*)malloc(256 * 4);
+
+	for (i = 0; i < g_rawLightmapPages.Count(); i++)
+	{
+		// remap to 256x3 palette
+		ColorQuantize(
+			g_rawLightmapPages[i],
+			MAX_LIGHTMAPPAGE_WIDTH,
+			MAX_LIGHTMAPPAGE_HEIGHT,
+			QUANTFLAGS_NODITHER,
+			256,
+			pPixels,
+			pPalette3,
+			0);
+
+		// fixup 256x3 rgb palette to d3d 256x4 bgra
+		for (j = 0; j < 256; j++)
+		{
+			pPalette4[j * 4 + 0] = pPalette3[j * 3 + 2];
+			pPalette4[j * 4 + 1] = pPalette3[j * 3 + 1];
+			pPalette4[j * 4 + 2] = pPalette3[j * 3 + 0];
+			pPalette4[j * 4 + 3] = 0xFF;
+		}
+
+		SwizzleRect(pPixels, g_dLightmapPages[i].data, MAX_LIGHTMAPPAGE_WIDTH, MAX_LIGHTMAPPAGE_HEIGHT, 1);
+		memcpy(g_dLightmapPages[i].palette, pPalette4, 256 * 4);
+
+		if (g_bExportLightmaps && g_pFullFileSystem)
+		{
+			// write out the palettize page
+			byte* pRaw4 = (byte*)malloc(MAX_LIGHTMAPPAGE_WIDTH * MAX_LIGHTMAPPAGE_HEIGHT * 4);
+			for (j = 0; j < MAX_LIGHTMAPPAGE_WIDTH * MAX_LIGHTMAPPAGE_HEIGHT; j++)
+			{
+				// index the palette, fixup to tga rgba order
+				int color = pPixels[j] * 4;
+				pRaw4[j * 4 + 0] = pPalette4[color + 2];
+				pRaw4[j * 4 + 1] = pPalette4[color + 1];
+				pRaw4[j * 4 + 2] = pPalette4[color + 0];
+				pRaw4[j * 4 + 3] = pPalette4[color + 3];
+			}
+
+			char	buff[256];
+			sprintf(buff, "lightmap_%2.2d_256.tga", i);
+
+			CUtlBuffer outBuf;
+			TGAWriter::WriteToBuffer(
+				pRaw4,
+				outBuf,
+				MAX_LIGHTMAPPAGE_WIDTH,
+				MAX_LIGHTMAPPAGE_HEIGHT,
+				IMAGE_FORMAT_RGBA8888,
+				IMAGE_FORMAT_RGBA8888);
+			g_pFullFileSystem->WriteFile(buff, NULL, outBuf);
+
+			free(pRaw4);
+		}
+	}
+
+	free(pPixels);
+	free(pPalette3);
+	free(pPalette4);
+}
+
+//-----------------------------------------------------------------------------
+// Comparison function for inserting surfaces to achieve desired sort order
+//-----------------------------------------------------------------------------
+static bool LightmapLess(const int& surfID1, const int& surfID2)
+{
+	dface_t* pFace1 = &g_pFaces[surfID1];
+	dface_t* pFace2 = &g_pFaces[surfID2];
+
+	bool hasLightmap1 = (texinfo[pFace1->texinfo].flags & SURF_NOLIGHT) == 0;
+	bool hasLightmap2 = (texinfo[pFace2->texinfo].flags & SURF_NOLIGHT) == 0;
+
+	// We want lightmapped surfaces to show up first
+	if (hasLightmap1 != hasLightmap2)
+		return hasLightmap1 > hasLightmap2;
+
+	// sort by name
+	const char* pName1 = TexDataStringTable_GetString(dtexdata[texinfo[pFace1->texinfo].texdata].nameStringTableID);
+	const char* pName2 = TexDataStringTable_GetString(dtexdata[texinfo[pFace2->texinfo].texdata].nameStringTableID);
+	int sort = MaterialNameCompare(pName1, pName2);
+	if (sort)
+		return sort < 0;
+
+	// then sort by lightmap area for better packing... (big areas first)
+	// must account for bumped surfaces to ensure proper descending sequences of areas
+	int width = g_pFaces[surfID1].m_LightmapTextureSizeInLuxels[0] + 1;
+	int height = g_pFaces[surfID1].m_LightmapTextureSizeInLuxels[1] + 1;
+	if (texinfo[pFace1->texinfo].flags & SURF_BUMPLIGHT)
+	{
+		width *= (NUM_BUMP_VECTS + 1);
+	}
+	int area1 = width * height;
+
+	width = g_pFaces[surfID2].m_LightmapTextureSizeInLuxels[0] + 1;
+	height = g_pFaces[surfID2].m_LightmapTextureSizeInLuxels[1] + 1;
+	if (texinfo[pFace2->texinfo].flags & SURF_BUMPLIGHT)
+	{
+		width *= (NUM_BUMP_VECTS + 1);
+	}
+	int area2 = width * height;
+
+	return area2 < area1;
+}
+
+
+//-----------------------------------------------------------------------------
+// Iterate surfaces generating cooked lightmap pages for palettizing
+// Each page gets its own palette.
+//-----------------------------------------------------------------------------
+void BuildPalettedLightmaps(void)
+{
+	int		i;
+	int		j;
+
+	g_rawLightmapPages.Purge();
+	g_currentMaterialName[0] = '\0';
+
+	g_dLightmapPageInfos.Purge();
+
+	CUtlRBTree< int, int >	surfaces(0, numfaces, LightmapLess);
+	for (i = 0; i < numfaces; i++)
+	{
+		surfaces.Insert(i);
+	}
+
+	// surfaces must be iterated in order to achieve proper lightmap allocation
+	for (i = surfaces.FirstInorder(); i != surfaces.InvalidIndex(); i = surfaces.NextInorder(i))
+	{
+		dface_t* pFace = &g_pFaces[surfaces[i]];
+
+		bool hasLightmap = (texinfo[pFace->texinfo].flags & SURF_NOLIGHT) == 0;
+		if (hasLightmap && pFace->lightofs != -1)
+		{
+			RegisterLightmappedSurface(pFace);
+		}
+		else
+		{
+			pFace->lightofs = -1;
+		}
+
+		// remove unsupported light styles
+		for (j = 0; j < MAXLIGHTMAPS; j++)
+			pFace->styles[j] = 255;
+	}
+
+	// convert cooked 32b lightmap pages into their palettized versions
+	PalettizeLightmaps();
+
+	for (i = 0; i < g_rawLightmapPages.Count(); i++)
+		free(g_rawLightmapPages[i]);
+
+	g_rawLightmapPages.Purge();
+	g_ImagePackers.Purge();
+
+	// no longer require raw rgb light data
+	// ensure light data doesn't get serialized
+	pdlightdata->Purge();
+}
+
+// a temporary struct that holds a x/y/z/u/v for recursive subdivision luxel rasterization
+struct facevert_t
+{
+	Vector pos;
+	Vector2D luxel;
+};
+
+// diff these two color channels
+inline int ColorDelta(int c0, int c1)
+{
+	return abs(c0 - c1);
+}
+
+// holds the lightmap data for a face for intermediate calcs
+struct lightmapdata_t
+{
+	bool bBump;
+	ColorRGBExp32 avgColor;
+	ColorRGBExp32 bumpColor[NUM_BUMP_VECTS];
+	int		width; // width including *4 for bumps
+	int		height;
+	int		threshold;
+	ColorRGBExp32* pLuxels;
+
+	void Init(ColorRGBExp32* _pLuxels, bool _bBump, int _width, int _height, int _threshold)
+	{
+		pLuxels = _pLuxels;
+		bBump = _bBump;
+		width = _width;
+		height = _height;
+		threshold = _threshold;
+	}
+
+	// Get the color of the luxel at s/t
+	void GetLuxelAtCoords(ColorRGBExp32* pDest, float s, float t, int bumpIndex = 0) const
+	{
+		s += 0.5f;
+		t += 0.5f;
+		int u = (int)s;
+		int v = (int)t;
+#if _DEBUG
+		int w = bBump ? (width / 4) : width;
+		Assert(u >= 0 && u <= (w - 1));
+		Assert(v >= 0 && v <= (height - 1));
+#endif
+		int offset = u + v * width;
+		if (bBump)
+		{
+			offset += bumpIndex * (width / 4);
+		}
+		if (offset > width * height)
+			offset = width * height;
+		*pDest = pLuxels[offset];
+	}
+
+	// Is this color within threshold of the average color for this lightmap
+	bool IsAvgColor(ColorRGBExp32& color) const
+	{
+		byte color0[4], color1[4];
+		ConvertRGBExp32ToRGBA8888(&avgColor, color0);
+		ConvertRGBExp32ToRGBA8888(&color, color1);
+		int delta = ColorDelta(color0[0], color1[0]);
+		delta += ColorDelta(color0[1], color1[1]);
+		delta += ColorDelta(color0[2], color1[2]);
+		return delta > threshold ? false : true;
+	}
+
+	bool IsAvgColor(float s, float t) const
+	{
+#if 0
+		GetLuxelAtCoords(&tmp, s, t);
+		return IsAvgColor(tmp);
+#else
+		// billinear sample luxel at s,t
+		int u = s;
+		int v = t;
+		float fracU = fmod(s, 1) + 0.5f;
+		float fracV = fmod(t, 1) + 0.5f;
+		if (fracU > 1)
+		{
+			fracU -= 1.0f;
+			u++;
+		}
+		if (fracV > 1)
+		{
+			fracV -= 1.0f;
+			v++;
+		}
+		int w = bBump ? (width / 4) : width;
+		Vector luxel[4];
+		for (int i = 0; i < 4; i++)
+		{
+			int sampU = u + ((i & 1) ? 1 : 0);
+			int sampV = v + ((i & 2) ? 1 : 0);
+			sampU = clamp(sampU, 0, w - 1);
+			sampV = clamp(sampV, 0, height - 1);
+			int offset = sampU + sampV * width;
+			luxel[i][0] = TexLightToLinear(pLuxels[offset].r, pLuxels[offset].exponent);
+			luxel[i][1] = TexLightToLinear(pLuxels[offset].g, pLuxels[offset].exponent);
+			luxel[i][2] = TexLightToLinear(pLuxels[offset].b, pLuxels[offset].exponent);
+		}
+		luxel[0] *= (1.0f - fracU) * (1.0f - fracV);
+		luxel[1] *= fracU * (1.0f - fracV);
+		luxel[2] *= (1.0f - fracU) * fracV;
+		luxel[3] *= fracU * fracV;
+		Vector out = luxel[0] + luxel[1] + luxel[2] + luxel[3];
+
+		Vector gammaOut;
+		for (int i = 0; i < 3; i++)
+		{
+			gammaOut[i] = LinearToVertexLight(out[i]);
+		}
+		ColorClamp(gammaOut);
+		byte avg[4];
+		ConvertRGBExp32ToRGBA8888(&avgColor, avg);
+		int delta = 0;
+		for (int i = 0; i < 3; i++)
+		{
+			int c = RoundFloatToByte(gammaOut[i] * 255.0f);
+			delta += ColorDelta(c, avg[i]);
+		}
+		return delta > threshold ? false : true;
+#endif
+	}
+};
+
+// Returns true if this triangle has constant lighting over its surface
+// This is evaluated by recursively subdividing the triangle until it is less than 1 luxel along each edge
+// then the entire triangle is used to point-sample a luxel which is compared to the average for constant-ness
+bool IsConstantTriangle_r(const lightmapdata_t& data, const facevert_t& v0, const facevert_t& v1, const facevert_t& v2)
+{
+	float edge[3];
+	edge[0] = (v1.luxel - v0.luxel).Length();
+	edge[1] = (v2.luxel - v1.luxel).Length();
+	edge[2] = (v0.luxel - v2.luxel).Length();
+
+	int maxIndex = 0;
+	for (int i = 1; i < 3; i++)
+	{
+		if (edge[i] > edge[maxIndex])
+		{
+			maxIndex = i;
+		}
+	}
+	if (edge[maxIndex] < 0.5f)
+	{
+		// smaller than 1 luxel
+		return data.IsAvgColor(v0.luxel[0], v0.luxel[1]);
+#if 0
+		ColorRGBExp32 tmp0, tmp1, tmp2;
+		data.GetLuxelAtCoords(&tmp0, v0.luxel[0], v0.luxel[1]);
+		data.GetLuxelAtCoords(&tmp1, v1.luxel[0], v1.luxel[1]);
+		data.GetLuxelAtCoords(&tmp2, v2.luxel[0], v2.luxel[1]);
+		return data.IsAvgColor(tmp0) && data.IsAvgColor(tmp1) && data.IsAvgColor(tmp2);
+#endif
+	}
+	// subdivide largest edge and recurse
+	switch (maxIndex)
+	{
+	case 0: // v1, v0
+	{
+		facevert_t tmp;
+		tmp.pos = 0.5f * v1.pos + 0.5f * v0.pos;
+		tmp.luxel = 0.5f * v1.luxel + 0.5f * v0.luxel;
+		if (!IsConstantTriangle_r(data, tmp, v1, v2))
+			return false;
+		return IsConstantTriangle_r(data, v0, tmp, v2);
+	}
+	break;
+	case 1: // v2, v1
+	{
+		facevert_t tmp;
+		tmp.pos = 0.5f * v2.pos + 0.5f * v1.pos;
+		tmp.luxel = 0.5f * v2.luxel + 0.5f * v1.luxel;
+		if (!IsConstantTriangle_r(data, v0, v1, tmp))
+			return false;
+		return IsConstantTriangle_r(data, v0, tmp, v2);
+	}
+	break;
+	default: // v0, v2
+	case 2:
+	{
+		facevert_t tmp;
+		tmp.pos = 0.5f * v2.pos + 0.5f * v0.pos;
+		tmp.luxel = 0.5f * v2.luxel + 0.5f * v0.luxel;
+		if (!IsConstantTriangle_r(data, v0, v1, tmp))
+			return false;
+		return IsConstantTriangle_r(data, tmp, v1, v2);
+	}
+	break;
+	}
+}
+
+
+// Check to see if this face has constant lighting by recursive rasterization into the lightmap
+bool IsConstantColor(dface_t* pFace, lightmapdata_t& data)
+{
+	int vertIndex[256];
+	facevert_t v[256];
+	int i;
+	Assert(pFace->numedges < 256);
+	texinfo_t* pTexInfo = &texinfo[pFace->texinfo];
+	BuildFaceCalcWindingData(pFace, vertIndex);
+#if _DEBUG
+	int wLimit = data.bBump ? (data.width / 4) : data.width;
+	int hLimit = data.height;
+#endif
+	for (i = 0; i < pFace->numedges; i++)
+	{
+		v[i].pos = dvertexes[vertIndex[i]].point;
+
+		CalcTextureCoordsAtPoints(pTexInfo->lightmapVecsLuxelsPerWorldUnits, pFace->m_LightmapTextureMinsInLuxels, &v[i].pos, 1, &v[i].luxel);
+		if (v[i].luxel[0] < 0)
+		{
+			if (v[i].luxel[0] > -1e-3f) // clamp away a little bit of error
+				v[i].luxel[0] = 0;
+		}
+		if (v[i].luxel[1] < 0)
+		{
+			if (v[i].luxel[1] > -1e-3f) // clamp away a little bit of error
+				v[i].luxel[1] = 0;
+		}
+		Assert(v[i].luxel[0] >= 0 && v[i].luxel[0] < wLimit);
+		Assert(v[i].luxel[1] >= 0 && v[i].luxel[1] < hLimit);
+	}
+
+	// initialize the average color to be the color under the first vertex
+	data.GetLuxelAtCoords(&data.avgColor, v[0].luxel[0], v[0].luxel[1]);
+	if (data.bBump)
+	{
+		for (i = 0; i < NUM_BUMP_VECTS; i++)
+		{
+			data.GetLuxelAtCoords(&data.bumpColor[i], v[0].luxel[0], v[0].luxel[1], i + 1);
+		}
+	}
+
+	if (pFace->GetNumPrims())
+	{
+		// use the stored indices
+		dprimitive_t* pPrim = &g_primitives[pFace->firstPrimID];
+		Assert(pPrim->vertCount == 0);
+		Assert(pPrim->indexCount == (pFace->numedges - 2) * 3);
+		unsigned short* pIndices = &g_primindices[pPrim->firstIndex];
+		int index = 0;
+		for (i = 0; i < pFace->numedges - 2; i++)
+		{
+			if (!IsConstantTriangle_r(data, v[pIndices[index]], v[pIndices[index + 1]], v[pIndices[index + 2]]))
+				return false;
+			index += 3;
+		}
+	}
+	else
+	{
+		// this surface is a fan
+		int index = 0;
+		for (i = 0; i < pFace->numedges - 2; i++)
+		{
+			if (!IsConstantTriangle_r(data, v[0], v[i + 1], v[i + 2]))
+				return false;
+			index += 3;
+		}
+	}
+
+	return true;
+}
+
+
+// Iterate the faces and remove any lightmaps that are constant across their renderable luxels
+void CompressConstantLightmaps(int threshold)
+{
+	lightmapdata_t mapData;
+
+	for (int i = 0; i < numfaces; i++)
+	{
+		dface_t* pFace = &g_pFaces[i];
+		bool hasLightmap = (texinfo[pFace->texinfo].flags & SURF_NOLIGHT) == 0;
+		if (!hasLightmap || pFace->lightofs == -1)
+			continue;
+
+		int lightmapWidth = pFace->m_LightmapTextureSizeInLuxels[0] + 1;
+		int lightmapHeight = pFace->m_LightmapTextureSizeInLuxels[1] + 1;
+		bool bBump = (texinfo[pFace->texinfo].flags & SURF_BUMPLIGHT) > 0;
+		if (bBump)
+		{
+			lightmapWidth *= (NUM_BUMP_VECTS + 1);
+		}
+
+		ColorRGBExp32* pLightdata = reinterpret_cast<ColorRGBExp32*>(pdlightdata->Base() + pFace->lightofs);
+
+		mapData.Init(pLightdata, bBump, lightmapWidth, lightmapHeight, threshold);
+		if (IsConstantColor(pFace, mapData))
+		{
+			pLightdata[0] = mapData.avgColor;
+			pFace->m_LightmapTextureSizeInLuxels[0] = 0;
+			pFace->m_LightmapTextureSizeInLuxels[1] = 0;
+			if (bBump)
+			{
+				for (int i = 0; i < NUM_BUMP_VECTS; i++)
+				{
+					pLightdata[i + 1] = mapData.bumpColor[i];
+				}
+			}
+		}
+	}
+}
+#endif
