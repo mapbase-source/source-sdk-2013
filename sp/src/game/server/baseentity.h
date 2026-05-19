@@ -645,9 +645,10 @@ public:
 	const char* GetPreTemplateName(); // Not threadsafe. Get the name stripped of template unique decoration
 
 	bool		NameMatches( const char *pszNameOrWildcard );
-	bool		ClassMatches( const char *pszClassOrWildcard );
 	bool		NameMatches( string_t nameStr );
-	bool		ClassMatches( string_t nameStr );
+	
+	virtual bool		ClassMatches( string_t nameStr );
+	virtual bool		ClassMatches( const char *pszClassOrWildcard );
 
 private:
 	bool		NameMatchesComplex( const char *pszNameOrWildcard );
@@ -820,8 +821,8 @@ public:
 	bool ReadKeyField( const char *varName, variant_t *var );
 
 	// classname access
-	void		SetClassname( const char *className );
-	const char* GetClassname();
+	void				SetClassname( const char *className );
+	virtual const char* GetClassname();
 
 	// Debug Overlays
 	void		 EntityText( int text_offset, const char *text, float flDuration, int r = 255, int g = 255, int b = 255, int a = 255 );

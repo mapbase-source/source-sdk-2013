@@ -217,6 +217,12 @@ public:
 	void					SetAmmoFromMapper( float flAmmo, bool bSecondary = false );
 	virtual bool			KeyValue( const char *szKeyName, const char *szValue );
 	virtual bool			GetKeyValue( const char *szKeyName, char *szValue, int iMaxLen );
+	virtual const char*		GetClassname();
+#if !defined( CLIENT_DLL )
+	virtual bool			ClassMatches( string_t nameStr );
+	void					SetCustomWeaponScriptName(const char* pszNewScript);
+#endif
+	virtual bool			ClassMatches( const char* pszClassOrWildcard );
 #endif
 
 	void					MakeTracer( const Vector &vecTracerSrc, const trace_t &tr, int iTracerType );
@@ -569,6 +575,7 @@ public:
 	void					InputForceFire( inputdata_t &inputdata, bool bSecondary = false );
 	void					InputForcePrimaryFire( inputdata_t &inputdata );
 	void					InputForceSecondaryFire( inputdata_t &inputdata );
+	void					InputChangeScript(inputdata_t& inputdata); // Input to change the weapon script name and re-Precache
 #endif
 	void					InputHideWeapon( inputdata_t &inputdata );
 	void					Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
@@ -733,6 +740,14 @@ public:
 	bool					m_bReloadsSingly;		// True if this weapon reloads 1 round at a time
 	float					m_fFireDuration;		// The amount of time that the weapon has sustained firing
 	int						m_iSubType;
+
+#ifdef MAPBASE
+#ifdef CLIENT_DLL
+	int m_iOldNeedsUpdate = 0;			//client's variable to compare with networked and decide if update is needed
+#endif
+	CNetworkString( m_iszWeaponScript, MAX_WEAPON_STRING ); //networked weapon script name
+	CNetworkVar(int, m_iNeedsUpdate);	//mark for client in case if weapon script update is wanted
+#endif
 
 	float					m_flUnlockTime;
 	EHANDLE					m_hLocker;				// Who locked this weapon.

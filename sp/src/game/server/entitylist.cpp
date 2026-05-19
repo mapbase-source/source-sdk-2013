@@ -570,7 +570,12 @@ CBaseEntity *CGlobalEntityList::FindEntityByClassnameFast( CBaseEntity *pStartEn
 			continue;
 		}
 
-		if ( pEntity->m_iClassname == iszClassname)
+		if (!pEntity->IsBaseCombatWeapon() || static_cast<CBaseCombatWeapon*>(pEntity)->m_iszWeaponScript.Get()[0] == '\0')
+		{
+			if (pEntity->m_iClassname == iszClassname)
+				return pEntity;
+		}
+		else if (FClassnameIs(pEntity, iszClassname.ToCStr()))
 		{
 			return pEntity;
 		}
@@ -1370,7 +1375,7 @@ CBaseEntity *CGlobalEntityList::FindEntityClassNearestFacing( const Vector &orig
 			if (FClassnameIs(ent,classname))
 			{
 				// Ignore if worldspawn
-				if (!FClassnameIs( ent, "worldspawn" )  && !FClassnameIs( ent, "soundent")) 
+				if (!FStrEq( STRING(ent->m_iClassname), "worldspawn")  && !FStrEq( STRING(ent->m_iClassname), "soundent")) 
 				{
 					bestDot	= dot;
 					best_ent = ent;

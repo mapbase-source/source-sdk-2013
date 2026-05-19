@@ -38,6 +38,10 @@
 
 #endif
 
+#ifdef MAPBASE
+	#include "mapbase_matchers_base.h"
+#endif
+
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
@@ -59,6 +63,20 @@ ConVar tf_weapon_criticals_bucket_cap( "tf_weapon_criticals_bucket_cap", "1000.0
 ConVar tf_weapon_criticals_bucket_bottom( "tf_weapon_criticals_bucket_bottom", "-250.0", FCVAR_REPLICATED | FCVAR_CHEAT );
 ConVar tf_weapon_criticals_bucket_default( "tf_weapon_criticals_bucket_default", "300.0", FCVAR_REPLICATED | FCVAR_CHEAT );
 #endif // TF
+
+#ifdef MAPBASE
+ConVar	sv_weapon_clips_reset_mode("sv_weapon_clips_reset_mode", "1", 
+	FCVAR_REPLICATED, 
+	"Sets the way to reset clips:\n0 - No reset at all.\n1 - Set max clip value.\n2 - Set max clip value if more then max clip.",
+	true, 0.0f, true, 2.0f
+);
+
+ConVar	sv_weapon_vm_anim_reset_mode("sv_weapon_vm_anim_reset_mode", "0",
+	FCVAR_REPLICATED,
+	"Animation to set after weapon script change, 0 to use idle animation, 1 to use deploy animation.",
+	true, 0, true, 1
+);
+#endif
 
 CBaseCombatWeapon::CBaseCombatWeapon()
 {
@@ -321,7 +339,11 @@ void CBaseCombatWeapon::Precache( void )
 	else
 	{
 		// Couldn't read data file, remove myself
-		Warning( "Error reading weapon data file for: %s\n", GetWeaponScriptName() );
+#ifdef MAPBASE
+		Warning( "Error reading weapon data file for classname \"%s\" with script \"%s\".\n", STRING(m_iClassname), GetClassname());
+#else
+		Warning( "Error reading weapon data file for: %s\n", GetClassname() );
+#endif
 	//	Remove( );	//don't remove, this gets released soon!
 	}
 }
@@ -361,6 +383,35 @@ bool CBaseCombatWeapon::KeyValue( const char *szKeyName, const char *szValue )
 	{
 		SetAmmoFromMapper(atof(szValue), true);
 	}
+	if (FStrEq(szKeyName, "weaponscriptname"))
+	{
+		if (szValue[0] != '\0') //if not empty - use if file exists
+		{
+			char sz[128];
+			Q_snprintf(sz, sizeof(sz), "scripts/%s", szValue);
+
+			KeyValues* pKV = ReadEncryptedKVFile(filesystem, sz, GetEncryptionKey(),
+			#if defined( DOD_DLL )
+					true			// Only read .ctx files!
+			#else
+					false
+			#endif
+			);
+
+			//don't if file doesn't exists
+			if (!pKV)
+			{
+				Warning("Error reading weapon data file \"%s\".\n", szValue);
+				return true;
+			}
+
+			pKV->deleteThis(); //free up memory
+			
+			Q_strncpy(m_iszWeaponScript.GetForModify(), szValue, MAX_WEAPON_STRING);
+		}
+
+		return true;
+	}
 	else if ( FStrEq(szKeyName, "spawnflags") )
 	{
 		m_spawnflags = atoi(szValue);
@@ -381,6 +432,38 @@ bool CBaseCombatWeapon::KeyValue( const char *szKeyName, const char *szValue )
 bool CBaseCombatWeapon::GetKeyValue( const char *szKeyName, char *szValue, int iMaxLen )
 {
 	return BaseClass::GetKeyValue(szKeyName, szValue, iMaxLen);
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: Returns weaponscriptname to make weapons of the same classname working properly with the rest of the code.
+// Putting false will return the real classname, instead of weaponscriptname.
+//-----------------------------------------------------------------------------
+const char* CBaseCombatWeapon::GetClassname()
+{
+	if (m_iszWeaponScript.Get()[0] != '\0')
+	{
+		return m_iszWeaponScript.Get();
+	}
+
+	return BaseClass::GetClassname();
+}
+
+#if !defined( CLIENT_DLL )
+//-----------------------------------------------------------------------------
+// Purpose: This is used by FClassnameIs to compare classname strings, we replace it with script name.
+//-----------------------------------------------------------------------------
+bool CBaseCombatWeapon::ClassMatches(string_t nameStr)
+{
+	return Matcher_NamesMatch(nameStr.ToCStr(), GetClassname());
+}
+#endif
+
+//-----------------------------------------------------------------------------
+// Purpose: This is used by FClassnameIs to compare classname strings, we replace it with script name.
+//-----------------------------------------------------------------------------
+bool CBaseCombatWeapon::ClassMatches(const char* pszClassOrWildcard)
+{
+	return Matcher_NamesMatch(pszClassOrWildcard, GetClassname());
 }
 #endif
 
@@ -573,10 +656,13 @@ int CBaseCombatWeapon::GetPosition( void ) const
 }
 
 //-----------------------------------------------------------------------------
-// Purpose: 
+// Purpose: Get classname from wpn data or use script name directly if not empty.
 //-----------------------------------------------------------------------------
 const char *CBaseCombatWeapon::GetName( void ) const
 {
+	if (m_iszWeaponScript.Get()[0] != '\0')
+		return m_iszWeaponScript.Get();
+
 	return GetWpnData().szClassName;
 }
 
@@ -1953,6 +2039,134 @@ void CBaseCombatWeapon::InputForceSecondaryFire( inputdata_t &inputdata )
 {
 	InputForceFire(inputdata, true);
 }
+
+//-----------------------------------------------------------------------------
+// Purpose: Input to change the weapon script name and re-Precache
+//-----------------------------------------------------------------------------
+void CBaseCombatWeapon::InputChangeScript(inputdata_t& inputdata)
+{
+	SetCustomWeaponScriptName(inputdata.value.String());
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: Changes weapon script by name
+//-----------------------------------------------------------------------------
+void CBaseCombatWeapon::SetCustomWeaponScriptName(const char* pszNewScript)
+{
+	//don't update if empty or already used this script
+	if (!pszNewScript || !pszNewScript[0] || FClassnameIs(this, pszNewScript))
+		return;
+
+	//don't update if other weapon that owns my owner uses the same script
+	if (GetOwner() && GetOwner()->Weapon_OwnsThisType(pszNewScript))
+		return;
+
+	char sz[128];
+	Q_snprintf(sz, sizeof(sz), "scripts/%s", pszNewScript);
+
+	KeyValues* pKV = ReadEncryptedKVFile(filesystem, sz, GetEncryptionKey(),
+#if defined( DOD_DLL )
+		true			// Only read .ctx files!
+#else
+		false
+#endif
+	);
+
+	//don't if file doesn't exists
+	if (!pKV)
+	{
+		Warning("Error reading weapon data file \"%s\".\n", pszNewScript);
+		return;
+	}
+
+	pKV->deleteThis(); //free up memory
+
+	//copy new data for networked and stored
+	Q_strncpy(m_iszWeaponScript.GetForModify(), pszNewScript, MAX_WEAPON_STRING);
+
+	//finish reload before update
+	if (m_bInReload)
+	{
+		FinishReload();
+	}
+
+	m_iNeedsUpdate++; //trigger client update
+
+	Precache(); //update with new script
+
+	if (GetOwner())
+	{
+		if (GetOwner()->IsPlayer() == false)
+		{
+			//update model data for npc
+			SetModel(GetWorldModel());
+		}
+		else
+		{
+			//this updates wpn's vm at the same time as wpn's script, instead of waiting 2-6 seconds
+			if (GetOwner()->GetActiveWeapon() == this)
+				SetViewModel();
+
+			SetModel(GetViewModel()); //this fixes wrong sequence nums (DOESN'T AFFECT WORLD MODEL)
+
+			//use deploy anim if we want
+			if (GetOwner()->GetActiveWeapon() == this)
+			{
+				if (sv_weapon_vm_anim_reset_mode.GetBool())
+				{
+					Deploy();
+				}
+				else
+				{
+					SendWeaponAnim(ACT_VM_IDLE);
+				}
+			}
+		}
+	}
+
+	//if i have no owner - reset collsion model with bbox + check if my new wm has collision
+	//NOTE: no need if owned by NPC or plr as they update collision when drop weapons
+	else
+	{
+		SetModel(GetWorldModel());
+		VPhysicsDestroyObject();
+
+		if (!VPhysicsInitNormal(SOLID_BBOX, GetSolidFlags() | FSOLID_TRIGGER, false))
+		{
+			SetMoveType(MOVETYPE_NONE);
+			SetSolid(SOLID_BBOX);
+			AddSolidFlags(FSOLID_TRIGGER);
+		}
+	}
+
+	//we don't want to reset clips at all, return
+	if (sv_weapon_clips_reset_mode.GetInt() == 0)
+		return;
+
+	//we want to set max clipw vals
+	if (sv_weapon_clips_reset_mode.GetInt() == 1)
+	{
+		if (UsesClipsForAmmo1())
+			m_iClip1 = GetMaxClip1();
+
+		if (UsesClipsForAmmo2())
+			m_iClip2 = GetMaxClip2();
+
+		return;
+	}
+
+	//we want to set max clip only if this weapon has more ammo in clips than max
+	if (sv_weapon_clips_reset_mode.GetInt() == 2)
+	{
+		if (UsesClipsForAmmo1() && m_iClip1 > GetMaxClip1())
+			m_iClip1 = GetMaxClip1();
+
+		if (UsesClipsForAmmo2() && m_iClip2 > GetMaxClip2())
+			m_iClip2 = GetMaxClip2();
+
+		return;
+	}
+}
 #endif
 
 //-----------------------------------------------------------------------------
@@ -3243,6 +3457,11 @@ BEGIN_DATADESC( CBaseCombatWeapon )
 	DEFINE_FIELD( m_bAltFireHudHintDisplayed, FIELD_BOOLEAN ),
 	DEFINE_FIELD( m_flHudHintPollTime, FIELD_TIME ),
 	DEFINE_FIELD( m_flHudHintMinDisplayTime, FIELD_TIME ),
+	
+#ifdef MAPBASE	
+	DEFINE_AUTO_ARRAY( m_iszWeaponScript, FIELD_CHARACTER ),
+	DEFINE_FIELD( m_iNeedsUpdate, FIELD_INTEGER ),
+#endif
 
 	// Just to quiet classcheck.. this field exists only on the client
 //	DEFINE_FIELD( m_iOldState, FIELD_INTEGER ),
@@ -3270,6 +3489,7 @@ BEGIN_DATADESC( CBaseCombatWeapon )
 	DEFINE_INPUTFUNC( FIELD_VOID, "BreakConstraint", InputBreakConstraint ),
 	DEFINE_INPUTFUNC( FIELD_VOID, "ForcePrimaryFire", InputForcePrimaryFire ),
 	DEFINE_INPUTFUNC( FIELD_VOID, "ForceSecondaryFire", InputForceSecondaryFire ),
+	DEFINE_INPUTFUNC( FIELD_STRING, "ChangeScript", InputChangeScript ),
 #endif
 
 	// Outputs
@@ -3411,15 +3631,21 @@ BEGIN_NETWORK_TABLE_NOBASE( CBaseCombatWeapon, DT_LocalWeaponData )
 	SendPropExclude( "DT_AnimTimeMustBeFirst" , "m_flAnimTime" ),
 #endif
 
+#ifdef MAPBASE
+	SendPropInt(SENDINFO(m_iNeedsUpdate)), //needed for certain local weapon data (such as icons, weapon bucket pos, etc)
+#endif
+
 #else
 	RecvPropIntWithMinusOneFlag( RECVINFO(m_iClip1 )),
 	RecvPropIntWithMinusOneFlag( RECVINFO(m_iClip2 )),
 	RecvPropInt( RECVINFO(m_iPrimaryAmmoType )),
 	RecvPropInt( RECVINFO(m_iSecondaryAmmoType )),
-
 	RecvPropInt( RECVINFO( m_nViewModelIndex ) ),
-
 	RecvPropBool( RECVINFO( m_bFlipViewModel ) ),
+	
+#ifdef MAPBASE
+	RecvPropInt(RECVINFO(m_iNeedsUpdate)),
+#endif
 
 #endif
 END_NETWORK_TABLE()
@@ -3430,14 +3656,14 @@ BEGIN_NETWORK_TABLE(CBaseCombatWeapon, DT_BaseCombatWeapon)
 	SendPropDataTable("LocalActiveWeaponData", 0, &REFERENCE_SEND_TABLE(DT_LocalActiveWeaponData), SendProxy_SendActiveLocalWeaponDataTable ),
 	SendPropModelIndex( SENDINFO(m_iViewModelIndex) ),
 	SendPropModelIndex( SENDINFO(m_iWorldModelIndex) ),
-#ifdef MAPBASE
-	SendPropModelIndex( SENDINFO(m_iDroppedModelIndex) ),
-#endif
 	SendPropInt( SENDINFO(m_iState ), 8, SPROP_UNSIGNED ),
 	SendPropEHandle( SENDINFO(m_hOwner) ),
-
+	
 #ifdef MAPBASE
+	SendPropModelIndex( SENDINFO(m_iDroppedModelIndex) ),
+	SendPropString( SENDINFO(m_iszWeaponScript) ),
 	SendPropInt( SENDINFO(m_spawnflags), 8, SPROP_UNSIGNED ),
+	SendPropInt( SENDINFO(m_iNeedsUpdate), 0, SPROP_UNSIGNED ),
 #endif
 
 #else
@@ -3445,14 +3671,14 @@ BEGIN_NETWORK_TABLE(CBaseCombatWeapon, DT_BaseCombatWeapon)
 	RecvPropDataTable("LocalActiveWeaponData", 0, 0, &REFERENCE_RECV_TABLE(DT_LocalActiveWeaponData)),
 	RecvPropInt( RECVINFO(m_iViewModelIndex)),
 	RecvPropInt( RECVINFO(m_iWorldModelIndex)),
-#ifdef MAPBASE
-	RecvPropInt( RECVINFO(m_iDroppedModelIndex) ),
-#endif
 	RecvPropInt( RECVINFO(m_iState )),
 	RecvPropEHandle( RECVINFO(m_hOwner ) ),
-
+	
 #ifdef MAPBASE
+	RecvPropInt( RECVINFO(m_iDroppedModelIndex) ),
 	RecvPropInt( RECVINFO( m_spawnflags ) ),
+	RecvPropInt( RECVINFO(m_iNeedsUpdate) ),
+	RecvPropString( RECVINFO(m_iszWeaponScript) ),
 #endif
 
 #endif

@@ -505,8 +505,10 @@ void CBaseHudWeaponSelection::SwitchToLastWeapon( void )
 void CBaseHudWeaponSelection::SetWeaponSelected( void )
 {
 	Assert( GetSelectedWeapon() );
-	// Mark selection so that it's placed into next CUserCmd created
-	input->MakeWeaponSelection( GetSelectedWeapon() );
+
+	//Mark selection so that it's placed into next CUserCmd created if isn't active (or we'll get prediction glitch with custom scripts)
+	if (GetSelectedWeapon() != GetActiveWeapon())
+		input->MakeWeaponSelection( GetSelectedWeapon() );
 }
 
 

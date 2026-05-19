@@ -70,11 +70,17 @@ extern string_t gm_isz_name_activator;
 // This function is for comparing global strings and allows us to change how we compare them quickly.
 inline bool EntIsClass( CBaseEntity *ent, string_t str2 )
 {
-	//return ent->ClassMatches(str2);
+	if (!ent)
+		return false;
 
 	// Since classnames are pooled, the global string and the entity's classname should point to the same string in memory.
 	// As long as this rule is preserved, we only need a pointer comparison. A string comparison isn't necessary.
-	return ent->m_iClassname == str2;
+	// The the exception is weapons, because weapons replace classname with script name.
+	// Check if it is not a weapon or it doesn't use a script before comparing by pointer.
+	if (!ent->IsBaseCombatWeapon() || static_cast<CBaseCombatWeapon*>(ent)->m_iszWeaponScript.Get()[0] == '\0')
+		return ent->m_iClassname == str2;
+
+	return FStrEq(ent->GetClassname(), str2.ToCStr());
 }
 
 // -------------------------------------------------------------
