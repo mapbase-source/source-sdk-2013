@@ -238,6 +238,10 @@ protected:
 
 	void			DrawWorld( float waterZAdjust );
 
+#ifdef MAPBASE
+	void			Draw3DSkybox();
+#endif
+
 	// Draws all opaque/translucent renderables in leaves that were rendered
 	void			DrawOpaqueRenderables( ERenderDepthMode DepthMode );
 	void			DrawTranslucentRenderables( bool bInSkybox, bool bShadowDepth );

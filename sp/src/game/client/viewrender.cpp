@@ -114,6 +114,9 @@ ConVar r_entityclips( "r_entityclips", "1" ); //FIXME: Nvidia drivers before 81.
 static ConVar r_drawopaqueworld( "r_drawopaqueworld", "1", FCVAR_CHEAT );
 static ConVar r_drawtranslucentworld( "r_drawtranslucentworld", "1", FCVAR_CHEAT );
 static ConVar r_3dsky( "r_3dsky","1", 0, "Enable the rendering of 3d sky boxes" );
+#ifdef MAPBASE
+static ConVar r_3dsky_water("r_3dsky_water", "1", FCVAR_ARCHIVE, "Enable the rendering of 3d sky boxes in water");
+#endif
 static ConVar r_skybox( "r_skybox","1", FCVAR_CHEAT, "Enable the rendering of sky boxes" );
 #ifdef TF_CLIENT_DLL
 ConVar r_drawviewmodel( "r_drawviewmodel","1", FCVAR_ARCHIVE );
@@ -4107,6 +4110,29 @@ void CRendering3dView::DrawWorld( float waterZAdjust )
 	render->DrawWorldLists( m_pWorldRenderList, engineFlags, waterZAdjust );
 }
 
+#ifdef MAPBASE
+void CRendering3dView::Draw3DSkybox()
+{
+	if (!(r_3dsky.GetBool() && r_3dsky_water.GetBool()))
+		return;
+
+	CMatRenderContextPtr pRenderContext(materials);
+	pRenderContext->SetHeightClipMode(MATERIAL_HEIGHTCLIPMODE_DISABLE);
+
+	CSkyboxView* pSkyView = new CSkyboxView(m_pMainView);
+
+	pRenderContext->OverrideDepthEnable(true, false);
+	SkyboxVisibility_t nSkyboxVisible = SKYBOX_NOT_VISIBLE;
+	if (pSkyView->Setup(*this, &m_ClearFlags, &nSkyboxVisible))
+		pSkyView->Draw();
+	SafeRelease(pSkyView);
+	pRenderContext->OverrideDepthEnable(false, false);
+
+	EnableWorldFog();
+	render->ViewSetupVis(m_pMainView->ShouldForceNoVis(), 1, &(m_pMainView->GetViewSetup()->origin));
+	pRenderContext->SetHeightClipMode(MATERIAL_HEIGHTCLIPMODE_RENDER_ABOVE_HEIGHT);
+}
+#endif
 
 CMaterialReference g_material_WriteZ; //init'ed on by CViewRender::Init()
 
@@ -5208,7 +5234,12 @@ void CRendering3dView::SetFogVolumeState( const VisibleFogVolumeInfo_t &fogInfo,
 //-----------------------------------------------------------------------------
 SkyboxVisibility_t CSkyboxView::ComputeSkyboxVisibility()
 {
-	return engine->IsSkyboxVisibleFromPoint( origin );
+#ifdef MAPBASE
+	// Use origin of main view (fixes issue where sometimes 3D sky dissapears in water)
+	return engine->IsSkyboxVisibleFromPoint(m_pMainView->GetViewSetup()->origin);
+#else
+	return engine->IsSkyboxVisibleFromPoint(origin);
+#endif
 }
 
 
@@ -5334,10 +5365,13 @@ void CSkyboxView::DrawInternal( view_id_t iSkyBoxViewID, bool bInvokePreAndPostR
 			m_pSky3dParams->fog.farz );
 	}
 	else
+		zNear = 2.0;
+
+	zFar = MAX_TRACE_LENGTH * 2; // Double up zFar to fix 3D skyboxes in water
 #else
 	zNear = 2.0;
-#endif
 	zFar = MAX_TRACE_LENGTH;
+#endif
 
 	// scale origin by sky scale
 	if ( m_pSky3dParams->scale > 0 )
@@ -6079,6 +6113,12 @@ void CBaseWorldView::DrawExecute( float waterHeight, view_id_t viewID, float wat
 
 	if ( m_DrawFlags & DF_DRAW_ENTITITES )
 	{
+#ifdef MAPBASE
+		// Render 3D skybox in water reflection only when rendering entities
+		if (viewID == VIEW_REFLECTION)
+			Draw3DSkybox();
+#endif
+
 		DrawWorld( waterZAdjust );
 		DrawOpaqueRenderables( DepthMode );
 
