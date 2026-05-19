@@ -228,6 +228,12 @@ void DrawRefract_DX9( CBaseVSShader *pShader, IMaterialVar** params, IShaderDyna
 		bool bShaderSRGBConvert = IsOSX() && ( g_pHardwareConfig->FakeSRGBWrite() || !g_pHardwareConfig->CanDoSRGBReadFromRTs() );
 		if ( g_pHardwareConfig->SupportsPixelShaders_2_b() || g_pHardwareConfig->ShouldAlwaysUseShaderModel2bShaders() ) // always send OpenGL down the ps2b path
 		{
+#ifdef MAPBASE
+			bool bRefractTintRespectAmount = false;
+			if ( params[info.m_nRefractTintRespectAmount]->GetIntValue() != 0 )
+				bRefractTintRespectAmount = true;
+#endif
+
 			DECLARE_STATIC_PIXEL_SHADER( sdk_refract_ps20b );
 			SET_STATIC_PIXEL_SHADER_COMBO( BLUR,  blurAmount );
 			SET_STATIC_PIXEL_SHADER_COMBO( FADEOUTONSILHOUETTE,  bFadeOutOnSilhouette );
@@ -238,6 +244,9 @@ void DrawRefract_DX9( CBaseVSShader *pShader, IMaterialVar** params, IShaderDyna
 			SET_STATIC_PIXEL_SHADER_COMBO( SECONDARY_NORMAL, bSecondaryNormal );
 			SET_STATIC_PIXEL_SHADER_COMBO( NORMAL_DECODE_MODE, (int) nNormalDecodeMode );
 			SET_STATIC_PIXEL_SHADER_COMBO( SHADER_SRGB_READ, bShaderSRGBConvert );
+#ifdef MAPBASE
+			SET_STATIC_PIXEL_SHADER_COMBO( REFRACTTINTRESPECTAMOUNT, bRefractTintRespectAmount );
+#endif
 			SET_STATIC_PIXEL_SHADER( sdk_refract_ps20b );
 		}
 		else
