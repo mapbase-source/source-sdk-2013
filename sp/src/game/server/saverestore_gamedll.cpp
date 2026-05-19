@@ -173,7 +173,13 @@ bool ExtractKeyvalue( void *pObject, typedescription_t *pFields, int iNumFields,
 			case FIELD_MODELNAME:
 			case FIELD_SOUNDNAME:
 			case FIELD_STRING:
+#ifdef MAPBASE
+				// All datadesc string values use string_t
+				// See analogous implementation in ParseKeyvalue() above
+				Q_strncpy( szValue, ((string_t *)((char *)pObject + fieldOffset))->ToCStr(), iMaxLen );
+#else
 				Q_strncpy( szValue, ((char *)pObject + fieldOffset), iMaxLen );
+#endif
 				return true;
 
 			case FIELD_TIME:
