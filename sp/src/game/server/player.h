@@ -827,6 +827,7 @@ public:
 	void	InputHandleMapEvent( inputdata_t &inputdata );
 #ifdef MAPBASE
 	void	InputSetSuppressAttacks( inputdata_t &inputdata );
+	void	InputSendHUDAnimation( inputdata_t &inputdata );
 #endif
 
 	surfacedata_t *GetSurfaceData( void ) { return m_pSurfaceData; }

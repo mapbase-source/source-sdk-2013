@@ -22,6 +22,8 @@ void HookMapbaseUserMessages( void )
 	//HOOK_MESSAGE( ScriptMsg ); // Hooked in CNetMsgScriptHelper
 
 	//HOOK_MESSAGE( ShowMenuComplex ); // Hooked in CHudMenu
+	
+	//HOOK_MESSAGE( HudAnim ); // Hooked in ClientModeShared
 }
 #endif
 
@@ -31,6 +33,8 @@ void RegisterMapbaseUserMessages( void )
 	usermessages->Register( "ScriptMsg", -1 ); // CNetMsgScriptHelper
 
 	usermessages->Register( "ShowMenuComplex", -1 ); // CHudMenu
+
+	usermessages->Register( "HudAnim", -1 ); // ClientModeShared
 
 #ifdef CLIENT_DLL
 	// TODO: Better placement?
