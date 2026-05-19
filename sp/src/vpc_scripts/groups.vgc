@@ -65,6 +65,7 @@ $Group "everything"
 	"vtfdiff"
 	"vvis_dll"
 	"vvis_launcher"
+	"hlmv"
 }
 
 $Group "dedicated"
@@ -86,5 +87,6 @@ $Group "maptools"
 	"raytrace"
 	"tier1"
 	"vscript"
+	"hlmv"
 }
 

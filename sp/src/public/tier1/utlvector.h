@@ -244,6 +244,22 @@ public:
 	// constructor, destructor
 	explicit CUtlVectorFixed( int growSize = 0, int initSize = 0 ) : BaseClass( growSize, initSize ) {}
 	explicit CUtlVectorFixed( T* pMemory, int numElements ) : BaseClass( pMemory, numElements ) {}
+
+	//fixes error C2280
+	CUtlVectorFixed(const CUtlVectorFixed& other) : BaseClass()
+	{
+		this->CopyArray(other.Base());
+	}
+
+	CUtlVectorFixed& operator=(const CUtlVectorFixed& other)
+	{
+		if (this != &other)
+		{
+			this->RemoveAll();
+			this->CopyArray(other.Base());
+		}
+		return *this;
+	}
 };
 
 

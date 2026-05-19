@@ -1,0 +1,168 @@
+//-----------------------------------------------------------------------------
+//	VRAD_LAUNCHER.VPC
+//
+//	Project Script
+//-----------------------------------------------------------------------------
+
+$Macro SRCDIR		"..\.."
+$Macro OUTBINDIR	"$SRCDIR\..\game\bin"
+$Macro OUTBINNAME	"hlmv"
+
+$Include "$SRCDIR\vpc_scripts\source_exe_con_base.vpc"
+
+$Configuration
+{
+	$Compiler
+	{
+		$AdditionalIncludeDirectories	"$BASE;../../mxtklib/include;../../public/mathlib;../common;../../public/"
+		$TreatWarningsAsErrors			"No (/WX-)"
+	}
+
+	$Linker [$WIN32]
+	{
+		$EnableLargeAddresses				"Support Addresses Larger Than 2 Gigabytes (/LARGEADDRESSAWARE)"	
+		$SubSystem							"Windows (/SUBSYSTEM:WINDOWS)"
+		$AdditionalDependencies				"$BASE;comctl32.lib"
+		$EntryPoint							"mainCRTStartup"
+	}
+}
+
+$Project "HLMV"
+{
+	$Folder "mxtklib"
+	{
+		$Folder "Header Files"
+		{
+			$File "..\..\mxtklib\include\mx\mx.h"
+			$File "..\..\mxtklib\include\mx\mxBmp.h"
+			$File "..\..\mxtklib\include\mx\mxButton.h"
+			$File "..\..\mxtklib\include\mx\mxCheckBox.h"
+			$File "..\..\mxtklib\include\mx\mxChoice.h"
+			$File "..\..\mxtklib\include\mx\mxChooseColor.h"
+			$File "..\..\mxtklib\include\mx\mxEvent.h"
+			$File "..\..\mxtklib\include\mx\mxFileDialog.h"
+			//$File "..\..\mxtklib\include\mx\mxGlWindow.h"
+			$File "..\..\mxtklib\include\mx\mxGroupBox.h"
+			$File "..\..\mxtklib\include\mx\mxImage.h"
+			$File "..\..\mxtklib\include\mx\mxInit.h"
+			$File "..\..\mxtklib\include\mx\mxLabel.h"
+			$File "..\..\mxtklib\include\mx\mxLineEdit.h"
+			$File "..\..\mxtklib\include\mx\mxLinkedList.h"
+			$File "..\..\mxtklib\include\mx\mxListBox.h"
+			$File "..\..\mxtklib\include\mx\mxMatSysWindow.h"
+			$File "..\..\mxtklib\include\mx\mxMenu.h"
+			$File "..\..\mxtklib\include\mx\mxMenuBar.h"
+			$File "..\..\mxtklib\include\mx\mxMessageBox.h"
+			$File "..\..\mxtklib\include\mx\mxpath.h"
+			$File "..\..\mxtklib\include\mx\mxPcx.h"
+			$File "..\..\mxtklib\include\mx\mxPopupMenu.h"
+			$File "..\..\mxtklib\include\mx\mxProgressBar.h"
+			$File "..\..\mxtklib\include\mx\mxRadioButton.h"
+			$File "..\..\mxtklib\include\mx\mxScrollbar.h"
+			$File "..\..\mxtklib\include\mx\mxSlider.h"
+			$File "..\..\mxtklib\include\mx\mxstring.h"
+			$File "..\..\mxtklib\include\mx\mxTab.h"
+			$File "..\..\mxtklib\include\mx\mxTga.h"
+			$File "..\..\mxtklib\include\mx\mxToggleButton.h"
+			$File "..\..\mxtklib\include\mx\mxToolTip.h"
+			$File "..\..\mxtklib\include\mx\mxTreeView.h"
+			$File "..\..\mxtklib\include\mx\mxWidget.h"
+			$File "..\..\mxtklib\include\mx\mxWindow.h"
+		}
+		$File "..\..\mxtklib\src\win32\mx.cpp"
+		$File "..\..\mxtklib\src\common\mxBmp.cpp"
+		$File "..\..\mxtklib\src\win32\mxButton.cpp"
+		$File "..\..\mxtklib\src\win32\mxCheckBox.cpp"
+		$File "..\..\mxtklib\src\win32\mxChoice.cpp"
+		$File "..\..\mxtklib\src\win32\mxChooseColor.cpp"
+		$File "..\..\mxtklib\src\win32\mxFileDialog.cpp"
+		//$File "..\..\mxtklib\src\win32\mxGlWindow.cpp"
+		$File "..\..\mxtklib\src\win32\mxGroupBox.cpp"
+		$File "..\..\mxtklib\src\win32\mxLabel.cpp"
+		$File "..\..\mxtklib\src\win32\mxLineEdit.cpp"
+		$File "..\..\mxtklib\src\win32\mxListBox.cpp"
+		$File "..\..\mxtklib\src\win32\mxlistview.cpp"
+		$File "..\..\mxtklib\src\win32\mxMatSysWindow.cpp"
+		$File "..\..\mxtklib\src\win32\mxMenu.cpp"
+		$File "..\..\mxtklib\src\win32\mxMenuBar.cpp"
+		$File "..\..\mxtklib\src\win32\mxMessageBox.cpp"
+		$File "..\..\mxtklib\src\common\mxpath.cpp"
+		$File "..\..\mxtklib\src\common\mxPcx.cpp"
+		$File "..\..\mxtklib\src\win32\mxPopupMenu.cpp"
+		$File "..\..\mxtklib\src\win32\mxProgressBar.cpp"
+		$File "..\..\mxtklib\src\win32\mxRadioButton.cpp"
+		$File "..\..\mxtklib\src\win32\mxScrollbar.cpp"
+		$File "..\..\mxtklib\src\win32\mxSlider.cpp"
+		$File "..\..\mxtklib\src\common\mxstring.cpp"
+		$File "..\..\mxtklib\src\win32\mxTab.cpp"
+		$File "..\..\mxtklib\src\common\mxTga.cpp"
+		$File "..\..\mxtklib\src\win32\mxToolTip.cpp"
+		$File "..\..\mxtklib\src\win32\mxTreeView.cpp"
+		$File "..\..\mxtklib\src\win32\mxWidget.cpp"
+		$File "..\..\mxtklib\src\win32\mxWindow.cpp"
+	}
+
+	$Folder	"Source Files"
+	{
+		$Folder "External"
+		{
+			$File "..\..\public\bone_setup.cpp"
+			$File "..\..\Public\CollisionUtils.cpp"
+			$File "..\..\public\filesystem_helpers.cpp"
+			$File "..\..\public\filesystem_init.cpp"
+			$File "..\..\public\studio.cpp"
+			$File "..\..\public\tier0\memoverride.cpp"
+		}
+		$File "attachments_window.cpp"
+		$File "ControlPanel.cpp"
+		$File "debugdrawmodel.cpp"
+		$File "FileAssociation.cpp"
+		$File "matsyswin.cpp"
+		$File "mdlviewer.cpp"
+		$File "mxLineEdit2.cpp"
+		//$File "pakviewer.cpp"
+		$File "physmesh.cpp"
+		$File "studio_flex.cpp"
+		$File "studio_render.cpp"
+		$File "studio_utils.cpp"
+		$File "sys_win.cpp"
+		$File "ViewerSettings.cpp"
+		$File "camera.cpp"
+	}
+
+	$Folder	"Header Files"
+	{
+		$File "attachments_window.h"
+		$File "ControlPanel.h"
+		$File "debugdrawmodel.h"
+		$File "FileAssociation.h"
+		$File "matsyswin.h"
+		$File "mdlviewer.h"
+		//$File "pakviewer.h"
+		$File "physmesh.h"
+		$File "studio_render.h"
+		$File "StudioModel.h"
+		$File "sys.h"
+		$File "ViewerSettings.h"
+		$File "mxLineEdit2.h"
+		$File "resource.h"
+		$File "camera.h"
+	}
+	
+	$Folder	"Resources"
+	{
+		$File "hlmv.rc"
+		$File "icons/icon1.ico"
+	}
+	
+	$Folder	"Link Libraries"
+	{
+		$Lib "appframework"
+		$Lib "bitmap"
+		$Lib "mathlib"
+		$Lib "tier0"
+		$Lib "tier1"
+		$Lib "tier2"
+		$Lib "vstdlib"
+	}
+}
