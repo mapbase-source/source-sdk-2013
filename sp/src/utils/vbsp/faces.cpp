@@ -7,7 +7,11 @@
 //=============================================================================//
 // faces.c
 
+#ifdef PROPPER
+#include "../propper/propper.h"
+#else
 #include "vbsp.h"
+#endif
 #include "utlvector.h"
 #include "utilmatlib.h"
 #include <float.h>

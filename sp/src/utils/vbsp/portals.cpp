@@ -6,7 +6,11 @@
 //
 //=============================================================================//
 
+#ifdef PROPPER
+#include "../propper/propper.h"
+#else
 #include "vbsp.h"
+#endif
 #include "utlvector.h"
 #include "mathlib/vmatrix.h"
 #include "iscratchpad3d.h"

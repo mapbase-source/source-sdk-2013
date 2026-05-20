@@ -1,5 +1,9 @@
 //========= Copyright Valve Corporation, All rights reserved. ============//
+#ifdef PROPPER
+#include "../propper/propper.h"
+#else
 #include "vbsp.h"
+#endif
 #include "map_shared.h"
 #include "fgdlib/fgdlib.h"
 #include "manifest.h"

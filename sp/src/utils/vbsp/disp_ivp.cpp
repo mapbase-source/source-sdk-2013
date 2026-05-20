@@ -3,7 +3,11 @@
 // Purpose: 
 //
 //=============================================================================//
+#ifdef PROPPER
+#include "../propper/propper.h"
+#else
 #include "vbsp.h"
+#endif
 #include "disp_vbsp.h"
 #include "builddisp.h"
 #include "disp_common.h"

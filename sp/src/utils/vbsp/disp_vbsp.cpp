@@ -9,7 +9,11 @@
 
 #include "disp_vbsp.h"
 #include "tier0/dbg.h"
+#ifdef PROPPER
+#include "../propper/propper.h"
+#else
 #include "vbsp.h"
+#endif
 #include "mstristrip.h"
 #include "writebsp.h"
 #include "pacifier.h"
@@ -622,14 +626,14 @@ void DispGetFaceInfo( mapbrush_t *pBrush )
 {
 	int		i;
 	side_t	*pSide;
-
+#ifndef PROPPER
 	// we don't support displacement on entities at the moment!!
 	if( pBrush->entitynum != 0 )
 	{
 		char* pszEntityName = ValueForKey( &g_LoadingMap->entities[pBrush->entitynum], "classname" );
 		Error( "Error: displacement found on a(n) %s entity - not supported (entity %d, brush %d)\n", pszEntityName, pBrush->entitynum, pBrush->brushnum );
 	}
-
+#endif
 	for( i = 0; i < pBrush->numsides; i++ )
 	{
 		pSide = &pBrush->original_sides[i];
@@ -652,6 +656,9 @@ void DispGetFaceInfo( mapbrush_t *pBrush )
 
 			pSide->pMapDisp->entitynum = pBrush->entitynum;
 			pSide->pMapDisp->brushSideID = pSide->id;
+#ifdef PROPPER
+	pSide->pMapDisp->td_num = pSide->td_num;//Carl
+#endif
 		}
 	}
 }

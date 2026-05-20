@@ -112,6 +112,10 @@
 #define MAX_MAP_PRIMITIVES				32768
 #define MAX_MAP_PRIMVERTS				65536
 #define MAX_MAP_PRIMINDICES				65536
+#if defined(MAPBASE) && defined(PROPPER)
+#define MAX_PROPPER_MODELS				MAX_MAP_MODELS
+#define MAX_PROPPER_ENTITIES_PER_MAP	128 //before was 16.
+#endif
 
 #else
 

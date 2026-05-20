@@ -6,7 +6,11 @@
 //
 //=============================================================================//
 
+#ifdef PROPPER
+#include "../propper/propper.h"
+#else
 #include "vbsp.h"
+#endif
 #include "utilmatlib.h"
 #include "physdll.h"
 #include <assert.h>

@@ -8,7 +8,11 @@
 #include "tier1/KeyValues.h"
 #include "tier1/fmtstr.h"
 
+#ifdef PROPPER
+#include "../propper/propper.h"
+#else
 #include "vbsp.h"
+#endif
 #include "map.h"
 #include "fgdlib/fgdlib.h"
 #include "convar.h"

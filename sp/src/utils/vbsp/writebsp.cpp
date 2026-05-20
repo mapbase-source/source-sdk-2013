@@ -6,7 +6,11 @@
 //
 //=============================================================================//
 
+#ifdef PROPPER
+#include "../propper/propper.h"
+#else
 #include "vbsp.h"
+#endif
 #include "disp_vbsp.h"
 #include "utlvector.h"
 #include "faces.h"

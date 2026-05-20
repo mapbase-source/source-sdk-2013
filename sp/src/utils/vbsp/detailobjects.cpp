@@ -7,7 +7,11 @@
 //=============================================================================//
 
 #include <windows.h>
+#ifdef PROPPER
+#include "../propper/propper.h"
+#else
 #include "vbsp.h"
+#endif
 #include "bsplib.h"
 #include "KeyValues.h"
 #include "utlsymbol.h"

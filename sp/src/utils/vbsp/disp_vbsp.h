@@ -12,7 +12,11 @@
 #endif
 
 
+#ifdef PROPPER
+#include "../propper/propper.h"
+#else
 #include "vbsp.h"
+#endif
 
 
 

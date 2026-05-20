@@ -5,7 +5,11 @@
 // $NoKeywords: $
 //=============================================================================//
 
+#ifdef PROPPER
+#include "../propper/propper.h"
+#else
 #include "vbsp.h"
+#endif
 #include "detail.h"
 #include "utlvector.h"
 #include <assert.h>

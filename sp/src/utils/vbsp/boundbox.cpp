@@ -5,7 +5,11 @@
 // $NoKeywords: $
 //=============================================================================//
 
+#ifdef PROPPER
+#include "../propper/propper.h"
+#else
 #include "vbsp.h"
+#endif
 #include "BoundBox.h"
 //#include "hammer_mathlib.h"
 //#include "MapDefs.h"

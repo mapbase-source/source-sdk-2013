@@ -141,3 +141,8 @@ $Project "vvis_launcher"
 	"utils\vvis_launcher\vvis_launcher.vpc" [$WIN32]
 }
 
+$Project "propper"
+{
+	"utils\propper\propper.vpc" [$WIN32]
+}
+

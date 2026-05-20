@@ -5,7 +5,11 @@
 // $NoKeywords: $
 //=============================================================================//
 
+#ifdef PROPPER
+#include "../propper/propper.h"
+#else
 #include "vbsp.h"
+#endif
 #include "map_shared.h"
 #include "disp_vbsp.h"
 #include "tier1/strtools.h"
@@ -25,7 +29,6 @@
 #ifdef VSVMFIO
 #include "VmfImport.h"
 #endif // VSVMFIO
-
 
 // undefine to make plane finding use linear sort
 #define	USE_HASHING
@@ -531,7 +534,11 @@ void CMapFile::AddBrushBevels (mapbrush_t *b)
 			}
 
 			// if the plane is not in it canonical order, swap it
+#ifdef PROPPER
+			if(0)
+#else
 			if (i != order)
+#endif
 			{
 				sidetemp = b->original_sides[order];
 				b->original_sides[order] = b->original_sides[i];
@@ -1771,7 +1778,39 @@ ChunkFileResult_t CMapFile::LoadEntityCallback(CChunkFile *pFile, int nParam)
 			mapent->epairs = NULL;
 			return ( ChunkFile_Ok );
 		}
-
+#ifdef PROPPER
+		//Carl: Catch config entities here
+		if ( !strcmp( "propper_model", pClassName ) )
+		{
+			if (num_models == MAX_PROPPER_MODELS) Error("Too many \"propper_model\" entities in your map. 1024 max.\n");
+			model_t* m = &propper_models[num_models];
+			m->ent_name = ValueForKey( mapent, "targetname" );
+			m->qc_modelname = ValueForKey( mapent, "modelname" );
+			m->mass = FloatForKey( mapent, "mass" );
+			V_FileBase(m->qc_modelname, &m->basename[0], 128);
+			sourcefolder = ValueForKey( mapent, "sourcefolder" );
+			Q_FixSlashes( sourcefolder );
+			m->qc_cdmaterials = ValueForKey( mapent, "materialpath" );
+			m->qc_surfaceprop = ValueForKey( mapent, "surfaceprop" );
+			m->phys_entname = ValueForKey( mapent, "physmodel" );
+			m->qc_scale = FloatForKey(mapent, "scale");
+			if (m->qc_scale<=0) m->qc_scale = 1.0f;
+			m->smoothing = IntForKey(mapent, "smoothing");
+			m->smoothangle = IntForKey(mapent, "smoothangle");
+			if (m->smoothangle > 180) m->smoothangle = 180;
+			if (m->smoothangle < 0) m->smoothangle = 0;
+			m->qc_concave = IntForKey(mapent, "concave") !=0;
+			m->qc_autocenter = IntForKey(mapent, "autocenter") !=0;
+			GetVectorForKey (mapent, "origin", m->origin);
+			m->origin.z *= -1;
+			m->origin.x *= -1;
+			m->snaptogrid = IntForKey(mapent, "snaptogrid") !=0;
+			m->ref_weldvertices = FloatForKey(mapent, "weldvertices");
+			if (IntForKey(mapent, "disp_nowarp")) m->disp_nowarp = true;
+			m->ref_entnum = mapbrushes[mapent->firstbrush].entitynum;
+			num_models++;
+		}
+#endif
 		if ( Q_stricmp( pClassName, "info_no_dynamic_shadow" ) == 0 )
 		{
 			return HandleNoDynamicShadowsEnt( mapent );
@@ -2989,12 +3028,10 @@ ChunkFileResult_t CMapFile::LoadSideCallback(CChunkFile *pFile, LoadSide_t *pSid
 		{
 			side->contents |= CONTENTS_DETAIL;
 		}
-
 		if (fulldetail )
 		{
 			side->contents &= ~CONTENTS_DETAIL;
 		}
-		
 		if (!(side->contents & (ALL_VISIBLE_CONTENTS | CONTENTS_PLAYERCLIP|CONTENTS_MONSTERCLIP)  ) )
 		{
 			side->contents |= CONTENTS_SOLID;
@@ -3047,6 +3084,10 @@ ChunkFileResult_t CMapFile::LoadSideCallback(CChunkFile *pFile, LoadSide_t *pSid
 				// have to recalculate the texinfo
 				if (nummapbrushsides == MAX_MAP_BRUSHSIDES)
 					g_MapError.ReportError ("MAX_MAP_BRUSHSIDES");
+#ifdef PROPPER
+				//Carl: sides now remember what brushtextures they use (td_num).
+				side->td_num = nummapbrushsides;
+#endif
 				side_brushtextures[nummapbrushsides] = pSideInfo->td;
 				nummapbrushsides++;
 				b->numsides++;

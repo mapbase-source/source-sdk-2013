@@ -6,7 +6,11 @@
 //
 //=============================================================================//
 #include "bsplib.h"
+#ifdef PROPPER
+#include "../propper/propper.h"
+#else
 #include "vbsp.h"
+#endif
 
 
 void SaveVertexNormals( void )

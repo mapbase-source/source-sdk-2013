@@ -6,7 +6,11 @@
 //
 //=============================================================================
 
+#ifdef PROPPER
+#include "../propper/propper.h"
+#else
 #include "vbsp.h"
+#endif
 #include "materialsub.h"
 #include "KeyValues.h"
 #include "tier1/strtools.h"

@@ -12,7 +12,11 @@
 #include "cmdlib.h"
 #include "physdll.h"
 #include "utlvector.h"
+#ifdef PROPPER
+#include "../propper/propper.h"
+#else
 #include "vbsp.h"
+#endif
 #include "phyfile.h"
 #include <float.h>
 #include "KeyValues.h"

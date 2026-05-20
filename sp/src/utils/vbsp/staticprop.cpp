@@ -6,7 +6,11 @@
 // $NoKeywords: $
 //=============================================================================//
 
+#ifdef PROPPER
+#include "../propper/propper.h"
+#else
 #include "vbsp.h"
+#endif
 #include "bsplib.h"
 #include "utlvector.h"
 #include "bspfile.h"
