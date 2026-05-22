@@ -1435,8 +1435,11 @@ void CAI_PlayerAlly::LostEnemySound( CBaseEntity *pEnemy )
 {
 	AI_CriteriaSet modifiers;
 	ModifyOrAppendEnemyCriteria( modifiers, pEnemy );
-
+#ifdef NEW_RESPONSE_SYSTEM
 	modifiers.AppendCriteria( "lastseenenemy", gpGlobals->curtime - GetEnemies()->LastTimeSeen( pEnemy ) );
+#else
+	modifiers.AppendCriteria("lastseenenemy", UTIL_VarArgs("%f",(gpGlobals->curtime - GetEnemies()->LastTimeSeen(pEnemy))));
+#endif // NEW_RESPONSE_SYSTEM
 
 	SpeakIfAllowed( TLK_LOSTENEMY, modifiers );
 }
@@ -1825,7 +1828,7 @@ bool CAI_PlayerAlly::IsAllowedToSpeak( AIConcept_t concept, bool bRespondingToPl
 	return true;
 }
 
-#ifdef MAPBASE
+#if defined(MAPBASE) && defined(NEW_RESPONSE_SYSTEM)
 //-----------------------------------------------------------------------------
 // Purpose: Specifically for player allies handling followup responses.
 // Better-accounts for unknown concepts so that users are free in what they use.

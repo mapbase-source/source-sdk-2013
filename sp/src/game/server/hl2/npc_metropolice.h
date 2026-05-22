@@ -549,7 +549,7 @@ private:
 	CAI_PolicingBehavior	m_PolicingBehavior;
 	CAI_FollowBehavior		m_FollowBehavior;
 
-#ifndef METROPOLICE_USES_RESPONSE_SYSTEM
+#if defined(METROPOLICE_USES_RESPONSE_SYSTEM) && !defined(NEW_RESPONSE_SYSTEM)
 	CAI_Sentence< CNPC_MetroPolice > m_Sentences;
 #endif
 

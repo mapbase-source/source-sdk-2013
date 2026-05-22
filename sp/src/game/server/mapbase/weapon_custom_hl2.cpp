@@ -14,6 +14,11 @@
 #include "npcevent.h"
 #include "in_buttons.h"
 
+#ifndef NEW_RESPONSE_SYSTEM
+#include "interval.h"
+#endif // NEW_RESPONSE_SYSTEM
+
+
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 

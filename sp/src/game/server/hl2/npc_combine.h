@@ -353,7 +353,7 @@ private:
 	float			m_flShotDelay;
 	float			m_flStopMoveShootTime;
 
-#ifndef COMBINE_SOLDIER_USES_RESPONSE_SYSTEM
+#if defined(COMBINE_SOLDIER_USES_RESPONSE_SYSTEM) && !defined(NEW_RESPONSE_SYSTEM)
 	CAI_Sentence< CNPC_Combine > m_Sentences;
 #endif
 

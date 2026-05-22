@@ -8,6 +8,10 @@
 
 #include "cbase.h"
 #include "custom_weapon_factory.h"
+#ifndef NEW_RESPONSE_SYSTEM
+#include "filesystem.h"
+#endif // !NEW_RESPONSE_SYSTEM
+
 
 #define GENERIC_MANIFEST_FILE "scripts/mapbase_default_manifest.txt"
 #define AUTOLOADED_MANIFEST_FILE UTIL_VarArgs("maps/%s_manifest.txt", STRING(gpGlobals->mapname))

@@ -16249,8 +16249,9 @@ bool CAI_BaseNPC::InteractionIsAllowed( CAI_BaseNPC *pOtherNPC, ScriptedNPCInter
 			// This isn't a very efficient solution, but there are no better options available without rewriting parts of the response criteria system.
 			AI_CriteriaSet theirSet;
 			pOtherNPC->ModifyOrAppendCriteria( theirSet );
-
+#ifdef NEW_RESPONSE_SYSTEM
 			set.EnsureCapacity( (theirSet.GetCount()-2) + set.GetCount() ); // We know we'll be throwing out 2 global criterions
+#endif // NEW_RESPONSE_SYSTEM
 
 			char sz[ 128 ];
 			for ( int i = 0; i < theirSet.GetCount(); i++ )

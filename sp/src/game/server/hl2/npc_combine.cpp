@@ -3172,7 +3172,7 @@ void CNPC_Combine::LostEnemySound( void)
 	if ( gpGlobals->curtime <= m_flNextLostSoundTime )
 		return;
 
-#ifdef COMBINE_SOLDIER_USES_RESPONSE_SYSTEM
+#if defined(COMBINE_SOLDIER_USES_RESPONSE_SYSTEM) && defined(NEW_RESPONSE_SYSTEM)
 	AI_CriteriaSet modifiers;
 	ModifyOrAppendEnemyCriteria( modifiers, pEnemy );
 

@@ -2953,7 +2953,7 @@ void CNPC_MetroPolice::LostEnemySound( void)
 	if ( gpGlobals->curtime <= m_flNextLostSoundTime )
 		return;
 
-#ifdef METROPOLICE_USES_RESPONSE_SYSTEM
+#if defined(METROPOLICE_USES_RESPONSE_SYSTEM) && defined(NEW_RESPONSE_SYSTEM)
 	AI_CriteriaSet modifiers;
 	ModifyOrAppendEnemyCriteria( modifiers, pEnemy );
 
