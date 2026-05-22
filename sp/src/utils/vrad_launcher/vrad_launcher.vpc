@@ -17,6 +17,11 @@ $Configuration
 		$Create/UsePrecompiledHeader		"Use Precompiled Header (/Yu)"
 		$PrecompiledHeaderFile				"Debug/vrad_launcher.pch"
 	}
+	
+	$Linker
+	{
+		$EnableLargeAddresses				"Yes (/LARGEADDRESSAWARE)"
+	}
 }
 
 $Project "Vrad_launcher"

@@ -18,6 +18,11 @@ $Configuration
 		$Create/UsePrecompiledHeader		"Use Precompiled Header (/Yu)"
 		$PrecompiledHeaderFile				"Debug/vvis_launcher.pch"
 	}
+	
+	$Linker
+	{
+		$EnableLargeAddresses				"Yes (/LARGEADDRESSAWARE)"
+	}
 }
 
 $Project "Vvis_launcher"
