@@ -107,6 +107,8 @@ BEGIN_DATADESC( CBaseHelicopter )
 
 #ifdef MAPBASE
 	DEFINE_KEYFIELD( m_bAllowAnyDamage, FIELD_BOOLEAN, "AllowAnyDamage" ),
+
+	DEFINE_KEYFIELD( m_flRotorSoundScale, FIELD_FLOAT, "RotorSoundScale" ),
 #endif
 
 	DEFINE_FIELD( m_cullBoxMins,	FIELD_VECTOR ),
@@ -128,6 +130,9 @@ BEGIN_DATADESC( CBaseHelicopter )
 	DEFINE_INPUTFUNC( FIELD_VOID, "EnableRotorSound", InputEnableRotorSound ),
 	DEFINE_INPUTFUNC( FIELD_VOID, "DisableRotorSound", InputDisableRotorSound ),
 	DEFINE_INPUTFUNC( FIELD_VOID, "Kill", InputKill ),
+#ifdef MAPBASE
+	DEFINE_INPUTFUNC( FIELD_FLOAT, "SetRotorSoundScale", InputSetRotorSoundScale ),
+#endif
 
 END_DATADESC()
 
@@ -145,6 +150,10 @@ CBaseHelicopter::CBaseHelicopter( void )
 	m_cullBoxMaxs = vec3_origin;
 
 	m_hRotorWash = NULL;
+
+#ifdef MAPBASE
+	m_flRotorSoundScale = 1.0f;
+#endif
 }
 
 //------------------------------------------------------------------------------
@@ -1106,7 +1115,15 @@ void CBaseHelicopter::UpdateRotorWashVolume()
 //------------------------------------------------------------------------------
 float CBaseHelicopter::GetRotorVolume( void )
 {
-	return m_bSuppressSound ? 0.0f : 1.0f;
+	if ( m_bSuppressSound )
+		return 0.0f;
+
+#ifdef MAPBASE
+	if ( m_flRotorSoundScale != 1.0f )
+		return m_flRotorSoundScale;
+#endif
+
+	return 1.0f;
 }
 
 

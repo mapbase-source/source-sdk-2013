@@ -186,6 +186,10 @@ protected:
 	void	InputEnableRotorSound( inputdata_t &inputdata );
 	void	InputDisableRotorSound( inputdata_t &inputdata );
 
+#ifdef MAPBASE
+	void	InputSetRotorSoundScale( inputdata_t &inputdata ) { m_flRotorSoundScale = inputdata.value.Float(); }
+#endif
+
 protected:
 	CSoundPatch		*m_pRotorSound;				// Rotor loop played when the player can see the helicopter
 	CSoundPatch		*m_pRotorBlast;				// Sound played when the helicopter's pushing around physics objects
@@ -217,6 +221,8 @@ protected:
 
 #ifdef MAPBASE
 	bool			m_bAllowAnyDamage;
+
+	float			m_flRotorSoundScale;
 #endif
 
 	// Inputs
