@@ -3927,6 +3927,13 @@ void CFuncTankAPCRocket::Think()
 		return;
 	}
 
+	// The laser dot gets removed on a game load
+	// To prevent a game crash, recreate it here if it doesn't exist
+	if ( m_hLaserDot == NULL )
+	{
+		m_hLaserDot = CreateLaserDot( GetAbsOrigin(), this, false );
+	}
+
 	BaseClass::Think();
 	m_hLaserDot->SetAbsOrigin( m_sightOrigin );
 	SetLaserDotTarget( m_hLaserDot, m_hFuncTankTarget );
