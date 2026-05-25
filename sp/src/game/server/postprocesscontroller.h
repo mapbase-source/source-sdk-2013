@@ -33,6 +33,9 @@ public:
 	void InputSetDepthBlurStrength(inputdata_t &data);
 	void InputSetScreenBlurStrength(inputdata_t &data);
 	void InputSetFilmGrainStrength(inputdata_t &data);
+#ifdef MAPBASE
+	void InputSetTopVignetteStrength(inputdata_t &data);
+#endif
 
 	void InputTurnOn(inputdata_t &data);
 	void InputTurnOff(inputdata_t &data);

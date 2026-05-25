@@ -3710,7 +3710,9 @@ void C_BaseEntity::ComputeFxBlend( void )
 //-----------------------------------------------------------------------------
 int C_BaseEntity::GetFxBlend( void )
 {
+#ifndef MAPBASE // Spams the console when drawing beams in stencils, which don't need to update the FX blend
 	Assert( m_nFXComputeFrame == gpGlobals->framecount );
+#endif
 	return m_nRenderFXBlend;
 }
 

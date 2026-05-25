@@ -63,7 +63,7 @@ public:
 		bool bAllStaticVarsDefined = m_bTOOL_MODE && m_bDEPTH_BLUR_ENABLE;
 		Assert( bAllStaticVarsDefined );
 #endif // _DEBUG
-		return ( 2048 * m_nTOOL_MODE ) + ( 4096 * m_nDEPTH_BLUR_ENABLE ) + 0;
+		return ( 4096 * m_nTOOL_MODE ) + ( 8192 * m_nDEPTH_BLUR_ENABLE ) + 0;
 	}
 };
 #define shaderStaticTest_sdk_engine_post_ps20b psh_forgot_to_set_static_TOOL_MODE + psh_forgot_to_set_static_DEPTH_BLUR_ENABLE + 0
@@ -109,6 +109,27 @@ public:
 		m_nCOL_CORRECT_NUM_LOOKUPS = i ? 1 : 0;
 #ifdef _DEBUG
 		m_bCOL_CORRECT_NUM_LOOKUPS = true;
+#endif
+	}
+private:
+	int m_nCOL_CORRECT_USE_MASK;
+#ifdef _DEBUG
+	bool m_bCOL_CORRECT_USE_MASK;
+#endif
+public:
+	void SetCOL_CORRECT_USE_MASK( int i )
+	{
+		Assert( i >= 0 && i <= 1 );
+		m_nCOL_CORRECT_USE_MASK = i;
+#ifdef _DEBUG
+		m_bCOL_CORRECT_USE_MASK = true;
+#endif
+	}
+	void SetCOL_CORRECT_USE_MASK( bool i )
+	{
+		m_nCOL_CORRECT_USE_MASK = i ? 1 : 0;
+#ifdef _DEBUG
+		m_bCOL_CORRECT_USE_MASK = true;
 #endif
 	}
 private:
@@ -312,6 +333,10 @@ public:
 #endif // _DEBUG
 		m_nCOL_CORRECT_NUM_LOOKUPS = 0;
 #ifdef _DEBUG
+		m_bCOL_CORRECT_USE_MASK = false;
+#endif // _DEBUG
+		m_nCOL_CORRECT_USE_MASK = 0;
+#ifdef _DEBUG
 		m_bCONVERT_FROM_LINEAR = false;
 #endif // _DEBUG
 		m_nCONVERT_FROM_LINEAR = 0;
@@ -353,10 +378,10 @@ public:
 		// Asserts to make sure that we aren't using any skipped combinations.
 		// Asserts to make sure that we are setting all of the combination vars.
 #ifdef _DEBUG
-		bool bAllDynamicVarsDefined = m_bAA_ENABLE && m_bCOL_CORRECT_NUM_LOOKUPS && m_bCONVERT_FROM_LINEAR && m_bCONVERT_TO_LINEAR && m_bNOISE_ENABLE && m_bVIGNETTE_ENABLE && m_bLOCAL_CONTRAST_ENABLE && m_bBLURRED_VIGNETTE_ENABLE && m_bVOMIT_ENABLE && m_bTV_GAMMA && m_bDESATURATEENABLE;
+		bool bAllDynamicVarsDefined = m_bAA_ENABLE && m_bCOL_CORRECT_NUM_LOOKUPS && m_bCOL_CORRECT_USE_MASK && m_bCONVERT_FROM_LINEAR && m_bCONVERT_TO_LINEAR && m_bNOISE_ENABLE && m_bVIGNETTE_ENABLE && m_bLOCAL_CONTRAST_ENABLE && m_bBLURRED_VIGNETTE_ENABLE && m_bVOMIT_ENABLE && m_bTV_GAMMA && m_bDESATURATEENABLE;
 		Assert( bAllDynamicVarsDefined );
 #endif // _DEBUG
-		return ( 1 * m_nAA_ENABLE ) + ( 1 * m_nCOL_CORRECT_NUM_LOOKUPS ) + ( 4 * m_nCONVERT_FROM_LINEAR ) + ( 8 * m_nCONVERT_TO_LINEAR ) + ( 16 * m_nNOISE_ENABLE ) + ( 32 * m_nVIGNETTE_ENABLE ) + ( 64 * m_nLOCAL_CONTRAST_ENABLE ) + ( 128 * m_nBLURRED_VIGNETTE_ENABLE ) + ( 256 * m_nVOMIT_ENABLE ) + ( 512 * m_nTV_GAMMA ) + ( 1024 * m_nDESATURATEENABLE ) + 0;
+		return ( 1 * m_nAA_ENABLE ) + ( 1 * m_nCOL_CORRECT_NUM_LOOKUPS ) + ( 4 * m_nCOL_CORRECT_USE_MASK ) + ( 8 * m_nCONVERT_FROM_LINEAR ) + ( 16 * m_nCONVERT_TO_LINEAR ) + ( 32 * m_nNOISE_ENABLE ) + ( 64 * m_nVIGNETTE_ENABLE ) + ( 128 * m_nLOCAL_CONTRAST_ENABLE ) + ( 256 * m_nBLURRED_VIGNETTE_ENABLE ) + ( 512 * m_nVOMIT_ENABLE ) + ( 1024 * m_nTV_GAMMA ) + ( 2048 * m_nDESATURATEENABLE ) + 0;
 	}
 };
-#define shaderDynamicTest_sdk_engine_post_ps20b psh_forgot_to_set_dynamic_AA_ENABLE + psh_forgot_to_set_dynamic_COL_CORRECT_NUM_LOOKUPS + psh_forgot_to_set_dynamic_CONVERT_FROM_LINEAR + psh_forgot_to_set_dynamic_CONVERT_TO_LINEAR + psh_forgot_to_set_dynamic_NOISE_ENABLE + psh_forgot_to_set_dynamic_VIGNETTE_ENABLE + psh_forgot_to_set_dynamic_LOCAL_CONTRAST_ENABLE + psh_forgot_to_set_dynamic_BLURRED_VIGNETTE_ENABLE + psh_forgot_to_set_dynamic_VOMIT_ENABLE + psh_forgot_to_set_dynamic_TV_GAMMA + psh_forgot_to_set_dynamic_DESATURATEENABLE + 0
+#define shaderDynamicTest_sdk_engine_post_ps20b psh_forgot_to_set_dynamic_AA_ENABLE + psh_forgot_to_set_dynamic_COL_CORRECT_NUM_LOOKUPS + psh_forgot_to_set_dynamic_COL_CORRECT_USE_MASK + psh_forgot_to_set_dynamic_CONVERT_FROM_LINEAR + psh_forgot_to_set_dynamic_CONVERT_TO_LINEAR + psh_forgot_to_set_dynamic_NOISE_ENABLE + psh_forgot_to_set_dynamic_VIGNETTE_ENABLE + psh_forgot_to_set_dynamic_LOCAL_CONTRAST_ENABLE + psh_forgot_to_set_dynamic_BLURRED_VIGNETTE_ENABLE + psh_forgot_to_set_dynamic_VOMIT_ENABLE + psh_forgot_to_set_dynamic_TV_GAMMA + psh_forgot_to_set_dynamic_DESATURATEENABLE + 0

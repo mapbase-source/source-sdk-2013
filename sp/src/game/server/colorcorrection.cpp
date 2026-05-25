@@ -7,6 +7,9 @@
 
 #include "cbase.h"
 #include "colorcorrection.h"
+#ifdef MAPBASE
+#include "beam_shared.h"
+#endif
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -38,8 +41,10 @@ BEGIN_DATADESC( CColorCorrection )
 
 	DEFINE_KEYFIELD( m_bEnabled,		  FIELD_BOOLEAN, "enabled" ),
 	DEFINE_KEYFIELD( m_bStartDisabled,    FIELD_BOOLEAN, "StartDisabled" ),
-#ifdef MAPBASE // From Alien Swarm SDK
-	DEFINE_KEYFIELD( m_bExclusive,		  FIELD_BOOLEAN, "exclusive" ),
+#ifdef MAPBASE
+	DEFINE_KEYFIELD( m_bExclusive,		  FIELD_BOOLEAN, "exclusive" ), // From Alien Swarm SDK
+	DEFINE_KEYFIELD( m_bMaskEnabled,	  FIELD_BOOLEAN, "MaskEnabled" ),
+	DEFINE_KEYFIELD( m_bMaskInvert,		  FIELD_BOOLEAN, "MaskInvert" ),
 #endif
 //	DEFINE_ARRAY( m_netlookupFilename, FIELD_CHARACTER, MAX_PATH ), 
 
@@ -67,10 +72,14 @@ IMPLEMENT_SERVERCLASS_ST_NOBASE(CColorCorrection, DT_ColorCorrection)
 #endif
 	SendPropString( SENDINFO(m_netlookupFilename) ),
 	SendPropBool( SENDINFO(m_bEnabled) ),
-#ifdef MAPBASE // From Alien Swarm SDK
+#ifdef MAPBASE
+	// -- From Alien Swarm SDK --
 	SendPropBool( SENDINFO(m_bMaster) ),
 	SendPropBool( SENDINFO(m_bClientSide) ),
 	SendPropBool( SENDINFO(m_bExclusive) ),
+	//---------------------------
+	SendPropBool( SENDINFO(m_bMaskEnabled) ),
+	SendPropBool( SENDINFO(m_bMaskInvert) ),
 #endif
 END_SEND_TABLE()
 
@@ -90,10 +99,14 @@ CColorCorrection::CColorCorrection() : BaseClass()
 	m_flTimeStartFadeOut = 0.0f;
 	m_netlookupFilename.GetForModify()[0] = 0;
 	m_lookupFilename = NULL_STRING;
-#ifdef MAPBASE // From Alien Swarm SDK
+#ifdef MAPBASE
+	// -- From Alien Swarm SDK --
 	m_bMaster = false;
 	m_bClientSide = false;
 	m_bExclusive = false;
+	//---------------------------
+	m_bMaskEnabled = false;
+	m_bMaskInvert = false;
 #endif
 }
 
@@ -381,6 +394,142 @@ void CColorCorrectionSystem::LevelInitPostEntity( void )
 		if ( pPlayer && ( pPlayer->m_hColorCorrectionCtrl.Get() == NULL ) )
 		{
 			pPlayer->InitColorCorrectionController();
+		}
+	}
+}
+#endif
+
+#ifdef MAPBASE
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+class CColorCorrectionExclude : public CPointEntity
+{
+	DECLARE_CLASS( CColorCorrectionExclude, CPointEntity );
+public:
+	CColorCorrectionExclude();
+
+	int UpdateTransmitState( void ) { return SetTransmitState( FL_EDICT_ALWAYS ); }
+	
+	void Spawn( void );
+
+	void SetExcludeTarget( CBaseEntity *pTarget ) { m_hExcludeTarget = pTarget; OnChangeExcludeTarget(); }
+	void SetExcludeTarget( CBaseEntity *pActivator, CBaseEntity *pCaller ) { m_hExcludeTarget = gEntList.FindEntityByName( NULL, m_target, this, pActivator, pCaller ); OnChangeExcludeTarget(); }
+
+	void OnChangeExcludeTarget();
+
+	// Inputs
+	void InputSetTarget( inputdata_t &inputdata ) { BaseClass::InputSetTarget( inputdata ); SetExcludeTarget( inputdata.pActivator, inputdata.pCaller ); }
+
+	void InputEnable( inputdata_t &inputdata ) { m_bExcludeDisabled = false; SetExcludeTarget( inputdata.pActivator, inputdata.pCaller ); }
+	void InputDisable( inputdata_t &inputdata ) { m_bExcludeDisabled = true; }
+	void InputToggle( inputdata_t &inputdata ) { m_bExcludeDisabled ? InputEnable( inputdata ) : InputDisable( inputdata ); }
+
+	void InputSetExcludeColor( inputdata_t &inputdata ) { m_ExcludeColor = inputdata.value.Color32(); }
+
+	CNetworkHandle( CBaseEntity, m_hExcludeTarget );
+	CNetworkColor32( m_ExcludeColor );
+	CNetworkVar( bool, m_bExcludeDisabled );
+
+	EHANDLE		m_hOldExcludeTarget;
+
+	DECLARE_DATADESC();
+	DECLARE_SERVERCLASS();
+};
+
+LINK_ENTITY_TO_CLASS( color_correction_exclude, CColorCorrectionExclude );
+
+
+BEGIN_DATADESC( CColorCorrectionExclude )
+
+	// Keys
+	DEFINE_KEYFIELD( m_ExcludeColor, FIELD_COLOR32, "ExcludeColor" ),
+	DEFINE_FIELD( m_hExcludeTarget, FIELD_EHANDLE ),
+	DEFINE_KEYFIELD( m_bExcludeDisabled, FIELD_BOOLEAN, "StartDisabled" ),
+	DEFINE_FIELD( m_hOldExcludeTarget, FIELD_EHANDLE ),
+
+	// Inputs
+	DEFINE_INPUTFUNC( FIELD_VOID, "Enable", InputEnable ),
+	DEFINE_INPUTFUNC( FIELD_VOID, "Disable", InputDisable ),
+	DEFINE_INPUTFUNC( FIELD_VOID, "Toggle", InputToggle ),
+	DEFINE_INPUTFUNC( FIELD_COLOR32, "SetExcludeColor", InputSetExcludeColor ),
+
+END_DATADESC()
+
+IMPLEMENT_SERVERCLASS_ST( CColorCorrectionExclude, DT_ColorCorrectionExclude )
+	SendPropEHandle( SENDINFO( m_hExcludeTarget ) ),
+	SendPropInt( SENDINFO( m_ExcludeColor ), 32, SPROP_UNSIGNED, SendProxy_Color32ToInt ),
+	SendPropBool( SENDINFO( m_bExcludeDisabled ) ),
+END_SEND_TABLE()
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+CColorCorrectionExclude::CColorCorrectionExclude()
+{
+	m_ExcludeColor.Init( 255, 255, 255, 255 );
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+void CColorCorrectionExclude::Spawn()
+{
+	if ( m_target != NULL_STRING )
+	{
+		m_hExcludeTarget = gEntList.FindEntityByName( NULL, m_target, this );
+		OnChangeExcludeTarget();
+	}
+
+	BaseClass::Spawn();
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+void CColorCorrectionExclude::OnChangeExcludeTarget()
+{
+	if ( m_hOldExcludeTarget != m_hExcludeTarget )
+	{
+		m_hOldExcludeTarget = m_hExcludeTarget;
+	}
+}
+
+//-----------------------------------------------------------------------------
+
+CON_COMMAND_F( colcorrect_force_exclude, "", FCVAR_CHEAT )
+{
+	if ( args.ArgC() < 2 )
+		return;
+
+	CBasePlayer *pPlayer = UTIL_GetCommandClient();
+
+	const char *pszTarget = args.Arg( 1 );
+
+	color32 clrExclude;
+	if ( args.ArgC() >= 3 )
+	{
+		UTIL_StringToColor32( &clrExclude, args.Arg( 2 ) );
+
+		if ( clrExclude.a == 0 )
+			clrExclude.a = 255;
+	}
+	else
+	{
+		clrExclude.r = clrExclude.g = clrExclude.b = clrExclude.a = 255;
+	}
+
+	CBaseEntity *pEnt = gEntList.FindEntityGeneric( NULL, pszTarget, pPlayer );
+	for (; pEnt != NULL; pEnt = gEntList.FindEntityGeneric( pEnt, pszTarget, pPlayer ) )
+	{
+		if ( pEnt->IsMarkedForDeletion() )
+			continue;
+
+		CColorCorrectionExclude *pExclude = (CColorCorrectionExclude*)CBaseEntity::CreateNoSpawn( "color_correction_exclude", pEnt->GetAbsOrigin(), pEnt->GetAbsAngles() );
+		if ( pExclude )
+		{
+			DispatchSpawn( pExclude );
+			pExclude->SetExcludeTarget( pEnt );
 		}
 	}
 }

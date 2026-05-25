@@ -34,10 +34,14 @@ IMPLEMENT_CLIENTCLASS_DT(C_ColorCorrection, DT_ColorCorrection, CColorCorrection
 #endif
 	RecvPropString( RECVINFO(m_netLookupFilename) ),
 	RecvPropBool(   RECVINFO(m_bEnabled) ),
-#ifdef MAPBASE // From Alien Swarm SDK
+#ifdef MAPBASE
+	// -- From Alien Swarm SDK --
 	RecvPropBool(   RECVINFO(m_bMaster) ),
 	RecvPropBool(   RECVINFO(m_bClientSide) ),
-	RecvPropBool(	RECVINFO(m_bExclusive) )
+	RecvPropBool(	RECVINFO(m_bExclusive) ),
+	//---------------------------
+	RecvPropBool(	RECVINFO(m_bMaskEnabled) ),
+	RecvPropBool(	RECVINFO(m_bMaskInvert) ),
 #endif
 
 END_RECV_TABLE()
@@ -48,7 +52,8 @@ END_RECV_TABLE()
 //------------------------------------------------------------------------------
 C_ColorCorrection::C_ColorCorrection()
 {
-#ifdef MAPBASE // From Alien Swarm SDK
+#ifdef MAPBASE
+	// -- From Alien Swarm SDK --
 	m_minFalloff = -1.0f;
 	m_maxFalloff = -1.0f;
 	m_flFadeInDuration = 0.0f;
@@ -59,6 +64,9 @@ C_ColorCorrection::C_ColorCorrection()
 	m_bEnabled = false;
 	m_bMaster = false;
 	m_bExclusive = false;
+	//---------------------------
+	m_bMaskEnabled = false;
+	m_bMaskInvert = false;
 #endif
 	m_CCHandle = INVALID_CLIENT_CCHANDLE;
 
@@ -134,7 +142,7 @@ void C_ColorCorrection::Update( C_BasePlayer *pPlayer, float ccScale )
 	if ( mat_colcorrection_disableentities.GetInt() )
 	{
 		// Allow the colorcorrectionui panel (or user) to turn off color-correction entities
-		g_pColorCorrectionMgr->SetColorCorrectionWeight( m_CCHandle, 0.0f, m_bExclusive );
+		g_pColorCorrectionMgr->SetColorCorrectionWeight( m_CCHandle, 0.0f, m_bExclusive, m_bMaskEnabled, m_bMaskInvert );
 		return;
 	}
 
@@ -146,7 +154,7 @@ void C_ColorCorrection::Update( C_BasePlayer *pPlayer, float ccScale )
 
 	if( !m_bEnabled && m_flCurWeight == 0.0f )
 	{
-		g_pColorCorrectionMgr->SetColorCorrectionWeight( m_CCHandle, 0.0f, m_bExclusive );
+		g_pColorCorrectionMgr->SetColorCorrectionWeight( m_CCHandle, 0.0f, m_bExclusive, m_bMaskEnabled, m_bMaskInvert );
 		return;
 	}
 
@@ -161,7 +169,7 @@ void C_ColorCorrection::Update( C_BasePlayer *pPlayer, float ccScale )
 		if ( weight>1.0f ) weight = 1.0f;	
 	}
 
-	g_pColorCorrectionMgr->SetColorCorrectionWeight( m_CCHandle, m_flCurWeight * ( 1.0 - weight ) * ccScale, m_bExclusive );
+	g_pColorCorrectionMgr->SetColorCorrectionWeight( m_CCHandle, m_flCurWeight * ( 1.0 - weight ) * ccScale, m_bExclusive, m_bMaskEnabled, m_bMaskInvert );
 }
 
 void C_ColorCorrection::EnableOnClient( bool bEnable, bool bSkipFade )
@@ -214,7 +222,7 @@ float C_ColorCorrection::GetMaxFalloff()
 
 void C_ColorCorrection::SetWeight( float fWeight )
 {
-	g_pColorCorrectionMgr->SetColorCorrectionWeight( m_CCHandle, fWeight, false );
+	g_pColorCorrectionMgr->SetColorCorrectionWeight( m_CCHandle, fWeight, false, m_bMaskEnabled, m_bMaskInvert );
 }
 
 void C_ColorCorrection::StartFade( float flDuration )
@@ -288,7 +296,88 @@ void C_ColorCorrection::ClientThink()
 }
 #endif
 
+#ifdef MAPBASE
+class C_ColorCorrectionExclude : public C_BaseEntity
+{
+public:
+	DECLARE_CLASS( C_ColorCorrectionExclude, C_BaseEntity );
+	DECLARE_CLIENTCLASS();
 
+	void				OnDataChanged( DataUpdateType_t type );
+	void				UpdateOnRemove( void );
+
+	void				UpdateExclude( void );
+	void				DestroyExclude( void );
+
+	EHANDLE m_hExcludeTarget;
+	color32 m_ExcludeColor;
+	bool	m_bExcludeDisabled;
+
+	int		m_nExcludeHandle = -1;
+};
+
+IMPLEMENT_CLIENTCLASS_DT( C_ColorCorrectionExclude, DT_ColorCorrectionExclude, CColorCorrectionExclude )
+	RecvPropEHandle( RECVINFO( m_hExcludeTarget ) ),
+	RecvPropInt( RECVINFO( m_ExcludeColor ), 0, RecvProxy_IntToColor32 ),
+	RecvPropBool( RECVINFO( m_bExcludeDisabled ) ),
+END_RECV_TABLE()
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+void C_ColorCorrectionExclude::OnDataChanged( DataUpdateType_t updateType )
+{
+	BaseClass::OnDataChanged( updateType );
+
+	UpdateExclude();
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+void C_ColorCorrectionExclude::UpdateOnRemove( void )
+{
+	DestroyExclude();
+
+	BaseClass::UpdateOnRemove();
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+void C_ColorCorrectionExclude::UpdateExclude( void )
+{
+	// destroy the existing effect
+	DestroyExclude();
+
+	// create a new effect
+	if ( m_hExcludeTarget && !m_bExcludeDisabled )
+	{
+		Vector4D vecColor( m_ExcludeColor.r, m_ExcludeColor.g, m_ExcludeColor.b, m_ExcludeColor.a );
+		for (int i = 0; i < 4; i++)
+		{
+			if (vecColor[i] == 0.0f)
+				continue;
+
+			vecColor[i] /= 255.0f;
+		}
+
+		m_nExcludeHandle = g_pColorCorrectionMgr->RegisterExclusionObject( m_hExcludeTarget, &vecColor.AsVector3D(), vecColor.w );
+	}
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+void C_ColorCorrectionExclude::DestroyExclude( void )
+{
+	if ( m_nExcludeHandle != -1 )
+	{
+		g_pColorCorrectionMgr->UnregisterExclusionObject( m_nExcludeHandle );
+		m_nExcludeHandle = -1;
+	}
+}
+#endif
 
 
 

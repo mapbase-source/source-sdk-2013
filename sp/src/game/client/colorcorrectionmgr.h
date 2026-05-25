@@ -49,7 +49,7 @@ public:
 
 	// Modify color correction weights
 #ifdef MAPBASE // From Alien Swarm SDK
-	void SetColorCorrectionWeight( ClientCCHandle_t h, float flWeight, bool bExclusive = false );
+	void SetColorCorrectionWeight( ClientCCHandle_t h, float flWeight, bool bExclusive = false, bool bUseMask = false, bool bInvertMask = false );
 	void UpdateColorCorrection();
 #else
 	void SetColorCorrectionWeight( ClientCCHandle_t h, float flWeight );
@@ -59,6 +59,15 @@ public:
 
 	// Is color correction active?
 	bool HasNonZeroColorCorrectionWeights() const;
+
+#ifdef MAPBASE
+	// Color Correction Mask
+	int RegisterExclusionObject( C_BaseEntity *pEntity, Vector *vecColor = NULL, float flAlpha = 1.0f );
+	void UnregisterExclusionObject( C_BaseEntity *pEntity );
+	void UnregisterExclusionObject( int nGlowObjectHandle );
+
+	void RenderExclusionObjects( const CViewSetup *pSetup );
+#endif
 
 private:
 	int m_nActiveWeightCount;
@@ -71,6 +80,10 @@ private:
 		ClientCCHandle_t handle;
 		float flWeight;
 		bool bExclusive;
+
+		// Color Correction Mask
+		bool bUseMask;
+		bool bInvertMask;
 	};
 
 	CUtlVector< SetWeightParams_t > m_colorCorrectionWeights;
@@ -78,6 +91,40 @@ private:
 	void CommitColorCorrectionWeights();
 
 	void LevelShutdownPreEntity();
+#endif
+
+#ifdef MAPBASE
+	// Color Correction Mask
+	struct ColCorrectExcludeDefinition_t
+	{
+		bool ShouldDraw() const
+		{
+			return m_hEntity && m_hEntity->ShouldDraw() && !m_hEntity->IsDormant();
+		}
+
+		bool IsUnused() const { return m_nNextFreeSlot != ColCorrectExcludeDefinition_t::ENTRY_IN_USE; }
+		void DrawModel();
+
+		EHANDLE m_hEntity;
+		bool m_bStudio;
+		Vector m_vecColor;
+		float m_flAlpha;
+
+		// Linked list of free slots
+		int m_nNextFreeSlot;
+
+		// Special values for GlowObjectDefinition_t::m_nNextFreeSlot
+		static const int END_OF_FREE_LIST = -1;
+		static const int ENTRY_IN_USE = -2;
+	};
+
+	void RenderExclusionModels( ITexture *pRenderTarget, const CViewSetup *pSetup, CMatRenderContextPtr &pRenderContext );
+	void ApplyColCorrectExclusionObjects( const CViewSetup *pSetup, CMatRenderContextPtr &pRenderContext, int x, int y, int w, int h );
+
+	CUtlVector< ColCorrectExcludeDefinition_t >	m_ColCorrectExcludeDefs;
+	bool	m_bDrawingColCorrectExclude;
+	int		m_nActiveMaskWeightCount;
+	int		m_nFirstFreeSlot;
 #endif
 };
 

@@ -59,6 +59,15 @@ protected:
 	ITexture* CreateWaterRefractionTexture( IMaterialSystem* pMaterialSystem, int iSize = 1024 );
 	ITexture* CreateCameraTexture( IMaterialSystem* pMaterialSystem, int iSize = 256 );
 
+#ifdef MAPBASE
+	// Mapbase render targets
+	CUtlVector<CTextureReference>	m_CameraTextures;
+	CTextureReference				m_ColCorrectMaskTexture;
+
+	ITexture *CreateCustomCameraTexture( IMaterialSystem *pMaterialSystem, const char *pszTextureName, int iSize = 256 );
+	ITexture *CreateColCorrectMaskTexture( IMaterialSystem *pMaterialSystem, int iSize = 1024 );
+#endif
+
 };
 
 #endif // CLIENTRENDERTARTETS_H_

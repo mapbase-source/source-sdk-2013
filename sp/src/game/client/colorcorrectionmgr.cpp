@@ -8,8 +8,8 @@
 #include "cbase.h"
 #include "tier0/vprof.h"
 #include "colorcorrectionmgr.h"
-#ifdef MAPBASE // From Alien Swarm SDK
-#include "clientmode_shared.h" //"clientmode.h"
+#ifdef MAPBASE
+#include "clientmode_shared.h" //"clientmode.h" // From Alien Swarm SDK
 
 // NOTE: This has to be the last file included!
 #include "tier0/memdbgon.h"
@@ -27,6 +27,8 @@ static ConVar mat_colcorrection_editor( "mat_colcorrection_editor", "0" );
 
 static CUtlVector<C_ColorCorrection *> g_ColorCorrectionList;
 static CUtlVector<C_ColorCorrectionVolume *> g_ColorCorrectionVolumeList;
+
+extern int g_nColCorrectExcludeMask;
 #endif
 
 
@@ -36,6 +38,9 @@ static CUtlVector<C_ColorCorrectionVolume *> g_ColorCorrectionVolumeList;
 CColorCorrectionMgr::CColorCorrectionMgr()
 {
 	m_nActiveWeightCount = 0;
+#ifdef MAPBASE
+	m_nFirstFreeSlot = ColCorrectExcludeDefinition_t::END_OF_FREE_LIST;
+#endif
 }
 
 
@@ -115,17 +120,25 @@ void CColorCorrectionMgr::RemoveColorCorrectionVolume( C_ColorCorrectionVolume *
 // Modify color correction weights
 //------------------------------------------------------------------------------
 #ifdef MAPBASE // From Alien Swarm SDK
-void CColorCorrectionMgr::SetColorCorrectionWeight( ClientCCHandle_t h, float flWeight, bool bExclusive )
+ConVar mat_colcorrection_mask( "mat_colcorrection_mask", "1" );
+ConVar mat_colcorrection_mask_always_use( "mat_colcorrection_mask_always_use", "0" );
+ConVar mat_colcorrection_mask_always_invert( "mat_colcorrection_mask_always_invert", "0" );
+
+void CColorCorrectionMgr::SetColorCorrectionWeight( ClientCCHandle_t h, float flWeight, bool bExclusive, bool bUseMask, bool bInvertMask )
 {
 	if ( h != INVALID_CLIENT_CCHANDLE )
 	{
-		SetWeightParams_t params = { h, flWeight, bExclusive };
+		if ( mat_colcorrection_mask_always_use.GetBool() )
+			bUseMask = true;
+		else if ( !mat_colcorrection_mask.GetBool() )
+			bUseMask = false;
+
+		if ( mat_colcorrection_mask_always_invert.GetBool() )
+			bInvertMask = true;
+
+		SetWeightParams_t params = { h, flWeight, bExclusive, bUseMask, bInvertMask };
 		m_colorCorrectionWeights.AddToTail( params );
-		if( bExclusive && m_bHaveExclusiveWeight && ( flWeight != 0.0f ) )
-		{
-			DevWarning( "Found multiple active color_correction entities with exclusive setting enabled. This is invalid.\n" );
-		}
-		if ( bExclusive )
+		if ( bExclusive && flWeight > m_flExclusiveWeight )
 		{
 			m_bHaveExclusiveWeight = true;
 			m_flExclusiveWeight = flWeight;
@@ -133,9 +146,33 @@ void CColorCorrectionMgr::SetColorCorrectionWeight( ClientCCHandle_t h, float fl
 	}
 }
 
+#ifdef MAPBASE
+struct CCSortableParams_t
+{
+	ClientCCHandle_t handle;
+	float flWeight;
+};
+
+int CCHandleSort( const CCSortableParams_t *a, const CCSortableParams_t *b )
+{
+	// Choose the higher weight
+	if ( a->flWeight > b->flWeight )
+		return -1;
+	else if ( a->flWeight < b->flWeight )
+		return 1;
+
+	return 0;
+}
+#endif
+
 void CColorCorrectionMgr::CommitColorCorrectionWeights()
 {
 	CMatRenderContextPtr pRenderContext( g_pMaterialSystem );
+
+#ifdef MAPBASE
+	// Need these to be in order so that they can translate to engine_post
+	CUtlVector< CCSortableParams_t > vecActiveLookups;
+#endif
 
 	for ( int i = 0; i < m_colorCorrectionWeights.Count(); i++ )
 	{
@@ -153,8 +190,56 @@ void CColorCorrectionMgr::CommitColorCorrectionWeights()
 		if ( flWeight != 0.0f )
 		{
 			++m_nActiveWeightCount;
+#ifdef MAPBASE
+			if ( m_colorCorrectionWeights[i].bUseMask )
+				++m_nActiveMaskWeightCount;
+
+			int idx = vecActiveLookups.AddToTail();
+			vecActiveLookups[idx].flWeight = flWeight;
+			vecActiveLookups[idx].handle = m_colorCorrectionWeights[i].handle;
+#endif
 		}
 	}
+
+#ifdef MAPBASE
+	g_nColCorrectExcludeMask = 0;
+	if ( m_bDrawingColCorrectExclude )
+	{
+		vecActiveLookups.Sort( CCHandleSort );
+
+		for ( int i = 0; i < m_colorCorrectionWeights.Count(); i++ )
+		{
+			if ( m_colorCorrectionWeights[i].bUseMask )
+			{
+				// engine_post counts from 0
+				int j = 0;
+				for (; j < vecActiveLookups.Count(); j++)
+				{
+					if ( vecActiveLookups[j].handle == m_colorCorrectionWeights[i].handle )
+						break;
+				}
+
+				if ( j < vecActiveLookups.Count() )
+				{
+					g_nColCorrectExcludeMask |= (1 << j);
+
+					if ( m_colorCorrectionWeights[i].bInvertMask )
+						g_nColCorrectExcludeMask |= (1 << (16 + j));
+				}
+			}
+		}
+
+		// Clean up any invalid definitions
+		for ( int i = m_ColCorrectExcludeDefs.Count()-1; i >= 0; i-- )
+		{
+			if ( !m_ColCorrectExcludeDefs[i].m_hEntity || m_ColCorrectExcludeDefs[i].m_hEntity->IsMarkedForDeletion() )
+			{
+				UnregisterExclusionObject( i );
+			}
+		}
+	}
+#endif
+
 	m_colorCorrectionWeights.RemoveAll();
 }
 
@@ -206,6 +291,8 @@ void CColorCorrectionMgr::ResetColorCorrectionWeights()
 	m_bHaveExclusiveWeight = false;
 	m_flExclusiveWeight = 0.0f;
 	m_colorCorrectionWeights.RemoveAll();
+
+	m_nActiveMaskWeightCount = 0;
 #endif
 }
 
