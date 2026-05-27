@@ -74,22 +74,36 @@ extern ISaveRestoreOps* GetStdStringDataOps();
 #ifdef GAME_DLL
 	#define UTLVECTOR_DATAOPS( fieldType, dataType )\
 		CUtlVectorDataopsInstantiator< fieldType >::GetDataOps( (CUtlVector< dataType >*)0 )
-	#define IS_EHANDLE_UTLVECTOR( td )\
-		td->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_EHANDLE, CHandle< CBaseEntity > ) ||\
-		td->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_EHANDLE, CHandle< CBaseFlex > ) ||\
-		td->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_EHANDLE, CHandle< CBaseAnimating > ) ||\
-		td->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_EHANDLE, CHandle< CBaseCombatWeapon > ) ||\
-		td->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_EHANDLE, CHandle< CBasePlayer > ) ||\
-		td->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_EHANDLE, CHandle< CAI_BaseNPC > ) ||\
-		td->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_EHANDLE, CHandle< CSceneEntity > ) ||\
-		td->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_EHANDLE, CHandle< CSceneListManager > ) ||\
-		td->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_EHANDLE, CHandle< CRagdollBoogie > ) ||\
-		td->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_EHANDLE, CHandle< CFish > ) ||\
-		td->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_EHANDLE, CHandle< CVGuiScreen > )
 
 	class CSceneListManager;
 	class CRagdollBoogie;
 	class CFish;
+
+	bool IS_EHANDLE_UTLVECTOR( const typedescription_t *td )
+	{
+		// Different entity handles are compiled as unique types, thus return unique SaveRestoreOps
+		return ( td->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_EHANDLE, CHandle< CBaseEntity > ) ||
+				// CSceneEntity::m_hActorList
+				td->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_EHANDLE, CHandle< CBaseFlex > ) ||
+				// CTriggerSoundscape::m_spectators
+				td->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_EHANDLE, CHandle< CBasePlayer > ) ||
+				// CAI_GoalEntity::m_actors
+				td->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_EHANDLE, CHandle< CAI_BaseNPC > ) ||
+				// CAntlionTemplateMaker::m_Children
+				//td->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_EHANDLE, CHandle< CNPC_Antlion > ) ||
+				// CPointRagdollBoogie::m_Boogies
+				td->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_EHANDLE, CHandle< CRagdollBoogie > ) ||
+				// CFishPool::m_fishes
+				td->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_EHANDLE, CHandle< CFish > ) ||
+				// CBaseViewModel::m_hScreens
+				td->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_EHANDLE, CHandle< CVGuiScreen > ) ||
+				// CSceneManager::{m_ActiveScenes, m_hNotifySceneCompletion}
+				td->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_EHANDLE, CHandle< CSceneEntity > ) ||
+				// CSceneManager::m_hListManagers, CSceneListManager::m_hListManagers
+				td->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_EHANDLE, CHandle< CSceneListManager > )
+			   );
+	}
+
 	#ifdef _DEBUG
 		class CStringTableSaveRestoreOps;
 		extern CStringTableSaveRestoreOps g_VguiScreenStringOps;
