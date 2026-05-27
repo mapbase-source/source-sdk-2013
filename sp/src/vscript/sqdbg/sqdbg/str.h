@@ -6,7 +6,7 @@
 #ifndef SQDBG_STRING_H
 #define SQDBG_STRING_H
 
-#define STRLEN(s) (sizeof(s) - 1)
+#define STRLEN(s) (sizeof(s)/sizeof(*(s)) - 1)
 
 #define FMT_UINT32_LEN 10 // 4294967295
 #define FMT_PTR_LEN ( (int)sizeof(void*) * 2 + 2 )
@@ -15,39 +15,50 @@
 	#define FMT_INT_LEN 20 // -9223372036854775808
 	#define FMT_OCT_LEN 23 // 01777777777777777777777
 
-	#if defined(_WIN32) || SQUIRREL_VERSION_NUMBER > 223
+	#if defined(_WIN32) || SQUIRREL_VERSION_NUMBER >= 300
 		#define FMT_INT "%lld"
 	#else
 		#define FMT_INT "%ld"
+	#endif
+	#ifdef _WIN32
+		#define FMT_PTR "%016llX"
+	#else
+		#define FMT_PTR "%016lX"
 	#endif
 #else
 	#define FMT_INT_LEN 11 // -2147483648
 	#define FMT_OCT_LEN 12 // 017777777777
 
 	#define FMT_INT "%d"
+	#define FMT_PTR "%08X"
 #endif
 
 #ifdef SQUNICODE
 	#define FMT_STR "%ls"
+	#define FMT_VSTR "%.*ls"
 	#define FMT_CSTR "%hs"
 	#define FMT_VCSTR "%.*hs"
-	#define FMT_VSTR "%.*ls"
 #else
 	#define FMT_STR "%s"
+	#define FMT_VSTR "%.*s"
 	#define FMT_CSTR "%s"
 	#define FMT_VCSTR "%.*s"
-	#define FMT_VSTR "%.*s"
 #endif
 
 #ifdef SQUSEDOUBLE
 	#define FMT_FLT "%lf"
-	#define FMT_FLT_LEN ( 1 + DBL_MAX_10_EXP + 1 + 1 + FLT_DIG )
+	#define FMT_FLT_DIG 17
+	#define FMT_FLT_DIG_STR "17"
+	#define FMT_FLT_LEN ( 1 + DBL_MAX_10_EXP + 1 + 1 + FMT_FLT_DIG )
 #else
 	#define FMT_FLT "%f"
-	#define FMT_FLT_LEN ( 1 + FLT_MAX_10_EXP + 1 + 1 + FLT_DIG )
+	#define FMT_FLT_DIG 9
+	#define FMT_FLT_DIG_STR "9"
+	#define FMT_FLT_LEN ( 1 + FLT_MAX_10_EXP + 1 + 1 + FMT_FLT_DIG )
 #endif
 
 struct string_t;
+struct conststring_t;
 #ifndef SQUNICODE
 typedef string_t sqstring_t;
 #else
@@ -57,14 +68,20 @@ struct stringbufbase_t;
 template < int BUFSIZE > struct stringbuf_t;
 typedef stringbufbase_t stringbufext_t;
 
+template < int BASE = 10, typename I >
+int countdigits( I input );
+
 template < typename C, typename I >
 int printint( C *buf, int size, I value );
 
-template < bool padding = true, bool prefix = true, bool uppercase = true, typename C, typename I >
-int printhex( C *buf, int size, I value );
+template < bool prefix = true, bool uppercase = true, typename C, typename I >
+int printhex( C *buf, int size, I value, int paddingBits = -1 );
 
 template < typename C, typename I >
-inline int printoct( C *buf, int size, I value );
+int printoct( C *buf, int size, I value );
+
+template < bool prefix = true, typename C, typename I >
+int printbin( C *buf, int size, I value, int paddingBits = -1 );
 
 template < typename I >
 bool atoi( string_t str, I *out );
@@ -76,19 +93,28 @@ template < typename I >
 bool atoo( string_t str, I *out );
 
 template < typename I >
+bool strtoint( string_t str, I *out );
+
+template < typename I >
 struct _as_unsigned { typedef I T; };
 
-template <>
-struct _as_unsigned< int > { typedef unsigned int T; };
-
-#ifdef _SQ64
-template <>
-struct _as_unsigned< SQInteger > { typedef SQUnsignedInteger T; };
-#endif
-
-#define as_unsigned_type( I ) typename _as_unsigned<I>::T
-#define cast_unsigned( I, v ) (as_unsigned_type(I)(v))
 #define IS_UNSIGNED( I ) ((I)0 < (I)-1)
+#define UNSIGNED_MAKER( s, u ) \
+	STATIC_ASSERT( IS_UNSIGNED(u) ); \
+	STATIC_ASSERT( sizeof(s) == sizeof(u) ); \
+	template <> struct _as_unsigned< s > { typedef u T; };
+#define as_unsigned_type( I ) typename _as_unsigned<I>::T
+#define cast_unsigned( v ) (as_unsigned_type(decltype(v))(v))
+
+UNSIGNED_MAKER( int, unsigned int )
+#ifdef _WIN32
+UNSIGNED_MAKER( wchar_t, uint16_t )
+#else
+UNSIGNED_MAKER( wchar_t, unsigned int )
+#endif
+#ifdef _SQ64
+UNSIGNED_MAKER( SQInteger, SQUnsignedInteger )
+#endif
 
 
 #define _isdigit( c ) \
@@ -173,42 +199,50 @@ struct _as_unsigned< SQInteger > { typedef SQUnsignedInteger T; };
 	( ( ( ( (lead) & 0x3FF ) << 10 ) | ( (trail) & 0x3FF ) ) + 0x10000 )
 
 #define UTF16_SURROGATE_FROM_UTF32(dst, cp) \
+do { \
 	(dst)[0] = 0xD800 | ( (cp - 0x10000) >> 10 ); \
-	(dst)[1] = 0xDC00 | ( (cp - 0x10000) & 0x3FF );
+	(dst)[1] = 0xDC00 | ( (cp - 0x10000) & 0x3FF ); \
+} while (0)
 
 #define UTF8_2_FROM_UTF32(mbc, cp) \
+do { \
 	(mbc)[0] = 0xC0 | ( (cp) >> 6 ); \
-	(mbc)[1] = 0x80 | ( (cp) & 0x3F );
+	(mbc)[1] = 0x80 | ( (cp) & 0x3F ); \
+} while (0)
 
 #define UTF8_3_FROM_UTF32(mbc, cp) \
+do { \
 	(mbc)[0] = 0xE0 | ( (cp) >> 12 ); \
 	(mbc)[1] = 0x80 | ( ( (cp) >> 6 ) & 0x3F ); \
 	(mbc)[2] = 0x80 | ( (cp) & 0x3F ); \
+} while (0)
 
 #define UTF8_4_FROM_UTF32(mbc, cp) \
+do { \
 	(mbc)[0] = 0xF0 | ( (cp) >> 18 ); \
 	(mbc)[1] = 0x80 | ( ( (cp) >> 12 ) & 0x3F ); \
 	(mbc)[2] = 0x80 | ( ( (cp) >> 6 ) & 0x3F ); \
-	(mbc)[3] = 0x80 | ( (cp) & 0x3F );
+	(mbc)[3] = 0x80 | ( (cp) & 0x3F ); \
+} while (0)
 
 typedef enum
 {
 	kUTFNoEscape = 0,
-	// Use 'x' as hex escape, escape invalid unicode
+	// Escape invalid unicode
 	kUTFEscape = 1,
-	// Same as kUTFEscape, escape all backslashes as well, quote the whole input
+	// Escape all backslashes as well, quote the whole input
 	kUTFEscapeQuoted,
-	// Use 'u' as hex escape
+	// Use 'u' as hex escape, don't use special escape characters
 	kUTFEscapeJSON,
 } EUTFEscape;
 
-inline int IsValidUTF8( unsigned char *src, unsigned int srclen );
+int IsValidUTF8( const char *src, unsigned int srclen );
 #ifdef SQUNICODE
-inline int IsValidUnicode( const SQChar *src, unsigned int srclen );
+int IsValidUnicode( const SQChar *src, unsigned int srclen );
 template < bool undoEscape = false >
-inline unsigned int UTF8ToSQUnicode( SQChar *dst, unsigned int destSize, const char *src, unsigned int srclen );
+unsigned int UTF8ToSQUnicode( SQChar *dst, unsigned int destSize, const char *src, unsigned int srclen );
 template < EUTFEscape escape = kUTFNoEscape >
-inline unsigned int SQUnicodeToUTF8( char *dst, unsigned int destSize, const SQChar *src, unsigned int srclen );
+unsigned int SQUnicodeToUTF8( char *dst, unsigned int destSize, const SQChar *src, unsigned int srclen );
 
 // Returns code unit count
 template < bool undoEscape = false >
@@ -245,8 +279,6 @@ inline unsigned int scstombs( char *dst, unsigned int destSize, const SQChar *sr
 	return len;
 #endif
 }
-
-#define STR_EXPAND(s) (s).len, (s).ptr
 
 struct string_t
 {
@@ -329,7 +361,7 @@ struct string_t
 	bool IsEqualTo( const SQString *other ) const
 	{
 		if ( (SQUnsignedInteger)len == (SQUnsignedInteger)other->_len && *ptr == *other->_val )
-			return !memcmp( ptr, other->_val, sq_rsl(len) );
+			return !memcmp( ptr, other->_val, len * sizeof(SQChar) );
 
 		return false;
 	}
@@ -436,7 +468,7 @@ struct sqstring_t
 	bool IsEqualTo( const sqstring_t &other ) const
 	{
 		if ( len == other.len && *ptr == *other.ptr )
-			return !memcmp( ptr, other.ptr, sq_rsl(len) );
+			return !memcmp( ptr, other.ptr, len * sizeof(SQChar) );
 
 		return false;
 	}
@@ -444,7 +476,7 @@ struct sqstring_t
 	bool IsEqualTo( const SQString *other ) const
 	{
 		if ( (SQUnsignedInteger)len == (SQUnsignedInteger)other->_len && *ptr == *other->_val )
-			return !memcmp( ptr, other->_val, sq_rsl(len) );
+			return !memcmp( ptr, other->_val, len * sizeof(SQChar) );
 
 		return false;
 	}
@@ -579,14 +611,7 @@ struct stringbufbase_t
 		if ( space < 3 )
 			return;
 
-		if ( padding )
-		{
-			len += printhex< true >( ptr + len, space, value );
-		}
-		else
-		{
-			len += printhex< false >( ptr + len, space, value );
-		}
+		len += printhex( ptr + len, space, value, -(int)padding );
 	}
 };
 
@@ -633,7 +658,7 @@ struct stringbuf_t : stringbufbase_t
 	}
 };
 
-template < int BASE = 10, typename I >
+template < int BASE, typename I >
 inline int countdigits( I input )
 {
 	int i = 0;
@@ -698,14 +723,28 @@ inline int printint( C *buf, int size, I value )
 	return len;
 }
 
-template < bool padding, bool prefix, bool uppercase, typename C, typename I >
-inline int printhex( C *buf, int size, I value )
+template < bool prefix, bool uppercase, typename C, typename I >
+inline int printhex( C *buf, int size, I value, int paddingBits )
 {
 	STATIC_ASSERT( IS_UNSIGNED( as_unsigned_type( I ) ) );
 	Assert( buf );
 	Assert( size > 0 );
+	Assert( paddingBits >= -1 );
 
-	int len = ( prefix ? 2 : 0 ) + ( padding ? sizeof(I) * 2 : countdigits<16>( cast_unsigned( I, value ) ) );
+	int len = 0;
+
+	if ( prefix )
+		len += 2;
+
+	if ( paddingBits == -1 )
+	{
+		len += sizeof(I) * 2;
+	}
+	else
+	{
+		int target = countdigits<16>( cast_unsigned( value ) );
+		len += max( target, paddingBits / 4 );
+	}
 
 	if ( len > size )
 		len = size;
@@ -714,13 +753,13 @@ inline int printhex( C *buf, int size, I value )
 
 	do
 	{
-		C c = cast_unsigned( I, value ) & 0xf;
+		C c = cast_unsigned( value ) & 0xf;
 		*(as_unsigned_type(I)*)&value >>= 4;
 		buf[i--] = c + ( ( c < 10 ) ? '0' : ( ( uppercase ? 'A' : 'a' ) - 10 ) );
 	}
 	while ( value );
 
-	if ( padding )
+	if ( paddingBits )
 	{
 		while ( i >= ( prefix ? 2 : 0 ) )
 			buf[i--] = '0';
@@ -765,6 +804,76 @@ inline int printoct( C *buf, int size, I value )
 
 	if ( i >= 0 )
 		buf[i--] = '0';
+
+	Assert( i == -1 );
+	return len;
+}
+
+template < bool prefix, typename C, typename I >
+inline int printbin( C *buf, int size, I value, int paddingBits )
+{
+	STATIC_ASSERT( IS_UNSIGNED( I ) );
+	Assert( buf );
+	Assert( size > 0 );
+	Assert( paddingBits >= -1 );
+
+	int len = 0;
+
+	if ( prefix )
+		len += 2;
+
+	if ( paddingBits == -1 )
+	{
+		len += sizeof(I) * 8;
+	}
+	else
+	{
+		int target;
+
+		// Print at 1, 2, 4 byte boundaries
+		if ( sizeof(I) >= 4 && cast_unsigned( value ) > 0xFFFFFFFF )
+		{
+			target = sizeof(I) * 8;
+		}
+		else if ( sizeof(I) >= 2 && cast_unsigned( value ) > 0xFFFF )
+		{
+			target = 4 * 8;
+		}
+		else if ( cast_unsigned( value ) > 0xFF )
+		{
+			target = 2 * 8;
+		}
+		else
+		{
+			target = 1 * 8;
+		}
+
+		len += max( target, paddingBits );
+	}
+
+	if ( len > size )
+		len = size;
+
+	int i = len - 1;
+	int vi = 0;
+
+	while ( i >= ( prefix ? 2 : 0 ) )
+	{
+		buf[i--] = '0' + ( ( value & ( cast_unsigned( (I)1 ) << vi++ ) ) != 0 );
+	}
+
+	Assert( vi <= (int)sizeof(I) * 8 );
+
+	if ( prefix )
+	{
+		if ( i >= 0 )
+		{
+			buf[i--] = 'b';
+
+			if ( i == 0 )
+				buf[i--] = '0';
+		}
+	}
 
 	Assert( i == -1 );
 	return len;
@@ -886,9 +995,9 @@ inline bool strtoint( string_t str, I *out )
 // Returns byte count of valid UTF8 sequences
 // Returns 0 for control characters
 // Returns 0 for noncharacters
-inline int IsValidUTF8( unsigned char *src, unsigned int srclen )
+inline int IsValidUTF8( const char *src, unsigned int srclen )
 {
-	unsigned char cp = src[0];
+	unsigned char cp = ((unsigned char*)src)[0];
 
 	if ( cp <= 0x7E )
 	{
@@ -901,21 +1010,21 @@ inline int IsValidUTF8( unsigned char *src, unsigned int srclen )
 	{
 		if ( UTF8_2_LEAD(cp) )
 		{
-			if ( UTF8_2( srclen, cp, src ) )
+			if ( UTF8_2( srclen, cp, (unsigned char*)src ) )
 			{
 				return 2;
 			}
 		}
 		else if ( UTF8_3_LEAD(cp) )
 		{
-			if ( UTF8_3( srclen, cp, src ) )
+			if ( UTF8_3( srclen, cp, (unsigned char*)src ) )
 			{
 				return 3;
 			}
 		}
 		else if ( UTF8_4_LEAD(cp) )
 		{
-			if ( UTF8_4( srclen, cp, src ) )
+			if ( UTF8_4( srclen, cp, (unsigned char*)src ) )
 			{
 				return 4;
 			}
@@ -932,7 +1041,7 @@ inline int IsValidUTF8( unsigned char *src, unsigned int srclen )
 
 		while ( srcindex-- > lim )
 		{
-			cp = *(--src);
+			cp = *(unsigned char*)(--src);
 			srclen++;
 
 			if ( !UTF8_TRAIL(cp) )
@@ -957,7 +1066,7 @@ inline int IsValidUTF8( unsigned char *src, unsigned int srclen )
 // Noncharacters and private use areas are valid
 inline int IsValidUnicode( const SQChar *src, unsigned int srclen )
 {
-	uint32_t cp = (uint32_t)src[0];
+	uint32_t cp = (uint32_t)((SQUnsignedChar*)src)[0];
 
 	if ( cp <= 0x7E )
 	{
@@ -1026,6 +1135,7 @@ inline unsigned int UTF8ToSQUnicode( SQChar *dst, unsigned int destSize, const c
 						case 'v': cp = '\v'; src++; break;
 						case 'x':
 						{
+							// NOTE: SQChar is used to conform to Squirrel behaviour
 							if ( src + sizeof(SQChar) * 2 + 1 < end )
 							{
 								atox( { src + 2, sizeof(SQChar) * 2 }, &cp );
@@ -1048,7 +1158,7 @@ inline unsigned int UTF8ToSQUnicode( SQChar *dst, unsigned int destSize, const c
 				}
 			}
 
-			goto xffff;
+			goto single;
 		}
 		else if ( IN_RANGE( cp, 0xC2, 0xF4 ) )
 		{
@@ -1058,7 +1168,7 @@ inline unsigned int UTF8ToSQUnicode( SQChar *dst, unsigned int destSize, const c
 				{
 					cp = UTF32_FROM_UTF8_2( cp, src[1] );
 					src += 1;
-					goto xffff;
+					goto single;
 				}
 			}
 			else if ( UTF8_3_LEAD(cp) )
@@ -1067,7 +1177,7 @@ inline unsigned int UTF8ToSQUnicode( SQChar *dst, unsigned int destSize, const c
 				{
 					cp = UTF32_FROM_UTF8_3( cp, src[1], src[2] );
 					src += 2;
-					goto xffff;
+					goto single;
 				}
 			}
 			else if ( UTF8_4_LEAD(cp) )
@@ -1076,21 +1186,26 @@ inline unsigned int UTF8ToSQUnicode( SQChar *dst, unsigned int destSize, const c
 				{
 					cp = UTF32_FROM_UTF8_4( cp, src[1], src[2], src[3] );
 					src += 3;
-					goto supplementary;
+					if ( sizeof(SQChar) == 2 )
+					{
+						goto supplementary;
+					}
+					else if ( sizeof(SQChar) == 4 )
+					{
+						goto single;
+					}
+					else UNREACHABLE();
 				}
 			}
 
-			goto xffff;
+			goto single;
 		}
 		else // [0x7F, 0xC2) & (0xF4, 0xFF]
 		{
-			goto xffff;
+			goto single;
 		}
 
-xffff:
-#if WCHAR_SIZE == 4
-supplementary:
-#endif
+single:
 		if ( dst )
 		{
 			if ( sizeof(SQChar) <= destSize )
@@ -1112,30 +1227,31 @@ supplementary:
 
 		continue;
 
-#if WCHAR_SIZE == 2
 supplementary:
-		if ( dst )
+		if ( sizeof(SQChar) == 2 )
 		{
-			if ( sizeof(SQChar) * 2 <= destSize )
+			if ( dst )
 			{
-				UTF16_SURROGATE_FROM_UTF32( dst, cp );
-				dst += 2;
-				destSize -= sizeof(SQChar) * 2;
-				count += 2;
+				if ( sizeof(SQChar) * 2 <= destSize )
+				{
+					UTF16_SURROGATE_FROM_UTF32( dst, cp );
+					dst += 2;
+					destSize -= sizeof(SQChar) * 2;
+					count += 2;
+				}
+				else
+				{
+					cp = 0xFFFD;
+					goto single;
+				}
 			}
 			else
 			{
-				cp = 0xFFFD;
-				goto xffff;
+				count += 2;
 			}
-		}
-		else
-		{
-			count += 2;
-		}
 
-		continue;
-#endif
+			continue;
+		}
 	}
 
 	return count;
@@ -1187,7 +1303,7 @@ inline unsigned int SQUnicodeToUTF8( char *dst, unsigned int destSize, const SQC
 
 	for ( ; src < end; src++ )
 	{
-		cp = (uint32_t)src[0];
+		cp = (uint32_t)((SQUnsignedChar*)src)[0];
 
 		if ( cp <= 0xFF )
 		{
@@ -1267,10 +1383,10 @@ inline unsigned int SQUnicodeToUTF8( char *dst, unsigned int destSize, const SQC
 						{
 							if ( UTF8_2_LEAD(cp) )
 							{
-								if ( UTF8_2( end - src, cp, src ) )
+								if ( UTF8_2( end - src, cp, (SQUnsignedChar*)src ) )
 								{
 									mbc[0] = (unsigned char)cp;
-									mbc[1] = (unsigned char)src[1];
+									mbc[1] = (unsigned char)((SQUnsignedChar*)src)[1];
 									bytes = 2;
 									src += 1;
 									goto write;
@@ -1278,11 +1394,11 @@ inline unsigned int SQUnicodeToUTF8( char *dst, unsigned int destSize, const SQC
 							}
 							else if ( UTF8_3_LEAD(cp) )
 							{
-								if ( UTF8_3( end - src, cp, src ) )
+								if ( UTF8_3( end - src, cp, (SQUnsignedChar*)src ) )
 								{
 									mbc[0] = (unsigned char)cp;
-									mbc[1] = (unsigned char)src[1];
-									mbc[2] = (unsigned char)src[2];
+									mbc[1] = (unsigned char)((SQUnsignedChar*)src)[1];
+									mbc[2] = (unsigned char)((SQUnsignedChar*)src)[2];
 									bytes = 3;
 									src += 2;
 									goto write;
@@ -1290,12 +1406,12 @@ inline unsigned int SQUnicodeToUTF8( char *dst, unsigned int destSize, const SQC
 							}
 							else if ( UTF8_4_LEAD(cp) )
 							{
-								if ( UTF8_4( end - src, cp, src ) )
+								if ( UTF8_4( end - src, cp, (SQUnsignedChar*)src ) )
 								{
 									mbc[0] = (unsigned char)cp;
-									mbc[1] = (unsigned char)src[1];
-									mbc[2] = (unsigned char)src[2];
-									mbc[3] = (unsigned char)src[3];
+									mbc[1] = (unsigned char)((SQUnsignedChar*)src)[1];
+									mbc[2] = (unsigned char)((SQUnsignedChar*)src)[2];
+									mbc[3] = (unsigned char)((SQUnsignedChar*)src)[3];
 									bytes = 4;
 									src += 3;
 									goto write;
@@ -1313,21 +1429,16 @@ doescape:
 							mbc[bytes++] = '\\';
 
 						mbc[bytes++] = '\\';
-
-						if ( escape == kUTFEscapeJSON )
-						{
-							mbc[bytes++] = 'u';
-							bytes += printhex< true, false >( mbc + bytes, sizeof(mbc) - bytes, (uint16_t)cp );
-						}
-						else
-						{
-							mbc[bytes++] = 'x';
-							bytes += printhex< true, false >( mbc + bytes, sizeof(mbc) - bytes, (SQUnsignedChar)cp );
-						}
-
+						mbc[bytes++] = 'u';
+						bytes += printhex< false >( mbc + bytes, sizeof(mbc) - bytes, (uint16_t)cp );
 						goto write;
 					}
 				}
+			}
+			else
+			{
+				if ( cp > 0x7F )
+					goto x7ff;
 			}
 
 			mbc[0] = (unsigned char)cp;
@@ -1345,7 +1456,7 @@ x7ff:
 			{
 				if ( src + 1 < end && UTF_SURROGATE_LEAD(cp) && UTF_SURROGATE_TRAIL(src[1]) )
 				{
-					cp = UTF32_FROM_UTF16_SURROGATE( cp, (uint32_t)src[1] );
+					cp = UTF32_FROM_UTF16_SURROGATE( cp, (uint32_t)((SQUnsignedChar*)src)[1] );
 					src++;
 					goto supplementary;
 				}
@@ -1358,8 +1469,8 @@ x7ff:
 						mbc[bytes++] = '\\';
 
 					mbc[bytes++] = '\\';
-					mbc[bytes++] = 'x';
-					bytes = bytes + printhex< true, false >( mbc + bytes, sizeof(mbc) - bytes, (SQUnsignedChar)cp );
+					mbc[bytes++] = 'u';
+					bytes += printhex< false >( mbc + bytes, sizeof(mbc) - bytes, (uint16_t)cp );
 					goto write;
 				}
 			}
@@ -1382,14 +1493,14 @@ x7ff:
 
 				mbc[bytes++] = '\\';
 				mbc[bytes++] = 'u';
-				bytes += printhex< true, false >( mbc + bytes, sizeof(mbc) - bytes, s[0] );
+				bytes += printhex< false >( mbc + bytes, sizeof(mbc) - bytes, s[0] );
 
 				if ( escape == kUTFEscapeQuoted )
 					mbc[bytes++] = '\\';
 
 				mbc[bytes++] = '\\';
 				mbc[bytes++] = 'u';
-				bytes += printhex< true, false >( mbc + bytes, sizeof(mbc) - bytes, s[1] );
+				bytes += printhex< false >( mbc + bytes, sizeof(mbc) - bytes, s[1] );
 				goto write;
 			}
 
@@ -1397,6 +1508,7 @@ supplementary:
 			UTF8_4_FROM_UTF32( mbc, cp );
 			bytes = 4;
 		}
+
 write:
 		if ( dst )
 		{
@@ -1448,7 +1560,7 @@ write:
 
 	return count;
 }
-#endif
+#endif // SQUNICODE
 
 #if defined(SQUNICODE) && !defined(_WIN32)
 // Do case insensitive comparison for ASCII characters, ignore the rest
