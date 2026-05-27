@@ -174,7 +174,7 @@ private:
 			return 8;
 		if ( proxy == RecvProxy_Int32ToInt16 )
 			return 16;
-		if ( proxy == RecvProxy_Int32ToInt32 )
+		if ( proxy == RecvProxy_Int32ToInt32 || proxy == RecvProxy_IntToColor32 )
 			return 32;
 
 		return 0;
