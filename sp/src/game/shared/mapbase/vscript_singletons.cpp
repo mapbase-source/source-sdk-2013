@@ -458,7 +458,7 @@ private:
 
 	// Searches NetTable first to handle overwritten member network variables - see
 	// CPlayerResource::m_iHealth and CBaseEntity::m_iHealth
-	varinfo_t *GetVarInfo( CBaseEntity *pEnt, const char *szProp, int index )
+	varinfo_t *GetVarInfo( CBaseEntity *pEnt, const char *szProp, int index, bool bDontWarnOnMissing = false )
 	{
 		int offset = 0;
 		NetTable *pTable = GetNetTable( GetNetworkClass( pEnt ) );
@@ -956,6 +956,10 @@ find_field:
 			}
 		}
 #endif
+
+		if ( !bDontWarnOnMissing )
+			Warning( "NetProp field (%s)->'%s' does not exist!\n", pEnt->GetClassname(), szProp );
+
 		return NULL;
 	}
 
@@ -970,7 +974,7 @@ public:
 		varinfo_t *pInfo = CacheFetch( pEnt, szProp );
 		if ( !pInfo )
 		{
-			pInfo = GetVarInfo( pEnt, szProp, INDEX_GET_TYPE );
+			pInfo = GetVarInfo( pEnt, szProp, INDEX_GET_TYPE, true );
 
 			if ( !pInfo )
 				return false;
