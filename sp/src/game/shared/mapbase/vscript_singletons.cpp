@@ -232,7 +232,14 @@ private:
 	#define MASK_INT_SIZE( _size ) ( ( 1 << (_size - 1) ) | ( (1 << (_size - 1)) - 1 ) )
 	#define MASK_NEAREST_BYTE( _bits ) ( ( (1 << ALIGN_TO_NEAREST_BYTE(_bits)) - 1 ) & ~((1 << _bits) - 1) )
 	#define ALIGN_TO_NEAREST_BYTE( _bits ) ( (_bits + 7) & ~7 )
-	#define VARINFO_ARRAYSIZE_BITS 12
+	#define VARINFO_ELEMSIZE_BITS 8
+	#define VARINFO_ARRAYSIZE_BITS 16
+	#define VARINFO_ELEMSIZE_MAX ( ( 1 << VARINFO_ELEMSIZE_BITS ) - 1 )
+	#define VARINFO_ARRAYSIZE_MAX ( ( 1 << VARINFO_ARRAYSIZE_BITS ) - 1 )
+
+	// Else either clamp 'arraysize' assignments to 0x7fffffff
+	// or change unsigned boundary checks
+	COMPILE_TIME_ASSERT( VARINFO_ARRAYSIZE_BITS < 32 );
 
 	struct varinfo_t
 	{
@@ -246,13 +253,13 @@ private:
 
 		enum types datatype : 16;
 
-		// element size in bytes
-		unsigned int elemsize : 8;
 		unsigned int arraysize : VARINFO_ARRAYSIZE_BITS;
+		// element size in bytes
+		unsigned int elemsize : VARINFO_ELEMSIZE_BITS;
 
 		// Following are only used in integer netprops to handle unsigned and size casting
-		bool isUnsigned : 1;
-		bool isNotNetworked : 1;
+		unsigned int isUnsigned : 1;
+		unsigned int isNotNetworked : 1;
 
 		int GetOffset( int index )
 		{
@@ -483,7 +490,9 @@ private:
 #define SetVarInfo()\
 				varinfo_t *pInfo = CacheNew( pEnt, szProp );\
 				pInfo->isNotNetworked = 0;\
+				Assert( pProp->GetElementStride() <= VARINFO_ELEMSIZE_MAX );\
 				pInfo->elemsize = pProp->GetElementStride();\
+				Assert( pProp->GetNumElements() > 0 && pProp->GetNumElements() <= VARINFO_ARRAYSIZE_MAX );\
 				pInfo->arraysize = pProp->GetNumElements();\
 				pInfo->offset = offset;
 
@@ -629,6 +638,7 @@ private:
 					{
 						varinfo_t *pInfo = CacheNew( pEnt, szProp );
 						pInfo->elemsize = sizeof(int);
+						Assert( pArray->GetNumProps() > 0 && pArray->GetNumProps() <= VARINFO_ARRAYSIZE_MAX );
 						pInfo->arraysize = pArray->GetNumProps();
 						pInfo->offset = offset;
 						pInfo->datatype = types::_EHANDLE;
@@ -655,6 +665,7 @@ private:
 							pInfo->elemsize = 0;
 						}
 
+						Assert( pArray->GetNumProps() > 0 && pArray->GetNumProps() <= VARINFO_ARRAYSIZE_MAX );
 						pInfo->arraysize = pArray->GetNumProps();
 						pInfo->offset = offset;
 						pInfo->mask = MASK_INT_SIZE( size );
@@ -666,6 +677,7 @@ private:
 				{
 					varinfo_t *pInfo = CacheNew( pEnt, szProp );
 					pInfo->elemsize = sizeof(float);
+					Assert( pArray->GetNumProps() > 0 && pArray->GetNumProps() <= VARINFO_ARRAYSIZE_MAX );
 					pInfo->arraysize = pArray->GetNumProps();
 					pInfo->offset = offset;
 					pInfo->datatype = types::_FLOAT;
@@ -675,6 +687,7 @@ private:
 				{
 					varinfo_t *pInfo = CacheNew( pEnt, szProp );
 					pInfo->elemsize = sizeof(float)*3;
+					Assert( pArray->GetNumProps() > 0 && pArray->GetNumProps() <= VARINFO_ARRAYSIZE_MAX );
 					pInfo->arraysize = pArray->GetNumProps();
 					pInfo->offset = offset;
 					pInfo->datatype = types::_VEC3;
@@ -684,6 +697,7 @@ private:
 				{
 					varinfo_t *pInfo = CacheNew( pEnt, szProp );
 					pInfo->elemsize = sizeof(float)*2;
+					Assert( pArray->GetNumProps() > 0 && pArray->GetNumProps() <= VARINFO_ARRAYSIZE_MAX );
 					pInfo->arraysize = pArray->GetNumProps();
 					pInfo->offset = offset;
 					pInfo->datatype = types::_VEC2;
@@ -809,7 +823,9 @@ find_field:
 #define SetVarInfo()\
 				varinfo_t *pInfo = CacheNew( pEnt, szProp );\
 				pInfo->isNotNetworked = 1;\
+				Assert( pField->fieldSizeInBytes / pField->fieldSize <= VARINFO_ELEMSIZE_MAX );\
 				pInfo->elemsize = pField->fieldSizeInBytes / pField->fieldSize;\
+				Assert( pField->fieldSize > 0 && pField->fieldSize <= VARINFO_ARRAYSIZE_MAX );\
 				pInfo->arraysize = pField->fieldSize;\
 				pInfo->offset = offset;
 
@@ -918,26 +934,26 @@ find_field:
 				else if ( IS_EHANDLE_UTLVECTOR( pField ) )
 				{
 					SetVarInfo();
-					pInfo->arraysize = ( 1 << VARINFO_ARRAYSIZE_BITS ) - 1; // dynamic, check on get
+					pInfo->arraysize = VARINFO_ARRAYSIZE_MAX;
 					pInfo->datatype = types::_DAR_EHANDLE;
 				}
 				else if ( pField->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_CLASSPTR, CBaseEntity* ) )
 				{
 					SetVarInfo();
-					pInfo->arraysize = ( 1 << VARINFO_ARRAYSIZE_BITS ) - 1; // dynamic, check on get
+					pInfo->arraysize = VARINFO_ARRAYSIZE_MAX;
 					pInfo->datatype = types::_DAR_CLASSPTR;
 				}
 				else if ( pField->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_INTEGER, int ) )
 				{
 					SetVarInfo();
-					pInfo->arraysize = ( 1 << VARINFO_ARRAYSIZE_BITS ) - 1; // dynamic, check on get
+					pInfo->arraysize = VARINFO_ARRAYSIZE_MAX;
 					pInfo->datatype = types::_DAR_INT;
 				}
 				else if ( pField->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_FLOAT, float ) ||
 						pField->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_TIME, float ) )
 				{
 					SetVarInfo();
-					pInfo->arraysize = ( 1 << VARINFO_ARRAYSIZE_BITS ) - 1; // dynamic, check on get
+					pInfo->arraysize = VARINFO_ARRAYSIZE_MAX;
 					pInfo->datatype = types::_DAR_FLOAT;
 				}
 				// Only used by CAI_PlayerAlly::m_PendingConcept
@@ -1114,7 +1130,7 @@ public:
 				return -1;
 		}
 
-		if ( index < 0 || (unsigned int)index >= pInfo->arraysize )
+		if ( (unsigned int)index >= pInfo->arraysize )
 			return -1;
 
 		if ( pInfo->isNotNetworked )
@@ -1175,7 +1191,7 @@ public:
 				return;
 		}
 
-		if ( index < 0 || (unsigned int)index >= pInfo->arraysize )
+		if ( (unsigned int)index >= pInfo->arraysize )
 			return;
 
 		if ( pInfo->isNotNetworked )
@@ -1266,7 +1282,7 @@ public:
 		if ( pInfo->datatype == types::_VEC3 )
 			arraysize *= 3;
 
-		if ( index < 0 || (unsigned int)index >= arraysize )
+		if ( (unsigned int)index >= arraysize )
 			return -1;
 
 		switch ( pInfo->datatype )
@@ -1311,7 +1327,7 @@ public:
 		if ( pInfo->datatype == types::_VEC3 )
 			arraysize *= 3;
 
-		if ( index < 0 || (unsigned int)index >= arraysize )
+		if ( (unsigned int)index >= arraysize )
 			return;
 
 		switch ( pInfo->datatype )
@@ -1355,7 +1371,7 @@ public:
 				return NULL;
 		}
 
-		if ( index < 0 || (unsigned int)index >= pInfo->arraysize )
+		if ( (unsigned int)index >= pInfo->arraysize )
 			return NULL;
 
 		switch ( pInfo->datatype )
@@ -1420,7 +1436,7 @@ public:
 				return;
 		}
 
-		if ( index < 0 || (unsigned int)index >= pInfo->arraysize )
+		if ( (unsigned int)index >= pInfo->arraysize )
 			return;
 
 		switch ( pInfo->datatype )
@@ -1482,7 +1498,7 @@ public:
 				return vec3_invalid;
 		}
 
-		if ( index < 0 || (unsigned int)index >= pInfo->arraysize )
+		if ( (unsigned int)index >= pInfo->arraysize )
 			return vec3_invalid;
 
 		switch ( pInfo->datatype )
@@ -1509,7 +1525,7 @@ public:
 				return;
 		}
 
-		if ( index < 0 || (unsigned int)index >= pInfo->arraysize )
+		if ( (unsigned int)index >= pInfo->arraysize )
 			return;
 
 		switch ( pInfo->datatype )
@@ -1536,7 +1552,7 @@ public:
 				return NULL;
 		}
 
-		if ( index < 0 || (unsigned int)index >= pInfo->arraysize )
+		if ( (unsigned int)index >= pInfo->arraysize )
 			return NULL;
 
 		switch ( pInfo->datatype )
@@ -1590,7 +1606,7 @@ public:
 				return;
 		}
 
-		if ( index < 0 || (unsigned int)index >= pInfo->arraysize )
+		if ( (unsigned int)index >= pInfo->arraysize )
 			return;
 
 		switch ( pInfo->datatype )
@@ -1902,7 +1918,6 @@ private:
 			case DPT_DataTable:
 			{
 				NetTable* pArray = pProp->GetDataTable();
-				Assert( pArray->GetNumProps() );
 
 				if ( V_strcmp( pProp->GetName(), pArray->GetName() ) != 0 )
 				{
@@ -1910,6 +1925,8 @@ private:
 					DumpNetTable_r( pVar, pArray );
 					break;
 				}
+
+				Assert( pArray->GetNumProps() > 0 && pArray->GetNumProps() <= VARINFO_ARRAYSIZE_MAX );
 
 				// Double check that each element is the same size
 				// Array indexing ints gets element size from this
@@ -1942,6 +1959,9 @@ private:
 				Assert( pProp->GetArrayProp() );
 				NetProp *pArray = pProp->GetArrayProp();
 				pVar += pArray->GetOffset();
+
+				Assert( pProp->GetNumElements() > 0 && pProp->GetNumElements() <= VARINFO_ARRAYSIZE_MAX );
+				Assert( pProp->GetElementStride() <= VARINFO_ELEMSIZE_MAX );
 
 				int numElements = pProp->GetNumElements();
 				int elementStride = pProp->GetElementStride();
@@ -2228,13 +2248,17 @@ private:
 				Print("null");
 				return;
 			}
+
+			Assert( vec.Count() >= 0 && vec.Count() <= VARINFO_ARRAYSIZE_MAX );
 			Print("\n%s[", m_indent.Get());
 			Indent1();
+
 			FOR_EACH_VEC( vec, i )
 			{
 				Print("\n%s", m_indent.Get());
 				PrintEntity( vec[i] );
 			}
+
 			Indent0();
 			Print("\n%s]", m_indent.Get());
 		}
@@ -2246,13 +2270,17 @@ private:
 				Print("null");
 				return;
 			}
+
+			Assert( vec.Count() >= 0 && vec.Count() <= VARINFO_ARRAYSIZE_MAX );
 			Print("\n%s[", m_indent.Get());
 			Indent1();
+
 			FOR_EACH_VEC( vec, i )
 			{
 				Print("\n%s", m_indent.Get());
 				Print( "%i", vec[i] );
 			}
+
 			Indent0();
 			Print("\n%s]", m_indent.Get());
 		}
@@ -2265,13 +2293,17 @@ private:
 				Print("null");
 				return;
 			}
+
+			Assert( vec.Count() >= 0 && vec.Count() <= VARINFO_ARRAYSIZE_MAX );
 			Print("\n%s[", m_indent.Get());
 			Indent1();
+
 			FOR_EACH_VEC( vec, i )
 			{
 				Print("\n%s", m_indent.Get());
 				Print( "%f", vec[i] );
 			}
+
 			Indent0();
 			Print("\n%s]", m_indent.Get());
 		}
@@ -2283,13 +2315,17 @@ private:
 				Print("null");
 				return;
 			}
+
+			Assert( vec.Count() >= 0 && vec.Count() <= VARINFO_ARRAYSIZE_MAX );
 			Print("\n%s[", m_indent.Get());
 			Indent1();
+
 			FOR_EACH_VEC( vec, i )
 			{
 				Print("\n%s", m_indent.Get());
 				PrintString( vec[i] );
 			}
+
 			Indent0();
 			Print("\n%s]", m_indent.Get());
 		}
@@ -2301,13 +2337,17 @@ private:
 				Print("null");
 				return;
 			}
+
+			Assert( vec.Count() >= 0 && vec.Count() <= VARINFO_ARRAYSIZE_MAX );
 			Print("\n%s[", m_indent.Get());
 			Indent1();
+
 			FOR_EACH_VEC( vec, i )
 			{
 				Print("\n%s", m_indent.Get());
 				PrintEntity( vec[i] );
 			}
+
 			Indent0();
 			Print("\n%s]", m_indent.Get());
 		}
@@ -2462,6 +2502,9 @@ private:
 			}
 			else
 			{
+				Assert( td->fieldSize > 0 && td->fieldSize <= VARINFO_ARRAYSIZE_MAX );
+				Assert( td->fieldSizeInBytes / td->fieldSize <= VARINFO_ELEMSIZE_MAX );
+
 				Print(" <");
 				PrintFieldType( pVar, td );
 				Print(" array> #%d", td->fieldSize);
