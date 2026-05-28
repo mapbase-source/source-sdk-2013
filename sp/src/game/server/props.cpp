@@ -41,6 +41,7 @@
 #include "physics_collisionevent.h"
 #include "gamestats.h"
 #include "vehicle_base.h"
+#include "physics_saverestore.h"
 #ifdef MAPBASE
 #include "mapbase/GlobalStrings.h"
 #include "collisionutils.h"
@@ -7186,6 +7187,7 @@ bool UTIL_CreateScaledPhysObject( CBaseAnimating *pInstance, float flScale )
 
 	pInstance->VPhysicsDestroyObject();
 	pInstance->VPhysicsSetObject( pNewObject );
+	g_pPhysSaveRestoreManager->AssociateModel( pNewObject, pInstance->GetModelIndex() );
 
 	// Increase our model bounds
 	const model_t *pModel = modelinfo->GetModel( pInstance->GetModelIndex() );
