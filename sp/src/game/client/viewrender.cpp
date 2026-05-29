@@ -164,6 +164,10 @@ static ConVar r_ForceWaterLeaf( "r_ForceWaterLeaf", "1", 0, "Enable for optimiza
 static ConVar mat_drawwater( "mat_drawwater", "1", FCVAR_CHEAT );
 static ConVar mat_clipz( "mat_clipz", "1" );
 
+#ifdef MAPBASE
+static ConVar r_water_use_fix_for_bleeding("r_water_use_fix_for_bleeding", "1", FCVAR_ARCHIVE, "Enable hack that adjusts the clipping plane so it fixes bleeding");
+#endif
+
 
 //-----------------------------------------------------------------------------
 // Other convars
@@ -6595,6 +6599,12 @@ void CAboveWaterView::CRefractionView::Setup()
 	m_DrawFlags = DF_RENDER_REFRACTION | DF_CLIP_Z | 
 		DF_RENDER_UNDERWATER | DF_FUDGE_UP | 
 		DF_DRAW_ENTITITES ;
+
+#ifdef MAPBASE
+	// Single check if enough, no need to repeat that in Draw just for +2.f
+	if (r_water_use_fix_for_bleeding.GetBool())
+		m_DrawFlags |= DF_RENDER_ABOVEWATER;
+#endif
 }
 
 
@@ -6611,11 +6621,19 @@ void CAboveWaterView::CRefractionView::Draw()
 	int nSaveViewID = CurrentViewID();
 	SetupCurrentView( origin, angles, VIEW_REFRACTION );
 
+#ifdef MAPBASE
+	DrawSetup( GetOuter()->m_waterHeight + 2.f, m_DrawFlags, GetOuter()->m_waterZAdjust );
+#else
 	DrawSetup( GetOuter()->m_waterHeight, m_DrawFlags, GetOuter()->m_waterZAdjust );
+#endif
 
 	SetFogVolumeState( GetOuter()->m_fogInfo, true );
 	SetClearColorToFogColor();
+#ifdef MAPBASE
+	DrawExecute( GetOuter()->m_waterHeight + 2.f, VIEW_REFRACTION, GetOuter()->m_waterZAdjust );
+#else
 	DrawExecute( GetOuter()->m_waterHeight, VIEW_REFRACTION, GetOuter()->m_waterZAdjust );
+#endif
 
 #ifdef PORTAL
 	// deal with stencil
