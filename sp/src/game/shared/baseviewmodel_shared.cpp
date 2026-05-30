@@ -367,13 +367,16 @@ void CBaseViewModel::SetWeaponModel( const char *modelname, CBaseCombatWeapon *w
 #endif
 
 #ifdef MAPBASE
-	// If our owning weapon doesn't support hands, disable the hands viewmodel(s)
-	bool bSupportsHands = weapon != NULL ? weapon->UsesHands() : false;
-	for (CBaseEntity *pChild = FirstMoveChild(); pChild != NULL; pChild = pChild->NextMovePeer())
+	if ( !( GetEffects() & EF_NODRAW ) )
 	{
-		if (pChild->GetClassname()[0] == 'h')
+		// If our owning weapon doesn't support hands, disable the hands viewmodel(s)
+		bool bSupportsHands = weapon != NULL ? weapon->UsesHands() : false;
+		for (CBaseEntity *pChild = FirstMoveChild(); pChild != NULL; pChild = pChild->NextMovePeer())
 		{
-			bSupportsHands ? pChild->RemoveEffects( EF_NODRAW ) : pChild->AddEffects( EF_NODRAW );
+			if (pChild->GetClassname()[0] == 'h')
+			{
+				bSupportsHands ? pChild->RemoveEffects( EF_NODRAW ) : pChild->AddEffects( EF_NODRAW );
+			}
 		}
 	}
 #endif
