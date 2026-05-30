@@ -340,6 +340,7 @@ private:
 	bool		m_bWaitForDropoffInput;
 #ifdef MAPBASE
 	bool		m_bDontEmitDanger;
+	bool		m_bUseAvoidEnts;
 #endif
 
 	DECLARE_DATADESC();
@@ -827,6 +828,7 @@ BEGIN_DATADESC( CNPC_CombineDropship )
 	DEFINE_FIELD( m_bWaitForDropoffInput, FIELD_BOOLEAN ),
 #ifdef MAPBASE
 	DEFINE_KEYFIELD( m_bDontEmitDanger, FIELD_BOOLEAN, "DontEmitDanger" ),
+	DEFINE_KEYFIELD( m_bUseAvoidEnts, FIELD_BOOLEAN, "UseAvoidEnts" ),
 #endif
 	DEFINE_FIELD( m_hLandTarget, FIELD_EHANDLE ),
 	DEFINE_FIELD( m_bHasDroppedOff, FIELD_BOOLEAN ),
@@ -1379,6 +1381,18 @@ void CNPC_CombineDropship::Flight( void )
 				VectorMA( accel, flAmount * 200.0f, vecDelta, accel );
 			}
 		}
+
+#ifdef MAPBASE
+		// Apply avoidance forces
+		if ( m_bUseAvoidEnts )
+		{
+			Vector vecAvoidForce;
+			CAvoidSphere::ComputeAvoidanceForces( this, 350.0f, 2.0f, &vecAvoidForce );
+			accel += vecAvoidForce;
+			CAvoidBox::ComputeAvoidanceForces( this, 350.0f, 2.0f, &vecAvoidForce );
+			accel += vecAvoidForce;
+		}
+#endif
 
 		// don't fall faster than 0.2G or climb faster than 2G
 		accel.z = clamp( accel.z, 384 * 0.2, 384 * 2.0 );
