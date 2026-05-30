@@ -807,9 +807,51 @@ bool CBaseFlex::StartSceneEvent( CSceneEventInfo *info, CChoreoScene *scene, CCh
 					textParams.fadeinTime = 0.5f;
 					textParams.fadeoutTime = 0.5f;
 
-					textParams.channel = 3;
+					// Push text farther down if the previous one is still active
+					static float g_flLastTextStartTime = 0.0f;
+					static float g_flLastTextEndTime = 0.0f;
+					static int g_nLastTextActor = 0;
+					static int g_nTextSlot = 0;
+
+					// Which actor am I?
+					int nActor = 0;
+					for ( int i = 0; i < scene->GetNumActors(); i++ )
+					{
+						if (scene->GetActor( i ) == actor)
+						{
+							nActor = i;
+							break;
+						}
+					}
+
+					float flStartTime = event->GetStartTime();
+					if ( g_flLastTextStartTime > flStartTime )
+					{
+						// New scene, reset slot
+						g_nTextSlot = 0;
+					}
+					else if ( nActor != g_nLastTextActor )
+					{
+						if ( g_flLastTextEndTime > flStartTime )
+						{
+							// Put it on another slot
+							g_nTextSlot++;
+						}
+						else
+						{
+							g_nTextSlot = 0;
+						}
+					}
+
+					g_flLastTextStartTime = flStartTime;
+					g_flLastTextEndTime = event->GetEndTime() + textParams.fadeoutTime;
+					g_nLastTextActor = nActor;
+
+					const int nMaxActors = 2;
+
+					textParams.channel = 2 + ( g_nTextSlot % nMaxActors );
 					textParams.x = -1;
-					textParams.y = 0.6;
+					textParams.y = 0.6 + (( g_nTextSlot % nMaxActors ) * 0.1);
 					textParams.effect = 0;
 
 					textParams.r1 = 255;
