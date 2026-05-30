@@ -92,8 +92,6 @@ public:
 #ifdef MAPBASE
 	virtual void PerformLayout();
 	void ResolveBounds( int width, int height );
-
-	virtual void LevelShutdown();
 #endif
 
 private:
@@ -117,10 +115,6 @@ private:
 
 	vgui::Label *m_pFootnoteLabel;
 	vgui::HFont m_hSmallFont;
-
-	// HACKHACK: Needed as a failsafe to prevent desync
-	int		m_iCCDefaultY;
-	float	m_flCCAnimTime;
 
 	bool	m_bShouldRepositionSubtitles;
 #endif
@@ -909,9 +903,6 @@ CHudCommentary::CHudCommentary( const char *name ) : vgui::Panel( NULL, "HudComm
 	m_pImage->SetShouldScaleImage( true );
 
 	m_pFootnoteLabel = new vgui::Label( this, "HudCommentaryFootnoteLabel", L"Commentary footnote" );
-
-	m_iCCDefaultY = 0;
-	m_flCCAnimTime = 0.0f;
 #endif
 }
 
@@ -955,12 +946,9 @@ void CHudCommentary::Paint()
 
 #ifdef MAPBASE
 				// Reset close caption element if needed
-				if (pHudCloseCaption->IsUsingCommentaryDimensions())
+				if (pHudCloseCaption->IsUsingCustomDimensions( ToHandle() ))
 				{
-					// Run this animation command instead of setting the position directly
-					g_pClientMode->GetViewportAnimationController()->RunAnimationCommand( pHudCloseCaption, "YPos", m_iCCDefaultY, 0.0f, 0.4f, vgui::AnimationController::INTERPOLATOR_ACCEL );
-
-					pHudCloseCaption->SetUsingCommentaryDimensions( false );
+					pHudCloseCaption->StopUsingCustomDimensions();
 				}
 #endif
 			}
@@ -978,12 +966,9 @@ void CHudCommentary::Paint()
 
 			// Reset close caption element if needed
 			CHudCloseCaption *pHudCloseCaption = (CHudCloseCaption *)GET_HUDELEMENT( CHudCloseCaption );
-			if (pHudCloseCaption && pHudCloseCaption->IsUsingCommentaryDimensions())
+			if (pHudCloseCaption && pHudCloseCaption->IsUsingCustomDimensions(ToHandle()))
 			{
-				// Run this animation command instead of setting the position directly
-				g_pClientMode->GetViewportAnimationController()->RunAnimationCommand( pHudCloseCaption, "YPos", m_iCCDefaultY, 0.0f, 0.4f, vgui::AnimationController::INTERPOLATOR_ACCEL );
-
-				pHudCloseCaption->SetUsingCommentaryDimensions( false );
+				pHudCloseCaption->StopUsingCustomDimensions();
 			}
 #endif
 
@@ -1306,30 +1291,6 @@ void CHudCommentary::ResolveBounds( int width, int height )
 
 	SetBounds( xPos, yPos, width, height );
 }
-
-//-----------------------------------------------------------------------------
-// Purpose: 
-//-----------------------------------------------------------------------------
-void CHudCommentary::LevelShutdown( void )
-{
-	if (m_iCCDefaultY != 0)
-	{
-		CHudCloseCaption *pHudCloseCaption = (CHudCloseCaption *)GET_HUDELEMENT( CHudCloseCaption );
-		if (pHudCloseCaption && pHudCloseCaption->IsUsingCommentaryDimensions())
-		{
-			int ccX, ccY;
-			pHudCloseCaption->GetPos( ccX, ccY );
-
-			if (m_iCCDefaultY != ccY)
-			{
-				DevMsg( "CHudCommentary had to reset misaligned CC element Y (%i) to default Y (%i)\n", ccY, m_iCCDefaultY );
-				pHudCloseCaption->SetPos( ccX, m_iCCDefaultY );
-			}
-
-			pHudCloseCaption->SetUsingCommentaryDimensions( false );
-		}
-	}
-}
 #endif
 
 //-----------------------------------------------------------------------------
@@ -1351,9 +1312,6 @@ void CHudCommentary::VidInit( void )
 { 
 	SetAlpha(0);
 	StopCommentary();
-#ifdef MAPBASE
-	m_iCCDefaultY = 0;
-#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -1677,12 +1635,9 @@ void CHudCommentary::StopCommentary( void )
 #ifdef MAPBASE
 	// Reset close caption element if needed
 	CHudCloseCaption *pHudCloseCaption = (CHudCloseCaption *)GET_HUDELEMENT( CHudCloseCaption );
-	if (pHudCloseCaption && pHudCloseCaption->IsUsingCommentaryDimensions())
+	if (pHudCloseCaption && pHudCloseCaption->IsUsingCustomDimensions(ToHandle()))
 	{
-		// Run this animation command instead of setting the position directly
-		g_pClientMode->GetViewportAnimationController()->RunAnimationCommand( pHudCloseCaption, "YPos", m_iCCDefaultY, 0.0f, 0.4f, vgui::AnimationController::INTERPOLATOR_ACCEL );
-
-		pHudCloseCaption->SetUsingCommentaryDimensions( false );
+		pHudCloseCaption->StopUsingCustomDimensions();
 	}
 #endif
 }
@@ -1748,12 +1703,9 @@ void CHudCommentary::FixupCommentaryLabels( const char *pszPrintName, const char
 	// Reset close caption element if it's still using commentary dimensions
 	// (fixes problems with switching from node to node)
 	CHudCloseCaption *pHudCloseCaption = (CHudCloseCaption *)GET_HUDELEMENT( CHudCloseCaption );
-	if (pHudCloseCaption && pHudCloseCaption->IsUsingCommentaryDimensions())
+	if (pHudCloseCaption && pHudCloseCaption->IsUsingCustomDimensions(ToHandle()))
 	{
-		// Run this animation command instead of setting the position directly
-		g_pClientMode->GetViewportAnimationController()->RunAnimationCommand( pHudCloseCaption, "YPos", m_iCCDefaultY, 0.0f, 0.4f, vgui::AnimationController::INTERPOLATOR_ACCEL );
-
-		pHudCloseCaption->SetUsingCommentaryDimensions( false );
+		pHudCloseCaption->StopUsingCustomDimensions();
 	}
 }
 
@@ -1767,41 +1719,29 @@ void CHudCommentary::RepositionAndFollowCloseCaption( int yOffset )
 
 	// Place underneath the close caption element
 	CHudCloseCaption *pHudCloseCaption = (CHudCloseCaption *)GET_HUDELEMENT( CHudCloseCaption );
-	if (pHudCloseCaption /*&& !pHudCloseCaption->IsUsingCommentaryDimensions()*/)
+	if (pHudCloseCaption /*&& !pHudCloseCaption->IsUsingCustomDimensions()*/)
 	{
 		int ccX, ccY;
 		pHudCloseCaption->GetPos( ccX, ccY );
 
-		// Save the default position in case we need to do a hard reset
-		// (this usually happens when players begin commentary before the CC element's return animation command is finished)
-		if (m_iCCDefaultY == 0)
-		{
-			m_iCCDefaultY = ccY;
-		}
+		int ccDefX, ccDefY;
+		pHudCloseCaption->GetDefaultPos( ccDefX, ccDefY );
 
-		if (!pHudCloseCaption->IsUsingCommentaryDimensions())
+		if (!pHudCloseCaption->IsUsingCustomDimensions( ToHandle() ))
 		{
-			if (m_iCCDefaultY != ccY /*&& !pHudCloseCaption->IsUsingCommentaryDimensions()*/)
+			if (ccDefY != ccY /*&& !pHudCloseCaption->IsUsingCustomDimensions()*/)
 			{
-				DevMsg( "CHudCommentary had to reset misaligned CC element Y (%i) to default Y (%i)\n", ccY, m_iCCDefaultY );
-				ccY = m_iCCDefaultY;
+				ccY = ccDefY;
 			}
 
 			ccY -= m_iTypeAudioT;
 
-			// Run this animation command instead of setting the position directly
-			g_pClientMode->GetViewportAnimationController()->RunAnimationCommand( pHudCloseCaption, "YPos", ccY - yOffset, 0.0f, 0.2f, vgui::AnimationController::INTERPOLATOR_DEACCEL );
-			//pHudCloseCaption->SetPos( ccX, ccY );
-			m_flCCAnimTime = gpGlobals->curtime + 0.2f;
-
-			pHudCloseCaption->SetUsingCommentaryDimensions( true );
+			pHudCloseCaption->StartUsingCustomDimensions( ToHandle(), -1, ccY - yOffset );
 		}
-		else if (gpGlobals->curtime > m_flCCAnimTime && ccY != m_iCCDefaultY - m_iTypeAudioT - yOffset)
+		else if (!pHudCloseCaption->IsMovingToCustomDimensions() && ccY != ccDefY - m_iTypeAudioT - yOffset)
 		{
-			DevMsg( "CHudCommentary had to correct misaligned CC element offset (%i != %i)\n", m_iCCDefaultY - ccY, yOffset );
-
-			g_pClientMode->GetViewportAnimationController()->RunAnimationCommand( pHudCloseCaption, "YPos", m_iCCDefaultY - m_iTypeAudioT - yOffset, 0.0f, 0.2f, vgui::AnimationController::INTERPOLATOR_DEACCEL );
-			m_flCCAnimTime = gpGlobals->curtime + 0.2f;
+			DevMsg( "CHudCommentary had to correct misaligned CC element offset (%i != %i)\n", ccDefY - ccY, yOffset );
+			pHudCloseCaption->StartUsingCustomDimensions( ToHandle(), -1, ccDefY - m_iTypeAudioT - yOffset );
 		}
 
 		SetPos( ccX, ccY + pHudCloseCaption->GetTall() + commentary_audio_element_below_cc_margin.GetInt() );

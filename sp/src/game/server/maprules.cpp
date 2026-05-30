@@ -841,6 +841,8 @@ BEGIN_DATADESC( CGameMenu )
 
 	DEFINE_KEYFIELD( m_iszTitle, FIELD_STRING, "Title" ),
 
+	DEFINE_KEYFIELD( m_bSkipEmptyCases, FIELD_BOOLEAN, "SkipEmptyCases" ),
+
 	DEFINE_KEYFIELD( m_iszOption[0], FIELD_STRING, "Case01" ),
 	DEFINE_KEYFIELD( m_iszOption[1], FIELD_STRING, "Case02" ),
 	DEFINE_KEYFIELD( m_iszOption[2], FIELD_STRING, "Case03" ),
@@ -856,6 +858,17 @@ BEGIN_DATADESC( CGameMenu )
 	DEFINE_INPUTFUNC( FIELD_VOID, "ShowMenu", InputShowMenu ),
 	DEFINE_INPUTFUNC( FIELD_VOID, "HideMenu", InputHideMenu ),
 	DEFINE_INPUTFUNC( FIELD_VOID, "__DoRestore", InputDoRestore ),
+
+	DEFINE_INPUTFUNC( FIELD_STRING, "SetCase01", InputSetCase01 ),
+	DEFINE_INPUTFUNC( FIELD_STRING, "SetCase02", InputSetCase02 ),
+	DEFINE_INPUTFUNC( FIELD_STRING, "SetCase03", InputSetCase03 ),
+	DEFINE_INPUTFUNC( FIELD_STRING, "SetCase04", InputSetCase04 ),
+	DEFINE_INPUTFUNC( FIELD_STRING, "SetCase05", InputSetCase05 ),
+	DEFINE_INPUTFUNC( FIELD_STRING, "SetCase06", InputSetCase06 ),
+	DEFINE_INPUTFUNC( FIELD_STRING, "SetCase07", InputSetCase07 ),
+	DEFINE_INPUTFUNC( FIELD_STRING, "SetCase08", InputSetCase08 ),
+	DEFINE_INPUTFUNC( FIELD_STRING, "SetCase09", InputSetCase09 ),
+	DEFINE_INPUTFUNC( FIELD_STRING, "SetCase10", InputSetCase10 ),
 
 	// Outputs
 	DEFINE_OUTPUT( m_OnCase[0], "OnCase01" ),
@@ -1007,23 +1020,62 @@ void CGameMenu::ShowMenu( CRecipientFilter &filter, float flDisplayTime )
 	// Insert newline even if there's no string
 	V_strncat( szString, "\n", sizeof( szString ) );
 
-	// Populate the options
-	for (int i = 0; i < MAX_MENU_OPTIONS; i++)
+	if ( m_bSkipEmptyCases )
 	{
-		if (m_iszOption[i] != NULL_STRING)
+		// We use a slightly different routine here since there can be no empty options
+		for (int i = 0; i < MAX_MENU_OPTIONS; i++)
 		{
+			if (m_iszOption[i] != NULL_STRING)
+			{
+				if ( i == LAST_MENU_OPTION )
+				{
+					// If there is a 0th option, fill up everything in between
+					for ( int j = nBitsValidSlots; j < LAST_MENU_OPTION; j++ )
+						V_strncat( szString, " \n", sizeof( szString ) );
+				}
+				else
+				{
+					// Corresponding slot does not matter
+					// Converted to bitmask farther below
+					nBitsValidSlots++;
+				}
+
+				V_strncat( szString, STRING( m_iszOption[i] ), sizeof( szString ) );
+				V_strncat( szString, "\n", sizeof( szString ) );
+			}
+		}
+
+		// Now make nBitsValidSlots reflect the number of options
+		int nNumCases = nBitsValidSlots;
+		nBitsValidSlots = 0;
+
+		for ( int i = 0; i < nNumCases; i++ )
 			nBitsValidSlots |= (1 << i);
 
-			V_strncat( szString, STRING( m_iszOption[i] ), sizeof( szString ) );
-		}
-		else
+		// Case 10 is a special case since it's normally used for canceling
+		if ( m_iszOption[LAST_MENU_OPTION] != NULL_STRING )
+			nBitsValidSlots |= (1 << LAST_MENU_OPTION);
+	}
+	else
+	{
+		// Populate the options
+		for (int i = 0; i < MAX_MENU_OPTIONS; i++)
 		{
-			// Insert space to tell menu code to skip
-			V_strncat( szString, " ", sizeof( szString ) );
-		}
+			if (m_iszOption[i] != NULL_STRING)
+			{
+				nBitsValidSlots |= (1 << i);
 
-		// Insert newline even if there's no string
-		V_strncat( szString, "\n", sizeof( szString ) );
+				V_strncat( szString, STRING( m_iszOption[i] ), sizeof( szString ) );
+			}
+			else
+			{
+				// Insert space to tell menu code to skip
+				V_strncat( szString, " ", sizeof( szString ) );
+			}
+
+			// Insert newline even if there's no string
+			V_strncat( szString, "\n", sizeof( szString ) );
+		}
 	}
 
 	if (nBitsValidSlots <= 0 && m_iszTitle == NULL_STRING)
@@ -1032,10 +1084,14 @@ void CGameMenu::ShowMenu( CRecipientFilter &filter, float flDisplayTime )
 		return;
 	}
 
+	// Menu flags are just spawnflags without ALLPLAYERS
+	int nMenuFlags = m_spawnflags >> 1;
+
 	UserMessageBegin( filter, "ShowMenuComplex" );
 		WRITE_WORD( nBitsValidSlots );
 		WRITE_FLOAT( flDisplayTime );
 		WRITE_BYTE( 0 );
+		WRITE_BYTE( nMenuFlags );
 		WRITE_STRING( szString );
 	MessageEnd();
 
@@ -1100,6 +1156,24 @@ void CGameMenu::MenuSelected( int nSlot, CBaseEntity *pActivator )
 	{
 		Warning( "%s: Invalid slot %i\n", GetDebugName(), nSlot );
 		return;
+	}
+
+	if ( m_bSkipEmptyCases && nSlot != LAST_MENU_OPTION )
+	{
+		// Ascertain true slot based on which valid one this corresponds to
+		int nNumValidSlots = 0;
+		for (int i = 0; i < MAX_MENU_OPTIONS; i++)
+		{
+			if (m_iszOption[i] != NULL_STRING)
+			{
+				nNumValidSlots++;
+				if ( nSlot == nNumValidSlots )
+				{
+					nSlot = i+1;
+					break;
+				}
+			}
+		}
 	}
 
 	m_OnCase[nSlot-1].FireOutput( pActivator, this );

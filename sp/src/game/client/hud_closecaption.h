@@ -139,8 +139,15 @@ public:
 	void			FindSound( char const *pchANSI );
 
 #ifdef MAPBASE
-	inline bool		IsUsingCommentaryDimensions() const { return m_bUsingCommentaryDimensions; }
-	inline void		SetUsingCommentaryDimensions( bool bToggle ) { m_bUsingCommentaryDimensions = bToggle; }
+	// Other HUD elements may need to take the caption element's place
+	inline bool		IsUsingCustomDimensions() const { return m_hCustomDimensionsOwner != vgui::INVALID_PANEL; }
+	inline bool		IsUsingCustomDimensions( vgui::HPanel hOwner ) const { return m_hCustomDimensionsOwner == hOwner; }
+	inline bool		IsMovingToCustomDimensions() const { return m_flCustomDimensionsAnimTime > gpGlobals->curtime; }
+	inline float	GetBackgroundAlpha() const { return m_flBackgroundAlpha; }
+
+	void		GetDefaultPos( int &x, int &y );
+	void		StartUsingCustomDimensions( vgui::HPanel hOwner, int nNewX, int nNewY, float flAnimTime = 0.2f );
+	void		StopUsingCustomDimensions( float flAnimTime = 0.4f );
 #endif
 
 public:
@@ -224,7 +231,9 @@ private:
 	CUtlSymbol	m_CurrentLanguage;
 
 #ifdef MAPBASE
-	bool		m_bUsingCommentaryDimensions;
+	vgui::HPanel	m_hCustomDimensionsOwner;
+	float			m_flCustomDimensionsAnimTime;
+	int				m_nDefaultX, m_nDefaultY;
 #endif
 };
 
