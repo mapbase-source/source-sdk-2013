@@ -205,6 +205,8 @@ ConVar  player_debug_print_damage( "player_debug_print_damage", "0", FCVAR_CHEAT
 
 #ifdef MAPBASE
 ConVar	player_use_visibility_cache( "player_use_visibility_cache", "0", FCVAR_NONE, "Allows the player to use the visibility cache." );
+ConVar	player_override_impulse_101( "player_override_impulse_101", "0", FCVAR_NONE, "Makes cfg/impulse_101.cfg override the original command, rather than running both." );
+ConVar	player_override_give( "player_override_give", "0", FCVAR_NONE, "If enabled, the 'give' command will overwrite occupied weapon slots." );
 #endif
 
 
@@ -248,6 +250,74 @@ void CC_GiveCurrentAmmo( void )
 	}
 }
 static ConCommand givecurrentammo("givecurrentammo", CC_GiveCurrentAmmo, "Give a supply of ammo for current weapon..\n", FCVAR_CHEAT );
+
+
+#ifdef MAPBASE
+void CC_GiveSpecificAmmo( const CCommand &command )
+{
+	if ( command.ArgC() < 2 )
+	{
+		Msg( "Usage: giveammo <name> <opt: amount> <opt: no sound>\n" );
+		return;
+	}
+
+	CBasePlayer *pPlayer = UTIL_GetCommandClient();
+	if ( !pPlayer )
+		pPlayer = UTIL_PlayerByIndex(1);
+
+	if( pPlayer )
+	{
+		int iAmmoType = GetAmmoDef()->Index( command.Arg( 1 ) );
+
+		if ( iAmmoType > -1 )
+		{
+			int iAmmoToGive = 0;
+			if ( command.ArgC() > 2 )
+				iAmmoToGive = atoi( command.Arg( 2 ) );
+
+			if ( iAmmoToGive == 0 )
+			{
+				iAmmoToGive = GetAmmoDef()->MaxCarry( iAmmoType );
+			}
+
+			bool bSuppressSound = false;
+			if ( command.ArgC() > 3 )
+				bSuppressSound = atoi( command.Arg( 3 ) ) ? true : false;
+
+			pPlayer->GiveAmmo( iAmmoToGive, iAmmoType, bSuppressSound );
+		}
+		else
+		{
+			Warning( "Unknown ammo type \"%s\"\n", command.Arg( 1 ) );
+		}
+	}
+}
+static ConCommand giveammo("giveammo", CC_GiveSpecificAmmo, "Give a supply of ammo for a specific type.\n\tUsage: giveammo <name> <opt: amount> <opt: no sound>\n", FCVAR_CHEAT );
+
+void CC_GiveHealth( const CCommand &command )
+{
+	CBasePlayer *pPlayer = UTIL_GetCommandClient();
+	if ( !pPlayer )
+		pPlayer = UTIL_PlayerByIndex(1);
+
+	if( pPlayer )
+	{
+		int flHealthToGive = 25.0f;
+		if ( command.ArgC() > 1 )
+			flHealthToGive = atof( command.Arg( 1 ) );
+
+		int iDamageType = 0;
+		if ( command.ArgC() > 2 )
+			iDamageType = atoi( command.Arg( 2 ) );
+
+		if ( pPlayer->GetHealth() < pPlayer->GetMaxHealth() || flHealthToGive < 0.0f )
+		{
+			pPlayer->TakeHealth( flHealthToGive, iDamageType );
+		}
+	}
+}
+static ConCommand givehealth("givehealth", CC_GiveHealth, "Give health if not at max.\n\tUsage: givehealth <amount, default 25> <opt: damage type>\n", FCVAR_CHEAT );
+#endif
 
 
 // pl
@@ -6052,9 +6122,17 @@ CBaseEntity	*CBasePlayer::GiveNamedItem( const char *pszName, int iSubType )
 				// Make sure it matches the subtype
 				if ( m_hMyWeapons[i]->GetSubType() == iSubType )
 				{
-					// Don't use this weapon if the slot is already occupied
-					UTIL_Remove( pWeapon );
-					return NULL;
+					if ( player_override_give.GetBool() )
+					{
+						// Remove the existing weapon
+						UTIL_Remove( m_hMyWeapons[i] );
+					}
+					else
+					{
+						// Don't use this weapon if the slot is already occupied
+						UTIL_Remove( pWeapon );
+						return NULL;
+					}
 				}
 			}
 		}
@@ -6527,6 +6605,23 @@ void CBasePlayer::CheatImpulseCommands( int iImpulse )
 
 	case 101:
 		gEvilImpulse101 = true;
+
+#ifdef MAPBASE
+		// Mod-specific impulse 101
+		// If you're trying to add new weapons to impulse 101, consider using this file instead.
+		if ( g_pFullFileSystem->FileExists( "cfg/impulse_101.cfg", "MOD" ) )
+		{
+			engine->ClientCommand( edict(), "exec impulse_101" );
+
+			// Use this cvar to suppress default impulse 101 items.
+			// (NOTE: The impulse_101 cfg cannot reliably set this on its own, so you may need to put it in your autoexec instead)
+			if ( player_override_impulse_101.GetBool() )
+			{
+				gEvilImpulse101 = false;
+				break;
+			}
+		}
+#endif
 
 		EquipSuit();
 
