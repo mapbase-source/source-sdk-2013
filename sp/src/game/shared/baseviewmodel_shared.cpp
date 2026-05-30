@@ -524,10 +524,17 @@ void CBaseViewModel::CalcViewModelLag( Vector& origin, QAngle& angles, QAngle& o
 	Vector	forward;
 	AngleVectors( angles, &forward, NULL, NULL );
 
+#ifdef MAPBASE
+	Vector vDifference;
+	VectorSubtract( forward, m_vecLastFacing, vDifference );
+#endif
+
 	if ( gpGlobals->frametime != 0.0f )
 	{
+#ifndef MAPBASE
 		Vector vDifference;
 		VectorSubtract( forward, m_vecLastFacing, vDifference );
+#endif
 
 		float flSpeed = 5.0f;
 
@@ -561,10 +568,16 @@ void CBaseViewModel::CalcViewModelLag( Vector& origin, QAngle& angles, QAngle& o
 		VectorMA( m_vecLastFacing, flSpeed * gpGlobals->frametime, vDifference, m_vecLastFacing );
 		// Make sure it doesn't grow out of control!!!
 		VectorNormalize( m_vecLastFacing );
+#ifndef MAPBASE
 		VectorMA( origin, 5.0f, vDifference * -1.0f, origin );
+#endif
 
 		Assert( m_vecLastFacing.IsValid() );
 	}
+	
+#ifdef MAPBASE
+	VectorMA( origin, 5.0f, vDifference * -1.0f, origin );
+#endif
 
 	Vector right, up;
 	AngleVectors( original_angles, &forward, &right, &up );
