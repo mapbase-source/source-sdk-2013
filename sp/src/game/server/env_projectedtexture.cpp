@@ -51,6 +51,7 @@ BEGIN_DATADESC( CEnvProjectedTexture )
 	DEFINE_FIELD( m_flQuadraticAtten, FIELD_FLOAT ),
 	DEFINE_KEYFIELD( m_flShadowAtten, FIELD_FLOAT, "shadowatten" ),
 	DEFINE_KEYFIELD( m_flShadowFilter, FIELD_FLOAT, "shadowfilter" ),
+	DEFINE_KEYFIELD(m_bEnableTextureAnimation, FIELD_BOOLEAN, "enabletextureanimation"),
 #endif
 
 	DEFINE_INPUTFUNC( FIELD_VOID, "TurnOn", InputTurnOn ),
@@ -85,6 +86,7 @@ BEGIN_DATADESC( CEnvProjectedTexture )
 	DEFINE_INPUTFUNC( FIELD_VOID, "AlwaysDrawOff", InputAlwaysDrawOff ),
 	DEFINE_INPUTFUNC( FIELD_VOID, "StopFollowingTarget", InputStopFollowingTarget ),
 	DEFINE_INPUTFUNC( FIELD_VOID, "StartFollowingTarget", InputStartFollowingTarget ),
+	DEFINE_INPUTFUNC(FIELD_BOOLEAN, "SetTextureAnimationState", InputSetTextureAnimationState),
 #endif
 	DEFINE_THINKFUNC( InitialThink ),
 END_DATADESC()
@@ -120,6 +122,7 @@ IMPLEMENT_SERVERCLASS_ST( CEnvProjectedTexture, DT_EnvProjectedTexture )
 	SendPropFloat( SENDINFO( m_flShadowAtten ) ),
 	SendPropFloat( SENDINFO( m_flShadowFilter ) ),
 	SendPropBool( SENDINFO( m_bAlwaysDraw ) ),
+	SendPropBool(SENDINFO(m_bEnableTextureAnimation)),
 
 	// Not needed on the client right now, change when it actually is needed
 	//SendPropBool( SENDINFO( m_bProjectedTextureVersion ) ),
@@ -162,6 +165,7 @@ CEnvProjectedTexture::CEnvProjectedTexture( void )
 	m_flConstantAtten = 0.0f;
 	m_flShadowAtten = 0.0f;
 	m_flShadowFilter = 0.5f;
+	m_bEnableTextureAnimation = false;
 #endif
 }
 
