@@ -8620,15 +8620,19 @@ void CMovementSpeedMod::InputEnable(inputdata_t &data)
 			
 			pPlayer->HideViewModels();
 		}
-
-		// Turn off the flashlight
-		if ( pPlayer->FlashlightIsOn() )
-		{
-			pPlayer->FlashlightTurnOff();
-		}
 		
-		// Disable the flashlight's further use
-		pPlayer->SetFlashlightEnabled( false );
+		if ( !HasSpawnFlags( SF_SPEED_MOD_DONT_SUPPRESS_FLASHLIGHT ) )
+		{
+			// Turn off the flashlight
+			if ( pPlayer->FlashlightIsOn() )
+			{
+				pPlayer->FlashlightTurnOff();
+			}
+		
+			// Disable the flashlight's further use
+			pPlayer->SetFlashlightEnabled( false );
+		}
+
 		pPlayer->DisableButtons( GetDisabledButtonMask() );
 
 		// Hide the HUD
@@ -8663,9 +8667,13 @@ void CMovementSpeedMod::InputDisable(inputdata_t &data)
 				pPlayer->GetActiveWeapon()->Deploy();
 			}
 		}
+		
+		if ( !HasSpawnFlags( SF_SPEED_MOD_DONT_SUPPRESS_FLASHLIGHT ) )
+		{
+			// Allow the flashlight again
+			pPlayer->SetFlashlightEnabled( true );
+		}
 
-		// Allow the flashlight again
-		pPlayer->SetFlashlightEnabled( true );
 		pPlayer->EnableButtons( GetDisabledButtonMask() );
 
 		// Restore the HUD
