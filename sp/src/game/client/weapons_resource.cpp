@@ -104,6 +104,16 @@ void WeaponsResource::LoadWeaponSprites( WEAPON_FILE_INFO_HANDLE hWeaponFileInfo
 	pWeaponInfo->iconSmall = NULL;
 
 	char sz[128];
+
+#ifdef MAPBASE
+	if ( pWeaponInfo->bCustom )
+	{
+		// Load the map-specific script instead
+		extern const char *g_MapName;
+		Q_snprintf( sz, sizeof( sz ), "maps/%s_%s", g_MapName, pWeaponInfo->szClassName );
+	}
+	else
+#endif
 	Q_snprintf(sz, sizeof( sz ), "scripts/%s", pWeaponInfo->szClassName);
 
 	CUtlDict< CHudTexture *, int > tempList;
