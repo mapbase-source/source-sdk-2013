@@ -1116,9 +1116,14 @@ void UTIL_HudMessage( CBasePlayer *pToPlayer, const hudtextparms_t &textparms, c
 		WRITE_STRING( pMessage );
 #ifdef MAPBASE
 		WRITE_STRING( pszFont );
-		if (bAutobreak)
+		WRITE_BYTE ( bAutobreak ? Q_strlen( pMessage ) : 0 );
+		if ( textparms.boxSize > 0.0f )
 		{
-			WRITE_BYTE ( Q_strlen( pMessage ) );
+			WRITE_FLOAT( textparms.boxSize );
+			WRITE_BYTE( textparms.boxColor.r );
+			WRITE_BYTE( textparms.boxColor.g );
+			WRITE_BYTE( textparms.boxColor.b );
+			WRITE_BYTE( textparms.boxColor.a );
 		}
 #endif
 	MessageEnd();

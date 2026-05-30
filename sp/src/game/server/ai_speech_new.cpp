@@ -948,6 +948,13 @@ bool CAI_Expresser::SpeakDispatchResponse( AIConcept_t concept, AI_Response *res
 					WRITE_STRING( response );
 					WRITE_STRING( "" ); // No custom font
 					WRITE_BYTE ( responseLen );
+
+					// Background box
+					WRITE_FLOAT( 0.4f );
+					WRITE_BYTE( 31 );
+					WRITE_BYTE( 31 );
+					WRITE_BYTE( 31 );
+					WRITE_BYTE( 127 );
 				MessageEnd();
 
 				spoke = true;

@@ -911,59 +911,80 @@ void CHudMessage::MsgFunc_HudMsg(bf_read &msg)
 	if (msg.GetNumBitsLeft() > 0)
 	{
 		int len = msg.ReadByte();
-
-		// This is supposed to work around a bug where certain aspect ratios cut off lengthy texts.
-		//int lineMax = 64 * ((float)ScreenWidth() / 1440.0f);
-		int lineMax = 100 / engine->GetScreenAspectRatio();
-
-		int lineMinBreak = lineMax * 0.9;
-
-		CGMsg( 2, CON_GROUP_CHOREO, "Line max is %i from an aspect ratio of %.3f (strlen %i)\n", lineMax, engine->GetScreenAspectRatio(), len );
-
-		char *curMessage = (char*)pNetMessage->pMessage;
-		char newMessage[512];
-
-		int cur = 0; // Current time on this line
-		int i = 0; // curMessage
-		int i2 = 0; // newMessage
-		for (i = 0; i < len; i++)
+		if ( len > 0 )
 		{
-			cur++;
-			newMessage[i2] = curMessage[i];
+			// This is supposed to work around a bug where certain aspect ratios cut off lengthy texts.
+			//int lineMax = 64 * ((float)ScreenWidth() / 1440.0f);
+			int lineMax = 160 / engine->GetScreenAspectRatio();
 
-			// Check if we're past the point in which we should break the line
-			if (cur >= lineMinBreak)
+			int lineMinBreak = lineMax * 0.9;
+
+			CGMsg( 2, CON_GROUP_CHOREO, "Line max is %i from an aspect ratio of %.3f (strlen %i)\n", lineMax, engine->GetScreenAspectRatio(), len );
+
+			char *curMessage = (char*)pNetMessage->pMessage;
+			char newMessage[512];
+
+			int cur = 0; // Current time on this line
+			int i = 0; // curMessage
+			int i2 = 0; // newMessage
+			for (i = 0; i < len; i++)
 			{
-				// Line break at the next space
-				if (curMessage[i] == ' ')
+				cur++;
+				newMessage[i2] = curMessage[i];
+
+				// Check if we're past the point in which we should break the line
+				if (cur >= lineMinBreak)
 				{
-					newMessage[i2] = '\n';
-					cur = 0;
+					// Line break at the next space
+					if (curMessage[i] == ' ')
+					{
+						newMessage[i2] = '\n';
+						cur = 0;
+					}
+					else if (curMessage[i] == '\n')
+					{
+						// Already a newline here
+						cur = 0;
+					}
+					else if (cur >= lineMax)
+					{
+						// We're at the max and there's no space. Force a newline with a hyphen
+						newMessage[i2] = '-';
+						i2++;
+						newMessage[i2] = '\n';
+						i2++;
+						newMessage[i2] = curMessage[i];
+						cur = 0;
+					}
 				}
-				else if (curMessage[i] == '\n')
-				{
-					// Already a newline here
-					cur = 0;
-				}
-				else if (cur >= lineMax)
-				{
-					// We're at the max and there's no space. Force a newline with a hyphen
-					newMessage[i2] = '-';
-					i2++;
-					newMessage[i2] = '\n';
-					i2++;
-					newMessage[i2] = curMessage[i];
-					cur = 0;
-				}
+
+				i2++;
 			}
 
-			i2++;
+			// Null terminate
+			newMessage[i2] = '\0';
+
+			Q_strncpy( (char*)pNetMessage->pMessage, newMessage, 512 );
 		}
+	}
 
-		// Null terminate
-		newMessage[i2] = '\0';
-
-		Q_strncpy( (char*)pNetMessage->pMessage, newMessage, 512 );
+	// 
+	// Mapbase adds new data entries for the background box.
+	// These are not transmitted if no background box is defined, and some existing instances of this user message may not have this,
+	// so we have to make sure we have any bits left first.
+	// 
+	if (msg.GetNumBitsLeft() > 0)
+	{
+		pNetMessage->bRoundedRectBackdropBox = true;
+		pNetMessage->flBoxSize = msg.ReadFloat();
+		pNetMessage->boxcolor[0] = msg.ReadByte();
+		pNetMessage->boxcolor[1] = msg.ReadByte();
+		pNetMessage->boxcolor[2] = msg.ReadByte();
+		pNetMessage->boxcolor[3] = msg.ReadByte();
+	}
+	else
+	{
+		pNetMessage->bRoundedRectBackdropBox = false;
 	}
 #endif
 
