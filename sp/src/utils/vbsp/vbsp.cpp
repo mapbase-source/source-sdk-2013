@@ -20,6 +20,10 @@
 #include "byteswap.h"
 #include "worldvertextransitionfixup.h"
 
+#if defined(MAPBASE) && defined(_WIN32)
+#include <windows.h>
+#endif
+
 #ifdef MAPBASE_VSCRIPT
 #include "vscript/ivscript.h"
 #include "vscript_vbsp.h"
@@ -67,6 +71,12 @@ bool		g_bAllowDetailCracks = false;
 bool		g_bNoVirtualMesh = false;
 bool		g_bNoHiddenManifestMaps = false;
 #ifdef MAPBASE
+bool		g_bCallPropperCompile = false;
+bool		g_bPropperLogging = false;
+bool		g_bPropperNoMaterials = false;
+bool		g_bPropperNoCompile = false;
+bool		g_bPropperExportObj = false;
+bool		g_bPropperLow = false;
 bool		g_bNoDefaultCubemaps = true;
 bool		g_bSkyboxCubemaps = false;
 bool		g_bPropperInsertAllAsStatic = false;
@@ -1017,6 +1027,32 @@ int RunVBSP( int argc, char **argv )
 			Msg ("onlyprops = true\n");
 			onlyprops = true;
 		}
+#if defined(MAPBASE) && defined(_WIN32)
+		else if (!Q_stricmp(argv[i], "-CallPropperCompile"))
+		{
+			g_bCallPropperCompile = true;
+		}
+		else if (!Q_stricmp(argv[i], "-Propper_logging"))
+		{
+			g_bPropperLogging = true;
+		}
+		else if (!Q_stricmp(argv[i], "-Propper_nomaterials"))
+		{
+			g_bPropperNoMaterials = true;
+		}
+		else if (!Q_stricmp(argv[i], "-Propper_nocompile"))
+		{
+			g_bPropperNoCompile = true;
+		}
+		else if (!Q_stricmp(argv[i], "-Propper_exportobj"))
+		{
+			g_bPropperExportObj = true;
+		}	
+		else if (!Q_stricmp(argv[i], "-Propper_low"))
+		{
+			g_bPropperLow = true;
+		}
+#endif
 		else if (!Q_stricmp(argv[i], "-micro"))
 		{
 			microvolume = atof(argv[i+1]);
@@ -1355,6 +1391,14 @@ int RunVBSP( int argc, char **argv )
 				"  -replacematerials : Substitute materials according to materialsub.txt in content\\maps\n"
 				"  -FullMinidumps  : Write large minidumps on crash.\n"
 				"  -nohiddenmaps   : Exclude manifest maps if they are currently hidden.\n"
+#if defined (MAPBASE) && defined(_WIN32)
+				"  -CallPropperCompile : Runs propper.exe to process (mapname).vmf before VBSP.\n"
+				"  -Propper_logging : Passes \"-logging\" command to propper.exe, equivalent to running: propper.exe -logging\n"
+				"  -Propper_nomaterials : Passes \"-nomaterials\" command to propper.exe, equivalent to running: propper.exe -nomaterials\n"
+				"  -Propper_nocompile : Passes \"-nocompile\" command to propper.exe, equivalent to running: propper.exe -nocompile\n"
+				"  -Propper_exportobj : Passes \"-obj\" command to propper.exe, equivalent to running: propper.exe -obj\n"
+				"  -Propper_low : Passes \"-low\" command to propper.exe, equivalent to running: propper.exe -low\n"
+#endif
 #ifdef MAPBASE
 				"  -defaultcubemap : Makes a dummy cubemap.\n"
 				"  -skyboxcubemap  : Makes a skybox cubemaps for LDR cubemaps. (HDR skybox cubemaps are not supported)\n"
@@ -1371,6 +1415,84 @@ int RunVBSP( int argc, char **argv )
 		CmdLib_Cleanup();
 		CmdLib_Exit( 1 );
 	}
+
+#if defined(MAPBASE) && defined(_WIN32)
+	//Runs propper.exe to process (mapname).vmf before VBSP. 
+	if (g_bCallPropperCompile)
+	{
+		char vmfFile[1024];
+		char propperCommandline[256];
+		char fullCommand[4096];
+		char gamedir2[1024]; //this is dumb but needed, we want the gamedir without the last "\" in order to work, lol
+
+		strcpy(gamedir2, gamedir);
+		
+		int len = strlen(gamedir2);
+
+		// Check if the last character is a backslash
+		if (len > 0 && gamedir2[len - 1] == '\\')
+			gamedir2[len - 1] = '\0';
+
+		_snprintf(vmfFile, sizeof(fullCommand), "%s.vmf", source);
+
+		Msg("Starting Propper compile...\n");
+
+		propperCommandline[0] = '\0'; 
+		fullCommand[0] = '\0'; 
+
+		if (g_bPropperLogging)
+			strncat(propperCommandline, " -logging ", sizeof(propperCommandline) - strlen(propperCommandline) - 1);
+		if (g_bPropperNoMaterials)
+			strncat(propperCommandline, " -nomaterials ", sizeof(propperCommandline) - strlen(propperCommandline) - 1);
+		if (g_bPropperNoCompile)
+			strncat(propperCommandline, " -nocompile ", sizeof(propperCommandline) - strlen(propperCommandline) - 1);
+		if (g_bPropperExportObj)
+			strncat(propperCommandline, " -obj ", sizeof(propperCommandline) - strlen(propperCommandline) - 1);
+		if (g_bPropperLow)
+			strncat(propperCommandline, " -low ", sizeof(propperCommandline) - strlen(propperCommandline) - 1);
+
+		qprintf("[%s]\n", propperCommandline);
+
+		V_snprintf(fullCommand, 4096, "propper.exe %s -game \"%s\"  \"%s\" ", propperCommandline, gamedir2, vmfFile);
+
+		STARTUPINFO si;
+		PROCESS_INFORMATION pi;
+		ZeroMemory(&si, sizeof(si));
+		si.cb = sizeof(si);
+		ZeroMemory(&pi, sizeof(pi));
+
+		if (!CreateProcess(NULL, fullCommand, NULL, NULL, false, 0x00000000, NULL, NULL, &si, &pi))
+			Error("Propper could not start!\n");
+
+		// Wait until child process exits.
+		WaitForSingleObject(pi.hProcess, INFINITE);
+
+		// Close process and thread handles. 
+		CloseHandle(pi.hProcess);
+
+		CloseHandle(pi.hThread);
+
+		DWORD exitCode = 0;
+		if (!GetExitCodeProcess(pi.hProcess, &exitCode))
+		{
+			if (exitCode > 0)
+			{
+				Error("Propper compile failed: %d!\n", exitCode);
+				return -1;
+			}
+			else
+			{
+				Msg("Propper compile complete!\n");
+			}
+		}
+		else
+		{
+			Error("GetExitCodeProcess failed!\n");
+			return -1;
+		}
+	}
+	Msg("\nStarting Vbsp...\n");
+#endif //MAPBASE
 
 	start = Plat_FloatTime();
 
