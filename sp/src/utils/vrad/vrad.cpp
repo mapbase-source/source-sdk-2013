@@ -107,6 +107,11 @@ float		coring = 1.0;	// Light threshold to force to blackness(minimizes lightmap
 qboolean	texscale = true;
 int			dlight_map = 0; // Setting to 1 forces direct lighting into different lightmap than radiosity
 
+#ifdef MAPBASE
+int 		g_iSunSamplesAreaLight = 512; 	// original 30, this was way to little samples
+int 		g_iAmbientCubesPerLeaf = 16;
+#endif // MAPBASE
+
 float		luxeldensity = 1.0;
 unsigned	num_degenerate_faces;
 
@@ -2693,7 +2698,45 @@ int ParseCommandLine( int argc, char **argv, bool *onlydetail )
 				return 1;
 			}
 		}
+#ifdef MAPBASE
+		else if (!Q_stricmp(argv[i], "-SunSamplesAreaLight"))
+		{
+			if (++i < argc && *argv[i])
+			{
+				int iTemp = atoi(argv[i]);
+				if (iTemp < 0)
+				{
+					Warning("Error: expected non-negative value after '-SunSamplesAreaLight'\n");
+					return -1;
+				}
+				g_iSunSamplesAreaLight = iTemp;
+			}
+			else
+			{
+				Warning("Error: expected a value after '-SunSamplesAreaLight'\n");
+				return -1;
+			}
+		}
+		else if (!Q_stricmp(argv[i], "-AmbientCubesPerLeaf"))
+		{
+			if (++i < argc && *argv[i])
+			{
+				int iTemp = atof(argv[i]);
 
+				if (iTemp < 0)
+				{
+					Warning("Error: expected a positive number after '-AmbientCubesPerLeaf'\n");
+					return -1;
+				}
+				g_iAmbientCubesPerLeaf = iTemp;
+			}
+			else
+			{
+				Warning("Error: expected a number after '-AmbientCubesPerLeaf'\n");
+				return -1;
+			}
+		}
+#endif // MAPBASE
 #if ALLOWDEBUGOPTIONS
 		else if (!Q_stricmp(argv[i],"-scale"))
 		{
@@ -2858,6 +2901,10 @@ void PrintUsage( int argc, char **argv )
 		"  -chop           : Smallest number of luxel widths for a bounce patch, used on edges\n"
 		"  -maxchop		   : Coarsest allowed number of luxel widths for a patch, used in face interiors\n"
 		"\n"
+#ifdef MAPBASE
+		"  -SunSamplesAreaLight # : Set max number of samples from the light_enviroment, (default: 512).\n"
+		"  -AmbientCubesPerLeaf # : Lets you scale how many ambient cubes your leaf has, (default: 16).\n"
+#endif // MAPBASE
 		"  -LargeDispSampleRadius: This can be used if there are splotches of bounced light\n"
 		"                          on terrain. The compile will take longer, but it will gather\n"
 		"                          light across a wider area.\n"
