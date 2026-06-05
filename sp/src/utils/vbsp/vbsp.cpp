@@ -71,6 +71,7 @@ bool		g_bNoDefaultCubemaps = true;
 bool		g_bSkyboxCubemaps = false;
 bool		g_bPropperInsertAllAsStatic = false;
 bool		g_bPropperStripEntities = false;
+bool		g_bLogCleanUp = true;
 int			g_iDefaultCubemapSize = 32;
 #endif
 #ifdef MAPBASE_VSCRIPT
@@ -1203,6 +1204,10 @@ int RunVBSP( int argc, char **argv )
 		{
 			g_bPropperStripEntities = true;
 		}
+		else if ( !Q_stricmp( argv[i], "-NoLogCleanUp") )
+		{
+			g_bLogCleanUp = false;
+		}
 #endif
 #ifdef MAPBASE_VSCRIPT
 		else if ( !Q_stricmp( argv[i], "-scripting" ) )
@@ -1356,6 +1361,7 @@ int RunVBSP( int argc, char **argv )
 				"  -FullMinidumps  : Write large minidumps on crash.\n"
 				"  -nohiddenmaps   : Exclude manifest maps if they are currently hidden.\n"
 #ifdef MAPBASE
+				"  -NoLogCleanUp   : By default, vbsp cleans up the (mapname).log, -NoLogCleanUp disables this behaviour.\n"
 				"  -defaultcubemap : Makes a dummy cubemap.\n"
 				"  -skyboxcubemap  : Makes a skybox cubemaps for LDR cubemaps. (HDR skybox cubemaps are not supported)\n"
 				"  -defaultcubemapres  : Sets the dummy cubemap resolution. (Default 32)\n"
@@ -1399,6 +1405,14 @@ int RunVBSP( int argc, char **argv )
 	// Setup the logfile.
 	char logFile[512];
 	_snprintf( logFile, sizeof(logFile), "%s.log", source );
+
+#ifdef MAPBASE
+	//cleans up the old log file.
+	if (g_bLogCleanUp)
+		if (remove(logFile) != 0)
+			Warning("Error deleting file %s\n", source);
+#endif 
+
 	SetSpewFunctionLogFile( logFile );
 
 	LoadPhysicsDLL();
