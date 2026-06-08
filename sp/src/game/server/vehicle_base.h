@@ -313,6 +313,11 @@ public:
 	bool IsExitAnimOn( void ) { return m_bExitAnimOn; }
 	const Vector &GetEyeExitEndpoint( void ) { return m_vecEyeExitEndpoint; }
 
+#ifdef MAPBASE
+	CNetworkVar(float, m_flHeadlightScale);
+	CNetworkVar(color32, m_clrHeadlightColor);
+#endif
+
 protected:
 	// Entering / Exiting
 	bool		m_bEngineLocked;	// Mapmaker override on whether the vehicle's allowed to be turned on/off

@@ -56,6 +56,14 @@ public:
 	CHeadlightEffect();
 	~CHeadlightEffect();
 
+#ifdef MAPBASE
+	float m_flHeadlightScale;
+	color32 m_clrHeadlightColors;
+
+	void SetScale(float scale);
+	void SetColor(color32 color);
+#endif
+
 	virtual void UpdateLight(const Vector &vecPos, const Vector &vecDir, const Vector &vecRight, const Vector &vecUp, int nDistance);
 };
 

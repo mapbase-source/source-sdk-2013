@@ -68,6 +68,10 @@ void C_PropJeep::Simulate( void )
 				return;
 
 			m_pHeadlight->TurnOn();
+#ifdef MAPBASE
+			m_pHeadlight->SetColor( m_clrHeadlightColor );
+			m_pHeadlight->SetScale( m_flHeadlightScale );
+#endif
 		}
 
 		QAngle vAngle;

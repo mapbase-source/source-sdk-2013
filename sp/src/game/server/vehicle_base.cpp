@@ -352,6 +352,11 @@ IMPLEMENT_SERVERCLASS_ST(CPropVehicleDriveable, DT_PropVehicleDriveable)
 	SendPropVector(SENDINFO(m_vecEyeExitEndpoint), -1, SPROP_COORD),
 	SendPropBool(SENDINFO(m_bHasGun)),
 	SendPropVector(SENDINFO(m_vecGunCrosshair), -1, SPROP_COORD),
+#ifdef MAPBASE
+	SendPropFloat(SENDINFO( m_flHeadlightScale ), -1, SPROP_NOSCALE),
+	SendPropInt(SENDINFO( m_clrHeadlightColor ), -1, SPROP_UNSIGNED),
+#endif
+
 END_SEND_TABLE();
 
 BEGIN_DATADESC( CPropVehicleDriveable )
@@ -391,7 +396,10 @@ BEGIN_DATADESC( CPropVehicleDriveable )
 	DEFINE_FIELD( m_bUnableToFire, FIELD_BOOLEAN ),
 	DEFINE_FIELD( m_vecEyeExitEndpoint, FIELD_POSITION_VECTOR ),
 	DEFINE_FIELD( m_vecGunCrosshair, FIELD_VECTOR ),
-
+#ifdef MAPBASE
+	DEFINE_KEYFIELD( m_flHeadlightScale, FIELD_FLOAT, "HeadlightScale" ),
+	DEFINE_KEYFIELD( m_clrHeadlightColor, FIELD_COLOR32, "HeadlightColor" ),
+#endif
 	DEFINE_FIELD( m_bEngineLocked, FIELD_BOOLEAN ),
 	DEFINE_KEYFIELD( m_bLocked, FIELD_BOOLEAN, "VehicleLocked" ),
 	DEFINE_FIELD( m_flMinimumSpeedToEnterExit, FIELD_FLOAT ),
@@ -432,6 +440,11 @@ CPropVehicleDriveable::CPropVehicleDriveable( void ) :
 {
 	m_vecEyeExitEndpoint.Init();
 	m_vecGunCrosshair.Init();
+
+#ifdef MAPBASE
+	KeyValue("HeadlightColor", "255 255 255 255");
+	KeyValue("HeadlightScale", "1");
+#endif
 }
 
 //-----------------------------------------------------------------------------

@@ -517,6 +517,10 @@ void C_PropAirboat::UpdateHeadlight()
 				return;
 
 			m_pHeadlight->TurnOn();
+#ifdef MAPBASE
+			m_pHeadlight->SetColor( m_clrHeadlightColor );
+			m_pHeadlight->SetScale( m_flHeadlightScale );
+#endif
 		}
 
 		// The headlight is emitted from an attachment point so that it can move

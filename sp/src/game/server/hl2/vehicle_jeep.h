@@ -87,8 +87,13 @@ public:
 	void			DoImpactEffect( trace_t &tr, int nDamageType );
 
 	bool HeadlightIsOn( void ) { return m_bHeadlightIsOn; }
+#ifdef MAPBASE
+	void HeadlightTurnOn( void );
+	void HeadlightTurnOff( void );
+#else
 	void HeadlightTurnOn( void ) { m_bHeadlightIsOn = true; }
 	void HeadlightTurnOff( void ) { m_bHeadlightIsOn = false; }
+#endif
 
 private:
 

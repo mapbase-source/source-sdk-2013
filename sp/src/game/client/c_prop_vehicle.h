@@ -118,6 +118,11 @@ protected:
 	bool						m_bExitAnimOn;
 	float						m_flFOV;
 
+#ifdef MAPBASE
+	float						m_flHeadlightScale;
+	color32						m_clrHeadlightColor;
+#endif
+
 	Vector						m_vecGunCrosshair;
 	CInterpolatedVar<Vector>	m_iv_vecGunCrosshair;
 	Vector						m_vecEyeExitEndpoint;

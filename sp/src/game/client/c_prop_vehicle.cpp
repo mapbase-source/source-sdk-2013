@@ -46,6 +46,12 @@ IMPLEMENT_CLIENTCLASS_DT(C_PropVehicleDriveable, DT_PropVehicleDriveable, CPropV
 	RecvPropVector( RECVINFO( m_vecEyeExitEndpoint ) ),
 	RecvPropBool( RECVINFO( m_bHasGun ) ),
 	RecvPropVector( RECVINFO( m_vecGunCrosshair ) ),
+
+#ifdef MAPBASE
+	RecvPropFloat( RECVINFO ( m_flHeadlightScale ) ),
+	RecvPropInt( RECVINFO ( m_clrHeadlightColor ) ),
+#endif
+
 END_RECV_TABLE()
 
 

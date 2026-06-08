@@ -508,6 +508,18 @@ CHeadlightEffect::~CHeadlightEffect()
 	
 }
 
+#ifdef MAPBASE
+void CHeadlightEffect::SetColor(color32 color)
+{
+	m_clrHeadlightColors = color;
+}
+
+void CHeadlightEffect::SetScale(float scale)
+{
+	m_flHeadlightScale = scale;
+}
+#endif
+
 void CHeadlightEffect::UpdateLight( const Vector &vecPos, const Vector &vecDir, const Vector &vecRight, const Vector &vecUp, int nDistance )
 {
 	if ( IsOn() == false )
@@ -526,15 +538,31 @@ void CHeadlightEffect::UpdateLight( const Vector &vecPos, const Vector &vecDir, 
 		
 	state.m_vecLightOrigin = vecPos;
 
+#ifdef MAPBASE
+	//Made it a bit bigger than the original
+	state.m_fHorizontalFOVDegrees = 54.0f * m_flHeadlightScale;
+	state.m_fVerticalFOVDegrees = 36.0f * m_flHeadlightScale;
+#else
 	state.m_fHorizontalFOVDegrees = 45.0f;
 	state.m_fVerticalFOVDegrees = 30.0f;
+#endif
+
 	state.m_fQuadraticAtten = r_flashlightquadratic.GetFloat();
 	state.m_fLinearAtten = r_flashlightlinear.GetFloat();
 	state.m_fConstantAtten = r_flashlightconstant.GetFloat();
+
+#ifdef MAPBASE
+	state.m_Color[0] = m_clrHeadlightColors.r / 255;
+	state.m_Color[1] = m_clrHeadlightColors.g / 255;
+	state.m_Color[2] = m_clrHeadlightColors.b / 255;
+	state.m_Color[3] = m_clrHeadlightColors.a / 255;
+#else
 	state.m_Color[0] = 1.0f;
 	state.m_Color[1] = 1.0f;
 	state.m_Color[2] = 1.0f;
 	state.m_Color[3] = r_flashlightambient.GetFloat();
+#endif
+
 	state.m_NearZ = r_flashlightnear.GetFloat();
 	state.m_FarZ = r_flashlightfar.GetFloat();
 	state.m_bEnableShadows = true;
