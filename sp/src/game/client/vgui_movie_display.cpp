@@ -274,6 +274,13 @@ void CMovieDisplayScreen::UpdateMovie( void )
 		bScreenActive = false;
 	}
 
+#ifdef MAPBASE
+	if ( bScreenActive && m_hScreenEntity->IsPaused() )
+	{
+		bScreenActive = false;
+	}
+#endif
+
 	// See if we've changed our activity state
 	if ( bScreenActive != m_bLastActiveState )
 	{
@@ -286,6 +293,21 @@ void CMovieDisplayScreen::UpdateMovie( void )
 	// Update the frame if we're currently enabled
 	if ( bScreenActive  )
 	{
+#ifdef MAPBASE
+		if ( m_hScreenEntity->HasNewTargetTime() )
+		{
+			m_VideoMaterial->SetTime( m_hScreenEntity->GetTargetTime() );
+			m_hScreenEntity->ResetTargetTime();
+		}
+		else if ( m_hScreenEntity->HasNewTargetFrame() )
+		{
+			m_VideoMaterial->SetFrame( m_hScreenEntity->GetTargetFrame() );
+			m_hScreenEntity->ResetTargetFrame();
+		}
+
+		m_hScreenEntity->UpdateVideoFrame( m_VideoMaterial->GetCurrentFrame() );
+#endif
+
 		// Update our frame
 		if ( m_VideoMaterial->Update() == false )
 		{
