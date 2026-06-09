@@ -355,7 +355,7 @@ private:
 			int fieldType = td->fieldType;
 			int fieldOffset = td->fieldOffset[ TD_OFFSET_NORMAL ];
 
-			if ( td->flags & (FTYPEDESC_FUNCTIONTABLE | FTYPEDESC_INPUT | FTYPEDESC_OUTPUT) )
+			if ( td->flags & (FTYPEDESC_FUNCTIONTABLE | FTYPEDESC_INPUT) )
 				continue;
 
 			if ( fieldType == FIELD_VOID || fieldType == FIELD_FUNCTION )
@@ -924,6 +924,63 @@ find_field:
 			}
 			case FIELD_CUSTOM:
 			{
+#ifdef GAME_DLL
+				if ( pField->flags & FTYPEDESC_OUTPUT )
+				{
+					CBaseEntityOutput *pOutput = (CBaseEntityOutput*)( (char*)pEnt + offset );
+					offset += offsetof( CBaseEntityOutput, m_Value );
+					enum types datatype;
+
+					switch ( pOutput->ValueFieldType() )
+					{
+						case FIELD_INTEGER:
+						case FIELD_COLOR32:
+						{
+							datatype = types::_INT32;
+							offset += offsetof( variant_t, iVal );
+							break;
+						}
+						case FIELD_FLOAT:
+						{
+							datatype = types::_FLOAT;
+							offset += offsetof( variant_t, flVal );
+							break;
+						}
+						case FIELD_VECTOR:
+						case FIELD_POSITION_VECTOR:
+						{
+							datatype = types::_VEC3;
+							offset += offsetof( variant_t, vecVal );
+							break;
+						}
+						case FIELD_STRING:
+						{
+							datatype = types::_STRING_T;
+							offset += offsetof( variant_t, iszVal );
+							break;
+						}
+						case FIELD_EHANDLE:
+						{
+							datatype = types::_EHANDLE;
+							offset += offsetof( variant_t, eVal );
+							break;
+						}
+						default:
+							AssertMsg(
+									pOutput->ValueFieldType() == FIELD_INPUT ||
+									pOutput->ValueFieldType() == FIELD_VOID,
+									"not implemented" );
+							return NULL;
+					}
+
+					varinfo_t *pInfo = CacheNew( pEnt, szProp, false );
+					pInfo->arraysize = 1;
+					pInfo->offset = offset;
+					pInfo->datatype = datatype;
+					return pInfo;
+				}
+#endif
+
 				if ( pField->pSaveRestoreOps == GetPhysObjSaveRestoreOps( PIID_IPHYSICSOBJECT ) )
 				{
 					SetVarInfo();
@@ -2130,6 +2187,47 @@ private:
 	{
 		Assert( td->fieldType == FIELD_CUSTOM );
 
+#ifdef GAME_DLL
+		if ( td->flags & FTYPEDESC_OUTPUT )
+		{
+			CBaseEntityOutput *pOutput = (CBaseEntityOutput*)pVar;
+			Print( "output " );
+
+			switch ( pOutput->ValueFieldType() )
+			{
+				case FIELD_INTEGER:
+					Print( "int" );
+					break;
+				case FIELD_COLOR32:
+					Print( "clr32" );
+					break;
+				case FIELD_FLOAT:
+					Print( "float" );
+					break;
+				case FIELD_VECTOR:
+				case FIELD_POSITION_VECTOR:
+					Print( "vec3" );
+					break;
+				case FIELD_STRING:
+					Print( "string" );
+					break;
+				case FIELD_EHANDLE:
+					Print( "entity" );
+					break;
+				case FIELD_INPUT:
+					Print( "variant" );
+					break;
+				case FIELD_VOID:
+					m_output.SeekPut( CUtlBuffer::SEEK_CURRENT, -1 );
+					break;
+				default:
+					Print( "unknown %d", pOutput->ValueFieldType() );
+			}
+
+			return;
+		}
+#endif
+
 		const char *g_ppszPhysTypeNames[PIID_NUM_TYPES] =
 		{
 			"Unknown Phys",
@@ -2246,6 +2344,55 @@ private:
 	void PrintCustomField( char *pVar, typedescription_t *td )
 	{
 		Assert( td->fieldType == FIELD_CUSTOM );
+
+#ifdef GAME_DLL
+		if ( td->flags & FTYPEDESC_OUTPUT )
+		{
+			CBaseEntityOutput *pOutput = (CBaseEntityOutput*)pVar;
+			pVar += offsetof( CBaseEntityOutput, m_Value );
+
+			switch ( pOutput->ValueFieldType() )
+			{
+				case FIELD_INTEGER:
+				{
+					Print( "%i", ((variant_t*)pVar)->iVal );
+					break;
+				}
+				case FIELD_COLOR32:
+				{
+					Print( "0x%08x", ((variant_t*)pVar)->iVal );
+					break;
+				}
+				case FIELD_FLOAT:
+				{
+					Print( "%f", ((variant_t*)pVar)->flVal );
+					break;
+				}
+				case FIELD_VECTOR:
+				case FIELD_POSITION_VECTOR:
+				{
+					PrintVec3( ((variant_t*)pVar)->vecVal );
+					break;
+				}
+				case FIELD_STRING:
+				{
+					PrintString( ((variant_t*)pVar)->String() );
+					break;
+				}
+				case FIELD_EHANDLE:
+				{
+					PrintEntity( &((variant_t*)pVar)->eVal );
+					break;
+				}
+				case FIELD_INPUT:
+				case FIELD_VOID:
+				default:
+					break;
+			}
+
+			return;
+		}
+#endif
 
 		for ( int i = 0; i < PIID_NUM_TYPES; i++ )
 		{
@@ -2512,7 +2659,7 @@ private:
 		{
 			typedescription_t* td = &pFields[i];
 
-			if ( td->flags & (FTYPEDESC_FUNCTIONTABLE | FTYPEDESC_INPUT | FTYPEDESC_OUTPUT) )
+			if ( td->flags & (FTYPEDESC_FUNCTIONTABLE | FTYPEDESC_INPUT) )
 				continue;
 
 			if ( td->fieldType == FIELD_VOID || td->fieldType == FIELD_FUNCTION )

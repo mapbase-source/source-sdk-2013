@@ -85,8 +85,16 @@ public:
 	void SetActionList(CEventAction *newlist) { m_ActionList = newlist; }
 #endif
 
+#ifdef MAPBASE_VSCRIPT
+	// Value is accessed in CScriptNetPropManager
+public:
+#else
 protected:
+#endif
 	variant_t m_Value;
+#ifdef MAPBASE_VSCRIPT
+protected:
+#endif
 	CEventAction *m_ActionList;
 	DECLARE_SIMPLE_DATADESC();
 
@@ -104,6 +112,14 @@ template< class Type, fieldtype_t fieldType >
 class CEntityOutputTemplate : public CBaseEntityOutput
 {
 public:
+#ifdef MAPBASE_VSCRIPT
+	// Initialise type to allow script access
+	CEntityOutputTemplate() : CBaseEntityOutput()
+	{
+		m_Value.fieldType = fieldType;
+	}
+#endif
+
 	//
 	// Sets an initial value without firing the output.
 	//
@@ -138,6 +154,13 @@ template<>
 class CEntityOutputTemplate<class Vector, FIELD_VECTOR> : public CBaseEntityOutput
 {
 public:
+#ifdef MAPBASE_VSCRIPT
+	CEntityOutputTemplate() : CBaseEntityOutput()
+	{
+		m_Value.fieldType = FIELD_VECTOR;
+	}
+#endif
+
 	void Init( const Vector &value )
 	{
 		m_Value.SetVector3D( value );
@@ -183,6 +206,13 @@ template<>
 class CEntityOutputTemplate<class Vector, FIELD_POSITION_VECTOR> : public CBaseEntityOutput
 {
 public:
+#ifdef MAPBASE_VSCRIPT
+	CEntityOutputTemplate() : CBaseEntityOutput()
+	{
+		m_Value.fieldType = FIELD_POSITION_VECTOR;
+	}
+#endif
+
 	void Init( const Vector &value )
 	{
 		m_Value.SetPositionVector3D( value );

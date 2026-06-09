@@ -27,6 +27,11 @@ struct ScriptVariant_t;
 //
 class variant_t
 {
+#ifdef MAPBASE_VSCRIPT
+	// Offsets are read in CScriptNetPropManager
+public:
+#endif
+
 	union
 	{
 		bool bVal;
