@@ -75,22 +75,36 @@ extern ISaveRestoreOps* GetStdStringDataOps();
 #ifdef GAME_DLL
 	#define UTLVECTOR_DATAOPS( fieldType, dataType )\
 		CUtlVectorDataopsInstantiator< fieldType >::GetDataOps( (CUtlVector< dataType >*)0 )
-	#define IS_EHANDLE_UTLVECTOR( td )\
-		td->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_EHANDLE, CHandle< CBaseEntity > ) ||\
-		td->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_EHANDLE, CHandle< CBaseFlex > ) ||\
-		td->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_EHANDLE, CHandle< CBaseAnimating > ) ||\
-		td->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_EHANDLE, CHandle< CBaseCombatWeapon > ) ||\
-		td->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_EHANDLE, CHandle< CBasePlayer > ) ||\
-		td->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_EHANDLE, CHandle< CAI_BaseNPC > ) ||\
-		td->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_EHANDLE, CHandle< CSceneEntity > ) ||\
-		td->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_EHANDLE, CHandle< CSceneListManager > ) ||\
-		td->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_EHANDLE, CHandle< CRagdollBoogie > ) ||\
-		td->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_EHANDLE, CHandle< CFish > ) ||\
-		td->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_EHANDLE, CHandle< CVGuiScreen > )
 
 	class CSceneListManager;
 	class CRagdollBoogie;
 	class CFish;
+
+	bool IS_EHANDLE_UTLVECTOR( const typedescription_t *td )
+	{
+		// Different entity handles are compiled as unique types, thus return unique SaveRestoreOps
+		return ( td->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_EHANDLE, CHandle< CBaseEntity > ) ||
+				// CSceneEntity::m_hActorList
+				td->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_EHANDLE, CHandle< CBaseFlex > ) ||
+				// CTriggerSoundscape::m_spectators
+				td->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_EHANDLE, CHandle< CBasePlayer > ) ||
+				// CAI_GoalEntity::m_actors
+				td->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_EHANDLE, CHandle< CAI_BaseNPC > ) ||
+				// CAntlionTemplateMaker::m_Children
+				//td->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_EHANDLE, CHandle< CNPC_Antlion > ) ||
+				// CPointRagdollBoogie::m_Boogies
+				td->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_EHANDLE, CHandle< CRagdollBoogie > ) ||
+				// CFishPool::m_fishes
+				td->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_EHANDLE, CHandle< CFish > ) ||
+				// CBaseViewModel::m_hScreens
+				td->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_EHANDLE, CHandle< CVGuiScreen > ) ||
+				// CSceneManager::{m_ActiveScenes, m_hNotifySceneCompletion}
+				td->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_EHANDLE, CHandle< CSceneEntity > ) ||
+				// CSceneManager::m_hListManagers, CSceneListManager::m_hListManagers
+				td->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_EHANDLE, CHandle< CSceneListManager > )
+			   );
+	}
+
 	#ifdef _DEBUG
 		class CStringTableSaveRestoreOps;
 		extern CStringTableSaveRestoreOps g_VguiScreenStringOps;
@@ -115,27 +129,22 @@ private:
 	typedef SendTable NetTable;
 	typedef ServerClass NetworkClass;
 
-	NetworkClass *GetNetworkClass( CBaseEntity* p ) { return p->GetServerClass(); }
-	NetTable *GetNetTable( NetworkClass* p ) { return p->m_pTable; }
+	static NetworkClass *GetNetworkClass( CBaseEntity *p ) { return p->GetServerClass(); }
+	static NetTable *GetNetTable( NetworkClass *p ) { return p->m_pTable; }
 
-	void NetworkStateChanged( CBaseEntity* p, int o ) { p->NetworkProp()->NetworkStateChanged( o ); }
+	static void NetworkStateChanged( CBaseEntity *p, int o ) { p->NetworkProp()->NetworkStateChanged( o ); }
 #else
 	typedef RecvProp NetProp;
 	typedef RecvTable NetTable;
 	typedef ClientClass NetworkClass;
 
-	NetworkClass *GetNetworkClass( CBaseEntity* p ) { return p->GetClientClass(); }
-	NetTable *GetNetTable( NetworkClass* p ) { return p->m_pRecvTable; }
+	static NetworkClass *GetNetworkClass( CBaseEntity *p ) { return p->GetClientClass(); }
+	static NetTable *GetNetTable( NetworkClass *p ) { return p->m_pRecvTable; }
 
-	void NetworkStateChanged( CBaseEntity*, int ) {}
+	static void NetworkStateChanged( CBaseEntity*, int ) {}
 #endif
 
-	int GetClassID( CBaseEntity *p )
-	{
-		return GetNetworkClass( p )->m_ClassID;
-	}
-
-	int GetIntPropSize( NetProp *pProp )
+	static int GetIntPropSize( NetProp *pProp )
 	{
 		Assert( pProp->GetType() == DPT_Int );
 
@@ -161,19 +170,19 @@ private:
 			return 8;
 		if ( proxy == RecvProxy_Int32ToInt16 )
 			return 16;
-		if ( proxy == RecvProxy_Int32ToInt32 )
+		if ( proxy == RecvProxy_Int32ToInt32 || proxy == RecvProxy_IntToColor32 )
 			return 32;
 
 		return 0;
 #endif
 	}
 
-	bool IsEHandle( NetProp *pProp )
+	static bool IsEHandle( NetProp *pProp )
 	{
 		return ( pProp->GetProxyFn() == DataTableProxy_EHandle );
 	}
 
-	bool IsUtlVector( NetProp *pProp )
+	static bool IsUtlVector( NetProp *pProp )
 	{
 #ifdef GAME_DLL
 		SendVarProxyFn proxy = pProp->GetProxyFn();
@@ -219,7 +228,14 @@ private:
 	#define MASK_INT_SIZE( _size ) ( ( 1 << (_size - 1) ) | ( (1 << (_size - 1)) - 1 ) )
 	#define MASK_NEAREST_BYTE( _bits ) ( ( (1 << ALIGN_TO_NEAREST_BYTE(_bits)) - 1 ) & ~((1 << _bits) - 1) )
 	#define ALIGN_TO_NEAREST_BYTE( _bits ) ( (_bits + 7) & ~7 )
-	#define VARINFO_ARRAYSIZE_BITS 12
+	#define VARINFO_ELEMSIZE_BITS 8
+	#define VARINFO_ARRAYSIZE_BITS 16
+	#define VARINFO_ELEMSIZE_MAX ( ( 1 << VARINFO_ELEMSIZE_BITS ) - 1 )
+	#define VARINFO_ARRAYSIZE_MAX ( ( 1 << VARINFO_ARRAYSIZE_BITS ) - 1 )
+
+	// Else either clamp 'arraysize' assignments to 0x7fffffff
+	// or change unsigned boundary checks
+	COMPILE_TIME_ASSERT( VARINFO_ARRAYSIZE_BITS < 32 );
 
 	struct varinfo_t
 	{
@@ -233,13 +249,14 @@ private:
 
 		enum types datatype : 16;
 
-		// element size in bytes
-		unsigned int elemsize : 8;
 		unsigned int arraysize : VARINFO_ARRAYSIZE_BITS;
+		// element size in bytes
+		unsigned int elemsize : VARINFO_ELEMSIZE_BITS;
 
-		// Following are only used in integer netprops to handle unsigned and size casting
-		bool isUnsigned : 1;
-		bool isNotNetworked : 1;
+		// Only used in integer netprops to handle unsigned and size casting
+		unsigned int isUnsigned : 1;
+		unsigned int isNotNetworked : 1;
+		unsigned int isGameRules : 1;
 
 		int GetOffset( int index )
 		{
@@ -247,52 +264,111 @@ private:
 		}
 	};
 
-	// Wrapper to be able to set case sensitive comparator in node insertion
-	class vardict_t : public CUtlDict< varinfo_t >
+	struct varsource_t
 	{
-	public:
-		vardict_t() : CUtlDict< varinfo_t >( k_eDictCompareTypeCaseSensitive ) {}
+		void *source;
+		varinfo_t info;
 	};
 
-	// NOTE: This is lazy and inefficient.
-	// Simply map highest level class id to unique caches.
-	CUtlVector< int > m_EntMap;
-	CUtlVector< vardict_t > m_VarDicts;
-
-	varinfo_t* CacheNew( CBaseEntity *pEnt, const char *szProp )
+	struct vardictelem_t
 	{
-		int idx = m_EntMap.Find( GetClassID( pEnt ) );
-		if ( idx == m_EntMap.InvalidIndex() )
+		CCopyableUtlVector< varsource_t > sources;
+	};
+
+	// Wrapper to be able to set case sensitive comparator in node insertion
+	class vardict_t : public CUtlDict< vardictelem_t >
+	{
+	public:
+		vardict_t() : CUtlDict< vardictelem_t >( k_eDictCompareTypeCaseSensitive ) {}
+	};
+
+	// Different entities can have unique network tables while sharing data maps,
+	// or unique data maps while sharing network tables (e.g. server only entities).
+	// The cache needs to be able to differentiate the source of the variable info
+	// while being quick to access.
+	//
+	// While storing the origin table (e.g. DT_BaseEntity for DT_HL2_Player->m_vecOrigin)
+	// keeps the cache size small, it would have runtime impact from
+	// checking base tables and pointer chasing.
+	// Instead, store the highest level table identifiers even if they are identical to
+	// existing variables. (e.g.
+	// storing DT_HL2_Player and DT_PhysicsProp for the variable DT_BaseEntity->m_vecOrigin)
+	//
+	// Fetching varinfo from cache now does one sorted string lookup (RB tree)
+	// and 2 pointer comparisons for each class type that was fetched for that variable name
+	// (practically a very low number because NetProps is used more often for unique variables than not).
+	//
+	// This is a quick, not well thought out solution
+	vardict_t m_VarDicts;
+
+	static varsource_t *CacheFind( CBaseEntity *pEnt, vardictelem_t *pElem )
+	{
+		NetTable *pNetTable = GetNetTable( GetNetworkClass( pEnt ) );
+		datamap_t *pDataMap = pEnt->GetDataDescMap();
+#ifdef CLIENT_DLL
+		datamap_t *pPredMap = pEnt->GetPredDescMap();
+#endif
+
+		FOR_EACH_VEC( pElem->sources, i )
 		{
-			// Vector indices are kept in parallel as a workaround for encapsulating maps
-			idx = m_EntMap.AddToTail( GetClassID( pEnt ) );
-			m_VarDicts.AddToTail();
+			varsource_t *pSrc = &pElem->sources.Element( i );
+
+			if ( pSrc->source == pNetTable )
+				return pSrc;
+
+			if ( pSrc->source == pDataMap )
+				return pSrc;
+#ifdef CLIENT_DLL
+			if ( pSrc->source == pPredMap )
+				return pSrc;
+#endif
 		}
 
-		vardict_t &dict = m_VarDicts.Element( idx );
+		return NULL;
+	}
 
-		idx = dict.Find( szProp );
-		if ( idx == dict.InvalidIndex() )
-			idx = dict.Insert( szProp );
+	varinfo_t *CacheNew( CBaseEntity *pEnt, const char *szProp, void *pSource, bool bNetworked )
+	{
+		int idx = m_VarDicts.Find( szProp );
+		if ( idx == m_VarDicts.InvalidIndex() )
+			idx = m_VarDicts.Insert( szProp );
 
-		varinfo_t *pInfo = &dict.Element( idx );
+		vardictelem_t *pElem = &m_VarDicts.Element( idx );
+		varsource_t *pSrc = CacheFind( pEnt, pElem );
+
+		if ( !pSrc )
+		{
+			idx = pElem->sources.AddToTail();
+			pSrc = &pElem->sources.Element( idx );
+		}
+
+		pSrc->source = pSource;
+
+		varinfo_t *pInfo = &pSrc->info;
 		V_memset( pInfo, 0, sizeof( varinfo_t ) );
+
+		pInfo->isNotNetworked = !bNetworked;
+
+		// see Recv/SendProxy_HL2GameRules
+		if ( bNetworked && dynamic_cast< CGameRulesProxy* >( pEnt ) )
+			pInfo->isGameRules = 1;
+
 		return pInfo;
 	}
 
 	varinfo_t* CacheFetch( CBaseEntity *pEnt, const char *szProp )
 	{
-		int idx = m_EntMap.Find( GetClassID( pEnt ) );
-		if ( idx == m_EntMap.InvalidIndex() )
-			return NULL;
+		int idx = m_VarDicts.Find( szProp );
+		if ( idx != m_VarDicts.InvalidIndex() )
+		{
+			vardictelem_t *pElem = &m_VarDicts.Element( idx );
+			varsource_t *pSrc = CacheFind( pEnt, pElem );
 
-		vardict_t &dict = m_VarDicts.Element( idx );
-		idx = dict.Find( szProp );
-		if ( idx == dict.InvalidIndex() )
-			return NULL;
+			if ( pSrc )
+				return &pSrc->info;
+		}
 
-		varinfo_t *pInfo = &dict.Element( idx );
-		return pInfo;
+		return NULL;
 	}
 
 public:
@@ -303,7 +379,6 @@ public:
 
 	void PurgeCache()
 	{
-		m_EntMap.Purge();
 		m_VarDicts.Purge();
 	}
 
@@ -326,7 +401,7 @@ private:
 			int fieldType = td->fieldType;
 			int fieldOffset = td->fieldOffset[ TD_OFFSET_NORMAL ];
 
-			if ( td->flags & (FTYPEDESC_FUNCTIONTABLE | FTYPEDESC_INPUT | FTYPEDESC_OUTPUT) )
+			if ( td->flags & (FTYPEDESC_FUNCTIONTABLE | FTYPEDESC_INPUT) )
 				continue;
 
 			if ( fieldType == FIELD_VOID || fieldType == FIELD_FUNCTION )
@@ -459,18 +534,22 @@ private:
 
 	// Searches NetTable first to handle overwritten member network variables - see
 	// CPlayerResource::m_iHealth and CBaseEntity::m_iHealth
-	varinfo_t *GetVarInfo( CBaseEntity *pEnt, const char *szProp, int index )
+	varinfo_t *GetVarInfo( CBaseEntity *pEnt, const char *szProp, int index, bool bDontWarnOnMissing = false )
 	{
 		int offset = 0;
+		datamap_t *map;
+		typedescription_t *pField;
 		NetTable *pTable = GetNetTable( GetNetworkClass( pEnt ) );
 		NetProp *pProp = FindInNetTable( (char*)pEnt, pTable, szProp, &offset );
+
 		if ( pProp )
 		{
 
 #define SetVarInfo()\
-				varinfo_t *pInfo = CacheNew( pEnt, szProp );\
-				pInfo->isNotNetworked = 0;\
+				varinfo_t *pInfo = CacheNew( pEnt, szProp, (void*)pTable, true );\
+				Assert( pProp->GetElementStride() <= VARINFO_ELEMSIZE_MAX );\
 				pInfo->elemsize = pProp->GetElementStride();\
+				Assert( pProp->GetNumElements() > 0 && pProp->GetNumElements() <= VARINFO_ARRAYSIZE_MAX );\
 				pInfo->arraysize = pProp->GetNumElements();\
 				pInfo->offset = offset;
 
@@ -571,6 +650,19 @@ private:
 
 				Assert( index == 0 || pProp->GetElementStride() > 0 );
 
+#ifdef GAME_DLL
+				// If this networked string is not pooled, we don't know how large the buffer is
+				// Check the data maps to see if this variable has a size there
+				// Otherwise it's going to be read-only
+				if ( pProp->GetProxyFn() != SendProxy_StringT_To_String )
+				{
+					map = pEnt->GetDataDescMap();
+					pField = FindInDataMap( (char*)pEnt, map, szProp, &offset );
+					if ( pField && pField->fieldType == FIELD_CHARACTER )
+						goto find_field;
+				}
+#endif
+
 				SetVarInfo();
 #ifdef GAME_DLL
 				pInfo->stringsize = 0;
@@ -588,6 +680,7 @@ private:
 					Assert( pProp->GetProxyFn() == DataTableProxy_String );
 					pInfo->datatype = types::_CSTRING;
 				}
+
 				return pInfo;
 			}
 			case DPT_DataTable:
@@ -614,8 +707,9 @@ private:
 				{
 					if ( IsEHandle( pProp ) )
 					{
-						varinfo_t *pInfo = CacheNew( pEnt, szProp );
+						varinfo_t *pInfo = CacheNew( pEnt, szProp, (void*)pTable, true );
 						pInfo->elemsize = sizeof(int);
+						Assert( pArray->GetNumProps() > 0 && pArray->GetNumProps() <= VARINFO_ARRAYSIZE_MAX );
 						pInfo->arraysize = pArray->GetNumProps();
 						pInfo->offset = offset;
 						pInfo->datatype = types::_EHANDLE;
@@ -630,7 +724,7 @@ private:
 						if ( size == 0 )
 							break;
 #endif
-						varinfo_t *pInfo = CacheNew( pEnt, szProp );
+						varinfo_t *pInfo = CacheNew( pEnt, szProp, (void*)pTable, true );
 
 						if ( pArray->GetNumProps() > 1 )
 						{
@@ -642,6 +736,7 @@ private:
 							pInfo->elemsize = 0;
 						}
 
+						Assert( pArray->GetNumProps() > 0 && pArray->GetNumProps() <= VARINFO_ARRAYSIZE_MAX );
 						pInfo->arraysize = pArray->GetNumProps();
 						pInfo->offset = offset;
 						pInfo->mask = MASK_INT_SIZE( size );
@@ -651,8 +746,9 @@ private:
 				}
 				case DPT_Float:
 				{
-					varinfo_t *pInfo = CacheNew( pEnt, szProp );
+					varinfo_t *pInfo = CacheNew( pEnt, szProp, (void*)pTable, true );
 					pInfo->elemsize = sizeof(float);
+					Assert( pArray->GetNumProps() > 0 && pArray->GetNumProps() <= VARINFO_ARRAYSIZE_MAX );
 					pInfo->arraysize = pArray->GetNumProps();
 					pInfo->offset = offset;
 					pInfo->datatype = types::_FLOAT;
@@ -660,8 +756,9 @@ private:
 				}
 				case DPT_Vector:
 				{
-					varinfo_t *pInfo = CacheNew( pEnt, szProp );
+					varinfo_t *pInfo = CacheNew( pEnt, szProp, (void*)pTable, true );
 					pInfo->elemsize = sizeof(float)*3;
+					Assert( pArray->GetNumProps() > 0 && pArray->GetNumProps() <= VARINFO_ARRAYSIZE_MAX );
 					pInfo->arraysize = pArray->GetNumProps();
 					pInfo->offset = offset;
 					pInfo->datatype = types::_VEC3;
@@ -669,8 +766,9 @@ private:
 				}
 				case DPT_VectorXY:
 				{
-					varinfo_t *pInfo = CacheNew( pEnt, szProp );
+					varinfo_t *pInfo = CacheNew( pEnt, szProp, (void*)pTable, true );
 					pInfo->elemsize = sizeof(float)*2;
+					Assert( pArray->GetNumProps() > 0 && pArray->GetNumProps() <= VARINFO_ARRAYSIZE_MAX );
 					pInfo->arraysize = pArray->GetNumProps();
 					pInfo->offset = offset;
 					pInfo->datatype = types::_VEC2;
@@ -780,13 +878,11 @@ private:
 #undef SetVarInfo
 		}
 
-		datamap_t *map = pEnt->GetDataDescMap();
-		typedescription_t *pField = FindInDataMap( (char*)pEnt, map, szProp, &offset );
+		map = pEnt->GetDataDescMap();
+		pField = FindInDataMap( (char*)pEnt, map, szProp, &offset );
 		if ( pField )
 		{
-#ifdef CLIENT_DLL
 find_field:
-#endif
 			if ( index < 0 || index >= pField->fieldSize )
 			{
 				Warning( "NetProp element index out of range! %s[%d]\n", szProp, index );
@@ -794,9 +890,10 @@ find_field:
 			}
 
 #define SetVarInfo()\
-				varinfo_t *pInfo = CacheNew( pEnt, szProp );\
-				pInfo->isNotNetworked = 1;\
+				varinfo_t *pInfo = CacheNew( pEnt, szProp, (void*)map, false );\
+				Assert( pField->fieldSizeInBytes / pField->fieldSize <= VARINFO_ELEMSIZE_MAX );\
 				pInfo->elemsize = pField->fieldSizeInBytes / pField->fieldSize;\
+				Assert( pField->fieldSize > 0 && pField->fieldSize <= VARINFO_ARRAYSIZE_MAX );\
 				pInfo->arraysize = pField->fieldSize;\
 				pInfo->offset = offset;
 
@@ -813,7 +910,6 @@ find_field:
 			{
 				SetVarInfo();
 				pInfo->isUnsigned = ( pField->flags & SPROP_UNSIGNED ) != 0;
-				pInfo->isNotNetworked = 1;
 				switch ( pField->fieldType )
 				{
 					case FIELD_INTEGER:
@@ -889,6 +985,63 @@ find_field:
 			}
 			case FIELD_CUSTOM:
 			{
+#ifdef GAME_DLL
+				if ( pField->flags & FTYPEDESC_OUTPUT )
+				{
+					CBaseEntityOutput *pOutput = (CBaseEntityOutput*)( (char*)pEnt + offset );
+					offset += offsetof( CBaseEntityOutput, m_Value );
+					enum types datatype;
+
+					switch ( pOutput->ValueFieldType() )
+					{
+						case FIELD_INTEGER:
+						case FIELD_COLOR32:
+						{
+							datatype = types::_INT32;
+							offset += offsetof( variant_t, iVal );
+							break;
+						}
+						case FIELD_FLOAT:
+						{
+							datatype = types::_FLOAT;
+							offset += offsetof( variant_t, flVal );
+							break;
+						}
+						case FIELD_VECTOR:
+						case FIELD_POSITION_VECTOR:
+						{
+							datatype = types::_VEC3;
+							offset += offsetof( variant_t, vecVal );
+							break;
+						}
+						case FIELD_STRING:
+						{
+							datatype = types::_STRING_T;
+							offset += offsetof( variant_t, iszVal );
+							break;
+						}
+						case FIELD_EHANDLE:
+						{
+							datatype = types::_EHANDLE;
+							offset += offsetof( variant_t, eVal );
+							break;
+						}
+						default:
+							AssertMsg(
+									pOutput->ValueFieldType() == FIELD_INPUT ||
+									pOutput->ValueFieldType() == FIELD_VOID,
+									"not implemented" );
+							return NULL;
+					}
+
+					varinfo_t *pInfo = CacheNew( pEnt, szProp, (void*)map, false );
+					pInfo->arraysize = 1;
+					pInfo->offset = offset;
+					pInfo->datatype = datatype;
+					return pInfo;
+				}
+#endif
+
 				if ( pField->pSaveRestoreOps == GetPhysObjSaveRestoreOps( PIID_IPHYSICSOBJECT ) )
 				{
 					SetVarInfo();
@@ -905,26 +1058,26 @@ find_field:
 				else if ( IS_EHANDLE_UTLVECTOR( pField ) )
 				{
 					SetVarInfo();
-					pInfo->arraysize = ( 1 << VARINFO_ARRAYSIZE_BITS ) - 1; // dynamic, check on get
+					pInfo->arraysize = VARINFO_ARRAYSIZE_MAX;
 					pInfo->datatype = types::_DAR_EHANDLE;
 				}
 				else if ( pField->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_CLASSPTR, CBaseEntity* ) )
 				{
 					SetVarInfo();
-					pInfo->arraysize = ( 1 << VARINFO_ARRAYSIZE_BITS ) - 1; // dynamic, check on get
+					pInfo->arraysize = VARINFO_ARRAYSIZE_MAX;
 					pInfo->datatype = types::_DAR_CLASSPTR;
 				}
 				else if ( pField->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_INTEGER, int ) )
 				{
 					SetVarInfo();
-					pInfo->arraysize = ( 1 << VARINFO_ARRAYSIZE_BITS ) - 1; // dynamic, check on get
+					pInfo->arraysize = VARINFO_ARRAYSIZE_MAX;
 					pInfo->datatype = types::_DAR_INT;
 				}
 				else if ( pField->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_FLOAT, float ) ||
 						pField->pSaveRestoreOps == UTLVECTOR_DATAOPS( FIELD_TIME, float ) )
 				{
 					SetVarInfo();
-					pInfo->arraysize = ( 1 << VARINFO_ARRAYSIZE_BITS ) - 1; // dynamic, check on get
+					pInfo->arraysize = VARINFO_ARRAYSIZE_MAX;
 					pInfo->datatype = types::_DAR_FLOAT;
 				}
 				// Only used by CAI_PlayerAlly::m_PendingConcept
@@ -957,7 +1110,19 @@ find_field:
 			}
 		}
 #endif
+
+		if ( !bDontWarnOnMissing )
+			Warning( "NetProp field (%s)->'%s' does not exist!\n", pEnt->GetClassname(), szProp );
+
 		return NULL;
+	}
+
+	static char *GetBase( CBaseEntity *pEnt, const varinfo_t *pInfo )
+	{
+		if ( pInfo->isGameRules )
+			return (char*)GameRules();
+
+		return (char*)pEnt;
 	}
 
 public:
@@ -971,7 +1136,7 @@ public:
 		varinfo_t *pInfo = CacheFetch( pEnt, szProp );
 		if ( !pInfo )
 		{
-			pInfo = GetVarInfo( pEnt, szProp, INDEX_GET_TYPE );
+			pInfo = GetVarInfo( pEnt, szProp, INDEX_GET_TYPE, true );
 
 			if ( !pInfo )
 				return false;
@@ -1045,33 +1210,36 @@ public:
 			if ( !pInfo )
 				return -1;
 		}
+
 #ifdef GAME_DLL
+		char *pBase = GetBase( pEnt, pInfo );
+
 		switch ( pInfo->datatype )
 		{
 			case types::_DAR_EHANDLE:
 			{
-				CUtlVector< EHANDLE > &vec = *(CUtlVector< EHANDLE >*)((char*)pEnt + pInfo->offset);
+				CUtlVector< EHANDLE > &vec = *(CUtlVector< EHANDLE >*)(pBase + pInfo->offset);
 				if ( !vec.Base() )
 					return -1;
 				return vec.Count();
 			}
 			case types::_DAR_CLASSPTR:
 			{
-				CUtlVector< CBaseEntity* > &vec = *(CUtlVector< CBaseEntity* >*)((char*)pEnt + pInfo->offset);
+				CUtlVector< CBaseEntity* > &vec = *(CUtlVector< CBaseEntity* >*)(pBase + pInfo->offset);
 				if ( !vec.Base() )
 					return -1;
 				return vec.Count();
 			}
 			case types::_DAR_INT:
 			{
-				CUtlVector< int > &vec = *(CUtlVector< int >*)((char*)pEnt + pInfo->offset);
+				CUtlVector< int > &vec = *(CUtlVector< int >*)(pBase + pInfo->offset);
 				if ( !vec.Base() )
 					return -1;
 				return vec.Count();
 			}
 			case types::_DAR_FLOAT:
 			{
-				CUtlVector< float > &vec = *(CUtlVector< float >*)((char*)pEnt + pInfo->offset);
+				CUtlVector< float > &vec = *(CUtlVector< float >*)(pBase + pInfo->offset);
 				if ( !vec.Base() )
 					return -1;
 				return vec.Count();
@@ -1097,7 +1265,7 @@ public:
 				return -1;
 		}
 
-		if ( index < 0 || (unsigned int)index >= pInfo->arraysize )
+		if ( (unsigned int)index >= pInfo->arraysize )
 			return -1;
 
 		if ( pInfo->isNotNetworked )
@@ -1133,10 +1301,12 @@ public:
 		}
 		else
 		{
+			char *pBase = GetBase( pEnt, pInfo );
+
 			switch ( pInfo->datatype )
 			{
 			case types::_INT32:
-				return (*(int*)((char*)pEnt + pInfo->GetOffset( index ))) & pInfo->mask;
+				return (*(int*)(pBase + pInfo->GetOffset( index ))) & pInfo->mask;
 			}
 		}
 
@@ -1158,7 +1328,7 @@ public:
 				return;
 		}
 
-		if ( index < 0 || (unsigned int)index >= pInfo->arraysize )
+		if ( (unsigned int)index >= pInfo->arraysize )
 			return;
 
 		if ( pInfo->isNotNetworked )
@@ -1216,11 +1386,13 @@ public:
 		}
 		else
 		{
+			char *pBase = GetBase( pEnt, pInfo );
+
 			switch ( pInfo->datatype )
 			{
 			case types::_INT32:
 			{
-				int *dest = (int*)((char*)pEnt + pInfo->GetOffset( index ));
+				int *dest = (int*)(pBase + pInfo->GetOffset( index ));
 				*dest = (*dest & ~pInfo->mask) | (value & pInfo->mask);
 				NetworkStateChanged( pEnt, pInfo->GetOffset( index ) );
 				break;
@@ -1249,19 +1421,21 @@ public:
 		if ( pInfo->datatype == types::_VEC3 )
 			arraysize *= 3;
 
-		if ( index < 0 || (unsigned int)index >= arraysize )
+		if ( (unsigned int)index >= arraysize )
 			return -1;
+
+		char *pBase = GetBase( pEnt, pInfo );
 
 		switch ( pInfo->datatype )
 		{
 		case types::_FLOAT:
-			return *(float*)((char*)pEnt + pInfo->GetOffset( index ));
+			return *(float*)(pBase + pInfo->GetOffset( index ));
 		case types::_VEC3:
-			return ((float*)((char*)pEnt + pInfo->GetOffset( index / 3 )))[ index % 3 ];
+			return ((float*)(pBase + pInfo->GetOffset( index / 3 )))[ index % 3 ];
 #ifdef GAME_DLL
 		case types::_DAR_FLOAT:
 		{
-			CUtlVector< float > &vec = *(CUtlVector< float >*)((char*)pEnt + pInfo->offset);
+			CUtlVector< float > &vec = *(CUtlVector< float >*)(pBase + pInfo->offset);
 			if ( !vec.Base() )
 				return -1;
 			if ( index >= vec.Count() )
@@ -1294,23 +1468,25 @@ public:
 		if ( pInfo->datatype == types::_VEC3 )
 			arraysize *= 3;
 
-		if ( index < 0 || (unsigned int)index >= arraysize )
+		if ( (unsigned int)index >= arraysize )
 			return;
+
+		char *pBase = GetBase( pEnt, pInfo );
 
 		switch ( pInfo->datatype )
 		{
 		case types::_FLOAT:
-			*(float*)((char*)pEnt + pInfo->GetOffset( index )) = value;
+			*(float*)(pBase + pInfo->GetOffset( index )) = value;
 			NetworkStateChanged( pEnt, pInfo->GetOffset( index ) );
 			break;
 		case types::_VEC3:
-			((float*)((char*)pEnt + pInfo->GetOffset( index / 3 )))[ index % 3 ] = value;
+			((float*)(pBase + pInfo->GetOffset( index / 3 )))[ index % 3 ] = value;
 			NetworkStateChanged( pEnt, pInfo->GetOffset( index / 3 ) );
 			break;
 #ifdef GAME_DLL
 		case types::_DAR_FLOAT:
 		{
-			CUtlVector< float > &vec = *(CUtlVector< float >*)((char*)pEnt + pInfo->offset);
+			CUtlVector< float > &vec = *(CUtlVector< float >*)(pBase + pInfo->offset);
 			if ( !vec.Base() )
 				return;
 			if ( index >= vec.Count() )
@@ -1338,30 +1514,32 @@ public:
 				return NULL;
 		}
 
-		if ( index < 0 || (unsigned int)index >= pInfo->arraysize )
+		if ( (unsigned int)index >= pInfo->arraysize )
 			return NULL;
+
+		char *pBase = GetBase( pEnt, pInfo );
 
 		switch ( pInfo->datatype )
 		{
 		case types::_EHANDLE:
 		{
-			EHANDLE &iEHandle = *(EHANDLE*)((char*)pEnt + pInfo->GetOffset( index ));
+			EHANDLE &iEHandle = *(EHANDLE*)(pBase + pInfo->GetOffset( index ));
 			return ToHScript( iEHandle );
 		}
 #ifdef GAME_DLL
 		case types::_CLASSPTR:
 		{
-			CBaseEntity* ptr = *(CBaseEntity**)((char*)pEnt + pInfo->GetOffset( index ));
+			CBaseEntity *ptr = *(CBaseEntity**)(pBase + pInfo->GetOffset( index ));
 			return ToHScript( ptr );
 		}
 		case types::_EDICT:
 		{
-			edict_t* ptr = *(edict_t**)((char*)pEnt + pInfo->GetOffset( index ));
+			edict_t *ptr = *(edict_t**)(pBase + pInfo->GetOffset( index ));
 			return ToHScript( GetContainingEntity( ptr ) );
 		}
 		case types::_DAR_EHANDLE:
 		{
-			CUtlVector< EHANDLE > &vec = *(CUtlVector< EHANDLE >*)((char*)pEnt + pInfo->offset);
+			CUtlVector< EHANDLE > &vec = *(CUtlVector< EHANDLE >*)(pBase + pInfo->offset);
 			if ( !vec.Base() )
 				return NULL;
 			if ( index >= vec.Count() )
@@ -1370,7 +1548,7 @@ public:
 		}
 		case types::_DAR_CLASSPTR:
 		{
-			CUtlVector< CBaseEntity* > &vec = *(CUtlVector< CBaseEntity* >*)((char*)pEnt + pInfo->offset);
+			CUtlVector< CBaseEntity* > &vec = *(CUtlVector< CBaseEntity* >*)(pBase + pInfo->offset);
 			if ( !vec.Base() )
 				return NULL;
 			if ( index >= vec.Count() )
@@ -1380,7 +1558,7 @@ public:
 #endif
 		case types::_PHYS:
 		{
-			IPhysicsObject* ptr = *(IPhysicsObject**)((char*)pEnt + pInfo->GetOffset( index ));
+			IPhysicsObject *ptr = *(IPhysicsObject**)(pBase + pInfo->GetOffset( index ));
 			return ptr ? g_pScriptVM->RegisterInstance( ptr ) : NULL;
 		}
 		}
@@ -1403,30 +1581,32 @@ public:
 				return;
 		}
 
-		if ( index < 0 || (unsigned int)index >= pInfo->arraysize )
+		if ( (unsigned int)index >= pInfo->arraysize )
 			return;
+
+		char *pBase = GetBase( pEnt, pInfo );
 
 		switch ( pInfo->datatype )
 		{
 		case types::_EHANDLE:
-			*(EHANDLE*)((char*)pEnt + pInfo->GetOffset( index )) = ToEnt( value );
+			*(EHANDLE*)(pBase + pInfo->GetOffset( index )) = ToEnt( value );
 			NetworkStateChanged( pEnt, pInfo->GetOffset( index ) );
 			break;
 #ifdef GAME_DLL
 		case types::_CLASSPTR:
-			*(CBaseEntity**)((char*)pEnt + pInfo->GetOffset( index )) = ToEnt( value );
+			*(CBaseEntity**)(pBase + pInfo->GetOffset( index )) = ToEnt( value );
 			NetworkStateChanged( pEnt, pInfo->GetOffset( index ) );
 			break;
 		case types::_EDICT:
 		{
 			CBaseEntity* ptr = ToEnt( value );
-			*(edict_t**)((char*)pEnt + pInfo->GetOffset( index )) = ptr ? ptr->edict() : NULL;
+			*(edict_t**)(pBase + pInfo->GetOffset( index )) = ptr ? ptr->edict() : NULL;
 			NetworkStateChanged( pEnt, pInfo->GetOffset( index ) );
 			break;
 		}
 		case types::_DAR_EHANDLE:
 		{
-			CUtlVector< EHANDLE > &vec = *(CUtlVector< EHANDLE >*)((char*)pEnt + pInfo->offset);
+			CUtlVector< EHANDLE > &vec = *(CUtlVector< EHANDLE >*)(pBase + pInfo->offset);
 			if ( !vec.Base() )
 				return;
 			if ( index >= vec.Count() )
@@ -1437,7 +1617,7 @@ public:
 		}
 		case types::_DAR_CLASSPTR:
 		{
-			CUtlVector< CBaseEntity* > &vec = *(CUtlVector< CBaseEntity* >*)((char*)pEnt + pInfo->offset);
+			CUtlVector< CBaseEntity* > &vec = *(CUtlVector< CBaseEntity* >*)(pBase + pInfo->offset);
 			if ( !vec.Base() )
 				return;
 			if ( index >= vec.Count() )
@@ -1465,13 +1645,15 @@ public:
 				return vec3_invalid;
 		}
 
-		if ( index < 0 || (unsigned int)index >= pInfo->arraysize )
+		if ( (unsigned int)index >= pInfo->arraysize )
 			return vec3_invalid;
+
+		char *pBase = GetBase( pEnt, pInfo );
 
 		switch ( pInfo->datatype )
 		{
 		case types::_VEC3:
-			return *(Vector*)((char*)pEnt + pInfo->GetOffset( index ));
+			return *(Vector*)(pBase + pInfo->GetOffset( index ));
 		}
 
 		return vec3_invalid;
@@ -1492,13 +1674,15 @@ public:
 				return;
 		}
 
-		if ( index < 0 || (unsigned int)index >= pInfo->arraysize )
+		if ( (unsigned int)index >= pInfo->arraysize )
 			return;
+
+		char *pBase = GetBase( pEnt, pInfo );
 
 		switch ( pInfo->datatype )
 		{
 		case types::_VEC3:
-			*(Vector*)((char*)pEnt + pInfo->GetOffset( index )) = value;
+			*(Vector*)(pBase + pInfo->GetOffset( index )) = value;
 			NetworkStateChanged( pEnt, pInfo->GetOffset( index ) );
 			break;
 		}
@@ -1519,21 +1703,23 @@ public:
 				return NULL;
 		}
 
-		if ( index < 0 || (unsigned int)index >= pInfo->arraysize )
+		if ( (unsigned int)index >= pInfo->arraysize )
 			return NULL;
+
+		char *pBase = GetBase( pEnt, pInfo );
 
 		switch ( pInfo->datatype )
 		{
 		case types::_CSTRING:
-			return (const char*)((char*)pEnt + pInfo->GetOffset( index ));
+			return (const char*)(pBase + pInfo->GetOffset( index ));
 		case types::_STRING_T: // Identical to _CSTRING on client
-			return STRING( *(string_t*)((char*)pEnt + pInfo->GetOffset( index )) );
+			return STRING( *(string_t*)(pBase + pInfo->GetOffset( index )) );
 		case types::_INT8:
 		{
 			if ( !pInfo->stringsize )
 				return NULL;
 
-			char * const pVar = ((char*)pEnt + pInfo->GetOffset( index ));
+			char * const pVar = pBase + pInfo->GetOffset( index );
 
 			// Is this null terminated?
 			int i = 0;
@@ -1551,7 +1737,7 @@ public:
 		}
 #ifdef GAME_DLL
 		case types::_STDSTRING:
-			return ( (std::string*)((char*)pEnt + pInfo->GetOffset( index )) )->c_str();
+			return ( (std::string*)(pBase + pInfo->GetOffset( index )) )->c_str();
 #endif
 		}
 
@@ -1573,8 +1759,10 @@ public:
 				return;
 		}
 
-		if ( index < 0 || (unsigned int)index >= pInfo->arraysize )
+		if ( (unsigned int)index >= pInfo->arraysize )
 			return;
+
+		char *pBase = GetBase( pEnt, pInfo );
 
 		switch ( pInfo->datatype )
 		{
@@ -1583,10 +1771,11 @@ public:
 		{
 			if ( pInfo->stringsize )
 			{
-				V_strncpy( (char*)pEnt + pInfo->GetOffset( index ), value, pInfo->stringsize );
+				V_strncpy( pBase + pInfo->GetOffset( index ), value, pInfo->stringsize );
 				NetworkStateChanged( pEnt, pInfo->GetOffset( index ) );
-				break;
 			}
+
+			break;
 		}
 		case types::_STRING_T:
 		{
@@ -1597,9 +1786,9 @@ public:
 			if ( src == NULL_STRING )
 				src = AllocPooledString( value );
 #ifdef GAME_DLL
-			*(string_t*)((char*)pEnt + pInfo->GetOffset( index )) = src;
+			*(string_t*)(pBase + pInfo->GetOffset( index )) = src;
 #else
-			V_strcpy( (char*)pEnt + pInfo->GetOffset( index ), src );
+			V_strcpy( pBase + pInfo->GetOffset( index ), src );
 #endif
 			NetworkStateChanged( pEnt, pInfo->GetOffset( index ) );
 			break;
@@ -1607,7 +1796,7 @@ public:
 #ifdef GAME_DLL
 		case types::_STDSTRING:
 		{
-			( (std::string*)((char*)pEnt + pInfo->GetOffset( index )) )->assign( value, V_strlen(value) );
+			( (std::string*)(pBase + pInfo->GetOffset( index )) )->assign( value, V_strlen(value) );
 			NetworkStateChanged( pEnt, pInfo->GetOffset( index ) );
 			break;
 		}
@@ -1885,7 +2074,6 @@ private:
 			case DPT_DataTable:
 			{
 				NetTable* pArray = pProp->GetDataTable();
-				Assert( pArray->GetNumProps() );
 
 				if ( V_strcmp( pProp->GetName(), pArray->GetName() ) != 0 )
 				{
@@ -1893,6 +2081,8 @@ private:
 					DumpNetTable_r( pVar, pArray );
 					break;
 				}
+
+				Assert( pArray->GetNumProps() > 0 && pArray->GetNumProps() <= VARINFO_ARRAYSIZE_MAX );
 
 				// Double check that each element is the same size
 				// Array indexing ints gets element size from this
@@ -1925,6 +2115,9 @@ private:
 				Assert( pProp->GetArrayProp() );
 				NetProp *pArray = pProp->GetArrayProp();
 				pVar += pArray->GetOffset();
+
+				Assert( pProp->GetNumElements() > 0 && pProp->GetNumElements() <= VARINFO_ARRAYSIZE_MAX );
+				Assert( pProp->GetElementStride() <= VARINFO_ELEMSIZE_MAX );
 
 				int numElements = pProp->GetNumElements();
 				int elementStride = pProp->GetElementStride();
@@ -2056,6 +2249,47 @@ private:
 	{
 		Assert( td->fieldType == FIELD_CUSTOM );
 
+#ifdef GAME_DLL
+		if ( td->flags & FTYPEDESC_OUTPUT )
+		{
+			CBaseEntityOutput *pOutput = (CBaseEntityOutput*)pVar;
+			Print( "output " );
+
+			switch ( pOutput->ValueFieldType() )
+			{
+				case FIELD_INTEGER:
+					Print( "int" );
+					break;
+				case FIELD_COLOR32:
+					Print( "clr32" );
+					break;
+				case FIELD_FLOAT:
+					Print( "float" );
+					break;
+				case FIELD_VECTOR:
+				case FIELD_POSITION_VECTOR:
+					Print( "vec3" );
+					break;
+				case FIELD_STRING:
+					Print( "string" );
+					break;
+				case FIELD_EHANDLE:
+					Print( "entity" );
+					break;
+				case FIELD_INPUT:
+					Print( "variant" );
+					break;
+				case FIELD_VOID:
+					m_output.SeekPut( CUtlBuffer::SEEK_CURRENT, -1 );
+					break;
+				default:
+					Print( "unknown %d", pOutput->ValueFieldType() );
+			}
+
+			return;
+		}
+#endif
+
 		const char *g_ppszPhysTypeNames[PIID_NUM_TYPES] =
 		{
 			"Unknown Phys",
@@ -2173,6 +2407,55 @@ private:
 	{
 		Assert( td->fieldType == FIELD_CUSTOM );
 
+#ifdef GAME_DLL
+		if ( td->flags & FTYPEDESC_OUTPUT )
+		{
+			CBaseEntityOutput *pOutput = (CBaseEntityOutput*)pVar;
+			pVar += offsetof( CBaseEntityOutput, m_Value );
+
+			switch ( pOutput->ValueFieldType() )
+			{
+				case FIELD_INTEGER:
+				{
+					Print( "%i", ((variant_t*)pVar)->iVal );
+					break;
+				}
+				case FIELD_COLOR32:
+				{
+					Print( "0x%08x", ((variant_t*)pVar)->iVal );
+					break;
+				}
+				case FIELD_FLOAT:
+				{
+					Print( "%f", ((variant_t*)pVar)->flVal );
+					break;
+				}
+				case FIELD_VECTOR:
+				case FIELD_POSITION_VECTOR:
+				{
+					PrintVec3( ((variant_t*)pVar)->vecVal );
+					break;
+				}
+				case FIELD_STRING:
+				{
+					PrintString( ((variant_t*)pVar)->String() );
+					break;
+				}
+				case FIELD_EHANDLE:
+				{
+					PrintEntity( &((variant_t*)pVar)->eVal );
+					break;
+				}
+				case FIELD_INPUT:
+				case FIELD_VOID:
+				default:
+					break;
+			}
+
+			return;
+		}
+#endif
+
 		for ( int i = 0; i < PIID_NUM_TYPES; i++ )
 		{
 			if ( td->pSaveRestoreOps == GetPhysObjSaveRestoreOps( (PhysInterfaceId_t)i ) )
@@ -2211,13 +2494,17 @@ private:
 				Print("null");
 				return;
 			}
+
+			Assert( vec.Count() >= 0 && vec.Count() <= VARINFO_ARRAYSIZE_MAX );
 			Print("\n%s[", m_indent.Get());
 			Indent1();
+
 			FOR_EACH_VEC( vec, i )
 			{
 				Print("\n%s", m_indent.Get());
 				PrintEntity( vec[i] );
 			}
+
 			Indent0();
 			Print("\n%s]", m_indent.Get());
 		}
@@ -2229,13 +2516,17 @@ private:
 				Print("null");
 				return;
 			}
+
+			Assert( vec.Count() >= 0 && vec.Count() <= VARINFO_ARRAYSIZE_MAX );
 			Print("\n%s[", m_indent.Get());
 			Indent1();
+
 			FOR_EACH_VEC( vec, i )
 			{
 				Print("\n%s", m_indent.Get());
 				Print( "%i", vec[i] );
 			}
+
 			Indent0();
 			Print("\n%s]", m_indent.Get());
 		}
@@ -2248,13 +2539,17 @@ private:
 				Print("null");
 				return;
 			}
+
+			Assert( vec.Count() >= 0 && vec.Count() <= VARINFO_ARRAYSIZE_MAX );
 			Print("\n%s[", m_indent.Get());
 			Indent1();
+
 			FOR_EACH_VEC( vec, i )
 			{
 				Print("\n%s", m_indent.Get());
 				Print( "%f", vec[i] );
 			}
+
 			Indent0();
 			Print("\n%s]", m_indent.Get());
 		}
@@ -2266,13 +2561,17 @@ private:
 				Print("null");
 				return;
 			}
+
+			Assert( vec.Count() >= 0 && vec.Count() <= VARINFO_ARRAYSIZE_MAX );
 			Print("\n%s[", m_indent.Get());
 			Indent1();
+
 			FOR_EACH_VEC( vec, i )
 			{
 				Print("\n%s", m_indent.Get());
 				PrintString( vec[i] );
 			}
+
 			Indent0();
 			Print("\n%s]", m_indent.Get());
 		}
@@ -2284,13 +2583,17 @@ private:
 				Print("null");
 				return;
 			}
+
+			Assert( vec.Count() >= 0 && vec.Count() <= VARINFO_ARRAYSIZE_MAX );
 			Print("\n%s[", m_indent.Get());
 			Indent1();
+
 			FOR_EACH_VEC( vec, i )
 			{
 				Print("\n%s", m_indent.Get());
 				PrintEntity( vec[i] );
 			}
+
 			Indent0();
 			Print("\n%s]", m_indent.Get());
 		}
@@ -2418,7 +2721,7 @@ private:
 		{
 			typedescription_t* td = &pFields[i];
 
-			if ( td->flags & (FTYPEDESC_FUNCTIONTABLE | FTYPEDESC_INPUT | FTYPEDESC_OUTPUT) )
+			if ( td->flags & (FTYPEDESC_FUNCTIONTABLE | FTYPEDESC_INPUT) )
 				continue;
 
 			if ( td->fieldType == FIELD_VOID || td->fieldType == FIELD_FUNCTION )
@@ -2445,6 +2748,9 @@ private:
 			}
 			else
 			{
+				Assert( td->fieldSize > 0 && td->fieldSize <= VARINFO_ARRAYSIZE_MAX );
+				Assert( td->fieldSizeInBytes / td->fieldSize <= VARINFO_ELEMSIZE_MAX );
+
 				Print(" <");
 				PrintFieldType( pVar, td );
 				Print(" array> #%d", td->fieldSize);
@@ -2493,9 +2799,11 @@ public:
 		m_output.SetBufferType( true, false );
 		IndentStart();
 
+		void *pNetBase = dynamic_cast< CGameRulesProxy* >( pEnt ) ? (void*)GameRules() : (void*)pEnt;
+
 		Print( "<NetTable>\n" );
 		Print( "(%s)\n", GetNetTable( GetNetworkClass(pEnt) )->GetName() );
-		DumpNetTable_r( pEnt, GetNetTable( GetNetworkClass(pEnt) ) );
+		DumpNetTable_r( pNetBase, GetNetTable( GetNetworkClass(pEnt) ) );
 		Print( "\n</NetTable>\n" );
 
 		Print( "<DataDesc>\n" );
