@@ -335,7 +335,7 @@ namespace SQVector
 		}
 
 		SQUserPointer p;
-		if (SQ_FAILED(sq_getinstanceup(vm, 1, &p, 0)))
+		if (SQ_FAILED(sq_getinstanceup(vm, 1, &p, 0, SQFalse)))
 		{
 			return SQ_ERROR;
 		}
@@ -366,7 +366,7 @@ namespace SQVector
 		}
 
 		Vector* v = nullptr;
-		if (SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v, TYPETAG_VECTOR)))
+		if (SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v, TYPETAG_VECTOR, SQFalse)))
 		{
 			return sq_throwerror(vm, "Unable to get Vector");
 		}
@@ -392,7 +392,7 @@ namespace SQVector
 		}
 
 		Vector* v = nullptr;
-		if (SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v, TYPETAG_VECTOR)))
+		if (SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v, TYPETAG_VECTOR, SQFalse)))
 		{
 			return sq_throwerror(vm, "Unable to get Vector");
 		}
@@ -414,8 +414,8 @@ namespace SQVector
 		Vector* v2 = nullptr;
 
 		if (sq_gettop(vm) != 2 ||
-			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR)) ||
-			SQ_FAILED(sq_getinstanceup(vm, 2, (SQUserPointer*)&v2, TYPETAG_VECTOR)))
+			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR, SQFalse)) ||
+			SQ_FAILED(sq_getinstanceup(vm, 2, (SQUserPointer*)&v2, TYPETAG_VECTOR, SQFalse)))
 		{
 			return sq_throwerror(vm, "Expected (Vector, Vector)");
 		}
@@ -423,7 +423,7 @@ namespace SQVector
 		sq_getclass(vm, 1);
 		sq_createinstance(vm, -1);
 		SQUserPointer p;
-		sq_getinstanceup(vm, -1, &p, 0);
+		sq_getinstanceup(vm, -1, &p, 0, SQFalse);
 		new(p) Vector((*v1) + (*v2));
 		sq_remove(vm, -2);
 
@@ -436,8 +436,8 @@ namespace SQVector
 		Vector* v2 = nullptr;
 
 		if (sq_gettop(vm) != 2 ||
-			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR)) ||
-			SQ_FAILED(sq_getinstanceup(vm, 2, (SQUserPointer*)&v2, TYPETAG_VECTOR)))
+			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR, SQFalse)) ||
+			SQ_FAILED(sq_getinstanceup(vm, 2, (SQUserPointer*)&v2, TYPETAG_VECTOR, SQFalse)))
 		{
 			return sq_throwerror(vm, "Expected (Vector, Vector)");
 		}
@@ -445,7 +445,7 @@ namespace SQVector
 		sq_getclass(vm, 1);
 		sq_createinstance(vm, -1);
 		SQUserPointer p;
-		sq_getinstanceup(vm, -1, &p, 0);
+		sq_getinstanceup(vm, -1, &p, 0, SQFalse);
 		new(p) Vector((*v1) - (*v2));
 		sq_remove(vm, -2);
 
@@ -457,7 +457,7 @@ namespace SQVector
 		Vector* v1 = nullptr;
 
 		if (sq_gettop(vm) != 2 ||
-			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR)))
+			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR, SQFalse)))
 		{
 			return sq_throwerror(vm, "Expected (Vector, Vector|float)");
 		}
@@ -470,18 +470,18 @@ namespace SQVector
 			sq_getclass(vm, 1);
 			sq_createinstance(vm, -1);
 			SQUserPointer p;
-			sq_getinstanceup(vm, -1, &p, 0);
+			sq_getinstanceup(vm, -1, &p, 0, SQFalse);
 			new(p) Vector((*v1) * s);
 			sq_remove(vm, -2);
 
 			return 1;
 		}
-		else if ( SQ_SUCCEEDED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v2, TYPETAG_VECTOR)) )
+		else if ( SQ_SUCCEEDED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v2, TYPETAG_VECTOR, SQFalse)) )
 		{
 			sq_getclass(vm, 1);
 			sq_createinstance(vm, -1);
 			SQUserPointer p;
-			sq_getinstanceup(vm, -1, &p, 0);
+			sq_getinstanceup(vm, -1, &p, 0, SQFalse);
 			new(p) Vector((*v1) * (*v2));
 			sq_remove(vm, -2);
 
@@ -498,7 +498,7 @@ namespace SQVector
 		Vector* v1 = nullptr;
 
 		if (sq_gettop(vm) != 2 ||
-			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR)))
+			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR, SQFalse)))
 		{
 			return sq_throwerror(vm, "Expected (Vector, Vector|float)");
 		}
@@ -511,18 +511,18 @@ namespace SQVector
 			sq_getclass(vm, 1);
 			sq_createinstance(vm, -1);
 			SQUserPointer p;
-			sq_getinstanceup(vm, -1, &p, 0);
+			sq_getinstanceup(vm, -1, &p, 0, SQFalse);
 			new(p) Vector((*v1) / s);
 			sq_remove(vm, -2);
 
 			return 1;
 		}
-		else if ( SQ_SUCCEEDED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v2, TYPETAG_VECTOR)) )
+		else if ( SQ_SUCCEEDED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v2, TYPETAG_VECTOR, SQFalse)) )
 		{
 			sq_getclass(vm, 1);
 			sq_createinstance(vm, -1);
 			SQUserPointer p;
-			sq_getinstanceup(vm, -1, &p, 0);
+			sq_getinstanceup(vm, -1, &p, 0, SQFalse);
 			new(p) Vector((*v1) / (*v2));
 			sq_remove(vm, -2);
 
@@ -539,7 +539,7 @@ namespace SQVector
 		Vector* v1 = nullptr;
 
 		if (sq_gettop(vm) != 1 ||
-			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR)))
+			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR, SQFalse)))
 		{
 			return sq_throwerror(vm, "Expected (Vector)");
 		}
@@ -547,7 +547,7 @@ namespace SQVector
 		sq_getclass(vm, 1);
 		sq_createinstance(vm, -1);
 		SQUserPointer p;
-		sq_getinstanceup(vm, -1, &p, 0);
+		sq_getinstanceup(vm, -1, &p, 0, SQFalse);
 		new(p) Vector(-v1->x, -v1->y, -v1->z);
 		sq_remove(vm, -2);
 
@@ -573,14 +573,14 @@ namespace SQVector
 		SQInteger top = sq_gettop(vm);
 		Vector* v1 = nullptr;
 
-		if ( top < 2 || SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR)) )
+		if ( top < 2 || SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR, SQFalse)) )
 		{
 			return sq_throwerror(vm, "Expected (Vector, Vector)");
 		}
 
 		Vector* v2 = nullptr;
 
-		if ( SQ_SUCCEEDED(sq_getinstanceup(vm, 2, (SQUserPointer*)&v2, TYPETAG_VECTOR)) )
+		if ( SQ_SUCCEEDED(sq_getinstanceup(vm, 2, (SQUserPointer*)&v2, TYPETAG_VECTOR, SQFalse)) )
 		{
 			if ( top != 2 )
 				return sq_throwerror(vm, "Expected (Vector, Vector)");
@@ -613,8 +613,8 @@ namespace SQVector
 		Vector* v2 = nullptr;
 
 		if (sq_gettop(vm) != 2 ||
-			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR)) ||
-			SQ_FAILED(sq_getinstanceup(vm, 2, (SQUserPointer*)&v2, TYPETAG_VECTOR)))
+			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR, SQFalse)) ||
+			SQ_FAILED(sq_getinstanceup(vm, 2, (SQUserPointer*)&v2, TYPETAG_VECTOR, SQFalse)))
 		{
 			return sq_throwerror(vm, "Expected (Vector, Vector)");
 		}
@@ -631,8 +631,8 @@ namespace SQVector
 		Vector* v2 = nullptr;
 
 		if (sq_gettop(vm) != 2 ||
-			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR)) ||
-			SQ_FAILED(sq_getinstanceup(vm, 2, (SQUserPointer*)&v2, TYPETAG_VECTOR)))
+			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR, SQFalse)) ||
+			SQ_FAILED(sq_getinstanceup(vm, 2, (SQUserPointer*)&v2, TYPETAG_VECTOR, SQFalse)))
 		{
 			return sq_throwerror(vm, "Expected (Vector, Vector)");
 		}
@@ -648,14 +648,14 @@ namespace SQVector
 		Vector* v1 = nullptr;
 
 		if (sq_gettop(vm) != 2 ||
-			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR)))
+			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR, SQFalse)))
 		{
 			return sq_throwerror(vm, "Expected (Vector, Vector|float)");
 		}
 
 		Vector* v2 = nullptr;
 
-		if ( SQ_SUCCEEDED(sq_getinstanceup( vm, 2, (SQUserPointer*)&v2, TYPETAG_VECTOR )) )
+		if ( SQ_SUCCEEDED(sq_getinstanceup( vm, 2, (SQUserPointer*)&v2, TYPETAG_VECTOR, SQFalse )) )
 		{
 			VectorMultiply( *v1, *v2, *v1 );
 			sq_remove( vm, -1 );
@@ -681,14 +681,14 @@ namespace SQVector
 		Vector* v1 = nullptr;
 
 		if (sq_gettop(vm) != 2 ||
-			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR)))
+			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR, SQFalse)))
 		{
 			return sq_throwerror(vm, "Expected (Vector, Vector|float)");
 		}
 
 		Vector* v2 = nullptr;
 
-		if ( SQ_SUCCEEDED(sq_getinstanceup( vm, 2, (SQUserPointer*)&v2, TYPETAG_VECTOR )) )
+		if ( SQ_SUCCEEDED(sq_getinstanceup( vm, 2, (SQUserPointer*)&v2, TYPETAG_VECTOR, SQFalse )) )
 		{
 			VectorDivide( *v1, *v2, *v1 );
 			sq_remove( vm, -1 );
@@ -715,8 +715,8 @@ namespace SQVector
 		Vector* v2 = nullptr;
 
 		if (sq_gettop(vm) != 2 ||
-			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR)) ||
-			SQ_FAILED(sq_getinstanceup(vm, 2, (SQUserPointer*)&v2, TYPETAG_VECTOR)))
+			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR, SQFalse)) ||
+			SQ_FAILED(sq_getinstanceup(vm, 2, (SQUserPointer*)&v2, TYPETAG_VECTOR, SQFalse)))
 		{
 			return sq_throwerror(vm, "Expected (Vector, Vector)");
 		}
@@ -732,8 +732,8 @@ namespace SQVector
 		Vector* v2 = nullptr;
 
 		if (sq_gettop(vm) != 2 ||
-			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR)) ||
-			SQ_FAILED(sq_getinstanceup(vm, 2, (SQUserPointer*)&v2, TYPETAG_VECTOR)))
+			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR, SQFalse)) ||
+			SQ_FAILED(sq_getinstanceup(vm, 2, (SQUserPointer*)&v2, TYPETAG_VECTOR, SQFalse)))
 		{
 			return sq_throwerror(vm, "Expected (Vector, Vector)");
 		}
@@ -749,8 +749,8 @@ namespace SQVector
 		Vector* v2 = nullptr;
 
 		if (sq_gettop(vm) < 2 || // bother checking > 3?
-			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR)) ||
-			SQ_FAILED(sq_getinstanceup(vm, 2, (SQUserPointer*)&v2, TYPETAG_VECTOR)) )
+			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR, SQFalse)) ||
+			SQ_FAILED(sq_getinstanceup(vm, 2, (SQUserPointer*)&v2, TYPETAG_VECTOR, SQFalse)) )
 		{
 			return sq_throwerror(vm, "Expected (Vector, Vector, float)");
 		}
@@ -768,7 +768,7 @@ namespace SQVector
 		Vector* v1 = nullptr;
 
 		if (sq_gettop(vm) != 1 ||
-			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR)))
+			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR, SQFalse)))
 		{
 			return sq_throwerror(vm, "Expected (Vector)");
 		}
@@ -782,7 +782,7 @@ namespace SQVector
 		Vector* v1 = nullptr;
 
 		if (sq_gettop(vm) != 1 ||
-			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR)))
+			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR, SQFalse)))
 		{
 			return sq_throwerror(vm, "Expected (Vector)");
 		}
@@ -796,7 +796,7 @@ namespace SQVector
 		Vector* v1 = nullptr;
 
 		if (sq_gettop(vm) != 1 ||
-			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR)))
+			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR, SQFalse)))
 		{
 			return sq_throwerror(vm, "Expected (Vector)");
 		}
@@ -810,7 +810,7 @@ namespace SQVector
 		Vector* v1 = nullptr;
 
 		if (sq_gettop(vm) != 1 ||
-			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR)))
+			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR, SQFalse)))
 		{
 			return sq_throwerror(vm, "Expected (Vector)");
 		}
@@ -824,7 +824,7 @@ namespace SQVector
 		Vector* v1 = nullptr;
 
 		if (sq_gettop(vm) != 1 ||
-			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR)))
+			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR, SQFalse)))
 		{
 			return sq_throwerror(vm, "Expected (Vector)");
 		}
@@ -832,7 +832,7 @@ namespace SQVector
 		sq_getclass(vm, 1);
 		sq_createinstance(vm, -1);
 		SQUserPointer p;
-		sq_getinstanceup(vm, -1, &p, 0);
+		sq_getinstanceup(vm, -1, &p, 0, SQFalse);
 		new(p) Vector((*v1).Normalized());
 		sq_remove(vm, -2);
 
@@ -844,7 +844,7 @@ namespace SQVector
 		Vector* v1 = nullptr;
 
 		if (sq_gettop(vm) != 1 ||
-			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR)))
+			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR, SQFalse)))
 		{
 			return sq_throwerror(vm, "Expected (Vector)");
 		}
@@ -861,7 +861,7 @@ namespace SQVector
 		float s = 0.0f;
 
 		if (sq_gettop(vm) != 2 ||
-			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR)) ||
+			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR, SQFalse)) ||
 			SQ_SUCCEEDED(sq_getfloat(vm, 2, &s)))
 		{
 			return sq_throwerror(vm, "Expected (Vector, float)");
@@ -870,7 +870,7 @@ namespace SQVector
 		sq_getclass(vm, 1);
 		sq_createinstance(vm, -1);
 		SQUserPointer p;
-		sq_getinstanceup(vm, -1, &p, 0);
+		sq_getinstanceup(vm, -1, &p, 0, SQFalse);
 		new(p) Vector((*v1) * s);
 		sq_remove(vm, -2);
 
@@ -883,8 +883,8 @@ namespace SQVector
 		Vector* v2 = nullptr;
 
 		if (sq_gettop(vm) != 2 ||
-			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR)) ||
-			SQ_FAILED(sq_getinstanceup(vm, 2, (SQUserPointer*)&v2, TYPETAG_VECTOR)))
+			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR, SQFalse)) ||
+			SQ_FAILED(sq_getinstanceup(vm, 2, (SQUserPointer*)&v2, TYPETAG_VECTOR, SQFalse)))
 		{
 			return sq_throwerror(vm, "Expected (Vector, Vector)");
 		}
@@ -898,7 +898,7 @@ namespace SQVector
 		Vector* v1 = nullptr;
 
 		if (sq_gettop(vm) != 1 ||
-			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR)))
+			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR, SQFalse)))
 		{
 			return sq_throwerror(vm, "Expected (Vector)");
 		}
@@ -913,7 +913,7 @@ namespace SQVector
 		const char* szInput;
 
 		if (sq_gettop(vm) != 2 ||
-			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR)) ||
+			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR, SQFalse)) ||
 			SQ_FAILED(sq_getstring(vm, 2, &szInput)) )
 		{
 			return sq_throwerror(vm, "Expected (Vector, string)");
@@ -948,8 +948,8 @@ namespace SQVector
 		Vector* v2 = nullptr;
 
 		if (sq_gettop(vm) != 2 ||
-			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR)) ||
-			SQ_FAILED(sq_getinstanceup(vm, 2, (SQUserPointer*)&v2, TYPETAG_VECTOR)))
+			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR, SQFalse)) ||
+			SQ_FAILED(sq_getinstanceup(vm, 2, (SQUserPointer*)&v2, TYPETAG_VECTOR, SQFalse)))
 		{
 			return sq_throwerror(vm, "Expected (Vector, Vector)");
 		}
@@ -957,7 +957,7 @@ namespace SQVector
 		sq_getclass(vm, 1);
 		sq_createinstance(vm, -1);
 		SQUserPointer p;
-		sq_getinstanceup(vm, -1, &p, 0);
+		sq_getinstanceup(vm, -1, &p, 0, SQFalse);
 		new(p) Vector((*v1).Cross(*v2));
 		sq_remove(vm, -2);
 
@@ -971,9 +971,9 @@ namespace SQVector
 		Vector* maxs = nullptr;
 
 		if (sq_gettop(vm) != 3 ||
-			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR)) ||
-			SQ_FAILED(sq_getinstanceup(vm, 2, (SQUserPointer*)&mins, TYPETAG_VECTOR)) ||
-			SQ_FAILED(sq_getinstanceup(vm, 3, (SQUserPointer*)&maxs, TYPETAG_VECTOR)))
+			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR, SQFalse)) ||
+			SQ_FAILED(sq_getinstanceup(vm, 2, (SQUserPointer*)&mins, TYPETAG_VECTOR, SQFalse)) ||
+			SQ_FAILED(sq_getinstanceup(vm, 3, (SQUserPointer*)&maxs, TYPETAG_VECTOR, SQFalse)))
 		{
 			return sq_throwerror(vm, "Expected (Vector, Vector, Vector)");
 		}
@@ -988,7 +988,7 @@ namespace SQVector
 		Vector* v1 = nullptr;
 
 		if (sq_gettop(vm) != 1 ||
-			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR)))
+			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR, SQFalse)))
 		{
 			return sq_throwerror(vm, "Expected (Vector)");
 		}
@@ -996,7 +996,7 @@ namespace SQVector
 		sq_getclass(vm, 1);
 		sq_createinstance(vm, -1);
 		SQUserPointer p;
-		sq_getinstanceup(vm, -1, &p, 0);
+		sq_getinstanceup(vm, -1, &p, 0, SQFalse);
 		new(p) Vector();
 		AngleVectors( *((QAngle*)v1), (Vector*)p );
 		sq_remove(vm, -2);
@@ -1009,7 +1009,7 @@ namespace SQVector
 		Vector* v1 = nullptr;
 
 		if (sq_gettop(vm) != 1 ||
-			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR)))
+			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR, SQFalse)))
 		{
 			return sq_throwerror(vm, "Expected (Vector)");
 		}
@@ -1017,7 +1017,7 @@ namespace SQVector
 		sq_getclass(vm, 1);
 		sq_createinstance(vm, -1);
 		SQUserPointer p;
-		sq_getinstanceup(vm, -1, &p, 0);
+		sq_getinstanceup(vm, -1, &p, 0, SQFalse);
 		new(p) Vector();
 		AngleVectors( *((QAngle*)v1), NULL, (Vector*)p, NULL );	// Despite being named "Left", docs suggest this returns right vector in live TF2
 		sq_remove(vm, -2);
@@ -1030,7 +1030,7 @@ namespace SQVector
 		Vector* v1 = nullptr;
 
 		if (sq_gettop(vm) != 1 ||
-			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR)))
+			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR, SQFalse)))
 		{
 			return sq_throwerror(vm, "Expected (Vector)");
 		}
@@ -1038,7 +1038,7 @@ namespace SQVector
 		sq_getclass(vm, 1);
 		sq_createinstance(vm, -1);
 		SQUserPointer p;
-		sq_getinstanceup(vm, -1, &p, 0);
+		sq_getinstanceup(vm, -1, &p, 0, SQFalse);
 		new(p) Vector();
 		AngleVectors( *((QAngle*)v1), NULL, NULL, (Vector*)p );
 		sq_remove(vm, -2);
@@ -1051,7 +1051,7 @@ namespace SQVector
 		Vector* v1 = nullptr;
 
 		if (sq_gettop(vm) != 1 ||
-			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR)))
+			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR, SQFalse)))
 		{
 			return sq_throwerror(vm, "Expected (Vector)");
 		}
@@ -1065,7 +1065,7 @@ namespace SQVector
 		Vector* v1 = nullptr;
 
 		if (sq_gettop(vm) != 1 ||
-			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR)))
+			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR, SQFalse)))
 		{
 			return sq_throwerror(vm, "Expected (Vector)");
 		}
@@ -1079,7 +1079,7 @@ namespace SQVector
 		Vector* v1 = nullptr;
 
 		if (sq_gettop(vm) != 1 ||
-			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR)))
+			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR, SQFalse)))
 		{
 			return sq_throwerror(vm, "Expected (Vector)");
 		}
@@ -1099,7 +1099,7 @@ namespace SQVector
 		Vector* v1 = nullptr;
 
 		if (sq_gettop(vm) != 1 ||
-			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR)))
+			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR, SQFalse)))
 		{
 			return sq_throwerror(vm, "Expected (Vector)");
 		}
@@ -1119,7 +1119,7 @@ namespace SQVector
 		Vector* v1 = nullptr;
 
 		if (sq_gettop(vm) != 2 ||
-			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR)))
+			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR, SQFalse)))
 		{
 			return sq_throwerror(vm, "Expected (Vector)");
 		}
@@ -1314,7 +1314,7 @@ void PushVariant(HSQUIRRELVM vm, const ScriptVariant_t& value)
 		sq_pushobject(vm, pSquirrelVM->vectorClass_);
 		sq_createinstance(vm, -1);
 		SQUserPointer p;
-		sq_getinstanceup(vm, -1, &p, 0);
+		sq_getinstanceup(vm, -1, &p, 0, SQFalse);
 		new(p) Vector(static_cast<const Vector&>(value));
 		sq_remove(vm, -2);
 		break;
@@ -1453,7 +1453,7 @@ bool getVariant(HSQUIRRELVM vm, SQInteger idx, ScriptVariant_t& variant)
 	case OT_INSTANCE:
 	{
 		Vector* v = nullptr;
-		if (SQ_SUCCEEDED(sq_getinstanceup(vm, idx, (SQUserPointer*)&v, TYPETAG_VECTOR)))
+		if (SQ_SUCCEEDED(sq_getinstanceup(vm, idx, (SQUserPointer*)&v, TYPETAG_VECTOR, SQFalse)))
 		{
 			variant = *v;
 			return true;
@@ -1520,7 +1520,7 @@ SQInteger function_stub(HSQUIRRELVM vm)
 		case FIELD_QANGLE:
 		{
 			Vector* val;
-			if (SQ_FAILED(sq_getinstanceup(vm, i + 2, (SQUserPointer*)&val, TYPETAG_VECTOR)))
+			if (SQ_FAILED(sq_getinstanceup(vm, i + 2, (SQUserPointer*)&val, TYPETAG_VECTOR, SQFalse)))
 				return sq_throwerror(vm, "Expected Vector");
 			params[i] = *val;
 			break;
@@ -1586,7 +1586,7 @@ SQInteger function_stub(HSQUIRRELVM vm)
 	if (pFunc->m_flags & SF_MEMBER_FUNC)
 	{
 		ClassInstanceData* classInstanceData;
-		if (SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&classInstanceData, 0)))
+		if (SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&classInstanceData, 0, SQFalse)))
 		{
 			return SQ_ERROR;
 		}
@@ -1712,7 +1712,7 @@ SQInteger constructor_stub(HSQUIRRELVM vm)
 	}
 
 	SQUserPointer p;
-	if (SQ_FAILED(sq_getinstanceup(vm, 1, &p, 0)))
+	if (SQ_FAILED(sq_getinstanceup(vm, 1, &p, 0, SQFalse)))
 	{
 		return SQ_ERROR;
 	}
@@ -1741,7 +1741,7 @@ SQInteger constructor_stub(HSQUIRRELVM vm)
 SQInteger tostring_stub(HSQUIRRELVM vm)
 {
 	ClassInstanceData* classInstanceData = nullptr;
-	if (SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&classInstanceData, 0)))
+	if (SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&classInstanceData, 0, SQFalse)))
 	{
 		return SQ_ERROR;
 	}
@@ -1774,7 +1774,7 @@ SQInteger tostring_stub(HSQUIRRELVM vm)
 SQInteger get_stub(HSQUIRRELVM vm)
 {
 	ClassInstanceData* classInstanceData = nullptr;
-	if (SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&classInstanceData, 0)))
+	if (SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&classInstanceData, 0, SQFalse)))
 	{
 		return SQ_ERROR;
 	}
@@ -1821,7 +1821,7 @@ SQInteger get_stub(HSQUIRRELVM vm)
 SQInteger set_stub(HSQUIRRELVM vm)
 {
 	ClassInstanceData* classInstanceData = nullptr;
-	if (SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&classInstanceData, 0)))
+	if (SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&classInstanceData, 0, SQFalse)))
 	{
 		return SQ_ERROR;
 	}
@@ -1869,7 +1869,7 @@ SQInteger set_stub(HSQUIRRELVM vm)
 SQInteger IsValid_stub(HSQUIRRELVM vm)
 {
 	ClassInstanceData* classInstanceData = nullptr;
-	sq_getinstanceup(vm, 1, (SQUserPointer*)&classInstanceData, 0);
+	sq_getinstanceup(vm, 1, (SQUserPointer*)&classInstanceData, 0, SQFalse);
 	sq_pushbool(vm, classInstanceData != nullptr);
 	return 1;
 }
@@ -2894,7 +2894,7 @@ HSCRIPT SquirrelVM::RegisterInstance(ScriptClassDesc_t* pDesc, void* pInstance, 
 
 	{
 		ClassInstanceData *self;
-		sq_getinstanceup(vm_, -1, (SQUserPointer*)&self, 0);
+		sq_getinstanceup(vm_, -1, (SQUserPointer*)&self, 0, SQFalse);
 		new(self) ClassInstanceData(pInstance, pDesc, nullptr, bRefCounted);
 
 		// can't delete the instance if it doesn't have a destructor
@@ -2922,7 +2922,7 @@ void SquirrelVM::SetInstanceUniqeId(HSCRIPT hInstance, const char* pszId)
 	sq_pushobject(vm_, *obj);
 
 	ClassInstanceData* classInstanceData;
-	sq_getinstanceup(vm_, -1, (SQUserPointer*)&classInstanceData, nullptr);
+	sq_getinstanceup(vm_, -1, (SQUserPointer*)&classInstanceData, nullptr, SQFalse);
 
 	classInstanceData->instanceId = pszId;
 
@@ -2940,7 +2940,7 @@ void SquirrelVM::RemoveInstance(HSCRIPT hInstance)
 	ClassInstanceData *self;
 
 	sq_pushobject(vm_, *obj);
-	sq_getinstanceup(vm_, -1, (SQUserPointer*)&self, nullptr);
+	sq_getinstanceup(vm_, -1, (SQUserPointer*)&self, nullptr, SQFalse);
 	sq_setinstanceup(vm_, -1, nullptr);
 	sq_setreleasehook(vm_, -1, nullptr);
 	sq_pop(vm_, 1);
@@ -2981,7 +2981,7 @@ void* SquirrelVM::GetInstanceValue(HSCRIPT hInstance, ScriptClassDesc_t* pExpect
 
 	sq_pushobject(vm_, *obj);
 	ClassInstanceData* classInstanceData;
-	sq_getinstanceup(vm_, -1, (SQUserPointer*)&classInstanceData, nullptr);
+	sq_getinstanceup(vm_, -1, (SQUserPointer*)&classInstanceData, nullptr, SQFalse);
 	sq_pop(vm_, 1);
 
 
