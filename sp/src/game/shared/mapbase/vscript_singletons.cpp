@@ -536,8 +536,11 @@ private:
 	varinfo_t *GetVarInfo( CBaseEntity *pEnt, const char *szProp, int index, bool bDontWarnOnMissing = false )
 	{
 		int offset = 0;
+		datamap_t *map;
+		typedescription_t *pField;
 		NetTable *pTable = GetNetTable( GetNetworkClass( pEnt ) );
 		NetProp *pProp = FindInNetTable( (char*)pEnt, pTable, szProp, &offset );
+
 		if ( pProp )
 		{
 
@@ -646,6 +649,19 @@ private:
 
 				Assert( index == 0 || pProp->GetElementStride() > 0 );
 
+#ifdef GAME_DLL
+				// If this networked string is not pooled, we don't know how large the buffer is
+				// Check the data maps to see if this variable has a size there
+				// Otherwise it's going to be read-only
+				if ( pProp->GetProxyFn() != SendProxy_StringT_To_String )
+				{
+					map = pEnt->GetDataDescMap();
+					pField = FindInDataMap( (char*)pEnt, map, szProp, &offset );
+					if ( pField && pField->fieldType == FIELD_CHARACTER )
+						goto find_field;
+				}
+#endif
+
 				SetVarInfo();
 #ifdef GAME_DLL
 				pInfo->stringsize = 0;
@@ -663,6 +679,7 @@ private:
 					Assert( pProp->GetProxyFn() == DataTableProxy_String );
 					pInfo->datatype = types::_CSTRING;
 				}
+
 				return pInfo;
 			}
 			case DPT_DataTable:
@@ -860,13 +877,11 @@ private:
 #undef SetVarInfo
 		}
 
-		datamap_t *map = pEnt->GetDataDescMap();
-		typedescription_t *pField = FindInDataMap( (char*)pEnt, map, szProp, &offset );
+		map = pEnt->GetDataDescMap();
+		pField = FindInDataMap( (char*)pEnt, map, szProp, &offset );
 		if ( pField )
 		{
-#ifdef CLIENT_DLL
 find_field:
-#endif
 			if ( index < 0 || index >= pField->fieldSize )
 			{
 				Warning( "NetProp element index out of range! %s[%d]\n", szProp, index );
@@ -1757,8 +1772,9 @@ public:
 			{
 				V_strncpy( pBase + pInfo->GetOffset( index ), value, pInfo->stringsize );
 				NetworkStateChanged( pEnt, pInfo->GetOffset( index ) );
-				break;
 			}
+
+			break;
 		}
 		case types::_STRING_T:
 		{
