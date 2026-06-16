@@ -3378,6 +3378,15 @@ void CPhysicsProp::OnPhysGunPickup( CBasePlayer *pPhysGunUser, PhysGunPickup_t r
 		}
 	}
 
+#ifdef MAPBASE
+	//Make Sure to reset this because if we throw a prop in the air
+	//and pick it up again and gently put it down it will make it take damage
+	//with this we curcimvent this issue
+	//-Nbc66
+	m_bFirstCollisionAfterLaunch = false;
+#endif // MAPBASE
+
+
 	m_OnPhysGunPickup.FireOutput( pPhysGunUser, this );
 
 	if( reason == PICKED_UP_BY_CANNON )
