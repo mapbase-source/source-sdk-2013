@@ -20,7 +20,7 @@
 #include "loadcmdline.h"
 #include "byteswap.h"
 
-#define ALLOWDEBUGOPTIONS (0 || _DEBUG)
+//#define ALLOWDEBUGOPTIONS (0 || _DEBUG)
 
 static FileHandle_t pFpTrans = NULL;
 
@@ -94,7 +94,7 @@ bool g_bShowStaticPropNormals = false;
 
 
 float		gamma_value = 0.5;
-float		indirect_sun = 1.0;
+//float		indirect_sun = 1.0;
 float		reflectivityScale = 1.0;
 qboolean	do_extra = true;
 bool		debug_extra = false;
@@ -2693,8 +2693,7 @@ int ParseCommandLine( int argc, char **argv, bool *onlydetail )
 				return 1;
 			}
 		}
-
-#if ALLOWDEBUGOPTIONS
+#ifdef MAPBASE
 		else if (!Q_stricmp(argv[i],"-scale"))
 		{
 			if ( ++i < argc )
@@ -2733,18 +2732,18 @@ int ParseCommandLine( int argc, char **argv, bool *onlydetail )
 				return 1;
 			}
 		}
-		else if (!Q_stricmp(argv[i],"-sky"))
-		{
-			if ( ++i < argc )
-			{
-				indirect_sun = (float)atof (argv[i]);
-			}
-			else
-			{
-				Warning("Error: expected a value after '-sky'\n" );
-				return 1;
-			}
-		}
+//		else if (!Q_stricmp(argv[i],"-sky"))
+//		{
+//			if ( ++i < argc )
+//			{
+//				indirect_sun = (float)atof (argv[i]);
+//			}
+//			else
+//			{
+//				Warning("Error: expected a value after '-sky'\n" );
+//				return 1;
+//			}
+//		}
 		else if (!Q_stricmp(argv[i],"-notexscale"))
 		{
 			texscale = false;
@@ -2858,6 +2857,13 @@ void PrintUsage( int argc, char **argv )
 		"  -chop           : Smallest number of luxel widths for a bounce patch, used on edges\n"
 		"  -maxchop		   : Coarsest allowed number of luxel widths for a patch, used in face interiors\n"
 		"\n"
+#ifdef MAPBASE
+		"  -coring #	   : Scale the light threshold before a luxel is completely unlit, used to save lightmap data. (default 1.0)\n"	
+		"  -ambient # # #  : Sets the ambient term. Can be used to tweak lightmap color. Mixes the color into all lightmaps.\n"
+		"  -scale #        : Scales all the lights by a # factor. (default 1.0) \n"
+		"  -dlight #       : Set the dlight_threshold constant. (default 0.1)"
+		"  -notexscale     : Disables calculation of the texture and lightmap scaling factors for a patch.\n"
+#endif
 		"  -LargeDispSampleRadius: This can be used if there are splotches of bounced light\n"
 		"                          on terrain. The compile will take longer, but it will gather\n"
 		"                          light across a wider area.\n"
