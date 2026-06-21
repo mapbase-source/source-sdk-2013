@@ -76,10 +76,13 @@ private:
 
 void FX_ThumperDust( const CEffectData &data )
 {
+
+#ifndef MAPBASE
 	Vector vecDustColor;
 	vecDustColor.x = 0.85f;
 	vecDustColor.y = 0.75f;
 	vecDustColor.z = 0.52f;
+#endif
 
 	CSmartPtr<ThumperDustEmitter> pSimple = ThumperDustEmitter::Create( "thumperdust" );
 
@@ -117,7 +120,13 @@ void FX_ThumperDust( const CEffectData &data )
 
 	// Setup the color for these particles
 	engine->ComputeLighting( data.m_vOrigin, NULL, true, vecColor );
+
+#ifdef MAPBASE
+	VectorLerp( vecColor, data.m_CustomColors.m_vecColor1, 0.5, vecColor );
+#else
 	VectorLerp( vecColor, vecDustColor, 0.5, vecColor );
+#endif
+
 	vecColor *= 255;
 
 	for ( i = 0; i < numPuffs; i++ )
