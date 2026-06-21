@@ -12429,6 +12429,12 @@ BEGIN_DATADESC( CAI_BaseNPC )
 
 	DEFINE_KEYFIELD( m_flSpeedModifier, FIELD_FLOAT, "BaseSpeedModifier" ),
 	DEFINE_FIELD( m_FakeSequenceGestureLayer,	FIELD_INTEGER ),
+
+	// Jump override keyvalues
+	DEFINE_KEYFIELD( m_jumpUpOverride, FIELD_FLOAT, "JumpUpOverride" ),
+	DEFINE_KEYFIELD( m_jumpDownOverride, FIELD_FLOAT, "JumpDownOverride" ),
+	DEFINE_KEYFIELD( m_jumpDistOverride, FIELD_FLOAT, "JumpDistOverride" ),
+
 #endif
 
 	// Satisfy classcheck
@@ -12538,6 +12544,11 @@ BEGIN_DATADESC( CAI_BaseNPC )
 
 	DEFINE_OUTPUT( m_OnStateChange,	"OnStateChange" ),
 #endif
+
+	// Change jump height
+	DEFINE_INPUTFUNC( FIELD_FLOAT, "SetMaxJumpUp", InputSetJumpUp ),
+	DEFINE_INPUTFUNC( FIELD_FLOAT, "SetMaxJumpDown", InputSetJumpDown ),
+	DEFINE_INPUTFUNC( FIELD_FLOAT, "SetMaxJumpDist", InputSetJumpDist ),
 
 	// Function pointers
 	DEFINE_USEFUNC( NPCUse ),
@@ -17046,4 +17057,22 @@ void CAI_BaseNPC::DesireCrouch( void )
 bool CAI_BaseNPC::IsInChoreo() const
 {
 	return m_bInChoreo;
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: Override the NPC's default jump values
+//-----------------------------------------------------------------------------
+void CAI_BaseNPC::InputSetJumpUp( inputdata_t& inputdata )
+{
+	m_jumpUpOverride = inputdata.value.Float();
+}
+
+void CAI_BaseNPC::InputSetJumpDown( inputdata_t& inputdata )
+{
+	m_jumpDownOverride = inputdata.value.Float();
+}
+
+void CAI_BaseNPC::InputSetJumpDist( inputdata_t& inputdata )
+{
+	m_jumpDistOverride = inputdata.value.Float();
 }

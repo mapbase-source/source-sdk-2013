@@ -744,7 +744,9 @@ int CNPC_Monk::SelectFailSchedule( int failedSchedule, int failedTask, AI_TaskFa
 //-----------------------------------------------------------------------------
 bool CNPC_Monk::IsJumpLegal( const Vector &startPos, const Vector &apex, const Vector &endPos ) const
 {
-	if ( startPos.z - endPos.z < 0 )
+	// `startPos.z - endPos.z < 0` disables jumping up (probably to hack around some silly behavior Valve found in d1_town_02a)
+	// If the mapper is setting jumpUpOverride, they probably want father to jump up
+	if ( startPos.z - endPos.z < 0 && m_jumpUpOverride < 0 )
 		return false;
 	return BaseClass::IsJumpLegal( startPos, apex, endPos );
 }

@@ -297,16 +297,21 @@ bool CAI_BaseNPC::CanStandOn( CBaseEntity *pSurface ) const
 bool CAI_BaseNPC::IsJumpLegal( const Vector &startPos, const Vector &apex, const Vector &endPos, 
 							   float maxUp, float maxDown, float maxDist ) const
 {
-	if ((endPos.z - startPos.z) > maxUp + 0.1) 
+	// Always use the jump override values
+	float localMaxUp = m_jumpUpOverride > 0.0 ? m_jumpUpOverride : maxUp;
+	float localMaxDown = m_jumpDownOverride > 0.0 ? m_jumpDownOverride : maxDown;
+	float localMaxDist = m_jumpDistOverride > 0.0 ? m_jumpDistOverride : maxDist;
+
+	if ((endPos.z - startPos.z) > localMaxUp + 0.1 )
 		return false;
-	if ((startPos.z - endPos.z) > maxDown + 0.1) 
+	if ((startPos.z - endPos.z) > localMaxDown + 0.1 )
 		return false;
 
-	if ((apex.z - startPos.z) > maxUp * 1.25 ) 
+	if ((apex.z - startPos.z) > localMaxUp * 1.25 )
 		return false;
 
 	float dist = (startPos - endPos).Length();
-	if ( dist > maxDist + 0.1) 
+	if ( dist > localMaxDist + 0.1 )
 		return false;
 	return true;
 }
