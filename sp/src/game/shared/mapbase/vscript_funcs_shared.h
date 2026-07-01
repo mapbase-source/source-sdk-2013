@@ -250,6 +250,9 @@ struct ScriptEmitSound_t : public EmitSound_t
 	float GetSoundTime() { return m_flSoundTime; }
 	void SetSoundTime( float flSoundTime ) { m_flSoundTime = flSoundTime; }
 
+	// NOTE: Incorrectly returns float for boolean type.
+	// Fixing this would break scripts explicitly comparing against 0 or 1
+	// Keeping this would prevent implicit falseness check in a language such as Lua where 0.0 is truthy
 	float GetEmitCloseCaption() { return m_bEmitCloseCaption; }
 	void SetEmitCloseCaption( bool bEmitCloseCaption ) { m_bEmitCloseCaption = bEmitCloseCaption; }
 
