@@ -236,6 +236,9 @@ struct ScriptEmitSound_t : public EmitSound_t
 	int GetFlags() { return m_nFlags; }
 	void SetFlags( int nFlags ) { m_nFlags = nFlags; }
 
+	int GetPitch() { return m_nPitch; }
+	void SetPitch( int nPitch ) { m_nPitch = nPitch; }
+
 	int GetSpecialDSP() { return m_nSpecialDSP; }
 	void SetSpecialDSP( int nSpecialDSP ) { m_nSpecialDSP = nSpecialDSP; }
 
