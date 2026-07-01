@@ -589,6 +589,9 @@ BEGIN_SCRIPTDESC_ROOT_NAMED( ScriptEmitSound_t, "EmitSound_t", "" )
 	DEFINE_SCRIPTFUNC( GetFlags, "Gets the sound's flags. See the 'SND_' set of constants." )
 	DEFINE_SCRIPTFUNC( SetFlags, "Sets the sound's flags. See the 'SND_' set of constants." )
 
+	DEFINE_SCRIPTFUNC( GetPitch, "" )
+	DEFINE_SCRIPTFUNC( SetPitch, "Sets the sound's pitch in range [1, 255]" )
+
 	DEFINE_SCRIPTFUNC( GetSpecialDSP, "" )
 	DEFINE_SCRIPTFUNC( SetSpecialDSP, "" )
 
