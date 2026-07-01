@@ -35,7 +35,7 @@
 #endif
 
 struct SQDebugServer;
-typedef SQDebugServer* HSQDEBUGSERVER;
+typedef struct SQDebugServer *HSQDEBUGSERVER;
 
 #ifdef __cplusplus
 extern "C" {

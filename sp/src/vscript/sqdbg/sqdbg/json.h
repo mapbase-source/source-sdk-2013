@@ -6,10 +6,6 @@
 #ifndef SQDBG_JSON_H
 #define SQDBG_JSON_H
 
-// Most messages are going to require less than 256 bytes,
-// only approaching 1024 on large breakpoint requests
-#define JSON_SCRATCH_CHUNK_SIZE 1024
-
 typedef enum
 {
 	JSON_NULL			= 0x0000,
@@ -62,12 +58,12 @@ class json_array_t
 {
 public:
 	const char *m_pBase;
-	CScratch< true, JSON_SCRATCH_CHUNK_SIZE > *m_Allocator;
-	int *m_Elements;
+	CScratch< true > *m_Allocator;
+	scratchindex_t *m_Elements;
 	unsigned short m_nElementCount;
 	unsigned short m_nElementsSize;
 
-	void Init( const char *base, CScratch< true, JSON_SCRATCH_CHUNK_SIZE > *allocator )
+	void Init( const char *base, CScratch< true > *allocator )
 	{
 		m_pBase = base;
 		m_Allocator = allocator;
@@ -81,16 +77,16 @@ public:
 		{
 			// doesn't free old ptr, this is an uncommon operation and extra allocation is fine
 			int oldsize = m_nElementsSize;
-			int *oldptr = m_Elements;
+			scratchindex_t *oldptr = m_Elements;
 
 			m_nElementsSize = !m_nElementsSize ? 8 : ( m_nElementsSize << 1 );
-			m_Elements = (int*)m_Allocator->Alloc( m_nElementsSize * sizeof(int) );
+			m_Elements = (scratchindex_t*)m_Allocator->Alloc( m_nElementsSize * sizeof(*m_Elements) );
 
 			if ( oldsize )
-				memcpy( m_Elements, oldptr, oldsize * sizeof(int) );
+				memcpy( m_Elements, oldptr, oldsize * sizeof(*m_Elements) );
 		}
 
-		int index;
+		scratchindex_t index;
 		json_value_t *ret = (json_value_t*)m_Allocator->Alloc( sizeof(json_value_t), &index );
 		m_Elements[ m_nElementCount++ ] = index;
 		return ret;
@@ -138,12 +134,12 @@ class json_table_t
 {
 public:
 	const char *m_pBase;
-	CScratch< true, JSON_SCRATCH_CHUNK_SIZE > *m_Allocator;
-	int *m_Elements;
+	CScratch< true > *m_Allocator;
+	scratchindex_t *m_Elements;
 	unsigned short m_nElementCount;
 	unsigned short m_nElementsSize;
 
-	void Init( const char *base, CScratch< true, JSON_SCRATCH_CHUNK_SIZE > *allocator )
+	void Init( const char *base, CScratch< true > *allocator )
 	{
 		m_pBase = base;
 		m_Allocator = allocator;
@@ -174,16 +170,16 @@ public:
 		if ( m_nElementCount == m_nElementsSize )
 		{
 			int oldsize = m_nElementsSize;
-			int *oldptr = m_Elements;
+			scratchindex_t *oldptr = m_Elements;
 
 			m_nElementsSize = !m_nElementsSize ? 8 : ( m_nElementsSize << 1 );
-			m_Elements = (int*)m_Allocator->Alloc( m_nElementsSize * sizeof(int) );
+			m_Elements = (scratchindex_t*)m_Allocator->Alloc( m_nElementsSize * sizeof(*m_Elements) );
 
 			if ( oldsize )
-				memcpy( m_Elements, oldptr, oldsize * sizeof(int) );
+				memcpy( m_Elements, oldptr, oldsize * sizeof(*m_Elements) );
 		}
 
-		int index;
+		scratchindex_t index;
 		json_field_t *ret = (json_field_t*)m_Allocator->Alloc( sizeof(json_field_t), &index );
 		m_Elements[ m_nElementCount++ ] = index;
 		return ret;
@@ -275,7 +271,12 @@ static inline void PutStr( CBuffer *buffer, const string_t &str )
 #ifdef SQDBG_VALIDATE_SENT_MSG
 	for ( unsigned int i = 0; i < str.len; i++ )
 	{
-		if ( str.ptr[i] == '\\' && ( str.ptr[i+1] == '\\' || str.ptr[i+1] == '\"' ) )
+		if ( str.ptr[i] == '\\' &&
+				( str.ptr[i+1] == '\\' ||
+				  str.ptr[i+1] == '\"' ||
+				  str.ptr[i+1] == 'n' ||
+				  str.ptr[i+1] == 'r' ||
+				  str.ptr[i+1] == 't' ) )
 		{
 			i++;
 			continue;
@@ -314,7 +315,7 @@ static inline void PutStr( CBuffer *buffer, const string_t &str, bool quote )
 			default:
 				if ( !IN_RANGE_CHAR( *c, 0x20, 0x7E ) )
 				{
-					int ret = IsValidUTF8( (unsigned char*)c, i + 1 );
+					int ret = IsValidUTF8( c, i + 1 );
 					if ( ret != 0 )
 					{
 						i -= ret - 1;
@@ -410,7 +411,7 @@ static inline void PutStr( CBuffer *buffer, const string_t &str, bool quote )
 			default:
 				if ( !IN_RANGE_CHAR( *c, 0x20, 0x7E ) )
 				{
-					int ret = IsValidUTF8( (unsigned char*)c, i + 1 );
+					int ret = IsValidUTF8( c, i + 1 );
 					if ( ret != 0 )
 					{
 						memcpy( mem + idx, c + 1, ret - 1 );
@@ -425,19 +426,26 @@ static inline void PutStr( CBuffer *buffer, const string_t &str, bool quote )
 						if ( !quote )
 						{
 							mem[idx++] = 'u';
-							idx += printhex< true, false >(
+							uint16_t val = (uint16_t)*(unsigned char*)c;
+							idx += printhex< false >(
 									mem + idx,
 									buffer->Capacity() - idx,
-									(uint16_t)*(unsigned char*)c );
+									val );
 						}
 						else
 						{
 							mem[idx++] = '\\';
+#ifdef SQUNICODE
+							mem[idx++] = 'u';
+							uint16_t val = (uint16_t)*(unsigned char*)c;
+#else
 							mem[idx++] = 'x';
-							idx += printhex< true, false >(
+							unsigned char val = *(unsigned char*)c;
+#endif
+							idx += printhex< false >(
 									mem + idx,
 									buffer->Capacity() - idx,
-									(SQUnsignedChar)*(unsigned char*)c );
+									val );
 						}
 					}
 				}
@@ -504,12 +512,12 @@ static inline void PutInt( CBuffer *buffer, I val )
 	buffer->size += len;
 }
 
-template < bool padding, typename I >
-static inline void PutHex( CBuffer *buffer, I val )
+template < typename I >
+static inline void PutHex( CBuffer *buffer, I val, bool padding )
 {
 	STATIC_ASSERT( IS_UNSIGNED( I ) );
-	buffer->base.Ensure( buffer->Size() + countdigits<16>( val ) + 1 );
-	int len = printhex< padding >( buffer->Base() + buffer->Size(), buffer->Capacity() - buffer->Size(), val );
+	buffer->base.Ensure( buffer->Size() + ( padding ? sizeof(I) * 2 : countdigits<16>( val ) ) + 2 );
+	int len = printhex( buffer->Base() + buffer->Size(), buffer->Capacity() - buffer->Size(), val, -(int)padding );
 	buffer->size += len;
 }
 
@@ -571,14 +579,7 @@ struct jstringbuf_t
 	template < typename I >
 	void PutHex( I val, bool padding = true )
 	{
-		if ( padding )
-		{
-			::PutHex< true >( m_pBuffer, val );
-		}
-		else
-		{
-			::PutHex< false >( m_pBuffer, val );
-		}
+		::PutHex( m_pBuffer, val, padding );
 	}
 };
 
@@ -704,7 +705,7 @@ public:
 		}
 		else
 		{
-			PutHex< false >( m_pBuffer, cast_unsigned( I, val ) );
+			PutHex( m_pBuffer, cast_unsigned( val ), false );
 		}
 		PutChar( m_pBuffer, ']' );
 		PutChar( m_pBuffer, '\"' );
@@ -788,7 +789,7 @@ private:
 	char *m_cur;
 	char *m_end;
 	char *m_start;
-	CScratch< true, JSON_SCRATCH_CHUNK_SIZE > *m_Allocator;
+	CScratch< true > *m_Allocator;
 	char *m_error;
 
 	enum
@@ -805,13 +806,15 @@ private:
 	};
 
 public:
-	JSONParser( CScratch< true, JSON_SCRATCH_CHUNK_SIZE > *allocator, char *ptr, int len, json_table_t *pTable ) :
+	JSONParser( CScratch< true > *allocator, char *ptr, int len, json_table_t *pTable ) :
 		m_cur( ptr ),
 		m_end( ptr + len + 1 ),
 		m_start( ptr ),
 		m_Allocator( allocator ),
 		m_error( NULL )
 	{
+		Assert( (intptr_t)( m_end - m_start ) < (intptr_t)(ostr_t::index_t)-1 );
+
 		string_t token;
 		char type = NextToken( token );
 
@@ -855,7 +858,7 @@ private:
 		else
 		{
 			buf = m_Allocator->Alloc(5);
-			int i = printhex< true, true, false >( buf, 5, (unsigned char)token );
+			int i = printhex< true, false >( buf, 5, (unsigned char)token );
 			Assert( i == 4 );
 			buf[i] = 0;
 		}
@@ -1041,10 +1044,12 @@ private:
 				}
 
 #define _shift( bytesWritten, bytesRead ) \
+do { \
 	Assert( (bytesWritten) < (bytesRead) ); \
 	memmove( cur + (bytesWritten), cur + (bytesRead), end - ( cur + (bytesRead) ) ); \
 	cur += (bytesWritten); \
-	end -= (bytesRead) - (bytesWritten);
+	end -= (bytesRead) - (bytesWritten); \
+} while (0)
 
 				switch ( cur[1] )
 				{
@@ -1222,7 +1227,6 @@ err_eof:
 
 			json_field_t *kv = pTable->NewElement();
 
-			Assert( token.ptr - m_start < (ostr_t::index_t)-1 );
 			kv->key.ofs = token.ptr - m_start;
 			kv->key.len = (ostr_t::index_t)token.len;
 
@@ -1315,7 +1319,6 @@ err_eof:
 				return type;
 			case Token_String:
 				value->type = JSON_STRING;
-				Assert( token.ptr - m_start < (ostr_t::index_t)-1 );
 				value->_string.ofs = token.ptr - m_start;
 				value->_string.len = (ostr_t::index_t)token.len;
 				return type;

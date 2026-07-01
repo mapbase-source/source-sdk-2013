@@ -2146,10 +2146,8 @@ bool SquirrelVM::ConnectDebugger( int port, float timeout )
 			}
 		}
 	}
-	else
-	{
-		sqdbg_frame( debugger_ );
-	}
+
+	sqdbg_frame( debugger_ );
 
 	VScriptRunScript( "sqdbg_definitions.nut", NULL, false );
 	return true;
