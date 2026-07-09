@@ -354,6 +354,12 @@ static SQInteger base_classof(HSQUIRRELVM v)
     return 0;
 }
 
+#ifdef MAPBASE_VSCRIPT
+static SQInteger base_dummy( HSQUIRRELVM SQ_UNUSED_ARG( v ) )
+{
+    return 0;
+}
+#endif
 
 static const SQRegFunctionFromStr base_funcs[] = {
     { base_getroottable, "getroottable(): table" },
@@ -372,6 +378,9 @@ static const SQRegFunctionFromStr base_funcs[] = {
     { base_freeze, "freeze(obj): any" },
     { base_deduplicate_object, "deduplicate_object(obj: table|array|null): table|array|null" },
     { base_getobjflags, "getobjflags(obj): int" },
+#ifdef MAPBASE_VSCRIPT
+    { base_dummy, "dummy(...)" },
+#endif
     { NULL, NULL }
 };
 
