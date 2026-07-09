@@ -85,6 +85,9 @@ public:
 	void			WriteQuaternion( const Quaternion &value );				                        // Save a Quaternion
 	void			WriteQuaternion( const Quaternion *value, int count = 1 );	                    // Save a Quaternion array
 	void			WriteVMatrix( const VMatrix *value, int count = 1 );							// Save a vmatrix array
+#ifdef MAPBASE_MP
+	void			WriteInt64( const int64 *value, int count = 1 );							// Save an int64
+#endif
 
 	// Note: All of the following will write out both a header and the data. On restore,
 	// this needs to be cracked
@@ -239,6 +242,9 @@ public:
 	int				ReadQuaternion( Quaternion *pValue );
 	int				ReadQuaternion( Quaternion *pValue, int count = 1, int nBytesAvailable = 0);
 	int				ReadVMatrix( VMatrix *pValue, int count = 1, int nBytesAvailable = 0);
+#ifdef MAPBASE_MP
+	int				ReadInt64( int64 *pValue, int count = 1, int nBytesAvailable = 0 );
+#endif
 	
 	//---------------------------------
 	// Game types

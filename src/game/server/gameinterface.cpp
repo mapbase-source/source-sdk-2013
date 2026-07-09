@@ -94,6 +94,10 @@
 #include "world.h"
 #endif
 
+#ifdef MAPBASE_MP
+#include "mapbase/mapbase_mp_saverestore.h"
+#endif
+
 #include "vscript/ivscript.h"
 #include "vscript_server.h"
 
@@ -705,6 +709,9 @@ bool CServerGameDLL::DLLInit( CreateInterfaceFn appSystemFactory,
 	g_pGameSaveRestoreBlockSet->AddBlockHandler( GetEventQueueSaveRestoreBlockHandler() );
 	g_pGameSaveRestoreBlockSet->AddBlockHandler( GetAchievementSaveRestoreBlockHandler() );
 	g_pGameSaveRestoreBlockSet->AddBlockHandler( GetVScriptSaveRestoreBlockHandler() );
+#ifdef MAPBASE_MP
+	g_pGameSaveRestoreBlockSet->AddBlockHandler( GetMPPlayerSaveRestoreBlockHandler() );
+#endif
 
 	// The string system must init first + shutdown last
 	IGameSystem::Add( GameStringSystem() );
@@ -766,6 +773,15 @@ bool CServerGameDLL::DLLInit( CreateInterfaceFn appSystemFactory,
 
 	// init the gamestatsupload connection
 	gamestatsuploader->InitConnection();
+#endif
+
+#ifdef MAPBASE_MP
+	// If the last param contains .mpsav, then load it
+	const char *pszSave = CommandLine()->GetParm( CommandLine()->ParmCount() - 1 );
+	if ( pszSave && V_strstr( pszSave, ".mpsav" ) )
+	{
+		g_MPSaveRestore.StartLoadingSave( pszSave );
+	}
 #endif
 
 	return true;
@@ -1007,6 +1023,21 @@ bool CServerGameDLL::LevelInit( const char *pMapName, char const *pMapEntities, 
 	//Tony; parse custom manifest if exists!
 	ParseParticleEffectsMap( pMapName, false );
 
+#ifdef MAPBASE_MP
+	if ( g_MPSaveRestore.IsTransitioning() ) // EnabledTransitions
+	{
+		if ( g_MPSaveRestore.FindTransitionFile( pMapName, &pOldLevel, &pLandmarkName ) )
+		{
+			loadGame = true;
+		}
+	}
+
+	if ( !loadGame && g_MPSaveRestore.IsLoadingSave() )
+	{
+		loadGame = true;
+	}
+#endif
+
 	// IGameSystem::LevelInitPreEntityAllSystems() is called when the world is precached
 	// That happens either in LoadGameState() or in MapEntity_ParseAllEntities()
 	if ( loadGame )
@@ -1023,6 +1054,23 @@ bool CServerGameDLL::LevelInit( const char *pMapName, char const *pMapEntities, 
 		BeginRestoreEntities();
 		if ( !engine->LoadGameState( pMapName, 1 ) )
 		{
+#ifdef MAPBASE_MP
+			if ( g_MPSaveRestore.IsTransitioning() )
+			{
+				// If we've been to this level before, transition to it
+				CSaveRestoreData *pSaveData = SaveInit( 0 );
+				if ( pSaveData && !g_MPSaveRestore.RestoreNextLevelFile( pSaveData, pMapName, pOldLevel, pLandmarkName ) && pOldLevel )
+				{
+					// No existing level data
+					MapEntity_ParseAllEntities( pMapEntities );
+				}
+			}
+			else if ( g_MPSaveRestore.IsLoadingSave() && !pOldLevel )
+			{
+				// Do nothing and let the system handle it (don't return false)
+			}
+			else
+#endif
 			if ( pOldLevel )
 			{
 				MapEntity_ParseAllEntities( pMapEntities );
@@ -1034,6 +1082,28 @@ bool CServerGameDLL::LevelInit( const char *pMapName, char const *pMapEntities, 
 			}
 		}
 
+#ifdef MAPBASE_MP
+		if ( g_MPSaveRestore.IsTransitioning() )
+		{
+			CSaveRestoreData *pSaveData = SaveInit( 0 );
+			if (pSaveData)
+			{
+				g_MPSaveRestore.RestoreTransitionFile( pSaveData, pMapName, pOldLevel, pLandmarkName );
+			}
+			g_MPSaveRestore.EndTransition();
+		}
+		else if ( g_MPSaveRestore.IsLoadingSave() )
+		{
+			CSaveRestoreData *pSaveData = SaveInit( 0 );
+			if (pSaveData)
+			{
+				g_MPSaveRestore.LoadFile( pSaveData );
+			}
+			g_MPSaveRestore.StopLoadingSave();
+		}
+		else
+#endif
+
 		if ( pOldLevel )
 		{
 			engine->LoadAdjacentEnts( pOldLevel, pLandmarkName );
@@ -1042,6 +1112,9 @@ bool CServerGameDLL::LevelInit( const char *pMapName, char const *pMapEntities, 
 		if ( g_OneWayTransition )
 		{
 			engine->ClearSaveDirAfterClientLoad();
+#ifdef MAPBASE_MP
+			g_MPSaveRestore.ClearTransitionFiles();
+#endif
 		}
 
 		if ( pOldLevel && sv_autosave.GetBool() == true )

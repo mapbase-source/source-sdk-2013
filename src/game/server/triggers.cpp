@@ -43,6 +43,10 @@
 #include "ai_hint.h"
 #endif
 
+#ifdef MAPBASE_MP
+#include "mapbase/mapbase_mp_saverestore.h"
+#endif
+
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
@@ -1511,6 +1515,13 @@ public:
 
 	static int ChangeList( levellist_t *pLevelList, int maxList );
 
+#ifdef MAPBASE_MP
+	virtual void EndTouch( CBaseEntity *pOther );
+
+	const char *GetLandmarkName() const { return m_szLandmarkName; }
+	const char *GetEscapePointName() const { return STRING( m_iszEscapePoint ); }
+#endif
+
 private:
 	void TouchChangeLevel( CBaseEntity *pOther );
 	void ChangeLevelNow( CBaseEntity *pActivator );
@@ -1546,6 +1557,12 @@ private:
 	char m_szLandmarkName[cchMapNameMost];		// trigger_changelevel only:  landmark on next map
 	bool m_bTouched;
 
+#ifdef MAPBASE_MP
+	// Used in MP level transitions to determine a place to teleport players to when they're
+	// either unable to escape automatically or weren't in the previous level transition
+	string_t	m_iszEscapePoint;
+#endif
+
 	// Outputs
 	COutputEvent m_OnChangeLevel;
 };
@@ -1560,6 +1577,10 @@ BEGIN_DATADESC( CChangeLevel )
 	DEFINE_AUTO_ARRAY( m_szLandmarkName, FIELD_CHARACTER ),
 //	DEFINE_FIELD( m_touchTime, FIELD_TIME ),	// don't save
 //	DEFINE_FIELD( m_bTouched, FIELD_BOOLEAN ),
+
+#ifdef MAPBASE_MP
+	DEFINE_KEYFIELD( m_iszEscapePoint, FIELD_STRING, "EscapePoint" ),
+#endif
 
 	// Function Pointers
 	DEFINE_FUNCTION( TouchChangeLevel ),
@@ -1790,7 +1811,11 @@ void CChangeLevel::ChangeLevelNow( CBaseEntity *pActivator )
 	Assert(!FStrEq(m_szMapName, ""));
 
 	// Don't work in deathmatch
+#ifdef MAPBASE_MP
+	if ( g_pGameRules->IsDeathmatch() && ( !g_MPSaveRestore.EnabledTransitions() || !g_MPSaveRestore.EnabledTransitionsInDeathmatch() ) )
+#else
 	if ( g_pGameRules->IsDeathmatch() )
+#endif
 		return;
 
 	// Some people are firing these multiple times in a frame, disable
@@ -1863,6 +1888,46 @@ void CChangeLevel::ChangeLevelNow( CBaseEntity *pActivator )
 		Msg( "CHANGE LEVEL: %s %s\n", st_szNextMap, st_szNextSpot );
 	}
 
+#ifdef MAPBASE_MP
+	if ( g_MPSaveRestore.EnabledTransitions() && g_debug_transitions.GetInt() == 0 )
+	{
+		// Hook around with our own transition code
+		CSaveRestoreData *pSaveData = SaveInit( 0 );
+		if ( pSaveData )
+		{
+			g_MPSaveRestore.StartTransition( m_szLandmarkName );
+
+			g_pGameSaveRestoreBlockSet->PreSave( pSaveData );
+
+			CSave saveHelper( pSaveData );
+
+			V_strncpy( pSaveData->levelInfo.szLandmarkName, st_szNextSpot, sizeof( pSaveData->levelInfo.szLandmarkName ) );
+			pSaveData->levelInfo.vecLandmarkOffset = pLandmark->GetAbsOrigin();
+			pSaveData->levelInfo.fUseLandmark = true;
+
+			// BuildChangeList() assigns each entity with a bit corresponding to one of 16 (FENTTABLE_LEVELMASK) possible landmarks.
+			// The data for each landmark is saved to levelList via BuildChangeLevelList().
+			// This is used later in CreateEntityTransitionList() while restoring the level.
+			// Since these are static functions, we iterate through this again to get the landmark index of this particular changelevel.
+			pSaveData->levelInfo.connectionCount = BuildChangeList( pSaveData->levelInfo.levelList, MAX_LEVEL_CONNECTIONS );
+			int nLandmark = 0;
+			for (; nLandmark < pSaveData->levelInfo.connectionCount; nLandmark++)
+			{
+				if ( CBaseEntity::Instance( pSaveData->levelInfo.levelList[nLandmark].pentLandmark ) == pLandmark )
+					break;
+			}
+
+			g_MPSaveRestore.SaveTransitionFile( pSaveData, &saveHelper, st_szNextMap, st_szNextSpot, nLandmark );
+
+			g_MPSaveRestore.CleanupSave( pSaveData );
+
+			engine->ChangeLevel( st_szNextMap, NULL );
+		}
+
+		return;
+	}
+#endif
+
 	// If we're debugging, don't actually change level
 	if ( g_debug_transitions.GetInt() == 0 )
 	{
@@ -1910,9 +1975,36 @@ void CChangeLevel::TouchChangeLevel( CBaseEntity *pOther )
 		DevMsg("In level transition: %s %s\n", st_szNextMap, st_szNextSpot );
 		return;
 	}
+	
+#ifdef MAPBASE_MP
+	if (g_MPSaveRestore.EnabledTransitions() && g_debug_transitions.GetInt() == 0 && !m_bTouched)
+	{
+		g_MPSaveRestore.AddPlayerToTransition( pPlayer, this, STRING( m_iszEscapePoint ) );
+
+		if (!g_MPSaveRestore.AllPlayersReadyToTransition())
+			return;
+
+		// Players ready to transition
+		g_MPSaveRestore.CleanupTransitionSetup();
+	}
+#endif
 
 	ChangeLevelNow( pOther );
 }
+
+
+#ifdef MAPBASE_MP
+void CChangeLevel::EndTouch( CBaseEntity *pOther )
+{
+	BaseClass::EndTouch( pOther );
+
+	CBasePlayer *pPlayer = ToBasePlayer( pOther );
+	if (pPlayer && g_MPSaveRestore.IsPlayerWaitingToTransition( pPlayer ))
+	{
+		g_MPSaveRestore.RemovePlayerFromTransition( pPlayer, false );
+	}
+}
+#endif
 
 
 // Add a transition to the list, but ignore duplicates 
@@ -2110,6 +2202,20 @@ int CChangeLevel::ComputeEntitySaveFlags( CBaseEntity *pEntity )
 		}
 		return 0;
 	}
+
+#ifdef MAPBASE_MP
+	if ( g_MPSaveRestore.IsTransitioning() )
+	{
+		if ( pEntity->IsPlayer() || ( pEntity->GetMoveParent() && pEntity->GetMoveParent()->IsPlayer() ) )
+		{
+			if ( g_iDebuggingTransition == DEBUG_TRANSITIONS_VERBOSE )
+			{
+				Msg( "IGNORED due to being a player or part of one.\n" );
+			}
+			return 0;
+		}
+	}
+#endif
 
 	// If this entity can be moved or is global, mark it
 	int flags = 0;
@@ -2356,6 +2462,36 @@ int CChangeLevel::ChangeList( levellist_t *pLevelList, int maxList )
 
 	return count;
 }
+
+
+#ifdef MAPBASE_MP
+//------------------------------------------------------------------------------
+// Finds a trigger_changelevel corresponding to the specified landmark and then its escape point
+//------------------------------------------------------------------------------
+const char *GetEscapePointForLandmark( const char *pszLandmark, CBaseTrigger **ppChangeLevel )
+{
+	CBaseEntity *pentChangelevel = gEntList.FindEntityByClassname( NULL, "trigger_changelevel" );
+	while ( pentChangelevel )
+	{
+		CChangeLevel *pTrigger = dynamic_cast<CChangeLevel *>(pentChangelevel);
+		if ( pTrigger && FStrEq( pTrigger->GetLandmarkName(), pszLandmark ) )
+		{
+			// Set the changelevel even if it doesn't have an escape point
+			if (ppChangeLevel)
+				*ppChangeLevel = pTrigger;
+
+			const char *pszEscapePoint = pTrigger->GetEscapePointName();
+			if ( pszEscapePoint && *pszEscapePoint )
+			{
+				return pszEscapePoint;
+			}
+		}
+		pentChangelevel = gEntList.FindEntityByClassname( pentChangelevel, "trigger_changelevel" );
+	}
+
+	return NULL;
+}
+#endif
 
 
 //-----------------------------------------------------------------------------

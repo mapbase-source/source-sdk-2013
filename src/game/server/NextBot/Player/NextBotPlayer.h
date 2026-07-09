@@ -145,6 +145,7 @@ public:
 	virtual ~NextBotPlayer();
 
 	virtual void Spawn( void );
+	virtual void OnRestore( void );
 
 	virtual void SetSpawnPoint( CBaseEntity *spawnPoint );						// define place in environment where bot will (re)spawn
 	virtual CBaseEntity		*EntSelectSpawnPoint( void );
@@ -550,6 +551,36 @@ inline void NextBotPlayer< PlayerType >::Spawn( void )
 	INextBot::Reset();
 
 	BaseClass::Spawn();
+}
+
+
+//-----------------------------------------------------------------------------------------------------
+template < typename PlayerType >
+inline void NextBotPlayer< PlayerType >::OnRestore( void )
+{
+	engine->SetFakeClientConVarValue( this->edict(), "cl_autohelp", "0" );
+
+	m_prevInputButtons = m_inputButtons = 0;
+	m_fireButtonTimer.Invalidate();
+	m_meleeButtonTimer.Invalidate();
+	m_specialFireButtonTimer.Invalidate();
+	m_useButtonTimer.Invalidate();
+	m_reloadButtonTimer.Invalidate();
+	m_forwardButtonTimer.Invalidate();
+	m_backwardButtonTimer.Invalidate();
+	m_leftButtonTimer.Invalidate();
+	m_rightButtonTimer.Invalidate();
+	m_jumpButtonTimer.Invalidate();
+	m_crouchButtonTimer.Invalidate();
+	m_walkButtonTimer.Invalidate();
+	m_buttonScaleTimer.Invalidate();
+	m_forwardScale = m_rightScale = 0.04;
+	m_burningTimer.Invalidate();
+
+	// reset first, because Spawn() may access various interfaces
+	INextBot::Reset();
+
+	BaseClass::OnRestore();
 }
 
 

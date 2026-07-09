@@ -165,6 +165,10 @@ public:
 	virtual void	WriteVector( const Vector *value, int count = 1 ) = 0;	// Save a vector array
 	virtual void	WriteQuaternion( const Quaternion &value ) = 0;				// Save a Quaternion
 	virtual void	WriteQuaternion( const Quaternion *value, int count = 1 ) = 0;	// Save a Quaternion array
+#ifdef MAPBASE_MP
+	virtual void	WriteInt64( const int64 *value, int count = 1 ) = 0;		// Save an int64
+	inline void		WriteInt64( const uint64 *value, int count = 1 ) { WriteInt64( (int64 *)value, count );	}
+#endif
 
 	// Note: All of the following will write out both a header and the data. On restore,
 	// this needs to be cracked
@@ -276,6 +280,10 @@ public:
 	virtual int		ReadVector( Vector *pValue, int count = 1, int nBytesAvailable = 0 ) = 0;
 	virtual int		ReadQuaternion( Quaternion *pValue ) = 0;
 	virtual int		ReadQuaternion( Quaternion *pValue, int count = 1, int nBytesAvailable = 0 ) = 0;
+#ifdef MAPBASE_MP
+	virtual int		ReadInt64( int64 *pValue, int count = 1, int nBytesAvailable = 0 ) = 0;
+	inline  int		ReadInt64( uint64 *pValue, int count = 1, int nBytesAvailable = 0 ) { return ReadInt64( (int64 *)pValue, count, nBytesAvailable ); }
+#endif
 	
 	//---------------------------------
 	// Game types

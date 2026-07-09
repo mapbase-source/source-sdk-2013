@@ -67,6 +67,9 @@
 #include "mapbase/matchers.h"
 #include "mapbase/datadesc_mod.h"
 #endif
+#ifdef MAPBASE_MP
+#include "mapbase/mapbase_mp_saverestore.h"
+#endif
 #ifdef NEW_RESPONSE_SYSTEM
 #include "ai_speech.h"
 #endif
@@ -4264,6 +4267,22 @@ int CBaseEntity::Restore( IRestore &restore )
 		Vector parentSpaceOffset = pGameInfo->modelSpaceOffset;
 		if ( !GetParent() )
 		{
+#ifdef MAPBASE_MP
+			if (g_MPSaveRestore.IsTransitioning() || g_MPSaveRestore.IsRestoringPlayer())
+			{
+				// HACKHACK: m_vecOrigin isn't saved as a FIELD_POSITION_VECTOR because it's ambiguous whether it's local to the world
+				// or local to a parent. The existing code here is meant to fix that up, but our implementation of save/restore is having
+				// m_vecOrigin transition with its old map's direct origin when this code expects a relative origin.
+				// I have not found any code which converts m_vecOrigin to be relative to the landmark, so I'm not sure why this isn't
+				// already a problem in stock save/restore, although it could be related to running the game in multiplayer, or the MP
+				// branch in general.
+				// Regardless, since the local and absolute origins are meant to be the same when there's no parent anyway, we just assign
+				// the absolute origin to the local origin and ignore the landmark (since it was already calculated) to get around this issue.
+				m_vecOrigin = m_vecAbsOrigin;
+			}
+			else
+#endif
+
 			// parent is the world, so parent space is worldspace
 			// so update with the worldspace leveltransition transform
 			parentSpaceOffset += pGameInfo->GetLandmark();
