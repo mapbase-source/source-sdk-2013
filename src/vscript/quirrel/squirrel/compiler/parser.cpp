@@ -435,7 +435,11 @@ Statement* SQParser::parseStatement(bool closeframe)
                 break;
             }
         }
+#ifdef MAPBASE_VSCRIPT
+        Expr *e = parseCommaExpr(SQE_REGULAR);
+#else
         Expr *e = Expression(SQE_REGULAR);
+#endif
         return newNode<ExprStatement>(e);
       }
     }
@@ -1191,7 +1195,11 @@ Expr* SQParser::Factor(SQInteger &pos)
     case '(': {
         SourceLoc start = _lex.tokenStart();
         Lex();
+#ifdef MAPBASE_VSCRIPT
+        Expr *inner = parseCommaExpr(_expression_context);
+#else
         Expr *inner = Expression(_expression_context);
+#endif
         Expect(')');
         r = newNode<UnExpr>(TO_PAREN, start, inner);
         break;
