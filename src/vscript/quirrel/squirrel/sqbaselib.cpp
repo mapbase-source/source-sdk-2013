@@ -2053,6 +2053,9 @@ const SQRegFunction SQSharedState::_string_default_type_methods_funcz[]={
     _DECL_FUNC(escape,1,"s"),
     _DECL_FUNC(startswith,2,"ss"),
     _DECL_FUNC(endswith,2,"ss"),
+#ifdef MAPBASE_VSCRIPT
+    {"find",string_indexof,-2, "s s n", NULL, true},
+#endif
     {NULL,(SQFUNCTION)0,0,NULL}
 };
 
