@@ -81,6 +81,9 @@ void SQLexer::Init(const char *sourceText, size_t sourceTextSize)
     ADD_KEYWORD(let, TK_LET);
     ADD_KEYWORD(async, TK_ASYNC);
     ADD_KEYWORD(await, TK_AWAIT);
+#ifdef MAPBASE_VSCRIPT
+    ADD_KEYWORD(extends,TK_EXTENDS);
+#endif
 
     _sourceText = sourceText;
     _sourceTextSize = sourceTextSize;
