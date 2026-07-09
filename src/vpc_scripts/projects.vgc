@@ -8,6 +8,16 @@
 // Project definitions //
 /////////////////////////
 
+$Project "bsppack"
+{
+	"utils\bsppack\bsppack.vpc"
+}
+
+$Project "bspzip"
+{
+	"utils\bspzip\bspzip.vpc"
+}
+
 $Project "captioncompiler"
 {
 	"utils\captioncompiler\captioncompiler.vpc" [$WINDOWS]

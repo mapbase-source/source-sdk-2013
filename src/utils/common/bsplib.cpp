@@ -2459,7 +2459,11 @@ void LoadBSPFile_FileSystemOnly( const char *filename )
 
 	// Load PAK file lump into appropriate data structure
 	byte *pakbuffer = NULL;
+#ifdef MAPBASE
+	int paksize = CopyVariableLump<byte>( FIELD_CHARACTER, LUMP_PAKFILE, (void **) &pakbuffer, -1 );
+#else
 	int paksize = CopyVariableLump<byte>( FIELD_CHARACTER, LUMP_PAKFILE, ( void ** )&pakbuffer, 1 );
+#endif
 	if ( paksize > 0 )
 	{
 		GetPakFile()->ParseFromBuffer( pakbuffer, paksize );

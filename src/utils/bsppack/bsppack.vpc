@@ -1,0 +1,51 @@
+//-----------------------------------------------------------------------------
+//	BSPPACK_DLL.VPC
+//
+//	Project Script
+//-----------------------------------------------------------------------------
+
+$Macro SRCDIR		"..\.."
+$Macro OUTBINDIR	"$SRCDIR\..\game\bin"
+$Macro OUTBINNAME	"bsppack"
+
+$Include "$SRCDIR\vpc_scripts\source_dll_base.vpc"
+
+$Configuration
+{
+	$Compiler
+	{
+		$AdditionalIncludeDirectories		"$BASE,..\common,..\vmpi,..\vmpi\mysql\include"
+		$PreprocessorDefinitions			"$BASE;PROTECTED_THINGS_DISABLE"
+		$PreprocessorDefinitions			"$BASE;MAPBASE;ZIP_SUPPORT_LZMA_ENCODE"
+	}
+}
+
+$Project "BSPPack"
+{
+	$Folder	"Source Files"
+	{
+		$File	"bsppack.cpp"
+		
+		$File	"..\common\bsplib.cpp"
+		$File	"..\common\cmdlib.cpp"
+		$File	"$SRCDIR\public\filesystem_helpers.cpp"
+		$File	"$SRCDIR\public\zip_utils.cpp"
+		$File	"$SRCDIR\public\filesystem_init.cpp"
+		$File	"..\common\filesystem_tools.cpp"
+		$File	"..\common\scriplib.cpp"
+		$File	"$SRCDIR\public\lumpfiles.cpp"
+	}
+
+	$Folder	"Header Files"
+	{
+		$File	"..\common\bsplib.h"
+		$File	"..\common\cmdlib.h"
+	}
+
+	$Folder	"Link Libraries"
+	{
+		$Lib "mathlib"
+		$Lib tier2
+		$Lib "$LIBCOMMON/lzma"
+	}
+}

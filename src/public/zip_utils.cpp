@@ -984,6 +984,22 @@ static void CopyTextData( char *pDst, const char *pSrc, int dstSize, int srcSize
 	Assert( pDstScan == pDstEnd );
 }
 
+#ifdef MAPBASE
+// https://github.com/ValveSoftware/source-sdk-2013/issues/1322
+// mp3s, shaders and specific wav files have de-compression issues
+static bool ShouldCompressFile( const char *name )
+{
+	const char *ext = V_GetFileExtensionSafe( name );
+	
+	if ( !V_stricmp( ext, "mp3" )
+		|| !V_stricmp( ext, "vcs" )
+		|| !V_stricmp( ext, "wav" ) 
+		)
+		return false;
+	return true;
+}
+#endif
+
 //-----------------------------------------------------------------------------
 // Purpose: Adds a new lump, or overwrites existing one
 // Input  : *relativename - 
@@ -1021,6 +1037,11 @@ void CZipFile::AddBufferToZip( const char *relativename, void *data, int length,
 	CRC32_Final( &zipCRC );
 
 #ifdef ZIP_SUPPORT_LZMA_ENCODE
+#ifdef MAPBASE
+	if ( compressionType == IZip::eCompressionType_LZMA && !ShouldCompressFile( name ) )
+		compressionType = IZip::eCompressionType_None;
+#endif
+
 	if ( compressionType == IZip::eCompressionType_LZMA )
 	{
 		unsigned int compressedSize = 0;

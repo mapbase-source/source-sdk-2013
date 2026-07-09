@@ -39,6 +39,8 @@ $Group "shaders"
 
 $Group "everything"
 {
+	"bsppack"
+	"bspzip"
 	"captioncompiler"
 	"client"
 	"fgdlib"
@@ -82,6 +84,8 @@ $Group "dedicated"
 
 $Group "maptools"
 {
+	"bsppack"
+	"bspzip"
 	"vbsp"
 	"vrad_dll"
 	"vrad_launcher"
