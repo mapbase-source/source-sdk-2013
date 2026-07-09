@@ -183,6 +183,9 @@ public:
     void visitId(Id *id) override;
     void visitCommaExpr(CommaExpr *expr) override;
     void visitDirectiveStatement(DirectiveStmt *dir) override;
+#ifdef MAPBASE_VSCRIPT
+    bool isImplicitGlobal( Id *id );
+#endif
 };
 
 } // namespace SQCompilation

@@ -1778,6 +1778,16 @@ static bool isCalleeAnOuter(SQFuncState *_fs, const Expr *expr, SQInteger &outer
     return outer_pos != -1;
 }
 
+#ifdef MAPBASE_VSCRIPT
+bool CodeGenVisitor::isImplicitGlobal( Id *id ) {
+    SQObjectPtr idObj( _fs->CreateString( id->name() ) );
+    SQCompiletimeVarInfo varInfo;
+    if ( sq_isstring( _fs->_name ) && strcmp( _stringval( _fs->_name ), id->name() ) == 0 && _fs->GetLocalVariable( _fs->_name, varInfo ) == -1 ) 
+        return false;
+    return _fs->GetLocalVariable( idObj, varInfo ) == -1 && _fs->GetOuterVariable( idObj, varInfo ) == -1 && !IsConstant( idObj, idObj );
+}
+#endif
+
 void CodeGenVisitor::visitCallExpr(CallExpr *call) {
     maybeAddInExprLine(call);
 
@@ -1788,6 +1798,26 @@ void CodeGenVisitor::visitCallExpr(CallExpr *call) {
         isTypeMethod = callee->asGetField()->isTypeMethod();
     }
 
+#ifdef MAPBASE_VSCRIPT
+    bool isImplicitGlobalCall = callee->op() == TO_ID && isImplicitGlobal(callee->asId());
+
+    if (isImplicitGlobalCall) {
+        SQCompiletimeVarInfo thisVarInfo;
+        SQInteger thisPos = _fs->GetLocalVariable(_fs->CreateString("this"), thisVarInfo);
+        if (thisPos == -1)
+            thisPos = 0;
+
+        Id *id = callee->asId();
+        SQObjectPtr nameObj(_fs->CreateString(id->name()));
+        SQInteger constantI = _fs->GetConstant(nameObj);
+
+        SQInteger closureReg = _fs->PushTarget();
+        _fs->AddInstruction(_OP_GETK, closureReg, constantI, thisPos, 0);
+
+        SQInteger selfReg = _fs->PushTarget();
+        _fs->AddInstruction(_OP_MOVE, selfReg, thisPos);
+    } else
+#endif
     visitForTarget(callee);
 
     SQInteger outerPos = -1;
@@ -1823,6 +1853,11 @@ void CodeGenVisitor::visitCallExpr(CallExpr *call) {
             _fs->AddInstruction(_OP_MOVE, ttarget, storedSelf);
         }
     }
+#ifdef MAPBASE_VSCRIPT
+    else if (isImplicitGlobalCall) {
+        // closure and self are already setup on tha stack!!!
+    }
+#endif
     else if (isCalleeAnOuter(_fs, callee, outerPos)) {
         _fs->AddInstruction(_OP_GETOUTER, _fs->PushTarget(), outerPos);
         _fs->AddInstruction(_OP_MOVE, _fs->PushTarget(), 0);
@@ -1991,6 +2026,25 @@ void CodeGenVisitor::emitInlineConst(Expr *const_initializer) {
 
 void CodeGenVisitor::emitDelete(UnExpr *ud) {
     Expr *argument = ud->argument();
+#ifdef MAPBASE_VSCRIPT
+    bool isImplicitGlobalDelete = argument->op() == TO_ID && isImplicitGlobal(argument->asId());
+
+    if (isImplicitGlobalDelete) {
+        SQCompiletimeVarInfo thisVarInfo;
+        SQInteger thisPos = _fs->GetLocalVariable(_fs->CreateString("this"), thisVarInfo);
+        if (thisPos == -1) thisPos = 0;
+
+        Id *id = argument->asId();
+        SQObjectPtr nameObj(_fs->CreateString(id->name()));
+        SQInteger constantI = _fs->GetConstant(nameObj);
+
+        SQInteger keyReg = _fs->PushTarget();
+        _fs->AddInstruction(_OP_LOAD, keyReg, constantI);
+
+        SQInteger tableReg = _fs->PushTarget();
+        _fs->AddInstruction(_OP_MOVE, tableReg, thisPos);
+    } else {
+#endif
     visitForTarget(argument);
 
     switch (argument->op())
@@ -2007,6 +2061,9 @@ void CodeGenVisitor::emitDelete(UnExpr *ud) {
         _ctx.throwError(ud, "can't delete an expression");
         break;
     }
+#ifdef MAPBASE_VSCRIPT
+    }
+#endif
 
     SQInteger table = _fs->PopTarget(); //src in OP_GET
     SQInteger key = _fs->PopTarget(); //key in OP_GET
@@ -2073,7 +2130,31 @@ void CodeGenVisitor::emitShortCircuitLogicalOp(SQOpcode op, Expr *lhs, Expr *rhs
 }
 
 void CodeGenVisitor::emitCompoundArith(SQOpcode op, SQInteger opcode, Expr *lvalue, Expr *rvalue) {
+#ifdef MAPBASE_VSCRIPT
+    if (lvalue->op() == TO_ID && isImplicitGlobal(lvalue->asId())) {
+        Id *id = lvalue->asId();
+        SQObjectPtr nameObj = _fs->CreateString(id->name());
+        SQCompiletimeVarInfo thisVarInfo;
+        SQInteger thisPos = _fs->GetLocalVariable(_fs->CreateString("this"), thisVarInfo);
+        if (thisPos == -1) thisPos = 0;
 
+        SQInteger constantI = _fs->GetConstant(nameObj);
+        if (constantI < 256u) {
+            visitForValueMaybeStaticMemo(rvalue);
+            SQInteger val = _fs->PopTarget();
+            _fs->AddInstruction(_OP_COMPARITH_K, _fs->PushTarget(), (thisPos << 16) | val, constantI, opcode);
+            return;
+        } else {
+            SQInteger keyReg = _fs->PushTarget();
+            _fs->AddInstruction(_OP_LOAD, keyReg, constantI);
+            visitForValueMaybeStaticMemo(rvalue);
+            SQInteger val = _fs->PopTarget();
+            _fs->PopTarget(); // keyReg
+            _fs->AddInstruction(_OP_COMPARITH, _fs->PushTarget(), (thisPos << 16) | val, keyReg, opcode);
+            return;
+        }
+    }
+#endif
     if (lvalue->isAccessExpr() && lvalue->asAccessExpr()->isFieldAccessExpr()) {
         FieldAccessExpr *fieldAccess = lvalue->asAccessExpr()->asFieldAccessExpr();
         SQObjectPtr nameObj = _fs->CreateString(fieldAccess->fieldName());
@@ -2145,7 +2226,23 @@ void CodeGenVisitor::emitCompoundArith(SQOpcode op, SQInteger opcode, Expr *lval
 }
 
 void CodeGenVisitor::emitNewSlot(Expr *lvalue, Expr *rvalue) {
+#ifdef MAPBASE_VSCRIPT
+    if (lvalue->op() == TO_ID && isImplicitGlobal(lvalue->asId())) {
+        Id *id = lvalue->asId();
+        SQObjectPtr nameObj = _fs->CreateString(id->name());
+        SQInteger constantI = _fs->GetConstant(nameObj);
 
+        SQCompiletimeVarInfo thisVarInfo;
+        SQInteger thisPos = _fs->GetLocalVariable(_fs->CreateString("this"), thisVarInfo);
+        if (thisPos == -1) thisPos = 0;
+
+        visitForValueMaybeStaticMemo(rvalue);
+        SQInteger val = _fs->PopTarget();
+
+        _fs->AddInstruction(_OP_NEWSLOTK, _fs->PushTarget(), constantI, thisPos, val);
+        return;
+    }
+#endif
     if (lvalue->isAccessExpr() && lvalue->asAccessExpr()->receiver()->op() != TO_BASE && canBeLiteral(lvalue->asAccessExpr())) {
         FieldAccessExpr *fieldAccess = lvalue->asAccessExpr()->asFieldAccessExpr();
         SQObjectPtr nameObj = _fs->CreateString(fieldAccess->fieldName());
@@ -2204,6 +2301,10 @@ void CodeGenVisitor::emitAssign(Expr *lvalue, Expr * rvalue) {
         return;
     }
 
+#ifdef MAPBASE_VSCRIPT
+    bool isImplicitGlobalAssign = lvalue->op() == TO_ID && isImplicitGlobal( lvalue->asId() );
+    if (!isImplicitGlobalAssign)
+#endif
     visitForTarget(lvalue);
 
     visitForValueMaybeStaticMemo(rvalue);
@@ -2234,6 +2335,19 @@ void CodeGenVisitor::emitAssign(Expr *lvalue, Expr * rvalue) {
             if (!checkInferredType(lvalue, rvalue, varInfo.type_mask))
                 EmitCheckType(src, varInfo.type_mask);
         }
+#ifdef MAPBASE_VSCRIPT
+        else if (isImplicitGlobalAssign) {
+            SQCompiletimeVarInfo thisVarInfo;
+            SQInteger thisPos = _fs->GetLocalVariable(_fs->CreateString("this"), thisVarInfo);
+            if (thisPos == -1) thisPos = 0;
+
+            SQInteger constantI = _fs->GetConstant(nameObj);
+            SQInteger val = _fs->PopTarget();
+            _fs->AddInstruction(_OP_SET_LITERAL, _fs->PushTarget(), constantI, thisPos, val);
+            static_assert(_OP_DATA_NOP == 0);
+            _fs->AddInstruction(SQOpcode(0), 0, 0, 0, 0); //hint
+        }
+#endif
         else {
             _ctx.throwError(lvalue, "can't assign to expression");
         }
@@ -2539,6 +2653,10 @@ void CodeGenVisitor::visitIncExpr(IncExpr *expr) {
     maybeAddInExprLine(expr);
     Expr *arg = expr->argument();
 
+#ifdef MAPBASE_VSCRIPT
+    bool isImplicitGlobalId = arg->op() == TO_ID && isImplicitGlobal(arg->asId());
+    if (!isImplicitGlobalId)
+#endif
     visitForTarget(arg);
 
     if ((arg->op() == TO_GETFIELD || arg->op() == TO_GETSLOT) && arg->asAccessExpr()->receiver()->op() == TO_BASE) {
@@ -2580,6 +2698,24 @@ void CodeGenVisitor::visitIncExpr(IncExpr *expr) {
                 _fs->PopTarget();
             }
         }
+#ifdef MAPBASE_VSCRIPT
+        else if (isImplicitGlobalId) {
+            SQCompiletimeVarInfo thisVarInfo;
+            SQInteger thisPos = _fs->GetLocalVariable(_fs->CreateString("this"), thisVarInfo);
+            if (thisPos == -1)
+                thisPos = 0;
+
+            SQInteger constantI = _fs->GetConstant(nameObj);
+
+            _fs->PushTarget(thisPos);
+            SQInteger constReg = _fs->PushTarget();
+            _fs->AddInstruction(_OP_LOAD, constReg, constantI);
+
+            SQInteger p2 = _fs->PopTarget();
+            SQInteger p1 = _fs->PopTarget();
+            _fs->AddInstruction(isPostfix ? _OP_PINC : _OP_INC, _fs->PushTarget(), p1, p2, expr->diff());
+        }
+#endif
         else {
             _ctx.throwError(arg, notAssignableMsg);
         }
@@ -2746,6 +2882,20 @@ void CodeGenVisitor::visitId(Id *id) {
             break;
         }
     }
+#ifdef MAPBASE_VSCRIPT
+    else if (isImplicitGlobal(id)) {
+        if (_resolve_mode == ExprChainResolveMode::Value) {
+            SQCompiletimeVarInfo thisVarInfo;
+            SQInteger thisPos = _fs->GetLocalVariable(_fs->CreateString("this"), thisVarInfo);
+            if (thisPos == -1)
+                thisPos = 0;
+
+            SQInteger constantI = _fs->GetConstant(idObj);
+            SQInteger stkPos = _fs->PushTarget();
+            _fs->AddInstruction(_OP_GETK, stkPos, constantI, thisPos, 0);
+        }
+    }
+#endif
     else {
         _ctx.throwError(id, "Unknown variable [%s]", id->name());
     }
