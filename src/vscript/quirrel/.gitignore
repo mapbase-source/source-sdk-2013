@@ -1,0 +1,17 @@
+# Folders created at compilation
+bin/
+lib/
+
+# CMake output
+build*/
+
+# Folders created at documentation generation
+doc/build/
+
+Release/
+.vs/
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+
+.vscode/
