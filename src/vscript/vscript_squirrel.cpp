@@ -45,6 +45,12 @@
 
 extern ConVar developer;
 
+#if SQUIRREL_VERSION_NUMBER >= 320
+inline SQRESULT sq_getinstanceup( HSQUIRRELVM v, SQInteger idx, SQUserPointer *p, SQUserPointer typetag )
+{
+	return sq_getinstanceup( v, idx, p, typetag, SQFalse );
+}
+#endif
 
 struct WriteStateMap
 {
