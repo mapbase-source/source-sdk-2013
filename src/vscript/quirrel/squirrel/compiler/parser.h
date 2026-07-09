@@ -110,6 +110,10 @@ public:
     Decl *parseLocalDeclStatement(bool onlySingleVariable = false);
     Decl *parseLocalFunctionExprStmt(bool assignable, SourceLoc keywordStart, bool isAsync = false);
     Decl *parseLocalClassExprStmt(bool assignable, SourceLoc keywordStart);
+#ifdef MAPBASE_VSCRIPT
+    Statement *parseLocalFunctionStmt( SourceLoc keywordStart, bool isAsync = false );
+    Statement *parseLocalClassStmt( SourceLoc keywordStart );
+#endif
     void parseDestructuringFields(DestructuringDecl *destr);
 
     Statement* IfLikeBlock(bool &wrapped);

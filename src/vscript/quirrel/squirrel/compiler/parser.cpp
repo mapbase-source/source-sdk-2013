@@ -371,7 +371,11 @@ Statement* SQParser::parseStatement(bool closeframe)
     }
     case TK_FUNCTION: {
         SourceLoc funcStart = _lex.tokenStart();
+#ifdef MAPBASE_VSCRIPT
+        result = parseLocalFunctionStmt(funcStart, false);
+#else
         result = parseLocalFunctionExprStmt(false, funcStart);
+#endif
         break;
     }
     case TK_ASYNC: {
@@ -380,12 +384,20 @@ Statement* SQParser::parseStatement(bool closeframe)
         if (_token != TK_FUNCTION) {
             throwError("expected function");
         }
+#ifdef MAPBASE_VSCRIPT
+        result = parseLocalFunctionStmt(asyncStart, true);
+#else
         result = parseLocalFunctionExprStmt(false, asyncStart, /*isAsync=*/true);
+#endif
         break;
     }
     case TK_CLASS: {
         SourceLoc classStart = _lex.tokenStart();
+#ifdef MAPBASE_VSCRIPT
+        result = parseLocalClassStmt(classStart);
+#else
         result = parseLocalClassExprStmt(false, classStart);
+#endif
         break;
     }
     case TK_ENUM:
@@ -1478,6 +1490,92 @@ Decl* SQParser::parseLocalDeclStatement(bool onlySingleVariable)
         return decls ? static_cast<Decl*>(decls) : decl;
     }
 }
+
+#ifdef MAPBASE_VSCRIPT
+Statement *SQParser::parseLocalFunctionStmt(SourceLoc keywordStart, bool isAsync)
+{
+    SourceLoc funcStart = _lex.tokenStart();
+    assert(_token == TK_FUNCTION);
+    Lex();
+
+    FuncAttrFlagsType attr = ParseFunctionAttributes();
+
+    Expr *receiver = nullptr;
+    Id *lastId = nullptr;
+    if (_token == TK_DOUBLE_COLON) {
+        SourceSpan span = _lex.tokenSpan();
+        Lex();
+        receiver = newNode<RootTableAccessExpr>(span);
+        lastId = (Id *)Expect(TK_IDENTIFIER);
+    } else {
+        lastId = (Id *)Expect(TK_IDENTIFIER);
+    }
+
+    while (_token == '.' || _token == TK_DOUBLE_COLON) {
+        if (receiver) {
+            receiver = newNode<GetFieldExpr>(receiver, lastId->name(), false, false, lastId->sourceSpan().end);
+        } else {
+            receiver = lastId;
+        }
+        Lex();
+        lastId = (Id *)Expect(TK_IDENTIFIER);
+    }
+
+    if (!receiver) {
+        receiver = newNode<Id>(lastId->sourceSpan(), "this");
+    }
+
+    GetFieldExpr *lhs = newNode<GetFieldExpr>(receiver, lastId->name(), false, false, lastId->sourceSpan().end);
+
+    Expect('(');
+    FunctionExpr *f = CreateFunction(funcStart, lastId, false);
+    f->setPure(attr & FATTR_PURE);
+    f->setNodiscard(attr & FATTR_NODISCARD);
+    f->setAsync(isAsync);
+
+    ExprStatement *stmt = newNode<ExprStatement>(newNode<BinExpr>(TO_NEWSLOT, lhs, f));
+    return stmt;
+}
+
+Statement *SQParser::parseLocalClassStmt(SourceLoc keywordStart)
+{
+    SourceLoc classStart = _lex.tokenStart();
+    assert(_token == TK_CLASS);
+    Lex();
+
+    Expr *receiver = nullptr;
+    Id *lastId = nullptr;
+    if (_token == TK_DOUBLE_COLON) {
+        SourceSpan span = _lex.tokenSpan();
+        Lex();
+        receiver = newNode<RootTableAccessExpr>(span);
+        lastId = (Id *)Expect(TK_IDENTIFIER);
+    } else {
+        lastId = (Id *)Expect(TK_IDENTIFIER);
+    }
+
+    while (_token == '.' || _token == TK_DOUBLE_COLON) {
+        if (receiver) {
+            receiver = newNode<GetFieldExpr>(receiver, lastId->name(), false, false, lastId->sourceSpan().end);
+        } else {
+            receiver = lastId;
+        }
+        Lex();
+        lastId = (Id *)Expect(TK_IDENTIFIER);
+    }
+
+    if (!receiver) {
+        receiver = newNode<Id>(lastId->sourceSpan(), "this");
+    }
+
+    GetFieldExpr *lhs = newNode<GetFieldExpr>(receiver, lastId->name(), false, false, lastId->sourceSpan().end);
+
+    ClassExpr *cls = ClassExp(classStart, NULL);
+
+    ExprStatement *stmt = newNode<ExprStatement>(newNode<BinExpr>(TO_NEWSLOT, lhs, cls));
+    return stmt;
+}
+#endif
 
 Statement* SQParser::IfLikeBlock(bool &wrapped)
 {
