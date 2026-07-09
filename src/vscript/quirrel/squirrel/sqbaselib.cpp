@@ -1614,6 +1614,10 @@ const SQRegFunction SQSharedState::_array_default_type_methods_funcz[]={
     {"clone",obj_clone, 1, "." },
     {"is_frozen",obj_is_frozen, 1, "." },
     {"swap",swap, 3, "ann" },
+#ifdef MAPBASE_VSCRIPT
+    {"find",array_indexof,2, "a.", NULL, true},
+    {"push",array_append,-2, "a."},
+#endif
     {NULL,(SQFUNCTION)0,0,NULL}
 };
 
