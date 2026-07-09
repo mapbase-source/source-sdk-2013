@@ -509,6 +509,7 @@ Expr* SQParser::Expression(SQExpressionContext expression_context)
             expr = newNode<BinExpr>(TO_NEWSLOT, expr, e2);
             break;
         case '=': //ASSIGN
+#ifndef MAPBASE_VSCRIPT
             switch (expression_context)
             {
             case SQE_IF:
@@ -532,6 +533,7 @@ Expr* SQParser::Expression(SQExpressionContext expression_context)
             case SQE_REGULAR:
                 break;
             }
+#endif
             expr = newNode<BinExpr>(TO_ASSIGN, expr, e2);
             break;
         case TK_MINUSEQ: expr = newNode<BinExpr>(TO_MINUSEQ, expr, e2); break;
