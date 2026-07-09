@@ -5,9 +5,13 @@
 //-----------------------------------------------------------------------------
 
 $macro SRCDIR		".."
- 
+
+$conditional QUIRREL	1
+
 $include "$SRCDIR\vpc_scripts\source_lib_base.vpc"
-$include "vscript_squirrel.vpc"
+
+$include "vscript_squirrel.vpc" [!$QUIRREL]
+$include "vscript_quirrel.vpc"	[$QUIRREL]
 
 $Configuration
 {

@@ -10,8 +10,8 @@ function __ExecutePreSpawn( entity )
 	if ( "PreSpawnInstance" in this )
 	{
 		local overrides = PreSpawnInstance( entity.GetClassname(), entity.GetName() );
-		local type = typeof( overrides );
-		if ( type == "table" )
+		local typeid = typeof( overrides );
+		if ( typeid == "table" )
 		{
 			foreach( key, value in overrides )
 			{

@@ -17,12 +17,20 @@
 #include "sqstdaux.h"
 #include "sqstdblob.h"
 //#include "sqstdsystem.h"
+#ifdef QUIRREL
+#include "sqvm.h"
+#include "sqstate.h"
+#include "sqstddatetime.h"
+#include "sqobject.h"
+#else
 #include "sqstdtime.h"
+#endif
 //#include "sqstdio.h"
 #include "sqstdmath.h"
 #include "sqstdstring.h"
 
 // HACK: Include internal parts of squirrel for serialization
+#ifndef QUIRREL
 #include "squirrel/squirrel/sqvm.h"
 #include "squirrel/squirrel/sqobject.h"
 #include "squirrel/squirrel/sqstate.h"
@@ -34,6 +42,7 @@
 #include "squirrel/squirrel/sqclosure.h"
 
 #include "sqdbg.h"
+#endif
 
 #include "tier1/utlbuffer.h"
 #include "tier1/mapbase_con_groups.h"
@@ -45,7 +54,14 @@
 
 extern ConVar developer;
 
+#ifdef QUIRREL
+#define sq_compilebuffer sq_compile
+#define sqstd_register_timelib sqstd_register_datetimelib 
+#define SQChar char
+#define _SC(x) x
+#endif
 
+#ifndef QUIRREL
 struct WriteStateMap
 {
 	CUtlRBTree< void* > cache;
@@ -107,7 +123,7 @@ struct ReadStateMap
 		o._unVal.raw = obj._unVal.raw;
 	}
 };
-
+#endif
 
 class SquirrelVM : public IScriptVM
 {
@@ -244,6 +260,7 @@ public:
 
 	virtual bool RaiseException(const char* pszExceptionText) override;
 
+#ifndef QUIRREL
 	void WriteObject( const SQObjectPtr &obj, CUtlBuffer* pBuffer, WriteStateMap& writeState );
 
 	// Do not implicitly add/remove ref
@@ -304,12 +321,15 @@ public:
 
 	void WriteVM( SQVM *pThis, CUtlBuffer *pBuffer, WriteStateMap &writeState );
 	void ReadVM( SQVM *pThis, CUtlBuffer *pBuffer, ReadStateMap &readState );
+#endif
 
 	HSQUIRRELVM vm_ = nullptr;
 	HSQOBJECT lastError_;
 	HSQOBJECT vectorClass_;
+#ifndef QUIRREL
 	HSQOBJECT regexpClass_;
 	HSQDEBUGSERVER debugger_ = nullptr;
+#endif
 };
 
 static char TYPETAG_VECTOR[] = "VectorTypeTag";
@@ -1669,8 +1689,11 @@ SQInteger function_stub(HSQUIRRELVM vm)
 	return sq_retval;
 }
 
-
+#ifdef QUIRREL
+SQInteger destructor_stub(HSQUIRRELVM v, SQUserPointer p, SQInteger size)
+#else
 SQInteger destructor_stub(SQUserPointer p, SQInteger size)
+#endif
 {
 	auto classInstanceData = (ClassInstanceData*)p;
 
@@ -1685,7 +1708,11 @@ SQInteger destructor_stub(SQUserPointer p, SQInteger size)
 	return 0;
 }
 
+#ifdef QUIRREL
+SQInteger destructor_stub_instance(HSQUIRRELVM v, SQUserPointer p, SQInteger size)
+#else
 SQInteger destructor_stub_instance(SQUserPointer p, SQInteger size)
+#endif
 {
 	auto classInstanceData = (ClassInstanceData*)p;
 	// This instance is owned by the game, don't delete it
@@ -2166,6 +2193,7 @@ bool SquirrelVM::Init()
 	if (vm_ == nullptr)
 		return false;
 
+	sq_setdiagnosticstatebyname( "egyptian-braces", false );
 	sq_setsharedforeignptr(vm_, this);
 	sq_resetobject(&lastError_);
 
@@ -2200,6 +2228,7 @@ bool SquirrelVM::Init()
 
 		sqstd_seterrorhandlers(vm_);
 
+#ifndef QUIRREL
 		{
 			// Unfortunately we can not get the pattern from a regexp instance
 			// so we need to wrap it with our own to get it.
@@ -2231,6 +2260,9 @@ bool SquirrelVM::Init()
 		sq_newclosure( vm_, &GetDeveloperLevel, 0 );
 		//sq_setnativeclosurename( vm_, -1, "developer" );
 		sq_newslot( vm_, -3, SQFalse );
+#else
+		sq_new_closure_slot_from_decl_string( vm_, &GetDeveloperLevel, 0, "developer(): int", "developer!!" );
+#endif
 
 		sq_pop(vm_, 1);
 	}
@@ -2249,7 +2281,9 @@ void SquirrelVM::Shutdown()
 	if (vm_)
 	{
 		sq_release(vm_, &vectorClass_);
+#ifndef QUIRREL
 		sq_release(vm_, &regexpClass_);
+#endif
 
 		sq_close(vm_);
 		vm_ = nullptr;
@@ -2260,6 +2294,7 @@ bool VScriptRunScript( const char *pszScriptName, HSCRIPT hScope, bool bWarnMiss
 
 bool SquirrelVM::ConnectDebugger( int port, float timeout )
 {
+#ifndef QUIRREL
 	if ( !debugger_ )
 	{
 		debugger_ = sqdbg_attach_debugger( vm_ );
@@ -2287,15 +2322,20 @@ bool SquirrelVM::ConnectDebugger( int port, float timeout )
 
 	VScriptRunScript( "sqdbg_definitions.nut", NULL, false );
 	return true;
+#else
+	return false;
+#endif
 }
 
 void SquirrelVM::DisconnectDebugger()
 {
+#ifndef QUIRREL
 	if ( debugger_ )
 	{
 		sqdbg_destroy_debugger( vm_ );
 		debugger_ = nullptr;
 	}
+#endif
 }
 
 ScriptLanguage_t SquirrelVM::GetLanguage()
@@ -2315,10 +2355,12 @@ void SquirrelVM::AddSearchPath(const char* pszSearchPath)
 
 bool SquirrelVM::Frame(float simTime)
 {
+#ifndef QUIRREL
 	if ( debugger_ )
 	{
 		sqdbg_frame( debugger_ );
 	}
+#endif
 	return false;
 }
 
@@ -2358,10 +2400,12 @@ HSCRIPT SquirrelVM::CompileScript(const char* pszScript, const char* pszId)
 		return nullptr;
 	}
 
+#ifndef QUIRREL
 	if ( debugger_ && !bUnnamed )
 	{
 		sqdbg_on_script_compile( debugger_, pszScript, nScriptLen, pszId, strlen(pszId) );
 	}
+#endif
 
 	HSQOBJECT* obj = new HSQOBJECT;
 	sq_resetobject(obj);
@@ -3392,7 +3436,7 @@ HSCRIPT SquirrelVM::CopyObject(HSCRIPT obj)
 
 //-------------------------------------------------------------
 //-------------------------------------------------------------
-
+#ifndef QUIRREL
 enum ClassType
 {
 	VectorClassType = 0,
@@ -4732,20 +4776,25 @@ void SquirrelVM::ReadVM( SQVM *pThis, CUtlBuffer *pBuffer, ReadStateMap &readSta
 
 	vm_ = pPrevVM; // restore
 }
+#endif
 
 void SquirrelVM::WriteState( CUtlBuffer* pBuffer )
 {
+#ifndef QUIRREL
 	// If the main VM can be suspended, WriteVM/ReadVM would need to include the code inside OT_THREAD r/w
 	Assert( !vm_->ci );
 
 	WriteStateMap writeState;
 	WriteVM( vm_, pBuffer, writeState );
+#endif
 }
 
 void SquirrelVM::ReadState( CUtlBuffer* pBuffer )
 {
+#ifndef QUIRREL
 	ReadStateMap readState;
 	ReadVM( vm_, pBuffer, readState );
+#endif
 }
 
 void SquirrelVM::RemoveOrphanInstances()

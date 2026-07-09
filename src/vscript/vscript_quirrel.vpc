@@ -1,0 +1,98 @@
+//-----------------------------------------------------------------------------
+//	VSCRIPT_QUIRREL.VPC
+//
+//	Project Script
+//-----------------------------------------------------------------------------
+
+$macro SRCDIR		".."
+
+$Configuration
+{
+	$Compiler
+	{
+		$AdditionalIncludeDirectories	"$BASE;.\quirrel;.\quirrel\include;.\quirrel\squirrel;.\quirrel\sqstdlib"
+		$AdditionalIncludeDirectories	"$BASE;.\quirrel\squirrel\compiler;.\quirrel\internal;.\quirrel\helpers"
+		$AdditionalIncludeDirectories	"$BASE;.\quirrel\sqmodules;.\quirrel\sqrat\include"
+		$PreprocessorDefinitions	"$BASE;QUIRREL;_SQ64;_CRT_SECURE_NO_WARNINGS"
+		$AdditionalOptions		"$BASE /std:c++17"
+	}
+}
+
+$Project "VScript"
+{
+	$Folder	"Source Files"
+	{
+		$File	"vscript_squirrel.cpp"
+		$File	"vscript_squirrel.nut"
+
+		$Folder "squirrel"
+		{
+			$File	".\quirrel\sqstdlib\sqstdaux.cpp"		\
+					".\quirrel\sqstdlib\sqstdblob.cpp"		\
+					".\quirrel\sqstdlib\sqstddebug.cpp"		\
+					".\quirrel\sqstdlib\sqstdio.cpp"		\
+					".\quirrel\sqstdlib\sqstdhash.cpp"		\
+					".\quirrel\sqstdlib\sqstdmath.cpp"		\
+					".\quirrel\sqstdlib\sqstdrex.cpp"		\
+					".\quirrel\sqstdlib\sqstdstream.cpp"	\
+					".\quirrel\sqstdlib\sqstdstring.cpp"	\
+					".\quirrel\sqstdlib\sqstddatetime.cpp"	\
+            		".\quirrel\sqstdlib\sqstdserialization.cpp"	\
+					".\quirrel\sqstdlib\sqstdsystem.cpp"	\
+					".\quirrel\squirrel\sqapi.cpp"			\
+					".\quirrel\squirrel\sqasync.cpp"		\
+					".\quirrel\squirrel\sqbaselib.cpp"		\
+					".\quirrel\squirrel\sqclass.cpp"		\
+					".\quirrel\squirrel\sqdebug.cpp"		\
+					".\quirrel\squirrel\sqmem.cpp"			\
+					".\quirrel\squirrel\sqobject.cpp"		\
+					".\quirrel\squirrel\sqstate.cpp"		\
+					".\quirrel\squirrel\sqtable.cpp"		\
+					".\quirrel\squirrel\sqvm.cpp"			\
+					".\quirrel\squirrel\sqdedupshrinker.cpp"	\
+					".\quirrel\squirrel\sqstringlib.cpp"		\
+					".\quirrel\squirrel\sqext.cpp"				\
+					".\quirrel\squirrel\vartracestub.cpp"		\
+					".\quirrel\squirrel\compiler\ast.cpp"		\
+					".\quirrel\squirrel\compiler\compilationcontext.cpp"	\
+					".\quirrel\squirrel\compiler\parser.cpp"			\
+					".\quirrel\squirrel\compiler\codegen.cpp"			\
+					".\quirrel\squirrel\compiler\constgen.cpp"			\
+					".\quirrel\squirrel\compiler\compiler.cpp"			\
+					".\quirrel\squirrel\compiler\sqfuncstate.cpp"		\
+					".\quirrel\squirrel\compiler\sqdump.cpp"			\
+					".\quirrel\squirrel\compiler\optimizer.cpp"			\
+					".\quirrel\squirrel\compiler\lexer.cpp"				\
+					".\quirrel\squirrel\compiler\sqtypeparser.cpp"		\
+					".\quirrel\squirrel\compiler\typeinference.cpp"		\
+					".\quirrel\squirrel\compiler\optimizations\closureHoisting.cpp"				\
+					".\quirrel\squirrel\compiler\static_analyzer\analyzer.cpp"					\
+					".\quirrel\squirrel\compiler\static_analyzer\checker_visitor.cpp"			\
+					".\quirrel\squirrel\compiler\static_analyzer\config.cpp"					\
+					".\quirrel\squirrel\compiler\static_analyzer\function_ret_type_eval.cpp"	\
+					".\quirrel\squirrel\compiler\static_analyzer\global_state.cpp"				\
+					".\quirrel\squirrel\compiler\static_analyzer\name_shadowing_checker.cpp"	\
+					".\quirrel\squirrel\compiler\static_analyzer\naming.cpp"					\
+					".\quirrel\squirrel\compiler\static_analyzer\value_ref.cpp"					\
+					".\quirrel\squirrel\compiler\static_analyzer\var_scope.cpp"					\
+					".\quirrel\squirrel\compiler\static_analyzer\external_value.cpp"			\
+					".\quirrel\sqmodules\sqmodules.cpp"	\
+					".\quirrel\sqmodules\helpers.cpp"	\
+					".\quirrel\sqmodules\path.cpp"		\
+					".\quirrel\sqmodules\deffileaccess.cpp"
+			{
+				$Configuration
+				{
+					$Compiler
+					{
+						// Quirrel third party library is full of warnings
+
+						$AdditionalOptions		"$BASE /wd4100 /wd4018 /wd4127 /wd4146 /wd4201 /wd4244 /wd4267 /wd4389 /wd4456 /wd4611 /wd4702 /wd4706 /wd4800"
+						$EnableC++Exceptions				"Yes (/EHsc)"
+						$TreatWarningsAsErrors	"No"
+					}
+				}
+			}
+		}
+	}
+}

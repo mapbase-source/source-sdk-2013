@@ -4,6 +4,11 @@ static char g_Script_vscript_squirrel[] = R"vscript(
 // Purpose:
 //
 //=============================================================================//
+#default:relaxed
+#default:allow-delete-operator
+#default:allow-switch-statement
+#default:allow-clone-operator
+#default:allow-implicit-type-methods
 
 Warning <- error;
 
@@ -110,29 +115,29 @@ class CSimpleCallChainer
 {
 	constructor(prefixString, scopeForThis, exactMatch)
 	{
-		prefix = prefixString;
-		scope = scopeForThis;
-		chain = [];
-		scope["Dispatch" + prefixString] <- Call.bindenv(this);
+		this.prefix = prefixString;
+		this.scope = scopeForThis;
+		this.chain = [];
+		this.scope["Dispatch" + prefixString] <- this.Call.bindenv(this);
 	}
 
 	function PostScriptExecute()
 	{
-		if ( prefix in scope )
+		if ( this.prefix in this.scope )
 		{
-			local func = scope[prefix];
+			local func = this.scope[this.prefix];
 			if ( typeof func == "function" )
 			{
-				chain.push(func);
+				this.chain.push(func);
 			}
 		}
 	}
 
 	function Call()
 	{
-		foreach (func in chain)
+		foreach (func in this.chain)
 		{
-			func.pcall(scope);
+			func.pcall(this.scope);
 		}
 	}
 
@@ -308,7 +313,7 @@ Hooks <-
 //---------------------------------------------------------
 __Documentation <- {}
 
-local developer = (delete developer)()
+local developer = developer()
 
 if (developer)
 {

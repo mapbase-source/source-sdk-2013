@@ -1,4 +1,4 @@
-//========== Copyright © 2008, Valve Corporation, All rights reserved. ========
+//========== Copyright ï¿½ 2008, Valve Corporation, All rights reserved. ========
 //
 // Purpose:
 //
@@ -25,12 +25,12 @@ function EntFire( target, action, value = null, delay = 0.0, activator = null, c
 	{
 		if ( !caller )
 		{
-			caller = self;
+			caller = this.self;
 		}
 
 		if ( !activator )
 		{
-			activator = self;
+			activator = this.self;
 		}
 	}
 
@@ -48,12 +48,12 @@ function EntFireByHandle( target, action, value = null, delay = 0.0, activator =
 	{
 		if ( !caller )
 		{
-			caller = self;
+			caller = this.self;
 		}
 
 		if ( !activator )
 		{
-			activator = self;
+			activator = this.self;
 		}
 	}
 
@@ -582,8 +582,8 @@ function ScriptDebugTraceAll( bValue = true )
 
 function ScriptDebugAddTrace( traceTarget )
 {
-	local type = typeof( traceTarget )
-	if (  type == "string" || type == "table" || type == "instance" )
+	local typeid = typeof( traceTarget )
+	if (  typeid == "string" || typeid == "table" || typeid == "instance" )
 	{
 		ScriptDebugTraces[traceTarget] <- true
 	}
