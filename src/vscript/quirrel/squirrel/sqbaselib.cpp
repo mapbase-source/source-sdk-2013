@@ -765,6 +765,20 @@ static SQInteger container_rawget(HSQUIRRELVM v)
     return 1;
 }
 
+#ifdef MAPBASE_VSCRIPT
+static SQInteger table_setdelegate( HSQUIRRELVM v )
+{
+    if ( SQ_FAILED( sq_setdelegate( v, -2 ) ) )
+        return SQ_ERROR;
+    sq_push( v, -1 ); // -1 because sq_setdelegate pops 1
+    return 1;
+}
+
+static SQInteger table_getdelegate( HSQUIRRELVM v )
+{
+    return SQ_SUCCEEDED( sq_getdelegate( v, -1 ) ) ? 1 : SQ_ERROR;
+}
+#endif
 
 static SQInteger table_filter(HSQUIRRELVM v)
 {
@@ -1103,6 +1117,10 @@ const SQRegFunction SQSharedState::_table_default_type_methods_funcz[]={
     {"clone",obj_clone, 1, "." },
     {"is_frozen",obj_is_frozen, 1, "." },
     {"swap",swap, 3, "t.." },
+#ifdef MAPBASE_VSCRIPT
+    {"setdelegate",table_setdelegate,2, ".t|o"},
+    {"getdelegate",table_getdelegate,1, "."},
+#endif
     {NULL,(SQFUNCTION)0,0,NULL}
 };
 
