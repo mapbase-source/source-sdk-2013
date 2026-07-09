@@ -1,0 +1,26 @@
+//-----------------------------------------------------------------------------
+//	CLIENT_MAPBASE_TF.VPC
+//
+//	Project Script
+//-----------------------------------------------------------------------------
+
+$Project
+{
+	$Folder "Source Files"
+	{
+		-$File	"c_mod_lesson_stubs.cpp"
+	}
+
+	$Folder	"Source Files"
+	{
+		$Folder	"Mapbase"
+		{
+			$Folder	"TF"
+			{
+				$File	"mapbase\tf\tf_hud_external_timer.cpp"
+				$File	"mapbase\c_tf_lesson.cpp"
+				$File	"mapbase\c_tf_lesson.h"
+			}
+		}
+	}
+}

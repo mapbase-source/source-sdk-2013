@@ -1,0 +1,53 @@
+//-----------------------------------------------------------------------------
+//	source_base.VPC
+//
+//  This is the base VPC file that is included by all others, on all platforms.
+//
+//	Project Script
+//-----------------------------------------------------------------------------
+
+$MacroRequired VPC_TRIVIAL_DEPENDENCY_PATH "$SRCDIR/vpc_scripts/vpc_trivial_dependency.txt"
+
+$Macro "DEFAULT_RUN_ARGS" "-dev -w 1920 -h 1080 -windowed"
+
+//-----------------------------------------------------------------------------
+
+// Mapbase functionality conditionals
+$Conditional MAPBASE	"1" // Equivalent to (and required for) our MAPBASE preprocessor defined below
+$Conditional MAPBASE_RPC	"0" // Toggles Mapbase's Rich Presence Client implementations (requires discord-rpc.dll in game bin)
+$Conditional MAPBASE_VSCRIPT	"1" // Toggles VScript implementation (note: interfaces still exist, just the provided implementation is not present)
+$Conditional NEW_RESPONSE_SYSTEM	"1" // Toggles the new Response System library based on the Alien Swarm SDK
+
+//-----------------------------------------------------------------------------
+
+$Configuration "Debug"
+{
+	$Compiler
+	{
+		// Pass on appropriate branch define to preprocessor
+		$PreprocessorDefinitions		"VPC"
+		// Pass /Define:USE_MEM_DEBUG along, as it is off by default (and scattered everywhere)
+		$PreprocessorDefinitions		"$BASE;USE_MEM_DEBUG" [$USE_MEM_DEBUG]
+		$PreprocessorDefinitions		"$BASE;SOURCESDK" [$SOURCESDK]
+		$PreprocessorDefinitions		"$BASE;SOURCE_HAS_FREETYPE"
+
+		// Mapbase base definitions
+		$PreprocessorDefinitions		"$BASE;MAPBASE"		[$MAPBASE]
+		$PreprocessorDefinitions		"$BASE;MAPBASE_MP"	[$MAPBASE&&($HL2MP||$TF)]
+	}
+}
+
+$Configuration "Release"
+{
+	$Compiler
+	{
+		// Pass on appropriate branch define to preprocessor
+		$PreprocessorDefinitions		"VPC"
+		$PreprocessorDefinitions		"$BASE;SOURCESDK" [$SOURCESDK]
+		$PreprocessorDefinitions		"$BASE;SOURCE_HAS_FREETYPE"
+
+		// Mapbase base definitions
+		$PreprocessorDefinitions		"$BASE;MAPBASE"		[$MAPBASE]
+		$PreprocessorDefinitions		"$BASE;MAPBASE_MP"	[$MAPBASE&&($HL2MP||$TF)]
+	}
+}

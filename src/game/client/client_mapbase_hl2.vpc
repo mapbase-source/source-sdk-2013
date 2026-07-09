@@ -1,0 +1,38 @@
+//-----------------------------------------------------------------------------
+//	CLIENT_MAPBASE_HL2.VPC
+//
+//	Project Script
+//-----------------------------------------------------------------------------
+
+$Project
+{
+	$Folder	"Source Files"
+	{
+		$Folder	"Mapbase"
+		{
+			$File	"$SRCDIR\game\shared\mapbase\mapbase_playeranimstate.cpp"
+			$File	"$SRCDIR\game\shared\mapbase\mapbase_playeranimstate.h"
+			$File	"$SRCDIR\game\shared\mapbase\protagonist_system.cpp"
+			$File	"$SRCDIR\game\shared\mapbase\protagonist_system.h"
+			$File	"$SRCDIR\game\shared\mapbase\vscript_funcs_hl2.cpp" [$MAPBASE_VSCRIPT]
+			$File	"mapbase\c_weapon_custom_hl2.cpp"
+			$File	"mapbase\hud_generic_timer.cpp"
+		}
+		
+		$Folder "HL2 DLL"
+		{
+			// Original stunstick files are conditional'd out in the HL2 VPCs
+			$File	"$SRCDIR\game\shared\hl2mp\weapon_stunstick.cpp"
+			$File	"$SRCDIR\game\shared\hl2mp\weapon_stunstick.h"
+		}
+		
+		$Folder	"HL2MP"
+		{
+			$Folder	"Weapons"
+			{
+				$File	"$SRCDIR\game\shared\hl2mp\weapon_slam.cpp"
+				$File	"$SRCDIR\game\shared\hl2mp\weapon_slam.h"
+			}
+		}
+	}
+}

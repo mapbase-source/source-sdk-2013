@@ -1,0 +1,23 @@
+$Macro OUTBINNAME "mod_episodic"
+
+$Conditional "MOD_LAUNCHER" "1"
+
+$Include "launcher_main.vpc"
+
+$Configuration
+{
+	$Compiler
+	{
+		$PreprocessorDefinitions	"$BASE;MOD_APPID=243750" // Replace with your appid if you ship on Steam.
+	}
+}
+
+$Project "Launcher Main (Mod Episodic)"
+{
+    $Folder "Resource Files" [$WINDOWS]
+    {
+	 // Use the same resources as HL2MP
+        $File   "launcher_main_mod_hl2mp.rc"
+        $File   "res\mod_hl2mp.ico"
+    }
+}

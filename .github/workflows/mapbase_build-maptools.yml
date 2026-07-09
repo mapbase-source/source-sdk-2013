@@ -1,0 +1,38 @@
+#
+# MAPBASE SOURCE 2013 CI
+#
+# Builds map tool projects every time a pull request which modifies the map tool code is opened.
+# If you're using a fork of Mapbase, feel free to configure this to meet your repository's needs.
+#
+# See mapbase_build-base.yml for more information on how this works.
+
+name: Build Map Tool Projects #(SP Release)
+
+on:
+  pull_request:
+    branches:
+      - develop
+      - mapbase-mp-2025
+    paths:
+      - '.github/workflows/mapbase_build-maptools.yml'
+      - 'src/vpc_scripts/**'
+      - 'src/utils/vbsp/**'
+      - 'src/utils/vvis/**'
+      - 'src/utils/vvis_launcher/**'
+      - 'src/utils/vrad/**'
+      - 'src/utils/vrad_launcher/**'
+      - 'src/mathlib/**'
+      - 'src/tier1/**'
+      - 'src/vgui2/vgui_controls/**'
+      - 'src/vscript/**'
+
+jobs:
+  maptools:
+    strategy:
+      matrix:
+        configuration: [Release, Debug]
+    uses: ./.github/workflows/mapbase_build-base.yml
+    with:
+      configuration: ${{ matrix.configuration }}
+      project-group: 'maptools'
+      solution-name: 'maptools'

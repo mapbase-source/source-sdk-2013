@@ -25,7 +25,5 @@ jobs:
     uses: ./.github/workflows/mapbase_build-base.yml
     with:
       configuration: ${{ matrix.configuration }}
-      branch: 'sp'
-      project-group: 'all'
-      solution-name: 'everything'
+      project-group: 'everything'
       build-on-linux: true # Disable this if you don't want to compile for Linux

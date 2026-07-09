@@ -1,0 +1,96 @@
+//-----------------------------------------------------------------------------
+//	GROUPS.VGC
+//
+//	Group Configurations for all Source(TM) Projects
+//-----------------------------------------------------------------------------
+
+///////////////////////
+// Group definitions //
+///////////////////////
+
+$Group "gamedlls"
+{
+	"client"
+	"server"
+}
+
+$Group "game"
+{
+	"client"
+	"launcher_main"
+	"mathlib"
+	"matsys_controls"
+	"raytrace"
+	"server"
+	"tier1"
+	"vgui_controls"
+	"vscript"
+	"responserules"
+}
+
+$Group "shaders"
+{
+	//"game_shader_generic_example"
+	"game_shader_generic_std"
+
+	"mathlib"
+	"tier1"
+}
+
+$Group "everything"
+{
+	"captioncompiler"
+	"client"
+	"fgdlib"
+	"glview"
+	"height2normal"
+	"launcher_main"
+	"mathlib"
+	"matsys_controls"
+	"motionmapper"
+	"phonemeextractor"
+	"responserules"
+	"qc_eyes"
+	"raytrace"
+	"server"
+	"serverplugin_empty"
+	"tgadiff"
+	"tier1"
+	"vbsp"
+	"vgui_controls"
+	"vice"
+	"vrad_dll"
+	"vrad_launcher"
+	"vscript"
+	"vtf2tga"
+	"vtfdiff"
+	"vvis_dll"
+	"vvis_launcher"
+
+	//"game_shader_generic_example"
+
+	// For Mapbase, we want to override all shaders
+	"game_shader_generic_std"
+}
+
+$Group "dedicated"
+{
+	"mathlib"
+	"server"
+	"tier1"
+}
+
+$Group "maptools"
+{
+	"vbsp"
+	"vrad_dll"
+	"vrad_launcher"
+	"vvis_dll"
+	"vvis_launcher"
+	"fgdlib"
+	"mathlib"
+	"raytrace"
+	"tier1"
+	"vscript"
+}
+

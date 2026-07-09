@@ -1,0 +1,37 @@
+#
+# MAPBASE SOURCE 2013 CI
+#
+# Builds game projects every time a pull request which modifies the game code is opened.
+# If you're using a fork of Mapbase, feel free to configure this to meet your repository's needs.
+#
+# See mapbase_build-base.yml for more information on how this works.
+
+name: Build Game Projects #(SP Release)
+
+on:
+  pull_request:
+    branches:
+      - develop
+      - mapbase-mp-2025
+    paths:
+      - '.github/workflows/mapbase_build-base.yml'
+      - '.github/workflows/mapbase_build-games.yml'
+      - 'src/vpc_scripts/**'
+      - 'src/game/**'
+      - 'src/mathlib/**'
+      - 'src/responserules/runtime/**'
+      - 'src/tier1/**'
+      - 'src/vgui2/vgui_controls/**'
+      - 'src/vscript/**'
+
+jobs:
+  games:
+    strategy:
+      matrix:
+        configuration: [Release, Debug]
+    uses: ./.github/workflows/mapbase_build-base.yml
+    with:
+      configuration: ${{ matrix.configuration }}
+      game: 'tf /hl2mp' # Change this if your mod is not using these game projects
+      project-group: 'game'
+      build-on-linux: true # Disable this if you don't want to compile for Linux

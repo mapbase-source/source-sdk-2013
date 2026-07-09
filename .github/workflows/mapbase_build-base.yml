@@ -21,11 +21,6 @@ on:
         default: 'Release'
         required: true
         type: string
-      branch:
-        description: 'Which Source 2013 engine branch to compile for'
-        default: 'sp'
-        required: true
-        type: string
       game:
         description: 'The name of the game to build (if relevant)'
         default: 'episodic'
@@ -33,10 +28,6 @@ on:
         type: string
       project-group:
         description: 'Which group of projects to compile'
-        required: true
-        type: string
-      solution-name:
-        description: 'The name of the solution/makefile'
         required: true
         type: string
       build-on-linux:
@@ -52,68 +43,53 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.13'
 
     - name: Add MSBuild to PATH
       uses: compnerd/gha-setup-vsdevenv@v6
 
-    - name: Enable VS2022
-      working-directory: '${{inputs.branch}}/src/vpc_scripts'
+      # HACKHACK: MSBuild doesn't seem to recognize Python even when its directory is within PATH,
+      # so we currently have to make it call Python directly.
+      # This assumes %Python3_ROOT_DIR% will always be set by setup-python above.
+    - name: Implement Python workaround
+      if: inputs.project-group == 'game' || inputs.project-group == 'everything'
+      working-directory: 'src/game/server'
       shell: bash
-      run: sed -i 's/^\($Conditional[ 	]\+VS2022[ 	]\+\).*/\1"1"/' newer_vs_toolsets.vpc
-
-    - name: Pick game
-      if: inputs.project-group == 'game' || inputs.project-group == 'shaders'
-      working-directory: '${{inputs.branch}}/src'
-      shell: bash
-      run: sed -i 's/\/hl2 \/episodic/\/${{inputs.game}}/' create${{inputs.project-group}}projects.bat
+      run: |
+        sed -i 's/\"python/\"%Python3_ROOT_DIR%\\python/' server_base.vpc
+        cat server_base.vpc
 
     - name: Create project files
-      working-directory: '${{inputs.branch}}/src'
+      working-directory: 'src'
       shell: cmd
-      # https://github.com/ValveSoftware/source-sdk-2013/issues/72
       run: |
-        reg add "HKLM\SOFTWARE\WOW6432Node\Microsoft\VisualStudio\10.0\Projects\{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" /v DefaultProjectExtension /t REG_SZ /d vcproj /f
-        create${{inputs.project-group}}projects.bat
+        devtools\bin\vpc.exe /${{inputs.game}} /define:SOURCESDK +${{inputs.project-group}} /mksln build.sln
 
       # --------------------------------------------------------------------
 
     - name: Build
       #if: steps.filter.outputs.game == 'true'
-      working-directory: '${{inputs.branch}}/src'
+      working-directory: 'src'
       shell: cmd
       run: |
-        devenv ${{inputs.solution-name}}.sln /upgrade
-        msbuild -m -t:Rebuild -p:Configuration=${{inputs.configuration}};Platform=x86 ${{inputs.solution-name}}.sln
+        devenv build.sln /upgrade
+        msbuild -m -t:Rebuild -p:Configuration=${{inputs.configuration}};Platform=win64 build.sln
 
       # --------------------------------------------------------------------
 
-    - name: Publish game binaries
-      if: inputs.project-group == 'game' || inputs.project-group == 'shaders'
+    - name: Publish binaries
       uses: actions/upload-artifact@v4
       with:
-        name: '${{inputs.project-group}}_${{inputs.game}}_win32_${{ inputs.configuration }}'
+        name: '${{inputs.project-group}}_win64_${{ inputs.configuration }}'
         path: |
-          ${{inputs.branch}}/game/mod_${{inputs.game}}/bin/*.dll
-        if-no-files-found: error
-
-    - name: Publish map tools
-      if: inputs.project-group == 'maptools'
-      uses: actions/upload-artifact@v4
-      with:
-        name: '${{inputs.project-group}}_win32_${{ inputs.configuration }}'
-        path: |
-          ${{inputs.branch}}/game/bin/*.exe
-          ${{inputs.branch}}/game/bin/*.dll
-        if-no-files-found: error
-
-    - name: Publish everything
-      if: inputs.project-group == 'all'
-      uses: actions/upload-artifact@v4
-      with:
-        name: 'everything_win32_${{ inputs.configuration }}'
-        path: |
-          ${{inputs.branch}}/game/bin
-          ${{inputs.branch}}/game/mod_*/bin
+          game/bin
+          game/bin/x64
+          game/mod_*/bin
+          game/mod_*/x64/bin
+          !game/bin/x64/steam_api64.dll
+          !game/bin/linux64/libsteam_api.so
         if-no-files-found: error
 
   build_ubuntu:
@@ -124,72 +100,60 @@ jobs:
       config: ${{ inputs.configuration }}
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
-    - name: Install GCC/G++ multilib
+    - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install gcc-multilib g++-multilib
+        sudo apt-get -y install podman python3
 
     - name: Pick game
       if: inputs.project-group == 'game' || inputs.project-group == 'shaders'
-      working-directory: '${{inputs.branch}}/src'
+      working-directory: 'src'
       shell: bash
-      run: sed -i 's/\/hl2 \/episodic/\/${{inputs.game}}/' create${{inputs.project-group}}projects
+      run: |
+        sed -i 's|/hl2mp /tf|/${{inputs.game}}|' buildgameprojects
+        sed -i 's|+game|+${{inputs.project-group}}|' buildgameprojects
 
     - name: Set configuration
-      working-directory: '${{inputs.branch}}/src'
+      working-directory: 'src'
       shell: bash
       run: |
         config=${{inputs.configuration}}
         export CFG=${config,,}
         echo "config=${CFG}" >> $GITHUB_ENV
 
-    - name: Create project files
-      working-directory: '${{inputs.branch}}/src'
-      run: ./create${{inputs.project-group}}projects
-
       # --------------------------------------------------------------------
 
     - name: Build
-      working-directory: '${{inputs.branch}}/src'
-      run: make CFG=${{env.config}} -f ${{inputs.solution-name}}.mak
+      working-directory: 'src'
+      run: ./buildgameprojects ${config,,}
 
       # --------------------------------------------------------------------
 
-    - name: Publish game binaries
-      if: inputs.project-group == 'game' || inputs.project-group == 'shaders'
-      uses: actions/upload-artifact@v4
-      with:
-        name: '${{inputs.project-group}}_${{inputs.game}}_linux32_${{ inputs.configuration }}'
-        path: |
-          ${{inputs.branch}}/game/mod_${{inputs.game}}/bin/*.so
-          !${{inputs.branch}}/game/mod_${{inputs.game}}/bin/*_srv.so
-        if-no-files-found: error
-
-    #- name: Publish map tools
-    #  if: inputs.project-group == 'maptools'
-    #  uses: actions/upload-artifact@v4
-    #  with:
-    #    name: '${{inputs.project-group}}_linux32_${{ inputs.configuration }}'
-    #    path: |
-    #      ${{inputs.branch}}/game/bin/vbsp
-    #      ${{inputs.branch}}/game/bin/vvis
-    #      ${{inputs.branch}}/game/bin/vvis_dll.so
-    #      ${{inputs.branch}}/game/bin/vrad
-    #      ${{inputs.branch}}/game/bin/vrad_dll.so
-    #    if-no-files-found: error
+    # Workaround for debug symbols being included in release builds
+    - name: Strip debug symbols
+      if: inputs.configuration == 'Release'
+      shell: bash
+      run: |
+        find game -type f -name "*.so" | while read -r file; do
+          strip -S "$file"
+        done
 
     # For now, don't publish the .dbg files even though we publish .pdb files on Windows
     # (they're too big)
-    - name: Publish everything
-      if: inputs.project-group == 'all'
+    - name: Publish binaries
       uses: actions/upload-artifact@v4
       with:
-        name: 'everything_linux32_${{ inputs.configuration }}'
+        name: '${{inputs.project-group}}_linux64_${{ inputs.configuration }}'
         path: |
-          ${{inputs.branch}}/game/bin/*.so
-          !${{inputs.branch}}/game/bin/*_srv.so
-          ${{inputs.branch}}/game/mod_*/bin/*.so
-          !${{inputs.branch}}/game/mod_*/bin/*_srv.so
+          game/bin/linux64/*.so
+          game/bin/*.so
+          !game/bin/linux64/*_srv.so
+          !game/bin/*_srv.so
+          game/mod_*/bin/linux64/*.so
+          game/mod_*/bin/*.so
+          !game/mod_*/bin/linux64/*_srv.so
+          !game/mod_*/bin/*_srv.so
+          !game/bin/linux64/libsteam_api.so
         if-no-files-found: error

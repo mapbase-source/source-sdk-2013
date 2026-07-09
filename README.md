@@ -1,0 +1,339 @@
+//=========================================================================================================================
+
+               Mapbase v8.0 - Source 2013
+	https://github.com/mapbase-source/source-sdk-2013
+		https://www.moddb.com/mods/mapbase
+	
+//=========================================================================================================================
+
+This repository contains code from Mapbase, a modification of the Source 2013 SDK which serves as a combined package
+of general-purpose improvements, fixes, and utility features for mods.
+
+Mapbase's main content in this repository may include:
+
+- 80+ custom entities (new logic entities, filters, etc.)
+- Hundreds of Inputs/Outputs/KeyValues additions and modifications
+- Custom SDK_ shaders with improvements adapted from Alien Swarm SDK code, including projected texture fixes and radial fog
+- Custom VScript implementation based on public Squirrel API and Alien Swarm SDK interfaces/descriptions
+- Additional gameplay control for Half-Life 2 mods, including grenade features for more NPCs and singleplayer respawning
+- More map-specific capabilities for maps unable to branch into their own mods, e.g. MP mods or map compilations
+- View rendering changes for drawing 3D skyboxes and RT-based entities
+- Countless other fixes and improvements
+
+For more information, view this page:
+https://github.com/mapbase-source/source-sdk-2013/wiki/Introduction-to-Mapbase
+
+//=========================================================================================================================
+
+Mapbase is an open-source project and its contents can be distributed and used at the discretion of its users. However, this project contains content from
+a vast number of different sources which have their own licensing or attribution requirements. We try to handle most of that ourselves, but users who plan on
+distributing Mapbase content are expected to comply with certain rules.
+
+	Up-to-date information about Mapbase content usage and credit are addressed in this article on Mapbase's wiki:
+		https://github.com/mapbase-source/source-sdk-2013/wiki/Using-Mapbase-Content
+
+//=========================================================================================================================
+
+>>>>>>>> EXTERNAL CONTENT USED IN MAPBASE <<<<<<<<
+
+The Mapbase project is a combination of original code from its creators, code contributed by other Source modders, and code borrowed from open-source articles
+and repositories (especially ones which are specifically published as free source code). One of Mapbase's goals is to make the most popular fixes and the most obscure
+or complicated code changes accessible and easy to use for level designers and other kinds of Source modders who would otherwise have no idea how to implement them.
+
+*** DISCLAIMER: Mapbase has a strict no-leak-content policy and only allows content created directly by contributors or content originating from open-source repositories.
+If you believe any content in Mapbase originates from any leak or unauthorized source (Valve or otherwise), please contact Blixibon immediately.
+Mapbase is intended to be usable by everyone, including licensed Source projects and Steam mods. ***
+
+Mapbase uses content from the following non-Source SDK 2013 Valve games or SDKs:
+
+-- Alien Swarm SDK (Used to backport features and code from newer branches of Source into a Source 2013/Half-Life 2 environment)
+-- Source SDK 2007 Code (Used to implement some of Tony Sergi's code changes)
+
+-- Alien Swarm (Used to port assets from the aforementioned SDK code features, e.g. game instructor icons)
+-- Left 4 Dead (Used to port certain animations as well as assets from the aforementioned SDK code features, e.g. particle rain)
+-- Half-Life: Source (Used to port friction tool textures)
+-- Half-Life 2: Survivor (Used to port Gordon Freeman model)
+
+Valve allows assets from these titles to be distributed for modding purposes. Note that ported assets are only used in the release build, not the code repository.
+
+Mapbase may also contain new third-party software distributed under specific licensing. Please see the bottom of thirdpartylegalnotices.txt for more information.
+
+Here's a list of Mapbase's other external code sources:
+
+- https://github.com/95Navigator/insolence-2013 (Initial custom shader code and projected texture improvements; also used to implement ASW SDK particle precipitation code)
+-- https://github.com/Biohazard90/g-string_2013 (Custom shadow filters, included indirectly via Insolence repo)
+-- https://github.com/KyleGospo/City-17-Episode-One-Source (Brush phong and projected texture changes, included indirectly via Insolence repo)
+- https://github.com/DownFall-Team/DownFall (Multiple skybox code and fix for ent_fire delay not using floats; Also used as a guide to port certain Alien Swarm SDK changes to Source 2013,
+including radial fog, rope code, and treesway)
+- https://github.com/momentum-mod/game (Used as a guide to port postprocess_controller and env_dof_controller to Source 2013 from the Alien Swarm SDK)
+- https://github.com/DeathByNukes/source-sdk-2013 (VBSP manifest fixes)
+- https://github.com/entropy-zero/source-sdk-2013 (skill_changed game event)
+- https://github.com/Nbc66/source-sdk-2013-ce/tree/v142 (Base for VS2019 toolset support)
+- https://github.com/mastercomfig/tc2 (General QOL improvements for Team Fortress 2)
+
+Mapbase also contains parts of Source Engine Co-Operative Base Modification (SecobMod), mainly the multiplayer NPC support by Winston.
+- https://developer.valvesoftware.com/wiki/Co-Operative_Base_(Mod)
+
+//-------------------------------------------------------------------------------------------------------------------------
+
+Valve Developer Community (VDC) sources:
+
+- https://developer.valvesoftware.com/wiki/Dynamic_RTT_shadow_angles_in_Source_2007 (Dynamic RTT shadow angles by Saul Rennison)
+- https://developer.valvesoftware.com/wiki/Parallax_Corrected_Cubemaps (Parallax corrected cubemaps implementation from Brian Charles)
+- https://developer.valvesoftware.com/wiki/Adding_the_Game_Instructor (ASW SDK game instructor adapted to Source 2013 by Kolesias123; was implemented based on a translated article)
+- https://developer.valvesoftware.com/wiki/Brush_ladders (Functional func_ladders in Source 2013)
+- https://developer.valvesoftware.com/wiki/CAreaPortalOneWay (func_areaportal_oneway)
+- https://developer.valvesoftware.com/wiki/Implementing_Discord_RPC (Discord RPC implementation; Mapbase has its own framework originally based on this article)
+- https://developer.valvesoftware.com/wiki/Rain_splashes (NOTE: This code is not completely used in Mapbase, but may still exist in its codebase)
+- https://developer.valvesoftware.com/wiki/Hand_Viewmodels (NOTE: This code is not completely supported by default because Mapbase does not yet have weapon viewmodels which support
+interchangeable arms; this may change in the future)
+
+- https://developer.valvesoftware.com/wiki/General_SDK_Snippets_%26_Fixes (Various snippets on the article, including the dropship gun fix)
+- https://developer.valvesoftware.com/wiki/Memory_Leak_Fixes (Most of these snippets were applied in later SDK updates, but some were not and have been added to Mapbase)
+- https://developer.valvesoftware.com/wiki/Env_projectedtexture/fixes (Misc. env_projectedtexture fixes; Some of these are superceded by Alien Swarm-based changes and not used)
+- https://developer.valvesoftware.com/wiki/Scenes.image (Original raw VCD file support; Code was improved for Mapbase and the article was later updated with it)
+- https://developer.valvesoftware.com/wiki/Extending_Prop_Sphere (prop_sphere customization)
+- https://developer.valvesoftware.com/wiki/TF2_Glow_Effect_(2013_SDK) (Glow effect)
+- https://developer.valvesoftware.com/wiki/CFuncMoveLinear_ParentingFix (func_movelinear parenting fix; Code was improved for Mapbase and the article was later updated with it)
+- https://developer.valvesoftware.com/wiki/Viewmodel_Prediction_Fix (Viewmodel prediction fix)
+- https://developer.valvesoftware.com/wiki/Owner#Collisions_with_owner (FSOLID_COLLIDE_WITH_OWNER flag)
+- https://developer.valvesoftware.com/wiki/Npc_clawscanner#Strider_Scout_Issue (npc_clawscanner strider scout fix)
+- https://developer.valvesoftware.com/wiki/Ambient_generic:_stop_and_toggle_fix (Fixes for stopping/toggling ambient_generic)
+- https://developer.valvesoftware.com/wiki/Func_clip_vphysics ("Start Disabled" keyvalue fix)
+- https://developer.valvesoftware.com/wiki/Importing_CSS_Weapons_Into_HL2 (CS:S viewmodel chirality)
+
+//-------------------------------------------------------------------------------------------------------------------------
+
+Direct contributions:
+
+- https://github.com/mapbase-source/source-sdk-2013/pull/3 ("playvideo" command playback fix from Avanate)
+- https://github.com/mapbase-source/source-sdk-2013/pull/5 (Custom VScript implementation by ReDucTor; was placed into feature branch before being merged in a subsequent PR)
+- https://github.com/mapbase-source/source-sdk-2013/pull/60 (Adjustment by RoyaleNoir to one of Saul's VDC changes)
+- https://github.com/mapbase-source/source-sdk-2013/pull/84 (CS:S viewmodel chirality from 1upD)
+- https://github.com/mapbase-source/source-sdk-2013/pull/116 (vgui_movie_display mute keyvalue from Alivebyte/rzkid)
+- https://github.com/mapbase-source/source-sdk-2013/pull/140 (logic_substring entity and icon created by moofemp)
+- https://github.com/mapbase-source/source-sdk-2013/pull/143 (Propper features for VBSP from Matty-64)
+- https://github.com/mapbase-source/source-sdk-2013/pull/174 (Fix for multiply defined symbols in later toolsets from und)
+- https://github.com/mapbase-source/source-sdk-2013/issues/201 (env_projectedtexture shadow filter keyvalue from celisej567)
+- https://github.com/mapbase-source/source-sdk-2013/pull/193 (RTB:R info_particle_system_coordinate by arbabf and Iridium77)
+- https://github.com/mapbase-source/source-sdk-2013/pull/193 (Infinite prop_interactable cooldown by arbabf)
+- https://github.com/mapbase-source/source-sdk-2013/pull/229 (Extended point_bugbait functionality by arbabf)
+- https://github.com/mapbase-source/source-sdk-2013/pull/236 (Toggleable prop sprinting by Crimson-X1)
+- https://github.com/mapbase-source/source-sdk-2013/pull/237 (Commander goal trace fix by Agrimar)
+- https://github.com/mapbase-source/source-sdk-2013/pull/245 (ViewPunch random fix by Mr0maks)
+- https://github.com/mapbase-source/source-sdk-2013/pull/248 (soundlevel_t conversation warning fix by Mechami)
+- https://github.com/mapbase-source/source-sdk-2013/pull/266 ("OnPhysGunPull" output in CPhysicsProp by rlenhub)
+- https://github.com/mapbase-source/source-sdk-2013/pull/281 (npc_combinedropship DropStrider input by Bronzehawk75)
+- https://github.com/mapbase-source/source-sdk-2013/pull/292 (env_headcrabcanister random spawn type by arbabf)
+- https://github.com/mapbase-source/source-sdk-2013/pull/293 (Restore text selection code by SanyaSho)
+- https://github.com/mapbase-source/source-sdk-2013/pull/294 (SDK_LightmappedGeneric editor blend swap fix by azzyr)
+- https://github.com/mapbase-source/source-sdk-2013/pull/308 (BlurFilterY fix by Wikot235)
+- https://github.com/mapbase-source/source-sdk-2013/pull/312 (Zombie improvements by Wikot235)
+- https://github.com/mapbase-source/source-sdk-2013/pull/315 (env_flare crash fix by Wikot235)
+- https://github.com/mapbase-source/source-sdk-2013/pull/324 (server-only info/func_null by SirYodaJedi)
+- https://github.com/mapbase-source/source-sdk-2013/pull/333 (Cvar to transition levels while in MOVETYPE_NOCLIP by Wikot235)
+- https://github.com/mapbase-source/source-sdk-2013/pull/342 (NaN particle cull radius fix by celisej567)
+- https://github.com/mapbase-source/source-sdk-2013/pull/360 (.gitignore update by Unusuario2)
+- https://github.com/mapbase-source/source-sdk-2013/pull/381 (color_correction_volume crash fix by Nbc66)
+- https://github.com/mapbase-source/source-sdk-2013/pull/385 (VRAD -ultrafast command by Unusuario2)
+- https://github.com/mapbase-source/source-sdk-2013/pull/391 (VRAD -extrapasses command by Unusuario2)
+- https://github.com/mapbase-source/source-sdk-2013/pull/393 (Additional VBSP options doc by Unusuario2)
+- https://github.com/mapbase-source/source-sdk-2013/pull/397 (Viewmodel camera bone by Nbc66)
+- https://github.com/mapbase-source/source-sdk-2013/pull/412 (Compile tool negative threads support by Unusuario2)
+- https://github.com/mapbase-source/source-sdk-2013/pull/414 (VRAD %alphatexture by SirYodaJedi)
+- https://github.com/mapbase-source/source-sdk-2013/pull/415 (Parallax corrected cubemaps optimization and fix by Zeldaboy14 and White_Red_Dragons)
+- https://github.com/mapbase-source/source-sdk-2013/pull/418 (Server ragdoll death poses by AnOldLady)
+- https://github.com/mapbase-source/source-sdk-2013/pull/419 (npc_helicopter removal crash fix by Wikot235)
+- https://github.com/mapbase-source/source-sdk-2013/pull/420 (sk_combine_head_dmg_multiplier cvar by Wikot235)
+- https://github.com/mapbase-source/source-sdk-2013/pull/422 (Expanded HL2 NPC custom model support by Maestra Fenix [committed by Blixibon])
+- https://github.com/mapbase-source/source-sdk-2013/pull/457 (Compressed BSP worldlight parsing fix by azzyr)
+- https://github.com/mapbase-source/source-sdk-2013/pull/468 (Ported TC2 performance improvements by mastercoms [committed by cattslmao])
+- https://github.com/mapbase-source/mapbase-game-src/pull/1 (Advanced video options duplicate field name fix by arbabf; This is asset-based and not reflected in the code)
+- https://github.com/mapbase-source/mapbase-game-src/pull/2 (gameinfo.txt typo fix by CarePackage17; This is asset-based and not reflected in the code)
+- https://github.com/mapbase-source/mapbase-game-src/pull/3 (HudMessage cutoff fix by arbabf; This is asset-based and not reflected in the code)
+- Demo autorecord code provided by Klems
+- cc_emit crash fix provided by 1upD
+- npc_barnacle poison zombie crash fix provided by Agrimar
+- Custom HL2 ammo crate models created by Rykah (Textures created by Blixibon; This is asset-based and, aside from the SLAM crate, not reflected in the code)
+- Combine lock hardware on door01_left.mdl created by Kralich (This is asset-based and not reflected in the code)
+- npc_vehicledriver fixes provided by CrAzY
+- npc_combine cover behavior patches provided by iohnnyboy
+- logic_playmovie icon created by URAKOLOUY5 (This is asset-based and not reflected in the code)
+- Dropship APC save/load fix provided by Cvoxulary
+- c_arms support on HL2 viewmodels by Inaki and ReverendV92 (This is asset-based and not reflected in the code)
+- Custom c_arms for HL2 characters by Notewell (This is asset-based and not reflected in the code)
+
+== Contributions from samisalreadytaken:
+=-- https://github.com/mapbase-source/source-sdk-2013/pull/47 (VScript utility/consistency changes)
+=-- https://github.com/mapbase-source/source-sdk-2013/pull/59 (New VScript functions and singletons based on API documentation in later Source/Source 2 games)
+=-- https://github.com/mapbase-source/source-sdk-2013/pull/80 (More VScript changes, including support for extremely flexible client/server messaging)
+=-- https://github.com/mapbase-source/source-sdk-2013/pull/105 (VScript fixes and optimizations, Vector class extensions, custom convars/commands)
+=-- https://github.com/mapbase-source/source-sdk-2013/pull/114 (VScript fixes and extensions)
+=-- https://github.com/mapbase-source/source-sdk-2013/pull/122 (Minor VScript-related adjustments)
+=-- https://github.com/mapbase-source/source-sdk-2013/pull/148 (Minor fixup)
+=-- https://github.com/mapbase-source/source-sdk-2013/pull/167 (Security fixes)
+=-- https://github.com/mapbase-source/source-sdk-2013/pull/168 (Squirrel update)
+=-- https://github.com/mapbase-source/source-sdk-2013/pull/169 (VScript VGUI)
+=-- https://github.com/mapbase-source/source-sdk-2013/pull/171 (VScript documentation sorting)
+=-- https://github.com/mapbase-source/source-sdk-2013/pull/173 (VScript fixes and optimizations)
+=-- https://github.com/mapbase-source/source-sdk-2013/pull/192 (VScript hook manager and fixes)
+=-- https://github.com/mapbase-source/source-sdk-2013/pull/206 (Fix CScriptNetMsgHelper::WriteEntity())
+=-- https://github.com/mapbase-source/source-sdk-2013/pull/213 (VScript HUD visibility control, optimizations for 3D skybox angles/fake worldportals)
+=-- https://github.com/mapbase-source/source-sdk-2013/pull/221 (VScript serialization rewrite)
+=-- https://github.com/mapbase-source/source-sdk-2013/pull/229 (VScript VGUI HUD viewport parenting, game_text and vgui_text_display VScript font fallback)
+=-- https://github.com/mapbase-source/source-sdk-2013/pull/260 (CScriptNetPropManager rewrite)
+=-- https://github.com/mapbase-source/source-sdk-2013/pull/261 (Misc VScript additions)
+=-- https://github.com/mapbase-source/source-sdk-2013/pull/279 (weapon_custom_scripted fixes)
+=-- https://github.com/mapbase-source/source-sdk-2013/pull/302 (VScript debugger)
+=-- https://github.com/mapbase-source/source-sdk-2013/pull/331 (VScript leak fixes)
+=-- https://github.com/mapbase-source/source-sdk-2013/pull/332 (Fix OOB access)
+=-- https://github.com/mapbase-source/source-sdk-2013/pull/411 (VScript debugger cleanup)
+=-- https://github.com/mapbase-source/source-sdk-2013/pull/423 (GetPropFloatArray Vector indexing fix)
+=-- https://github.com/mapbase-source/source-sdk-2013/pull/431 (VScript save/restore and debugger fixes)
+=-- https://github.com/mapbase-source/source-sdk-2013/pull/441 (VScript instance helper fallback)
+=-- https://github.com/mapbase-source/source-sdk-2013/pull/447 (Update VScript sqdbg)
+
+== Contributions from z33ky:
+=-- https://github.com/mapbase-source/source-sdk-2013/pull/21 (Various GCC/Linux compilation fixes)
+=-- https://github.com/mapbase-source/source-sdk-2013/pull/95 (Additional GCC/Linux compilation fixes)
+=-- https://github.com/mapbase-source/source-sdk-2013/pull/117 (Additional GCC/Linux compilation fixes)
+=-- https://github.com/mapbase-source/source-sdk-2013/pull/124 (Memory error fixes)
+=-- https://github.com/mapbase-source/source-sdk-2013/pull/130 (Memory error fixes)
+=-- https://github.com/mapbase-source/source-sdk-2013/pull/131 (env_projectedtexture target shadows fix)
+=-- https://github.com/mapbase-source/source-sdk-2013/pull/132 (Console error fix)
+=-- https://github.com/mapbase-source/source-sdk-2013/pull/152 (Additional GCC/Linux compilation fixes)
+=-- https://github.com/mapbase-source/source-sdk-2013/pull/159 (Additional GCC/Linux compilation fixes)
+=-- https://github.com/mapbase-source/source-sdk-2013/pull/162 (VS2019 exception specification fix)
+=-- https://github.com/mapbase-source/source-sdk-2013/pull/170 (HL2 non-Episodic build fix)
+=-- https://github.com/mapbase-source/source-sdk-2013/pull/320 (Fix ScriptHook_t initialization order)
+=-- https://github.com/mapbase-source/source-sdk-2013/pull/321 (Prevent return of dangling Vector/QAngle to VScript)
+=-- https://github.com/mapbase-source/source-sdk-2013/pull/322 (Small Mapbase fixes)
+=-- https://github.com/mapbase-source/source-sdk-2013/pull/436 (VScript member function call safety)
+
+== Contributions from Petercov:
+=-- https://github.com/mapbase-source/source-sdk-2013/pull/182 (NPCs load dynamic interactions from all animation MDLs)
+=-- https://github.com/mapbase-source/source-sdk-2013/pull/184 (Projected texture horizontal FOV shadow fix)
+=-- https://github.com/mapbase-source/source-sdk-2013/pull/185 (Fix enemyfinders becoming visible when they wake)
+=-- https://github.com/mapbase-source/source-sdk-2013/pull/186 (Fix for brightly glowing teeth)
+=-- https://github.com/mapbase-source/source-sdk-2013/pull/183 (Enhanced custom weapons support)
+=-- https://github.com/mapbase-source/source-sdk-2013/pull/230 (Caption fixes)
+=-- https://github.com/mapbase-source/source-sdk-2013/pull/231 (Sentence source bug fix)
+=-- https://github.com/mapbase-source/source-sdk-2013/pull/264 (Outputs for vgui_screen)
+=-- https://github.com/mapbase-source/source-sdk-2013/pull/427 (CBaseCombatWeapon::WeaponClassFromString typo fix [committed by vizzys])
+
+//-------------------------------------------------------------------------------------------------------------------------
+
+Other sources:
+
+- Various code from Source SDK 2013 pull requests on the GitHub repository (https://github.com/ValveSoftware/source-sdk-2013/pulls):
+-- https://github.com/ValveSoftware/source-sdk-2013/pull/441 (Smooth scrape sound oversight fix)
+-- https://github.com/ValveSoftware/source-sdk-2013/pull/436 (VRAD debug counter fix + thread bump)
+-- https://github.com/ValveSoftware/source-sdk-2013/pull/416 (Ragdoll null pointer dereference fix)
+-- https://github.com/ValveSoftware/source-sdk-2013/pull/401 (func_rot_button "Starts locked" flag fix)
+-- https://github.com/ValveSoftware/source-sdk-2013/pull/391 (VBSP func_detail smoothing group fix)
+-- https://github.com/ValveSoftware/source-sdk-2013/pull/362 (npc_manhack npc_maker fix; Adjusted for formatting and save/restore in Mapbase)
+-- https://github.com/Petercov/Source-PlusPlus/commit/ecdf50c48cd31dec4dbdb7fea2d0780e7f0dd8ec (used as a guide for porting the Alien Swarm SDK response system)
+- https://github.com/momentum-mod/game/blob/1d066180b3bf74830c51e6914d46c40b0bea1fc2/mp/src/game/server/player.cpp#L6543 (spec_goto fix)
+- Poison zombie barnacle crash fix implemented based on a snippet from HL2: Plus posted by Agent Agrimar on Discord (Mapbase makes the barnacle recognize it as poison just like poison headcrabs)
+- https://gamebanana.com/skins/172192 (Airboat handling fix; This is asset-based and not reflected in the code)
+- Vortigaunt LOS fix originally created by dky.tehkingd.u for HL2:CE
+- https://combineoverwiki.net/wiki/File:Combine_main_symbol.svg ("icon_combine" instructor icon in "materials/vgui/hud/gameinstructor_hl2_1"; This is asset-based and not reflected in the code)
+
+//-------------------------------------------------------------------------------------------------------------------------
+
+Mapbase additionally contains the following features originally created for Team Fortress 2 Classic:
+
+- TF-Style Instructor Hint Background by MaartenS11
+- TF-Style Instructor Hint Icons by Wheat (This is asset-based and not reflected in the code)
+- env_instructor_hint team and class support by azzy
+
+//-------------------------------------------------------------------------------------------------------------------------
+
+If there is anything missing from this list, please contact Blixibon.
+
+//=========================================================================================================================
+
+Aside from the content list above, Mapbase has more descriptive and up-to-date credits on this wiki article:
+https://github.com/mapbase-source/source-sdk-2013/wiki/Mapbase-Credits
+
+Other relevant articles:
+* https://github.com/mapbase-source/source-sdk-2013/wiki/Mapbase-Disclaimers
+* https://github.com/mapbase-source/source-sdk-2013/wiki/Frequently-Asked-Questions-(FAQ)
+
+//-------------------------------------------------------------------------------------------------------------------------
+
+In memory of Holly Liberatore (moofemp)
+
+//=========================================================================================================================
+
+# Source SDK 2013
+
+Source code for Source SDK 2013.
+
+Contains the game code for Half-Life 2, HL2: DM and TF2.
+
+**Now including Team Fortress 2! ✨**
+
+## Build instructions
+
+Clone the repository using the following command:
+
+`git clone https://github.com/ValveSoftware/source-sdk-2013`
+
+### Windows
+
+Requirements:
+ - Source SDK 2013 Multiplayer installed via Steam
+ - Visual Studio 2022 with the following workload and components:
+   - Desktop development with C++:
+     - MSVC v143 - VS 2022 C++ x64/x86 build tools (Latest)
+     - Windows 11 SDK (10.0.22621.0) or Windows 10 SDK (10.0.19041.1)
+ - Python 3.13 or later
+
+Inside the cloned directory, navigate to `src`, run:
+```bat
+createallprojects.bat
+```
+This will generate the Visual Studio project `everything.sln` which will be used to build your mod.
+
+Then, on the menu bar, go to `Build > Build Solution`, and wait for everything to build.
+
+You can then select the `Client (Mod Name)` project you wish to run, right click and select `Set as Startup Project` and hit the big green `> Local Windows Debugger` button on the tool bar in order to launch your mod.
+
+The default launch options should be already filled in for the `Release` configuration.
+
+### Linux
+
+Requirements:
+ - Source SDK 2013 Multiplayer installed via Steam
+ - podman
+
+Inside the cloned directory, navigate to `src`, run:
+```bash
+./buildallprojects
+```
+
+This will build all the projects related to the SDK and your mods automatically against the Steam Runtime.
+
+You can then, in the root of the cloned directory, you can navigate to `game` and run your mod by launching the build launcher for your mod project, eg:
+```bash
+./mod_tf
+```
+
+*Mods that are distributed on Steam MUST be built against the Steam Runtime, which the above steps will automatically do for you.*
+
+## Distributing your Mod
+
+There is guidance on distributing your mod both on and off Steam available at the following link:
+
+https://partner.steamgames.com/doc/sdk/uploading/distributing_source_engine
+
+## Additional Resources
+
+- [Valve Developer Wiki](https://developer.valvesoftware.com/wiki/Source_SDK_2013)
+
+## License
+
+The SDK is licensed to users on a non-commercial basis under the [SOURCE 1 SDK LICENSE](LICENSE), which is contained in the [LICENSE](LICENSE) file in the root of the repository.
+
+For more information, see [Distributing your Mod](#markdown-header-distributing-your-mod).

@@ -1,0 +1,32 @@
+#
+# MAPBASE SOURCE 2013 CI
+#
+# Builds shader projects every time a pull request which modifies the shader code is opened.
+# If you're using a fork of Mapbase, feel free to configure this to meet your repository's needs.
+#
+# See mapbase_build-base.yml for more information on how this works.
+
+name: Build Shader Projects #(SP Release)
+
+on:
+  pull_request:
+    branches:
+      - develop
+      - mapbase-mp-2025
+    paths:
+      - '.github/workflows/mapbase_build-shaders.yml'
+      - 'src/vpc_scripts/**'
+      - 'src/materialsystem/**'
+      - 'src/mathlib/**'
+
+jobs:
+  shaders:
+    strategy:
+      matrix:
+        configuration: [Release, Debug]
+    uses: ./.github/workflows/mapbase_build-base.yml
+    with:
+      configuration: ${{ matrix.configuration }}
+      game: 'episodic' # Change this if your mod is not using HL2/Episodic game projects
+      project-group: 'shaders'
+      build-on-linux: true # Disable this if you don't want to compile for Linux
