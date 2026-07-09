@@ -45,6 +45,17 @@ ITexture* CBaseClientRenderTargets::CreateCameraTexture( IMaterialSystem* pMater
 		CREATERENDERTARGETFLAGS_HDR );
 }
 
+ITexture *CBaseClientRenderTargets::CreateViewmodelTexture( IMaterialSystem *pMaterialSystem )
+{
+	return pMaterialSystem->CreateNamedRenderTargetTextureEx2(
+		"_rt_viewmodel",
+		1, 1, RT_SIZE_FULL_FRAME_BUFFER,
+		IMAGE_FORMAT_BGRA8888,
+		MATERIAL_RT_DEPTH_SHARED,
+		TEXTUREFLAGS_CLAMPS | TEXTUREFLAGS_CLAMPT | TEXTUREFLAGS_EIGHTBITALPHA,
+		CREATERENDERTARGETFLAGS_HDR );
+}
+
 //-----------------------------------------------------------------------------
 // Purpose: Called by the engine in material system init and shutdown.
 //			Clients should override this in their inherited version, but the base
@@ -60,6 +71,8 @@ void CBaseClientRenderTargets::InitClientRenderTargets( IMaterialSystem* pMateri
 
 	// Monitors
 	m_CameraTexture.Init( CreateCameraTexture( pMaterialSystem, iCameraTextureSize ) );
+
+	m_ViewmodelTexture.Init( CreateViewmodelTexture( pMaterialSystem ) );
 }
 
 //-----------------------------------------------------------------------------
@@ -75,4 +88,6 @@ void CBaseClientRenderTargets::ShutdownClientRenderTargets()
 
 	// Monitors
 	m_CameraTexture.Shutdown();
+
+	m_ViewmodelTexture.Shutdown();
 }

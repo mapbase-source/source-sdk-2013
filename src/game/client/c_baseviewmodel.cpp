@@ -333,19 +333,22 @@ int C_BaseViewModel::DrawModel( int flags )
 	}
 #endif
 
-	int ret;
-	// If the local player's overriding the viewmodel rendering, let him do it
-	if ( pPlayer && pPlayer->IsOverridingViewmodel() )
+	int ret = 0;
+	if ( !(flags & STUDIO_DRAWTRANSLUCENTSUBMODELS) )
 	{
-		ret = pPlayer->DrawOverriddenViewmodel( this, flags );
-	}
-	else if ( pWeapon && pWeapon->IsOverridingViewmodel() )
-	{
-		ret = pWeapon->DrawOverriddenViewmodel( this, flags );
-	}
-	else
-	{
-		ret = BaseClass::DrawModel( flags );
+		// If the local player's overriding the viewmodel rendering, let him do it
+		if ( pPlayer && pPlayer->IsOverridingViewmodel() )
+		{
+			ret = pPlayer->DrawOverriddenViewmodel( this, flags );
+		}
+		else if ( pWeapon && pWeapon->IsOverridingViewmodel() )
+		{
+			ret = pWeapon->DrawOverriddenViewmodel( this, flags );
+		}
+		else
+		{
+			ret = BaseClass::DrawModel( flags );
+		}
 	}
 
 	// Now that we've rendered, reset the animation restart flag
@@ -356,7 +359,7 @@ int C_BaseViewModel::DrawModel( int flags )
 			m_nOldAnimationParity = m_nAnimationParity;
 		}
 		// Tell the weapon itself that we've rendered, in case it wants to do something
-		if ( pWeapon )
+		if ( (flags & STUDIO_DRAWTRANSLUCENTSUBMODELS) && pWeapon )
 		{
 			pWeapon->ViewModelDrawn( this );
 		}
