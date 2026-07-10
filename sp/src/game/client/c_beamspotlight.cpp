@@ -84,8 +84,6 @@ private:
 	Vector	m_vSpotlightDir;
 
 	CHandle<C_Beam>	m_hSpotlight;
-	// zb14 - adding this due to sdk differences :3
-	//CHandle<C_SpotlightEnd>	m_hSpotlightTarget;
 	
 	float	m_flSpotlightCurLength;
 
@@ -244,7 +242,6 @@ void C_BeamSpotLight::SpotlightCreate(void)
 
 	// Set the temporary spawnflag on the beam so it doesn't save (we'll recreate it on restore)
 	m_hSpotlight->SetHDRColorScale( m_flHDRColorScale );
-	//const color24 c = GetRenderColor();
 	const color32 c = GetRenderColor();
 	m_hSpotlight->SetColor( c.r, c.g, c.b ); 
 	m_hSpotlight->SetHaloTexture(m_nHaloIndex);
@@ -262,7 +259,7 @@ void C_BeamSpotLight::SpotlightDestroy(void)
 {
 	if ( m_hSpotlight )
 	{
-		UTIL_Remove( m_hSpotlight );
+		Release();
 		m_hSpotlight.Term();
 	}
 }
@@ -303,19 +300,16 @@ void C_BeamSpotLight::ComputeRenderInfo()
 	// Fade out spotlight end if past max length.  
 	if ( m_flSpotlightCurLength > 2*m_flSpotlightMaxLength )
 	{
-		//SetRenderAlpha( 0 );
 		SetRenderColorA( 0 );
 		m_hSpotlight->SetFadeLength( m_flSpotlightMaxLength );
 	}
 	else if ( m_flSpotlightCurLength > m_flSpotlightMaxLength )		
 	{
-		//SetRenderAlpha( (1-((m_flSpotlightCurLength-m_flSpotlightMaxLength)/m_flSpotlightMaxLength)) );
 		SetRenderColorA( (1-((m_flSpotlightCurLength-m_flSpotlightMaxLength)/m_flSpotlightMaxLength)) );
 		m_hSpotlight->SetFadeLength( m_flSpotlightMaxLength );
 	}
 	else
 	{
-		//SetRenderAlpha( 1.0 );
 		SetRenderColorA( 1.0 );
 		m_hSpotlight->SetFadeLength( m_flSpotlightCurLength );
 	}
@@ -332,9 +326,7 @@ void C_BeamSpotLight::ComputeRenderInfo()
 
 		if ( m_flLightScale > 0 ) 
 		{
-			//const color24 c = GetRenderColor();
 			const color32 c = GetRenderColor();
-			//float a = GetRenderAlpha() / 255.0f;
 			float a = GetRenderColor().a / 255.0f;
 			ColorRGBExp32 color;
 			color.r	= c.r * a;
