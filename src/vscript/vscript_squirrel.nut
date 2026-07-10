@@ -115,29 +115,29 @@ class CSimpleCallChainer
 {
 	constructor(prefixString, scopeForThis, exactMatch)
 	{
-		this.prefix = prefixString;
-		this.scope = scopeForThis;
-		this.chain = [];
-		this.scope["Dispatch" + prefixString] <- this.Call.bindenv(this);
+		prefix = prefixString;
+		scope = scopeForThis;
+		chain = [];
+		scope["Dispatch" + prefixString] <- Call.bindenv(this);
 	}
 
 	function PostScriptExecute()
 	{
-		if ( this.prefix in this.scope )
+		if ( prefix in scope )
 		{
-			local func = this.scope[this.prefix];
+			local func = scope[prefix];
 			if ( typeof func == "function" )
 			{
-				this.chain.push(func);
+				chain.push(func);
 			}
 		}
 	}
 
 	function Call()
 	{
-		foreach (func in this.chain)
+		foreach (func in chain)
 		{
-			func.pcall(this.scope);
+			func.pcall(scope);
 		}
 	}
 

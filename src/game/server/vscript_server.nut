@@ -1,4 +1,4 @@
-//========== Copyright ï¿½ 2008, Valve Corporation, All rights reserved. ========
+//========== Copyright © 2008, Valve Corporation, All rights reserved. ========
 //
 // Purpose:
 //
@@ -25,12 +25,12 @@ function EntFire( target, action, value = null, delay = 0.0, activator = null, c
 	{
 		if ( !caller )
 		{
-			caller = this.self;
+			caller = self;
 		}
 
 		if ( !activator )
 		{
-			activator = this.self;
+			activator = self;
 		}
 	}
 
@@ -48,12 +48,12 @@ function EntFireByHandle( target, action, value = null, delay = 0.0, activator =
 	{
 		if ( !caller )
 		{
-			caller = this.self;
+			caller = self;
 		}
 
 		if ( !activator )
 		{
-			activator = this.self;
+			activator = self;
 		}
 	}
 
