@@ -306,6 +306,13 @@ END_RECV_TABLE()
 		RecvPropBool		( RECVINFO( m_bInTriggerFall ) ),
 #endif
 
+#ifdef MAPBASE_MP
+		// These are transmitted so that prediction is aware of what buttons are disabled
+		// (e.g. weapons don't fire when +attack is disabled)
+		RecvPropInt			( RECVINFO( m_afButtonDisabled ) ),
+		RecvPropInt			( RECVINFO( m_afButtonForced ) ),
+#endif
+
 	END_RECV_TABLE()
 
 	
