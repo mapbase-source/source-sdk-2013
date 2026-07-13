@@ -22,6 +22,8 @@ public:
 
 	CTeamplayRoundWin();
 
+	bool KeyValue( const char *szKeyName, const char *szValue );
+
 	// Input
 	void InputRoundWin( inputdata_t &inputdata );
 
