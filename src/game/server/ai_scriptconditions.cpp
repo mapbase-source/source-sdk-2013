@@ -14,10 +14,17 @@
 #include "ai_scriptconditions.h"
 #include "saverestore_utlvector.h"
 
+#ifdef MAPBASE_MP
+#include "filters.h"
+#endif
+
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
 #define SF_ACTOR_AS_ACTIVATOR	( 1 << 0 )
+#ifdef MAPBASE
+#define SF_PLAYER_AS_ACTIVATOR	( 1 << 1 )	// Mainly useful in MP
+#endif
 
 ConVar debugscriptconditions( "ai_debugscriptconditions", "0" );
 
@@ -54,6 +61,9 @@ BEGIN_DATADESC( CAI_ScriptConditions )
 	DEFINE_INPUTFUNC( FIELD_VOID, "Disable", InputDisable ),
 #ifdef MAPBASE
 	DEFINE_INPUTFUNC( FIELD_EHANDLE, "SatisfyConditions", InputSatisfyConditions ),
+#endif
+#ifdef MAPBASE_MP
+	DEFINE_INPUTFUNC( FIELD_STRING, "SetPlayerFilter", InputSetPlayerFilter ),
 #endif
 
 	//---------------------------------
@@ -111,6 +121,11 @@ BEGIN_DATADESC( CAI_ScriptConditions )
 	DEFINE_UTLVECTOR( m_ElementList,				FIELD_EMBEDDED ),
 	DEFINE_FIELD( m_bLeaveAsleep,					FIELD_BOOLEAN ),
 
+#ifdef MAPBASE_MP
+	DEFINE_KEYFIELD( m_iszPlayerFilterName,				FIELD_STRING,	"PlayerFilter"			),
+	DEFINE_FIELD( m_hPlayerFilter, FIELD_EHANDLE ),
+#endif
+
 END_DATADESC()
 
 BEGIN_SIMPLE_DATADESC( CAI_ProxTester )
@@ -128,6 +143,42 @@ END_DATADESC()
 //-----------------------------------------------------------------------------
 
 #define EVALUATOR( name ) { &CAI_ScriptConditions::Eval##name, #name }
+
+#ifdef MAPBASE_MP
+
+CAI_ScriptConditions::EvaluatorInfo_t CAI_ScriptConditions::gm_PlayerEvaluators[] =
+{
+	EVALUATOR( ActorSeePlayer ),
+		EVALUATOR( PlayerActorProximity ),
+		EVALUATOR( PlayerTargetProximity ),
+		EVALUATOR( PlayerBlockingActor ),
+		EVALUATOR( PlayerActorLook ),
+		EVALUATOR( PlayerTargetLook ),
+		EVALUATOR( PlayerActorLOS ),
+		EVALUATOR( PlayerTargetLOS ),
+
+#ifdef HL2_EPISODIC
+		EVALUATOR( PlayerInVehicle ),
+#endif
+
+};
+
+// !!! In MP, this is only used for evaluators that don't use players.
+// Use gm_PlayerEvaluators for evaluators that require a player.
+CAI_ScriptConditions::EvaluatorInfo_t CAI_ScriptConditions::gm_Evaluators[] =
+{
+		EVALUATOR( State ),
+		EVALUATOR( ActorTargetProximity ),
+		EVALUATOR( ActorSeeTarget),
+
+#ifdef HL2_EPISODIC
+		EVALUATOR( ActorInPVS ),
+		EVALUATOR( ActorInVehicle ),
+#endif
+
+};
+
+#else
 
 CAI_ScriptConditions::EvaluatorInfo_t CAI_ScriptConditions::gm_Evaluators[] =
 {
@@ -150,6 +201,8 @@ CAI_ScriptConditions::EvaluatorInfo_t CAI_ScriptConditions::gm_Evaluators[] =
 #endif
 
 };
+
+#endif
 
 void CAI_ScriptConditions::OnRestore( void )
 {
@@ -539,7 +592,7 @@ void CAI_ScriptConditions::EvaluationThink()
 			m_OnConditionsTimeout.FireOutput( pActivator, this );
 			continue;
 		}
-
+		
 		bool      result = true;
 		const int nEvaluators = sizeof( gm_Evaluators ) / sizeof( gm_Evaluators[0] );
 
@@ -562,6 +615,47 @@ void CAI_ScriptConditions::EvaluationThink()
 				break;
 			}
 		}
+
+#ifdef MAPBASE_MP
+		if ( result )
+		{
+			// Loop through all of the players until one of them passes. If we've been given a filter, use it to determine which players to evaluate.
+			// 
+			// You may notice this ignores GetPlayer() and is implemented more primitively than how ai_script_conditions handles multiple actors.
+			// ai_script_conditions was designed to evaluate conditions on multiple actors simultaneously, but it was only designed with one player in mind.
+			// Having the existing element list account for multiple players is theoretically possible, but each element is designed to time out and fire outputs separately.
+			// Since existing instances of the entity were not designed for that functionality and it would make the entity much more complex to manage even under new cases,
+			// I've elected to go for a simpler implementation that just loops through all of the players every time an actor's condition needs to be evaluated.
+			const int nPlayerEvaluators = sizeof( gm_PlayerEvaluators ) / sizeof( gm_PlayerEvaluators[0] );
+			for ( int playerIdx = 1; playerIdx <= gpGlobals->maxClients; playerIdx++ )
+			{
+				CBasePlayer *pPlayer = UTIL_PlayerByIndex( playerIdx );
+				if ( !pPlayer || ( m_hPlayerFilter && !m_hPlayerFilter->PassesFilter( this, pPlayer ) ) )
+					continue;
+
+				result = true;
+				args.pPlayer = pPlayer;
+
+				ScrCondDbgMsg( ("%s evaluating player: %s [%i]\n", GetDebugName(), pPlayer->GetPlayerName(), playerIdx) );
+
+				for ( int i = 0; i < nPlayerEvaluators; ++i )
+				{
+					if ( !(this->*gm_PlayerEvaluators[i].pfnEvaluator)( args ) )
+					{
+						pConditionElement->GetTimer()->Reset();
+						result = false;
+
+						ScrCondDbgMsg( ( "\t%s failed on: %s\n", GetDebugName(), gm_PlayerEvaluators[ i ].pszName ) );
+
+						break;
+					}
+				}
+
+				if ( result )
+					break;
+			}
+		}
+#endif
 
 		if ( result )
 		{
@@ -658,6 +752,13 @@ void CAI_ScriptConditions::Enable( void )
 		}
 	}
 
+#ifdef MAPBASE_MP
+	if ( m_iszPlayerFilterName != NULL_STRING )
+	{
+		m_hPlayerFilter = dynamic_cast<CBaseFilter *>(gEntList.FindEntityByName( NULL, m_iszPlayerFilterName, this ));
+	}
+#endif
+
 	m_fDisabled = false;
 
 	SetThink( &CAI_ScriptConditions::EvaluationThink );
@@ -704,6 +805,23 @@ void CAI_ScriptConditions::InputSatisfyConditions( inputdata_t &inputdata )
 	{
 		Disable();
 		m_ElementList.Purge();
+	}
+}
+#endif
+
+#ifdef MAPBASE_MP
+//-----------------------------------------------------------------------------
+
+void CAI_ScriptConditions::InputSetPlayerFilter( inputdata_t &inputdata )
+{
+	m_iszPlayerFilterName = inputdata.value.StringID();
+	if ( m_iszPlayerFilterName != NULL_STRING )
+	{
+		m_hPlayerFilter = dynamic_cast<CBaseFilter *>(gEntList.FindEntityByName( NULL, m_iszPlayerFilterName, this ));
+	}
+	else
+	{
+		m_hPlayerFilter = NULL;
 	}
 }
 #endif
