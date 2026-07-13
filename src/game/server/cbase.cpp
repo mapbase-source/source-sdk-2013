@@ -853,6 +853,8 @@ private:
 
 CEventQueue_SaveRestoreBlockHandler g_EventQueue_SaveRestoreBlockHandler;
 
+EventQueuePrioritizedEvent_t *m_pServiceEvent = NULL;
+
 //-------------------------------------
 
 ISaveRestoreBlockHandler *GetEventQueueSaveRestoreBlockHandler()
@@ -879,6 +881,7 @@ void CEventQueue::Clear( void )
 	}
 
 	m_Events.m_pNext = NULL;
+	m_pServiceEvent = NULL;
 }
 
 void CEventQueue::Dump( void )
@@ -1045,6 +1048,8 @@ void CEventQueue::ServiceEvents( void )
 	{
 		MDLCACHE_CRITICAL_SECTION();
 
+		m_pServiceEvent = pe;
+
 		bool targetFound = false;
 
 		// find the targets
@@ -1128,6 +1133,7 @@ void CEventQueue::ServiceEvents( void )
 		}
 
 		// remove the event from the list (remembering that the queue may have been added to)
+		m_pServiceEvent = NULL;
 		RemoveEvent( pe );
 		delete pe;
 
@@ -1176,7 +1182,7 @@ void CEventQueue::CancelEvents( CBaseEntity *pCaller )
 	while (pCur != NULL)
 	{
 		bool bDelete = false;
-		if (pCur->m_pCaller == pCaller)
+		if (pCur->m_pCaller == pCaller && pCur != m_pServiceEvent)
 		{
 			// Pointers match; make sure everything else matches.
 			if (!stricmp(STRING(pCur->m_pCaller->GetEntityName()), STRING(pCaller->GetEntityName())) &&
@@ -1214,7 +1220,7 @@ void CEventQueue::CancelEventOn( CBaseEntity *pTarget, const char *sInputName )
 	while (pCur != NULL)
 	{
 		bool bDelete = false;
-		if (pCur->m_pEntTarget == pTarget)
+		if (pCur->m_pEntTarget == pTarget && pCur != m_pServiceEvent)
 		{
 			if ( !Q_strncmp( STRING(pCur->m_iTargetInput), sInputName, strlen(sInputName) ) )
 			{
@@ -1290,7 +1296,7 @@ void CEventQueue::CancelEventsByInput( CBaseEntity *pTarget, const char *szInput
 	{
 		bool bRemove = false;
 
-		if ( pTarget == pCur->m_pEntTarget || pCur->m_iTarget == iszDebugName )
+		if ( ( pTarget == pCur->m_pEntTarget || pCur->m_iTarget == iszDebugName ) && pCur != m_pServiceEvent )
 		{
 			if ( !V_strncmp( STRING(pCur->m_iTargetInput), szInput, strlen(szInput) ) )
 			{
