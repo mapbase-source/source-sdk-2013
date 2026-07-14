@@ -12252,6 +12252,19 @@ CBaseEntity *CAI_BaseNPC::DropItem ( const char *pszItemName, Vector vecPos, QAn
 		m_OnItemDrop.Set( pItem, pItem, this );
 #endif
 
+#ifdef MAPBASE_MP
+		// Fixes health vials, grenades, etc. respawning
+		if (pItem->IsCombatItem())
+		{
+			pItem->AddSpawnFlags( SF_NORESPAWN );
+		}
+		else if (pItem->IsBaseCombatWeapon())
+		{
+			// Adding SF_NORESPAWN directly to weapons causes them to be considered level-placed, which we don't want
+			pItem->MyCombatWeaponPointer()->Drop( vec3_origin );
+		}
+#endif
+
 		return pItem;
 	}
 	else
