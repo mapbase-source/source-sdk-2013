@@ -614,7 +614,7 @@ void NextBotManager::OnSound( CBaseEntity *source, const Vector &pos, KeyValues 
 class NextBotResponseNotifyScan
 {
 public:
-	NextBotResponseNotifyScan( CBaseCombatCharacter *who, AIConcept_t concept, AI_Response *response ) : m_who( who ), m_concept( concept ), m_response( response )
+	NextBotResponseNotifyScan( CBaseCombatCharacter *who, AIConcept_t rconcept, AI_Response *response ) : m_who( who ), m_concept( rconcept ), m_response( response )
 	{
 	}
 
@@ -637,17 +637,17 @@ public:
 /**
  * When an Actor speaks a concept
  */
-void NextBotManager::OnSpokeConcept( CBaseCombatCharacter *who, AIConcept_t concept, AI_Response *response )
+void NextBotManager::OnSpokeConcept( CBaseCombatCharacter *who, AIConcept_t rconcept, AI_Response *response )
 {
-	NextBotResponseNotifyScan notify( who, concept, response );
+	NextBotResponseNotifyScan notify( who, rconcept, response );
 	TheNextBots().ForEachBot( notify );
 
 	if ( IsDebugging( NEXTBOT_HEARING ) )
 	{
 		// const char *who = response->GetCriteria()->GetValue( response->GetCriteria()->FindCriterionIndex( "Who" ) );
 
-		// TODO: Need concept.GetStringConcept()
-		DevMsg( "%3.2f: OnSpokeConcept( %s, %s )\n", gpGlobals->curtime, who->GetDebugName(), "concept.GetStringConcept()" );
+		// TODO: Need rconcept.GetStringConcept()
+		DevMsg( "%3.2f: OnSpokeConcept( %s, %s )\n", gpGlobals->curtime, who->GetDebugName(), "rconcept.GetStringConcept()" );
 	}
 }
 

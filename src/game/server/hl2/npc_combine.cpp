@@ -3066,35 +3066,35 @@ void CNPC_Combine::SpeakSentence( int sentenceType )
 
 #ifdef COMBINE_SOLDIER_USES_RESPONSE_SYSTEM
 //=========================================================
-bool CNPC_Combine::SpeakIfAllowed( const char *concept, const char *modifiers, SentencePriority_t sentencepriority, SentenceCriteria_t sentencecriteria )
+bool CNPC_Combine::SpeakIfAllowed( const char *rconcept, const char *modifiers, SentencePriority_t sentencepriority, SentenceCriteria_t sentencecriteria )
 {
 	AI_CriteriaSet set;
 	if (modifiers)
 	{
 #ifdef NEW_RESPONSE_SYSTEM
-		GatherCriteria( &set, concept, modifiers );
+		GatherCriteria( &set, rconcept, modifiers );
 #else
 		GetExpresser()->MergeModifiers(set, modifiers);
 #endif
 	}
-	return SpeakIfAllowed( concept, set, sentencepriority, sentencecriteria );
+	return SpeakIfAllowed( rconcept, set, sentencepriority, sentencecriteria );
 }
 
 //=========================================================
 //=========================================================
-bool CNPC_Combine::SpeakIfAllowed( const char *concept, AI_CriteriaSet& modifiers, SentencePriority_t sentencepriority, SentenceCriteria_t sentencecriteria )
+bool CNPC_Combine::SpeakIfAllowed( const char *rconcept, AI_CriteriaSet& modifiers, SentencePriority_t sentencepriority, SentenceCriteria_t sentencecriteria )
 {
 	if ( sentencepriority != SENTENCE_PRIORITY_INVALID && !FOkToMakeSound( sentencepriority ) )
 		return false;
 
-	if ( !GetExpresser()->CanSpeakConcept( concept ) )
+	if ( !GetExpresser()->CanSpeakConcept( rconcept ) )
 		return false;
 
 	// Don't interrupt scripted VCD dialogue
 	if ( IsRunningScriptedSceneWithSpeechAndNotPaused( this, true ) )
 		return false;
 
-	if ( Speak( concept, modifiers ) )
+	if ( Speak( rconcept, modifiers ) )
 	{
 		JustMadeSound( sentencepriority, 2.0f /*GetTimeSpeechComplete()*/ );
 		return true;

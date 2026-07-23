@@ -284,7 +284,7 @@ public:
 
 #ifdef EXPANDED_RESPONSE_SYSTEM_USAGE
 	//DeclareResponseSystem()
-	bool SpeakIfAllowed(const char *concept, const char *modifiers = NULL);
+	bool SpeakIfAllowed(const char *rconcept, const char *modifiers = NULL);
 	void ModifyOrAppendCriteria( AI_CriteriaSet& set );
 
 	virtual CAI_Expresser *CreateExpresser( void );
@@ -3173,12 +3173,12 @@ void CProtoSniper::NotifyShotMissedTarget()
 //-----------------------------------------------------------------------------
 // Purpose: Speak concept
 //-----------------------------------------------------------------------------
-bool CProtoSniper::SpeakIfAllowed(const char *concept, const char *modifiers)
+bool CProtoSniper::SpeakIfAllowed(const char *rconcept, const char *modifiers)
 {
-	if (!GetExpresser()->CanSpeakConcept(concept))
+	if (!GetExpresser()->CanSpeakConcept(rconcept))
 		return false;
 
-	return Speak(concept, modifiers);
+	return Speak(rconcept, modifiers);
 }
 
 //-----------------------------------------------------------------------------
