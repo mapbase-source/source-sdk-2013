@@ -392,7 +392,7 @@ static ConCommand npc_focus("npc_focus", CC_NPC_Focus, "Displays red line to NPC
 ConVar npc_create_equipment("npc_create_equipment", "");
 
 #ifdef MAPBASE
-extern int EntityFactory_AutoComplete( const char *cmdname, CUtlVector< CUtlString > &commands, CUtlRBTree< CUtlString > &symbols, char *substring, int checklen = 0 );
+extern int EntityFactory_AutoComplete( const char *cmdname, CUtlVector< CUtlString > &commands, CUtlRBTree< CUtlString > &symbols, const char *substring, int checklen = 0 );
 extern bool UtlStringLessFunc( const CUtlString &lhs, const CUtlString &rhs );
 
 //------------------------------------------------------------------------------
@@ -517,10 +517,10 @@ public:
 
 		const char *cmdname = CreateAimed() ? "npc_create_aimed" : "npc_create";
 
-		char *substring = (char *)partial;
+		const char *substring = partial;
 		if ( Q_strstr( partial, cmdname ) )
 		{
-			substring = (char *)partial + strlen( cmdname ) + 1;
+			substring = partial + strlen( cmdname ) + 1;
 		}
 
 		int checklen = Q_strlen( substring );

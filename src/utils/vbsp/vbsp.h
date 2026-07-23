@@ -650,8 +650,8 @@ void SaveVertexNormals( void );
 //=============================================================================
 // cubemap.cpp
 #ifdef PARALLAX_CORRECTED_CUBEMAPS
-extern char* g_pParallaxObbStrs[MAX_MAP_CUBEMAPSAMPLES];
-void Cubemap_InsertSample( const Vector& origin, int size, char* pParallaxObbStr );
+extern const char* g_pParallaxObbStrs[MAX_MAP_CUBEMAPSAMPLES];
+void Cubemap_InsertSample( const Vector& origin, int size, const char* pParallaxObbStr );
 #else
 void Cubemap_InsertSample( const Vector& origin, int size );
 #endif

@@ -85,8 +85,8 @@ inline bool SideHasCubemapAndWasntManuallyReferenced( int iSide )
 }
 
 #ifdef PARALLAX_CORRECTED_CUBEMAPS
-char* g_pParallaxObbStrs[MAX_MAP_CUBEMAPSAMPLES];
-void Cubemap_InsertSample( const Vector& origin, int size, char* pParallaxObbStr = "" )
+const char* g_pParallaxObbStrs[MAX_MAP_CUBEMAPSAMPLES];
+void Cubemap_InsertSample( const Vector& origin, int size, const char* pParallaxObbStr = "" )
 {
 	g_pParallaxObbStrs[g_nCubemapSamples] = pParallaxObbStr;
 #else
@@ -105,7 +105,7 @@ static const char *FindSkyboxMaterialName( void )
 {
 	for( int i = 0; i < g_MainMap->num_entities; i++ )
 	{
-		char* pEntity = ValueForKey(&g_MainMap->entities[i], "classname");
+		const char* pEntity = ValueForKey(&g_MainMap->entities[i], "classname");
 		if (!strcmp(pEntity, "worldspawn"))
 		{
 			return ValueForKey( &g_MainMap->entities[i], "skyname" );

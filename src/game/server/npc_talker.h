@@ -222,7 +222,7 @@ public:
 	int			m_nSpeak;						// number of times initiated talking
 	float		m_flNextIdleSpeechTime;
 
-	static char *m_szFriends[TLK_CFRIENDS];		// array of friend names
+	static const char *m_szFriends[TLK_CFRIENDS];		// array of friend names
 	CBaseEntity		*EnumFriends( CBaseEntity *pentPrevious, int listNumber, bool bTrace );
 
 	virtual int		FriendNumber( int arrayNumber )	{ return arrayNumber; }

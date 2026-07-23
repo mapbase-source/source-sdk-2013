@@ -87,7 +87,7 @@ void CNPC_Eli::Spawn()
 {
 	// Eli is allowed to use multiple models, because he appears in the pod.
 	// He defaults to his normal model.
-	char *szModel = (char *)STRING( GetModelName() );
+	const char *szModel = STRING( GetModelName() );
 	if (!szModel || !*szModel)
 	{
 		szModel = "models/eli.mdl";

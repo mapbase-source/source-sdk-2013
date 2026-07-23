@@ -174,9 +174,9 @@ private:
 
 protected:
 	float							m_flParticleInnerDist;	//The distance at which to start drawing the inner system
-	char							*m_pParticleInnerNearDef; //Name of the first inner system
-	char							*m_pParticleInnerFarDef;  //Name of the second inner system
-	char							*m_pParticleOuterDef;     //Name of the outer system
+	const char						*m_pParticleInnerNearDef; //Name of the first inner system
+	const char						*m_pParticleInnerFarDef;  //Name of the second inner system
+	const char						*m_pParticleOuterDef;     //Name of the outer system
 	HPARTICLEFFECT					m_pParticlePrecipInnerNear;
 	HPARTICLEFFECT					m_pParticlePrecipInnerFar;
 	HPARTICLEFFECT					m_pParticlePrecipOuter;

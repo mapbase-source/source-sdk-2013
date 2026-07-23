@@ -745,7 +745,7 @@ void CTFWeaponBuilder::WheatleySapperIdle( CTFPlayer *pOwner )
 		//Is there a sapper event? (sapper placed / sapper finished)
 		else if( pOwner->GetSappingEvent() != TF_SAPEVENT_NONE)
 		{
-			char *pVoicePakString = NULL;
+			const char *pVoicePakString = NULL;
 			switch ( pOwner->GetSappingEvent() )
 			{
 			case TF_SAPEVENT_PLACED:
@@ -841,7 +841,7 @@ void CTFWeaponBuilder::WheatleySapperIdle( CTFPlayer *pOwner )
 		{
 			bool bNoRepeats = false;
 			bool bEmitAll = false;
-			char *pVoicePakString = NULL;
+			const char *pVoicePakString = NULL;
 			//Sapped! vo
 			if ( m_iSapState == TF_PSAPSTATE_WAITINGHACKED )
 			{

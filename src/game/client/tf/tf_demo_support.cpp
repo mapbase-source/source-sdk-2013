@@ -209,7 +209,7 @@ void CTFDemoSupport::Status( void )
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void CTFDemoSupport::Notify( char *pszMessage )
+void CTFDemoSupport::Notify( const char *pszMessage )
 {
 	if ( engine->IsPlayingDemo() )
 		return;

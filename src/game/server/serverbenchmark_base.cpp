@@ -391,7 +391,7 @@ private:
 	int m_nBotsCreated;
 	CUtlVector< EHANDLE > m_PhysicsObjects;
 
-	CUtlVector<char*> m_PhysicsModelNames;
+	CUtlVector<const char*> m_PhysicsModelNames;
 	int m_nBenchmarkMode;
 
 	CUniformRandomStream m_RandomStream;

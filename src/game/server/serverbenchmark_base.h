@@ -50,7 +50,7 @@ public:
 	virtual void EndBenchmark() {}
 
 	// Give a list of model names that can be spawned in for physics props during the simulation.
-	virtual void GetPhysicsModelNames( CUtlVector<char*> &modelNames ) = 0;
+	virtual void GetPhysicsModelNames( CUtlVector<const char*> &modelNames ) = 0;
 
 	// The benchmark will call this to create a bot each time it wants to create a player.
 	// If you want to manage the bots yourself, you can return NULL here.

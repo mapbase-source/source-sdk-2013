@@ -33,7 +33,7 @@ public:
 		m_bSetupLocalPlayer = false;
 	}
 
-	virtual void GetPhysicsModelNames( CUtlVector<char*> &modelNames )
+	virtual void GetPhysicsModelNames( CUtlVector<const char*> &modelNames )
 	{
 		modelNames.AddToTail( "models/props_farm/wooden_barrel.mdl" );
 		modelNames.AddToTail( "models/props_gameplay/orange_cone001.mdl" );

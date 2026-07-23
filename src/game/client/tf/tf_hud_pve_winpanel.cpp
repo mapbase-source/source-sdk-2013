@@ -95,7 +95,7 @@ void CTFPVEWinPanel::FireGameEvent( IGameEvent * event )
 		SetDialogVariable( "WinReasonLabel", "" );
 		SetDialogVariable( "DetailsLabel", "" );
 
-		wchar_t *pwchWinReason = L"";
+		const wchar_t *pwchWinReason = L"";
 		switch ( iWinReason )
 		{
 		case 0:
