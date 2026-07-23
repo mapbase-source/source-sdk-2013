@@ -111,11 +111,11 @@ static HSCRIPT VMFKV_AddEntityFromTables( HSCRIPT hVMF, HSCRIPT hKV, HSCRIPT hIO
 {
 	KeyValues *pVMF = scriptmanager->GetKeyValuesFromScriptKV( g_pScriptVM, hVMF );
 	if (!pVMF)
-		return false;
+		return NULL;
 
 	KeyValues *pEnt = pVMF->CreateNewKey();
 	if (!pEnt)
-		return false;
+		return NULL;
 
 	pEnt->SetName( "entity" );
 
