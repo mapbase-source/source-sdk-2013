@@ -1,4 +1,4 @@
-//========== Copyright © 2008, Valve Corporation, All rights reserved. ========
+//========== Copyright Â© 2008, Valve Corporation, All rights reserved. ========
 //
 // Purpose:
 //
@@ -2290,8 +2290,8 @@ static void Script_QueueSpeak( HSCRIPT hEntity, const char *pszConcept, float fl
 		criteria.Merge( pszCriteria );
 	}
 
-	AIConcept_t concept( pszConcept );
-	QueueSpeak( concept, pBaseEntity, flDelay, criteria );
+	AIConcept_t aiconcept( pszConcept );
+	QueueSpeak( aiconcept, pBaseEntity, flDelay, criteria );
 }
 #endif
 

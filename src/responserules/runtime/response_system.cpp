@@ -2909,8 +2909,8 @@ static void CC_RR_Debug_ResponseConcept_Exclude( const CCommand &args )
 			{
 				CGMsg( 0, CON_GROUP_RESPONSE_SYSTEM, "\t'%s' is not a known concept (adding it anyway)\n", args[i] );
 			}
-			CRR_Concept concept( args[i] );
-			CResponseSystem::m_DebugExcludeList.AddToTail( concept );
+			CRR_Concept aiconcept( args[i] );
+			CResponseSystem::m_DebugExcludeList.AddToTail( aiconcept );
 		}
 	}
 }

@@ -1554,12 +1554,12 @@ void CAI_PassengerBehavior::SetTransitionSequence( int nSequence )
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-bool CAI_PassengerBehavior::SpeakIfAllowed( AIConcept_t concept, const char *modifiers /*= NULL*/, bool bRespondingToPlayer /*= false*/, char *pszOutResponseChosen /*= NULL*/, size_t bufsize /*= 0*/ )
+bool CAI_PassengerBehavior::SpeakIfAllowed( AIConcept_t aiconcept, const char *modifiers /*= NULL*/, bool bRespondingToPlayer /*= false*/, char *pszOutResponseChosen /*= NULL*/, size_t bufsize /*= 0*/ )
 {
 	// FIXME: Store this cast off?
 	CAI_PlayerAlly *pAlly = dynamic_cast<CAI_PlayerAlly *>(GetOuter());
 	if ( pAlly != NULL )
-		return pAlly->SpeakIfAllowed( concept, modifiers, bRespondingToPlayer, pszOutResponseChosen, bufsize );
+		return pAlly->SpeakIfAllowed( aiconcept, modifiers, bRespondingToPlayer, pszOutResponseChosen, bufsize );
 
 	return false;
 }

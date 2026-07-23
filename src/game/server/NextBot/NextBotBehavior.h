@@ -662,7 +662,7 @@ public:
 	virtual EventDesiredResult< Actor > OnSight( Actor *me, CBaseEntity *subject )								{ return TryContinue(); }
 	virtual EventDesiredResult< Actor > OnLostSight( Actor *me, CBaseEntity *subject )							{ return TryContinue(); }
 	virtual EventDesiredResult< Actor > OnSound( Actor *me, CBaseEntity *source, const Vector &pos, KeyValues *keys )	{ return TryContinue(); }
-	virtual EventDesiredResult< Actor > OnSpokeConcept( Actor *me, CBaseCombatCharacter *who, AIConcept_t concept, AI_Response *response )	{ return TryContinue(); }
+	virtual EventDesiredResult< Actor > OnSpokeConcept( Actor *me, CBaseCombatCharacter *who, AIConcept_t aiconcept, AI_Response *response )	{ return TryContinue(); }
 	virtual EventDesiredResult< Actor > OnWeaponFired( Actor *me, CBaseCombatCharacter *whoFired, CBaseCombatWeapon *weapon )	{ return TryContinue(); }
 	virtual EventDesiredResult< Actor > OnNavAreaChanged( Actor *me, CNavArea *newArea, CNavArea *oldArea )		{ return TryContinue(); }
 	virtual EventDesiredResult< Actor > OnModelChanged( Actor *me )												{ return TryContinue(); }
@@ -913,7 +913,7 @@ private:
 	virtual void OnSight( CBaseEntity *subject )						{ PROCESS_EVENT_WITH_1_ARG( OnSight, subject ); }
 	virtual void OnLostSight( CBaseEntity *subject )					{ PROCESS_EVENT_WITH_1_ARG( OnLostSight, subject ); }
 	virtual void OnSound( CBaseEntity *source, const Vector &pos, KeyValues *keys )					{ PROCESS_EVENT_WITH_3_ARGS( OnSound, source, pos, keys ); }
-	virtual void OnSpokeConcept( CBaseCombatCharacter *who, AIConcept_t concept, AI_Response *response )	{ PROCESS_EVENT_WITH_3_ARGS( OnSpokeConcept, who, concept, response ); }
+	virtual void OnSpokeConcept( CBaseCombatCharacter *who, AIConcept_t aiconcept, AI_Response *response )	{ PROCESS_EVENT_WITH_3_ARGS( OnSpokeConcept, who, aiconcept, response ); }
 	virtual void OnWeaponFired( CBaseCombatCharacter *whoFired, CBaseCombatWeapon *weapon )			{ PROCESS_EVENT_WITH_2_ARGS( OnWeaponFired, whoFired, weapon ); }
 	virtual void OnNavAreaChanged( CNavArea *newArea, CNavArea *oldArea )	{ PROCESS_EVENT_WITH_2_ARGS( OnNavAreaChanged, newArea, oldArea ); }
 	virtual void OnModelChanged( void )									{ PROCESS_EVENT( OnModelChanged ); }

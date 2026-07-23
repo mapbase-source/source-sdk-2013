@@ -190,7 +190,7 @@ enum AIConceptFlags_t
 
 struct ConceptInfo_t
 {
-	AIConcept_t			concept;
+	AIConcept_t			aiconcept;
 	ConceptCategory_t   category;
 	float				minGlobalCategoryDelay;
 	float				maxGlobalCategoryDelay;
@@ -214,12 +214,12 @@ public:
 
 	void AddCustomConcept( const ConceptInfo_t &conceptInfo );
 	ConceptCategoryInfo_t *GetConceptCategoryInfo( ConceptCategory_t category );
-	ConceptInfo_t *GetConceptInfo( AIConcept_t concept );
-	void OnSpokeConcept( CAI_PlayerAlly *pPlayerAlly, AIConcept_t concept, AI_Response *response  );
+	ConceptInfo_t *GetConceptInfo( AIConcept_t aiconcept );
+	void OnSpokeConcept( CAI_PlayerAlly *pPlayerAlly, AIConcept_t aiconcept, AI_Response *response  );
 
 	void SetCategoryDelay( ConceptCategory_t category, float minDelay, float maxDelay = 0.0 );
 	bool CategoryDelayExpired( ConceptCategory_t category );
-	bool ConceptDelayExpired( AIConcept_t concept );
+	bool ConceptDelayExpired( AIConcept_t aiconcept );
 
 private:
 
@@ -260,7 +260,7 @@ enum AISpeechTargetSearchFlags_t
 
 struct AISpeechSelection_t
 {
-	std::string		concept;
+	std::string		aiconcept;
 	AI_Response		Response;
 	EHANDLE			hSpeechTarget;
 };
@@ -359,14 +359,14 @@ public:
 	//---------------------------------
 
 	virtual bool SelectQuestionAndAnswerSpeech( AISpeechSelection_t *pSelection );
-	virtual void PostSpeakDispatchResponse( AIConcept_t concept, AI_Response *response );
+	virtual void PostSpeakDispatchResponse( AIConcept_t aiconcept, AI_Response *response );
 	bool		 SelectQuestionFriend( CBaseEntity *pFriend, AISpeechSelection_t *pSelection );
 	bool		 SelectAnswerFriend( CBaseEntity *pFriend, AISpeechSelection_t *pSelection, bool bRespondingToHello );
 
 	//---------------------------------
 
-	bool 		SelectSpeechResponse( AIConcept_t concept, const char *pszModifiers, CBaseEntity *pTarget, AISpeechSelection_t *pSelection );
-	void		SetPendingSpeech( AIConcept_t concept, AI_Response &Response );
+	bool 		SelectSpeechResponse( AIConcept_t aiconcept, const char *pszModifiers, CBaseEntity *pTarget, AISpeechSelection_t *pSelection );
+	void		SetPendingSpeech( AIConcept_t aiconcept, AI_Response &Response );
 	void 		ClearPendingSpeech();
 	bool		HasPendingSpeech()	{ return !m_PendingConcept.empty(); }
 
@@ -389,14 +389,14 @@ public:
 	bool		IsOkToCombatSpeak( void );
 	bool		IsOkToSpeakInResponseToPlayer( void );
 	
-	bool		ShouldSpeakRandom( AIConcept_t concept, int iChance );
-	bool		IsAllowedToSpeak( AIConcept_t concept, bool bRespondingToPlayer = false );
+	bool		ShouldSpeakRandom( AIConcept_t aiconcept, int iChance );
+	bool		IsAllowedToSpeak( AIConcept_t aiconcept, bool bRespondingToPlayer = false );
 #ifdef MAPBASE
-	bool		IsAllowedToSpeakFollowup( AIConcept_t concept, CBaseEntity *pIssuer, bool bSpecific );
+	bool		IsAllowedToSpeakFollowup( AIConcept_t aiconcept, CBaseEntity *pIssuer, bool bSpecific );
 #endif
-	virtual bool SpeakIfAllowed( AIConcept_t concept, const char *modifiers = NULL, bool bRespondingToPlayer = false, char *pszOutResponseChosen = NULL, size_t bufsize = 0 );
+	virtual bool SpeakIfAllowed( AIConcept_t aiconcept, const char *modifiers = NULL, bool bRespondingToPlayer = false, char *pszOutResponseChosen = NULL, size_t bufsize = 0 );
 #ifdef MAPBASE
-	virtual bool SpeakIfAllowed( AIConcept_t concept, AI_CriteriaSet& modifiers, bool bRespondingToPlayer = false, char *pszOutResponseChosen = NULL, size_t bufsize = 0 );
+	virtual bool SpeakIfAllowed( AIConcept_t aiconcept, AI_CriteriaSet& modifiers, bool bRespondingToPlayer = false, char *pszOutResponseChosen = NULL, size_t bufsize = 0 );
 #endif
 	void		ModifyOrAppendCriteria( AI_CriteriaSet& set );
 
@@ -411,7 +411,7 @@ public:
 
 	//---------------------------------
 
-	void		OnSpokeConcept( AIConcept_t concept, AI_Response *response );
+	void		OnSpokeConcept( AIConcept_t aiconcept, AI_Response *response );
 	void		OnStartSpeaking();
 
 	// Inputs
@@ -424,7 +424,7 @@ public:
 	void			InputMakeGameEndAlly( inputdata_t &inputdata );
 	void			InputMakeRegularAlly( inputdata_t &inputdata );
 #ifdef MAPBASE
-	bool			AskQuestionNow( CBaseEntity *pSpeechTarget = NULL, int iQARandomNumber = -1, const char *concept = TLK_QUESTION );
+	bool			AskQuestionNow( CBaseEntity *pSpeechTarget = NULL, int iQARandomNumber = -1, const char *aiconcept = TLK_QUESTION );
 	void			InputAskQuestion( inputdata_t &inputdata );
 #endif
 	void			InputAnswerQuestion( inputdata_t &inputdata );

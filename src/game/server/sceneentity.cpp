@@ -2676,11 +2676,11 @@ void CSceneEntity::InputInterjectResponse( inputdata_t &inputdata )
 
 			// Try to find the response for this slot.
 			AI_Response response;
-			CAI_Concept concept(inputdata.value.String());
-			concept.SetSpeaker(npc);
+			CAI_Concept aiconcept(inputdata.value.String());
+			aiconcept.SetSpeaker(npc);
 			AI_CriteriaSet set;
-			npc->GatherCriteria(&set, concept, modifiers.Get());
-			bool result = npc->FindResponse( response, concept, &set);
+			npc->GatherCriteria(&set, aiconcept, modifiers.Get());
+			bool result = npc->FindResponse( response, aiconcept, &set);
 			if ( result )
 			{
 				float duration = npc->GetResponseDuration( &response );
@@ -2688,7 +2688,7 @@ void CSceneEntity::InputInterjectResponse( inputdata_t &inputdata )
 				if ( ( duration > 0.0f ) && npc->PermitResponse( duration ) )
 				{
 					// If we could look it up, dispatch it and bail.
-					npc->SpeakDispatchResponse( concept, &response, &set);
+					npc->SpeakDispatchResponse( aiconcept, &response, &set);
 					return;
 				}
 			}

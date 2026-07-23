@@ -72,7 +72,7 @@ public:
 	virtual void OnLostSight( CBaseEntity *subject );		// when subject leaves enters bot's visual awareness
 
 	virtual void OnSound( CBaseEntity *source, const Vector &pos, KeyValues *keys );				// when an entity emits a sound. "pos" is world coordinates of sound. "keys" are from sound's GameData
-	virtual void OnSpokeConcept( CBaseCombatCharacter *who, AIConcept_t concept, AI_Response *response );	// when an Actor speaks a concept
+	virtual void OnSpokeConcept( CBaseCombatCharacter *who, AIConcept_t aiconcept, AI_Response *response );	// when an Actor speaks a concept
 	virtual void OnWeaponFired( CBaseCombatCharacter *whoFired, CBaseCombatWeapon *weapon );		// when someone fires a weapon
 
 	virtual void OnNavAreaChanged( CNavArea *newArea, CNavArea *oldArea );	// when bot enters a new navigation area
@@ -265,11 +265,11 @@ inline void INextBotEventResponder::OnSound( CBaseEntity *source, const Vector &
 	}	
 }
 
-inline void INextBotEventResponder::OnSpokeConcept( CBaseCombatCharacter *who, AIConcept_t concept, AI_Response *response )
+inline void INextBotEventResponder::OnSpokeConcept( CBaseCombatCharacter *who, AIConcept_t aiconcept, AI_Response *response )
 {
 	for ( INextBotEventResponder *sub = FirstContainedResponder(); sub; sub = NextContainedResponder( sub ) )
 	{
-		sub->OnSpokeConcept( who, concept, response );
+		sub->OnSpokeConcept( who, aiconcept, response );
 	}	
 }
 
