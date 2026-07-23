@@ -34,9 +34,9 @@ public:
 	operator Panel *() const				{ return Get(); }
 	Panel * operator ->() const				{ return Get(); }
 	Panel * operator = (Panel *pPanel)		{ return Set(pPanel); }
-
-	bool operator == (Panel *pPanel)		{ return (Get() == pPanel); }
-	operator bool ()						{ return Get() != 0; }
+	
+	bool operator == ( const PHandle& pPanel ) const { return (Get() == pPanel.Get()); }
+	operator bool () const					{ return Get() != nullptr; }
 
 private:
 	HPanel m_iPanelID;
@@ -55,10 +55,6 @@ public:
 
 	operator VPANEL () const					{ return Get(); }
 	VPANEL operator = (VPANEL pPanel)			{ return Set(pPanel); }
-
-	bool operator == (VPANEL pPanel) const		{ return (Get() == pPanel); }
-	operator bool () const						{ return Get() != 0; }
-
 private:
 	HPanel m_iPanelID;
 };
@@ -77,8 +73,6 @@ public:
 	operator PanelType *() const					{ return (PanelType *)PHandle::Get(); }
 	PanelType * operator ->() const				{ return (PanelType *)PHandle::Get(); }
 	PanelType * operator = (PanelType *pPanel)	{ return (PanelType *)PHandle::Set(pPanel); }
-	bool operator == (Panel *pPanel) const		{ return (PHandle::Get() == pPanel); }
-	operator bool () const						{ return PHandle::Get() != NULL; }
 };
 
 };
