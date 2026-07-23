@@ -88,7 +88,7 @@ END_DATADESC()
 
 void CPropThumper::Spawn( void )
 {
-	char *szModel = (char *)STRING( GetModelName() );
+	const char *szModel = STRING( GetModelName() );
 	if (!szModel || !*szModel)
 	{
 		szModel = THUMPER_MODEL_NAME;

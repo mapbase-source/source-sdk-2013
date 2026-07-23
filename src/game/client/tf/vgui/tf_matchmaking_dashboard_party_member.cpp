@@ -113,9 +113,9 @@ void CDashboardPartyMember::ApplySettings( KeyValues *inResourceData )
 	m_nDisplayPartySlot = inResourceData->GetInt( "party_slot" );
 }
 
-wchar_t* FindStringSafe( const char* pszToken )
+const wchar_t* FindStringSafe( const char* pszToken )
 {
-	static wchar_t* wszEmptyString = L"";
+	static const wchar_t* wszEmptyString = L"";
 	auto index = g_pVGuiLocalize->FindIndex( pszToken );
 	if ( index == INVALID_LOCALIZE_STRING_INDEX )
 		return wszEmptyString;

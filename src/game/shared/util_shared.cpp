@@ -1283,7 +1283,7 @@ CBasePlayer* UTIL_PlayerByUserId( int userID )
 }
 
 #ifdef CLIENT_DLL
-char *UTIL_GetFilteredPlayerName( int iPlayerIndex, char *pszName )
+const char *UTIL_GetFilteredPlayerName( int iPlayerIndex, char *pszName )
 {
 	CSteamID steamIDPlayer;
 	CBasePlayer *pPlayer = UTIL_PlayerByIndex( iPlayerIndex );
@@ -1295,11 +1295,11 @@ char *UTIL_GetFilteredPlayerName( int iPlayerIndex, char *pszName )
 }
 
 
-char *UTIL_GetFilteredPlayerName( const CSteamID &steamID, char *pszName )
+const char *UTIL_GetFilteredPlayerName( const CSteamID &steamID, char *pszName )
 {
 	if ( !pszName )
 	{
-		pszName = "";
+		pszName = (char*)"";
 	}
 
 	if ( SteamUtils() )
@@ -1310,7 +1310,7 @@ char *UTIL_GetFilteredPlayerName( const CSteamID &steamID, char *pszName )
 }
 
 
-wchar_t *UTIL_GetFilteredPlayerNameAsWChar( int iPlayerIndex, const char *pszName, wchar_t *pwszName )
+const wchar_t *UTIL_GetFilteredPlayerNameAsWChar( int iPlayerIndex, const char *pszName, wchar_t *pwszName )
 {
 	CSteamID steamIDPlayer;
 	CBasePlayer *pPlayer = UTIL_PlayerByIndex( iPlayerIndex );
@@ -1322,7 +1322,7 @@ wchar_t *UTIL_GetFilteredPlayerNameAsWChar( int iPlayerIndex, const char *pszNam
 }
 
 
-wchar_t *UTIL_GetFilteredPlayerNameAsWChar( const CSteamID &steamID, const char *pszName, wchar_t *pwszName )
+const wchar_t *UTIL_GetFilteredPlayerNameAsWChar( const CSteamID &steamID, const char *pszName, wchar_t *pwszName )
 {
 	if ( !pszName )
 	{
@@ -1343,7 +1343,7 @@ wchar_t *UTIL_GetFilteredPlayerNameAsWChar( const CSteamID &steamID, const char 
 }
 
 
-char *UTIL_GetFilteredChatText( int iPlayerIndex, char *pszText, int nTextBufferSize )
+const char *UTIL_GetFilteredChatText( int iPlayerIndex, char *pszText, int nTextBufferSize )
 {
 	if ( SteamUtils() )
 	{
@@ -1359,7 +1359,7 @@ char *UTIL_GetFilteredChatText( int iPlayerIndex, char *pszText, int nTextBuffer
 }
 #endif // CLIENT_DLL
 
-char* ReadAndAllocStringValue( KeyValues *pSub, const char *pName, const char *pFilename )
+const char* ReadAndAllocStringValue( KeyValues *pSub, const char *pName, const char *pFilename )
 {
 	const char *pValue = pSub->GetString( pName, NULL );
 	if ( !pValue )

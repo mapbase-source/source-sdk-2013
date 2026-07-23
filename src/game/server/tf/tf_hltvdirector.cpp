@@ -37,7 +37,7 @@ public:
 	void SetHLTVServer( IHLTVServer *hltv );
 	void CreateShotFromEvent( CHLTVGameEvent *event );
 
-	virtual char	*GetFixedCameraEntityName( void ) { return "info_observer_point"; }
+	virtual const char	*GetFixedCameraEntityName( void ) { return "info_observer_point"; }
 };
 
 void CTFHLTVDirector::SetHLTVServer( IHLTVServer *hltv )

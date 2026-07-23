@@ -929,7 +929,7 @@ void CMDLPicker::GenerateBackpackIcons( void )
 	Q_FixSlashes( pOutputPathGame );
 
 	// run vtex on the TGA and .txt file to create .VTF and add it to our Perforce changelist
-	char *vTexArgv[64];
+	const char *vTexArgv[64];
 	int vTexArgc = 0;
 	vTexArgv[ vTexArgc++ ] = "";
 	vTexArgv[ vTexArgc++ ] = "-quiet";
@@ -940,7 +940,7 @@ void CMDLPicker::GenerateBackpackIcons( void )
 	vTexArgv[ vTexArgc++ ] = pOutputPathGame;
 	vTexArgv[ vTexArgc++ ] = (char *)pLargeTGAName;
 
-	g_pVTex->VTex( MdlPickerFSFactory, pOutputPathGame, vTexArgc, vTexArgv );
+	g_pVTex->VTex( MdlPickerFSFactory, pOutputPathGame, vTexArgc, const_cast<char**>(vTexArgv) );
 
 	// Generale small TGA name, by removing the "large" part
 	char pSmallTGAName[ MAX_PATH ];
@@ -1036,7 +1036,7 @@ void CMDLPicker::GenerateBackpackIcons( void )
 	vTexArgv[ vTexArgc++ ] = "-outdir";
 	vTexArgv[ vTexArgc++ ] = pOutputPathGame;
 	vTexArgv[ vTexArgc++ ] = (char *)pSmallTGAName;
-	g_pVTex->VTex( MdlPickerFSFactory, pOutputPathGame, vTexArgc, vTexArgv );
+	g_pVTex->VTex( MdlPickerFSFactory, pOutputPathGame, vTexArgc, const_cast<char**>(vTexArgv) );
 
 
 	// restore the preview panel to its original state

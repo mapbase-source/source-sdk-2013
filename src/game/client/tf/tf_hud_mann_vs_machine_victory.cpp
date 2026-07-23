@@ -295,7 +295,7 @@ void CVictoryPanel::CaptureStats()
 //-----------------------------------------------------------------------------
 // Purpose: updates the target field based on the input args.  Returns TRUE if transitioning to new state
 //-----------------------------------------------------------------------------
-bool CVictoryPanel::StateUpdateValue( vgui::EditablePanel *parent, char* field, float targetTime, float currentTime, int nextState, int endValue )
+bool CVictoryPanel::StateUpdateValue( vgui::EditablePanel *parent, const char* field, float targetTime, float currentTime, int nextState, int endValue )
 {
 	float fPercent = currentTime / targetTime;
 	fPercent = 1.0 < fPercent ? 1.0f : fPercent;
@@ -325,7 +325,7 @@ bool CVictoryPanel::StateUpdateValue( vgui::EditablePanel *parent, char* field, 
 // Purpose: updates the target field based on the input args.  Returns TRUE if transitioning to new state
 //	Adds "Credit" count text
 //-----------------------------------------------------------------------------
-bool CVictoryPanel::StateUpdateCreditText( vgui::EditablePanel *parent, char* field, float targetTime, float currentTime, int nextState, int useValue, int creditValue )
+bool CVictoryPanel::StateUpdateCreditText( vgui::EditablePanel *parent, const char* field, float targetTime, float currentTime, int nextState, int useValue, int creditValue )
 {
 	float fPercent = currentTime / targetTime;
 	fPercent = 1.0 < fPercent ? 1.0f : fPercent;

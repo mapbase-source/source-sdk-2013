@@ -383,7 +383,7 @@ void CCartViewItemEntry::SetEntry( cart_item_t *pEntry, int iEntryIndex )
 		pRemoveButton->AddActionSignalTarget( GetStoreViewCartPanel() );
 	}
 
-	wchar_t *pwzPreviewItem = L"";
+	const wchar_t *pwzPreviewItem = L"";
 	if ( pEntry->bPreviewItem )
 	{
 		pwzPreviewItem = g_pVGuiLocalize->Find( "#Econ_Store_PurchaseType_PreviewItem" );

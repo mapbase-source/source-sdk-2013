@@ -59,7 +59,7 @@ recipefilter_data_t g_RecipeFilters[NUM_RECIPE_CATEGORIES] =
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-wchar_t *LocalizeRecipeStringPiece( const char *pszString, wchar_t *pszConverted, int nConvertedSizeInBytes ) 
+const wchar_t *LocalizeRecipeStringPiece( const char *pszString, wchar_t *pszConverted, int nConvertedSizeInBytes ) 
 {
 	if ( !pszString )
 		return L"";
@@ -104,16 +104,16 @@ void SetItemPanelToRecipe( CItemModelPanel *pPanel, const CEconCraftingRecipeDef
 		wchar_t	wcTmp[512];
 
 		// Build the input string
-		wchar_t *pInp_A = LocalizeRecipeStringPiece( pRecipeDef->GetDescI_A(), wcTmpA, sizeof( wcTmpA ) );
-		wchar_t *pInp_B = LocalizeRecipeStringPiece( pRecipeDef->GetDescI_B(), wcTmpB, sizeof( wcTmpB ) );
-		wchar_t *pInp_C = LocalizeRecipeStringPiece( pRecipeDef->GetDescI_C(), wcTmpC, sizeof( wcTmpC ) );
+		const wchar_t *pInp_A = LocalizeRecipeStringPiece( pRecipeDef->GetDescI_A(), wcTmpA, sizeof( wcTmpA ) );
+		const wchar_t *pInp_B = LocalizeRecipeStringPiece( pRecipeDef->GetDescI_B(), wcTmpB, sizeof( wcTmpB ) );
+		const wchar_t *pInp_C = LocalizeRecipeStringPiece( pRecipeDef->GetDescI_C(), wcTmpC, sizeof( wcTmpC ) );
 		g_pVGuiLocalize->ConstructString_safe( wcTmpDesc, g_pVGuiLocalize->Find( pRecipeDef->GetDescInputs() ), 3, pInp_A, pInp_B, pInp_C );
 		iNegAttribsBegin = Q_wcslen(wcTmpDesc);
 
 		// Build the output string
-		wchar_t *pOut_A = LocalizeRecipeStringPiece( pRecipeDef->GetDescO_A(), wcTmpA, sizeof( wcTmpA ) );
-		wchar_t *pOut_B = LocalizeRecipeStringPiece( pRecipeDef->GetDescO_B(), wcTmpB, sizeof( wcTmpB ) );
-		wchar_t *pOut_C = LocalizeRecipeStringPiece( pRecipeDef->GetDescO_C(), wcTmpC, sizeof( wcTmpC ) );
+		const wchar_t *pOut_A = LocalizeRecipeStringPiece( pRecipeDef->GetDescO_A(), wcTmpA, sizeof( wcTmpA ) );
+		const wchar_t *pOut_B = LocalizeRecipeStringPiece( pRecipeDef->GetDescO_B(), wcTmpB, sizeof( wcTmpB ) );
+		const wchar_t *pOut_C = LocalizeRecipeStringPiece( pRecipeDef->GetDescO_C(), wcTmpC, sizeof( wcTmpC ) );
 		g_pVGuiLocalize->ConstructString_safe( wcTmp, g_pVGuiLocalize->Find( pRecipeDef->GetDescOutputs() ), 3, pOut_A, pOut_B, pOut_C );
 
 		// Concatenate, and mark the text changes
@@ -654,15 +654,15 @@ void CCraftingPanel::UpdateRecipeItems( bool bClearInputItems )
 				wchar_t wcTmpB[32];
 				wchar_t wcTmpC[32];
 				wchar_t	wcTmp[512];
-				wchar_t *pOut_A = LocalizeRecipeStringPiece( pRecipeDef->GetDescO_A(), wcTmpA, sizeof( wcTmpA ) );
-				wchar_t *pOut_B = LocalizeRecipeStringPiece( pRecipeDef->GetDescO_B(), wcTmpB, sizeof( wcTmpB ) );
+				const wchar_t *pOut_A = LocalizeRecipeStringPiece( pRecipeDef->GetDescO_A(), wcTmpA, sizeof( wcTmpA ) );
+				const wchar_t *pOut_B = LocalizeRecipeStringPiece( pRecipeDef->GetDescO_B(), wcTmpB, sizeof( wcTmpB ) );
 				wcTmp[0] = '\0';
 				V_wcscat_safe( wcTmp, pOut_A );
 				V_wcscat_safe( wcTmp, L" " );
 				V_wcscat_safe( wcTmp, pOut_B );
 				if ( Q_strnicmp( pRecipeDef->GetDescOutputs(), "#RDO_ABC", 8 ) == 0 )
 				{
-					wchar_t *pOut_C = LocalizeRecipeStringPiece( pRecipeDef->GetDescO_C(), wcTmpC, sizeof( wcTmpC ) );
+					const wchar_t *pOut_C = LocalizeRecipeStringPiece( pRecipeDef->GetDescO_C(), wcTmpC, sizeof( wcTmpC ) );
 					V_wcscat_safe( wcTmp, L" " );
 					V_wcscat_safe( wcTmp, pOut_C );
 				}
@@ -921,9 +921,9 @@ void CCraftingPanel::UpdateSelectedRecipe( bool bClearInputItems )
 					wchar_t wcTmpB[32];
 					wchar_t wcTmpC[32];
 					wchar_t	wcTmpDesc[512];
-					wchar_t *pInp_A = LocalizeRecipeStringPiece( pRecipeDef->GetDescI_A(), wcTmpA, sizeof( wcTmpA ) );
-					wchar_t *pInp_B = LocalizeRecipeStringPiece( pRecipeDef->GetDescI_B(), wcTmpB, sizeof( wcTmpB ) );
-					wchar_t *pInp_C = LocalizeRecipeStringPiece( pRecipeDef->GetDescI_C(), wcTmpC, sizeof( wcTmpC ) );
+					const wchar_t *pInp_A = LocalizeRecipeStringPiece( pRecipeDef->GetDescI_A(), wcTmpA, sizeof( wcTmpA ) );
+					const wchar_t *pInp_B = LocalizeRecipeStringPiece( pRecipeDef->GetDescI_B(), wcTmpB, sizeof( wcTmpB ) );
+					const wchar_t *pInp_C = LocalizeRecipeStringPiece( pRecipeDef->GetDescI_C(), wcTmpC, sizeof( wcTmpC ) );
 					g_pVGuiLocalize->ConstructString_safe( wcTmpDesc, g_pVGuiLocalize->Find( pRecipeDef->GetDescInputs() ), 3, pInp_A, pInp_B, pInp_C );
 					m_pSelectedRecipeContainer->SetDialogVariable( "recipeinputstring", wcTmpDesc );
 				}

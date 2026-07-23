@@ -1758,46 +1758,46 @@ public:
 	const char	*m_pObjectName;
 
 	// This stuff all comes from objects.txt
-	char	*m_pClassName;					// Code classname (in LINK_ENTITY_TO_CLASS).
-	char	*m_pStatusName;					// Shows up when crosshairs are on the object.
+	const char	*m_pClassName;					// Code classname (in LINK_ENTITY_TO_CLASS).
+	const char	*m_pStatusName;					// Shows up when crosshairs are on the object.
 	float	m_flBuildTime;
 	int		m_nMaxObjects;					// Maximum number of objects per player
 	int		m_Cost;							// Base object resource cost
 	float	m_CostMultiplierPerInstance;	// Cost multiplier
 	int		m_UpgradeCost;					// Base object resource cost for upgrading
 	int		m_MaxUpgradeLevel;				// Max object upgrade level
-	char	*m_pBuilderWeaponName;			// Names shown for each object onscreen when using the builder weapon
-	char	*m_pBuilderPlacementString;		// String shown to player during placement of this object
+	const char	*m_pBuilderWeaponName;			// Names shown for each object onscreen when using the builder weapon
+	const char	*m_pBuilderPlacementString;		// String shown to player during placement of this object
 	int		m_SelectionSlot;				// Weapon selection slots for objects
 	int		m_SelectionPosition;			// Weapon selection positions for objects
 	bool	m_bSolidToPlayerMovement;
 	bool	m_bUseItemInfo;					// Use default item appearance info.
-	char    *m_pViewModel;					// View model to show in builder weapon for this object
-	char    *m_pPlayerModel;				// World model to show attached to the player
+	const char    *m_pViewModel;					// View model to show in builder weapon for this object
+	const char    *m_pPlayerModel;				// World model to show attached to the player
 	int		m_iDisplayPriority;				// Priority for ordering in the hud display ( higher is closer to top )
 	bool	m_bVisibleInWeaponSelection;	// should show up and be selectable via the weapon selection?
-	char	*m_pExplodeSound;				// gamesound to play when object explodes
-	char	*m_pExplosionParticleEffect;	// particle effect to play when object explodes
+	const char	*m_pExplodeSound;				// gamesound to play when object explodes
+	const char	*m_pExplosionParticleEffect;	// particle effect to play when object explodes
 	bool	m_bAutoSwitchTo;				// should we let players switch back to the builder weapon representing this?
-	char	*m_pUpgradeSound;				// gamesound to play when object is upgraded
+	const char	*m_pUpgradeSound;				// gamesound to play when object is upgraded
 	float	m_flUpgradeDuration;			// time it takes to upgrade to the next level
 	int		m_iBuildCount;					// number of these that can be carried at one time
 	int		m_iNumAltModes;					// whether the item has more than one mode (ex: teleporter exit/entrance)
 
 	struct
 	{
-		char* pszStatusName;
-		char* pszModeName;
-		char* pszIconMenu;
+		const char* pszStatusName;
+		const char* pszModeName;
+		const char* pszIconMenu;
 	}		m_AltModes[OBJECT_MAX_MODES];
 
 	// HUD weapon selection menu icon ( from hud_textures.txt )
-	char	*m_pIconActive;
-	char	*m_pIconInactive;
-	char	*m_pIconMenu;
+	const char	*m_pIconActive;
+	const char	*m_pIconInactive;
+	const char	*m_pIconMenu;
 
 	// HUD building status icon
-	char	*m_pHudStatusIcon;
+	const char	*m_pHudStatusIcon;
 
 	// gibs
 	int		m_iMetalToDropInGibs;

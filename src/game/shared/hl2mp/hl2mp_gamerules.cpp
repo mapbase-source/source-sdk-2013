@@ -290,7 +290,7 @@ static const char *s_PreserveEnts[] =
 #endif
 
 // NOTE: the indices here must match TEAM_TERRORIST, TEAM_CT, TEAM_SPECTATOR, etc.
-char *sTeamNames[] =
+const char *sTeamNames[] =
 {
 	"Unassigned",
 	"Spectator",

@@ -255,7 +255,7 @@ public:
 	//---------------------------------
 	CBaseEntity		*GetAimTarget() { return m_hAimTarget; }
 	void			SetAimTarget( CBaseEntity *pTarget );
-	void			StopAiming( char *pszReason = NULL );
+	void			StopAiming( const char *pszReason = NULL );
 	bool			FindNewAimTarget();
 	void			OnNewLookTarget();
 	bool			ShouldBeAiming();
