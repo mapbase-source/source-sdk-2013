@@ -244,7 +244,7 @@ private:
 		FINISHED,
 	};
 
-	bool StateUpdateValue( vgui::EditablePanel *parent, char* field, float targetTime, float currentTime, int nextState, int endValue );
+	bool StateUpdateValue( vgui::EditablePanel *parent, const char* field, float targetTime, float currentTime, int nextState, int endValue );
 
 	void RatingLabelUpdate( void );
 	void RatingScoreUpdate( void );

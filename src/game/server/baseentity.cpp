@@ -10901,7 +10901,7 @@ bool CBaseEntity::ScriptDispatchInteraction( int interactionType, HSCRIPT data, 
 
 
 #ifdef MAPBASE
-extern int EntityFactory_AutoComplete( const char *cmdname, CUtlVector< CUtlString > &commands, CUtlRBTree< CUtlString > &symbols, char *substring, int checklen = 0 );
+extern int EntityFactory_AutoComplete( const char *cmdname, CUtlVector< CUtlString > &commands, CUtlRBTree< CUtlString > &symbols, const char *substring, int checklen = 0 );
 
 //------------------------------------------------------------------------------
 // Purpose: Create an entity of the given type

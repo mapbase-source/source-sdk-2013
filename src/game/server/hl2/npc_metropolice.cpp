@@ -1168,31 +1168,31 @@ void CNPC_MetroPolice::SpeakSentence( int nSentenceType )
 #ifdef METROPOLICE_USES_RESPONSE_SYSTEM
 //=========================================================
 //=========================================================
-bool CNPC_MetroPolice::SpeakIfAllowed( const char *concept, const char *modifiers, SentencePriority_t sentencepriority, SentenceCriteria_t sentencecriteria )
+bool CNPC_MetroPolice::SpeakIfAllowed( const char *aiconcept, const char *modifiers, SentencePriority_t sentencepriority, SentenceCriteria_t sentencecriteria )
 {
 	AI_CriteriaSet set;
 	if (modifiers)
 	{
 #ifdef NEW_RESPONSE_SYSTEM
-		GatherCriteria( &set, concept, modifiers );
+		GatherCriteria( &set, aiconcept, modifiers );
 #else
 		GetExpresser()->MergeModifiers(set, modifiers);
 #endif
 	}
-	return SpeakIfAllowed( concept, set, sentencepriority, sentencecriteria );
+	return SpeakIfAllowed( aiconcept, set, sentencepriority, sentencecriteria );
 }
 
 //=========================================================
 //=========================================================
-bool CNPC_MetroPolice::SpeakIfAllowed( const char *concept, AI_CriteriaSet& modifiers, SentencePriority_t sentencepriority, SentenceCriteria_t sentencecriteria )
+bool CNPC_MetroPolice::SpeakIfAllowed( const char *aiconcept, AI_CriteriaSet& modifiers, SentencePriority_t sentencepriority, SentenceCriteria_t sentencecriteria )
 {
 	if ( sentencepriority != SENTENCE_PRIORITY_INVALID && !FOkToMakeSound( sentencepriority ) )
 		return false;
 
-	if ( !GetExpresser()->CanSpeakConcept( concept ) )
+	if ( !GetExpresser()->CanSpeakConcept( aiconcept ) )
 		return false;
 
-	if ( Speak( concept, modifiers ) )
+	if ( Speak( aiconcept, modifiers ) )
 	{
 		JustMadeSound( sentencepriority, 2.0f /*GetTimeSpeechComplete()*/ );
 		return true;

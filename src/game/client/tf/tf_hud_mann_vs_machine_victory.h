@@ -66,8 +66,8 @@ private:
 
 	void CaptureStats();
 
-	bool StateUpdateValue( vgui::EditablePanel *parent, char* field, float targetTime, float currentTime, int nextState, int endValue );
-	bool StateUpdateCreditText( vgui::EditablePanel *parent, char* field, float targetTime, float currentTime, int nextState, int useValue, int creditValue );
+	bool StateUpdateValue( vgui::EditablePanel *parent, const char* field, float targetTime, float currentTime, int nextState, int endValue );
+	bool StateUpdateCreditText( vgui::EditablePanel *parent, const char* field, float targetTime, float currentTime, int nextState, int useValue, int creditValue );
 	bool CheckState( float targetTime, float currentTime, int nextState );
 
 	void RatingLabelUpdate( void );

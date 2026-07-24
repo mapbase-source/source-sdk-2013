@@ -1502,8 +1502,8 @@ void CPropJeepEpisodic::SpawnRadarPanel()
 
 	// If we're attached to an entity, spawn control panels on it instead of use
 	CBaseAnimating *pEntityToSpawnOn = this;
-	char *pOrgLL = "controlpanel0_ll";
-	char *pOrgUR = "controlpanel0_ur";
+	const char *pOrgLL = "controlpanel0_ll";
+	const char *pOrgUR = "controlpanel0_ur";
 
 	Assert( pEntityToSpawnOn );
 

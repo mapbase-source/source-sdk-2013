@@ -84,7 +84,7 @@ void CNPC_Breen::Spawn()
 {
 	// Breen is allowed to use multiple models, because he has a torso version for monitors.
 	// He defaults to his normal model.
-	char *szModel = (char *)STRING( GetModelName() );
+	const char *szModel = STRING( GetModelName() );
 	if (!szModel || !*szModel)
 	{
 		szModel = "models/breen.mdl";

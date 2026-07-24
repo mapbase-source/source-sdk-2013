@@ -40,6 +40,13 @@ public:
 	virtual void		Print( wchar_t *text );
 	virtual void		ColorPrint( int r, int g, int b, int a, char *text );
 	virtual void		ColorPrint( int r, int g, int b, int a, wchar_t *text );
+
+	// Damn engine interface.....
+	virtual void		Print( const char *text ) { Print( const_cast<char*>(text) ); }
+	virtual void		Print( const wchar_t *text ) { Print( const_cast<wchar_t*>(text) ); }
+	virtual void		ColorPrint( int r, int g, int b, int a, const char *text ) { ColorPrint( r, g, b, a, const_cast<char*>(text) ); }
+	virtual void		ColorPrint( int r, int g, int b, int a, const wchar_t *text ) { ColorPrint( r, g, b, a, const_cast<wchar_t*>(text) ); }
+
 	virtual void		Clear( void );
 };
 

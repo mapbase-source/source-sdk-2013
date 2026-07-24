@@ -667,7 +667,7 @@ void MakePatchForFace (int fn, winding_t *w)
 entity_t *EntityForModel (int modnum)
 {
 	int		i;
-	char	*s;
+	const char	*s;
 	char	name[16];
 
 	sprintf (name, "*%i", modnum);
@@ -1306,7 +1306,7 @@ void WriteWorld (char *name, int iBump)
 	g_pFileSystem->Close( out );
 }
 
-void WriteRTEnv (char *name)
+void WriteRTEnv (const char *name)
 {
 	FileHandle_t out;
 

@@ -938,10 +938,10 @@ int				numdlights;
   FindTargetEntity
   ==================
 */
-entity_t *FindTargetEntity (char *target)
+entity_t *FindTargetEntity (const char *target)
 {
 	int		i;
-	char	*n;
+	const char	*n;
 
 	for (i=0 ; i<num_entities ; i++)
 	{
@@ -1044,16 +1044,16 @@ void MergeDLightVis( directlight_t *dl, int cluster )
   LightForKey
   =============
 */
-int LightForKey (entity_t *ent, char *key, Vector& intensity )
+int LightForKey (entity_t *ent, const char *key, Vector& intensity )
 {
-	char *pLight;
+	const char *pLight;
 
 	pLight = ValueForKey( ent, key );
 
 	return LightForString( pLight, intensity );
 }
 
-int LightForString( char *pLight, Vector& intensity )
+int LightForString( const char *pLight, Vector& intensity )
 {
 	double r, g, b, scaler;
 	int argCnt;
@@ -1124,7 +1124,7 @@ int LightForString( char *pLight, Vector& intensity )
 static void ParseLightGeneric( entity_t *e, directlight_t *dl )
 {
 	entity_t		*e2;
-	char	        *target;
+	const char	        *target;
 	Vector	        dest;
 
 	dl->light.style = (int)FloatForKey (e, "style");
@@ -1462,7 +1462,7 @@ void BuildVisForLightEnvironment( void )
 	}
 }
 
-static char *ValueForKeyWithDefault (entity_t *ent, char *key, char *default_value = NULL)
+static const char *ValueForKeyWithDefault (entity_t *ent, const char *key, const char *default_value = NULL)
 {
 	epair_t	*ep;
 	
@@ -1480,7 +1480,7 @@ static void ParseLightEnvironment( entity_t* e, directlight_t* dl )
 
 	ParseLightGeneric( e, dl );
 
-	char *angle_str=ValueForKeyWithDefault( e, "SunSpreadAngle" );
+	const char *angle_str=ValueForKeyWithDefault( e, "SunSpreadAngle" );
 	if (angle_str)
 	{
 		g_SunAngularExtent=atof(angle_str);
@@ -1544,7 +1544,7 @@ void CreateDirectLights (void)
 	CPatch	        *p = NULL;
 	directlight_t	*dl = NULL;
 	entity_t	    *e = NULL;
-	char	        *name;
+	const char      *name;
 	Vector	        dest;
 
 	numdlights = 0;

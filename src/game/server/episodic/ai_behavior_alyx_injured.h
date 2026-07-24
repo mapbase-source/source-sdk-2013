@@ -75,7 +75,7 @@ public:
 
 private:
 
-	void	SpeakIfAllowed( AIConcept_t concept );
+	void	SpeakIfAllowed( AIConcept_t aiconcept );
 	bool	ShouldRunToCover( void );
 	bool	ShouldRunToFollowGoal( void );
 	bool	FindThreatDirection2D( const Vector &vecSource, Vector *vecOut );

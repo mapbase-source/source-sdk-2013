@@ -262,7 +262,7 @@ void C_TFWeaponBuilder::SetupObjectSelectionSprite( void )
 {
 #ifdef CLIENT_DLL
 	// Use the sprite details from the text file, with a custom sprite
-	char *iconTexture = GetObjectInfo( m_iObjectType )->m_pIconActive;
+	const char *iconTexture = GetObjectInfo( m_iObjectType )->m_pIconActive;
 	if ( iconTexture && iconTexture[ 0 ] )
 	{
 		m_pSelectionTextureActive = gHUD.GetIcon( iconTexture );

@@ -149,7 +149,7 @@ protected:
 	
 	virtual int		SelectTransitionSchedule( void );
 
-	bool			SpeakIfAllowed( AIConcept_t concept, const char *modifiers = NULL, bool bRespondingToPlayer = false, char *pszOutResponseChosen = NULL, size_t bufsize = 0 );
+	bool			SpeakIfAllowed( AIConcept_t aiconcept, const char *modifiers = NULL, bool bRespondingToPlayer = false, char *pszOutResponseChosen = NULL, size_t bufsize = 0 );
 
 	bool			CanExitVehicle( void );
 	void			SetTransitionSequence( int nSequence );

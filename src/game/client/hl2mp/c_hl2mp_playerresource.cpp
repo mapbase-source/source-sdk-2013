@@ -92,7 +92,7 @@ const char *C_HL2MP_PlayerResource::GetPlayerName( int index )
 		{
 			if (FStrEq( m_szName[nBotIdx], PLAYER_UNCONNECTED_NAME ))
 			{
-				wchar_t *pIdleLabel = g_pVGuiLocalize->Find( "#game_idle" );
+				const wchar_t *pIdleLabel = g_pVGuiLocalize->Find( "#game_idle" );
 				if (!pIdleLabel)
 					pIdleLabel = L"IDLE";
 

@@ -387,13 +387,13 @@ CBasePlayer* UTIL_PlayerByName( const char *name ); // not case sensitive
 CBasePlayer* UTIL_PlayerByPartialName( const char *name );
 
 // Get the name of a player for display, filtered for profanity and slurs
-char *UTIL_GetFilteredPlayerName( int iPlayerIndex, char *pszName );
-char *UTIL_GetFilteredPlayerName( const CSteamID &steamID, char *pszName );
-wchar_t *UTIL_GetFilteredPlayerNameAsWChar( int iPlayerIndex, const char *pszName, wchar_t *pwszName );
-wchar_t *UTIL_GetFilteredPlayerNameAsWChar( const CSteamID &steamID, const char *pszName, wchar_t *pwszName );
+const char *UTIL_GetFilteredPlayerName( int iPlayerIndex, char *pszName );
+const char *UTIL_GetFilteredPlayerName( const CSteamID &steamID, char *pszName );
+const wchar_t *UTIL_GetFilteredPlayerNameAsWChar( int iPlayerIndex, const char *pszName, wchar_t *pwszName );
+const wchar_t *UTIL_GetFilteredPlayerNameAsWChar( const CSteamID &steamID, const char *pszName, wchar_t *pwszName );
 
 // Get chat text filtered for profanity and slurs
-char *UTIL_GetFilteredChatText( int iPlayerIndex, char *pszText, int nTextBufferSize );
+const char *UTIL_GetFilteredChatText( int iPlayerIndex, char *pszText, int nTextBufferSize );
 
 // decodes a buffer using a 64bit ICE key (inplace)
 void		UTIL_DecodeICE( unsigned char * buffer, int size, const unsigned char *key);
@@ -663,7 +663,7 @@ class RealTimeCountdownTimer : public CountdownTimer
 	}
 };
 
-char* ReadAndAllocStringValue( KeyValues *pSub, const char *pName, const char *pFilename = NULL );
+const char* ReadAndAllocStringValue( KeyValues *pSub, const char *pName, const char *pFilename = NULL );
 
 int UTIL_StringFieldToInt( const char *szValue, const char **pValueStrings, int iNumStrings );
 

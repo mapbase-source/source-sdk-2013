@@ -31,7 +31,7 @@ public:
 	virtual void	PreDataUpdate( DataUpdateType_t updateType );
 
 	// Data Handling
-	virtual char	*Get_Name( void );
+	virtual const char	*Get_Name( void );
 	virtual int		Get_Score( void );
 	virtual int		Get_Deaths( void );
 	virtual int		Get_Ping( void );

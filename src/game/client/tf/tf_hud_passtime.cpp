@@ -1578,7 +1578,7 @@ void CTFHudPasstimeBallStatus::OnBallGetOther( int iPlayer )
 
 	wchar_t wszFinalText[128];
 	wchar_t wszPlayerName[MAX_PLAYER_NAME_LENGTH];
-	wchar_t *pwszFormatString = g_pVGuiLocalize->Find( "#TF_Passtime_CarrierName" );
+	const wchar_t *pwszFormatString = g_pVGuiLocalize->Find( "#TF_Passtime_CarrierName" );
 	if ( !pwszFormatString )
 	{
 		pwszFormatString = L"%s1";
@@ -1601,7 +1601,7 @@ void CTFHudPasstimeBallStatus::OnBallGetSelf( int iPlayer )
 
 	wchar_t wszFinalText[128];
 	wchar_t wszPlayerName[MAX_PLAYER_NAME_LENGTH];
-	wchar_t *pwszFormatString = g_pVGuiLocalize->Find( "#TF_Passtime_CarrierName" );
+	const wchar_t *pwszFormatString = g_pVGuiLocalize->Find( "#TF_Passtime_CarrierName" );
 	if ( !pwszFormatString )
 	{
 		pwszFormatString = L"%s1";

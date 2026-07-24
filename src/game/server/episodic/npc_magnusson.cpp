@@ -86,7 +86,7 @@ int CNPC_Magnusson::GetSoundInterests ( void )
 void CNPC_Magnusson::Spawn()
 {
 	// Allow custom model usage (mostly for monitors)
-	char *szModel = (char *)STRING( GetModelName() );
+	const char *szModel = STRING( GetModelName() );
 	if (!szModel || !*szModel)
 	{
 		szModel = "models/magnusson.mdl";

@@ -1,4 +1,4 @@
-//========== Copyright © 2008, Valve Corporation, All rights reserved. ========
+//========== Copyright Â© 2008, Valve Corporation, All rights reserved. ========
 //
 // Purpose:
 //
@@ -2290,8 +2290,8 @@ static void Script_QueueSpeak( HSCRIPT hEntity, const char *pszConcept, float fl
 		criteria.Merge( pszCriteria );
 	}
 
-	AIConcept_t concept( pszConcept );
-	QueueSpeak( concept, pBaseEntity, flDelay, criteria );
+	AIConcept_t aiconcept( pszConcept );
+	QueueSpeak( aiconcept, pBaseEntity, flDelay, criteria );
 }
 #endif
 
@@ -2348,7 +2348,7 @@ static void ScriptSetSkyboxTexture( const char* pszSkyboxName )
 	}
 
 	char  name[ MAX_PATH ];
-	char *skyboxsuffix[ 6 ] = { "rt", "bk", "lf", "ft", "up", "dn" };
+	const char *skyboxsuffix[ 6 ] = { "rt", "bk", "lf", "ft", "up", "dn" };
 	for ( int i = 0; i < 6; i++ )
 	{
 		Q_snprintf( name, sizeof( name ), "skybox/%s%s", pszSkyboxName, skyboxsuffix[i] );

@@ -834,7 +834,7 @@ static void Compute3DSkyboxAreas( node_t *headnode, CUtlVector<int>& areas )
 {
 	for (int i = 0; i < g_MainMap->num_entities; ++i)
 	{
-		char* pEntity = ValueForKey(&entities[i], "classname");
+		const char* pEntity = ValueForKey(&entities[i], "classname");
 		if (!strcmp(pEntity, "sky_camera"))
 		{
 			// Found a 3D skybox camera, get a leaf that lies in it
@@ -1515,7 +1515,7 @@ int RunVBSP( int argc, char **argv )
 		g_nCubemapSamples = 0;
 
 		// Mark as stale since the lighting could be screwed with new ents.
-		AddBufferToPak( GetPakFile(), "stale.txt", "stale", strlen( "stale" ) + 1, false );
+		AddBufferToPak( GetPakFile(), "stale.txt", const_cast<char*>("stale"), strlen("stale") + 1, false);
 
 		LoadMapFile (name);
 		SetModelNumbers ();
@@ -1572,7 +1572,7 @@ int RunVBSP( int argc, char **argv )
 		{
 			LoadBSPFile_FileSystemOnly (mapFile);
 			// Mark as stale since the lighting could be screwed with new ents.
-			AddBufferToPak( GetPakFile(), "stale.txt", "stale", strlen( "stale" ) + 1, false );
+			AddBufferToPak( GetPakFile(), "stale.txt", const_cast<char*>("stale"), strlen( "stale" ) + 1, false );
 		}
 
 		LoadMapFile (name);
