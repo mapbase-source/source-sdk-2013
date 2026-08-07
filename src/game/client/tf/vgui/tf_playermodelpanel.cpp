@@ -29,6 +29,10 @@
 #include "halloween/tf_weapon_spellbook.h"
 #include "matsys_controls/matsyscontrols.h"
 
+#ifdef MAPBASE
+#include "filesystem.h"
+#endif
+
 // memdbgon must be the last include file in a .cpp file!!!
 #include <tier0/memdbgon.h>
 
@@ -406,6 +410,26 @@ CChoreoScene *LoadSceneForModel( const char *filename, IChoreoEventCallback *pCa
 	V_SetExtension( loadfile, ".vcd", sizeof( loadfile ) );
 	V_FixSlashes( loadfile );
 
+#ifdef MAPBASE
+	// 
+	// Raw scene file support
+	// 
+	char *pBuffer = NULL;
+	size_t bufsize = scenefilecache->GetSceneBufferSize( loadfile );
+	if ( bufsize > 0 )
+	{
+		pBuffer = new char[ bufsize ];
+		if ( !scenefilecache->GetSceneData( filename, (byte *)pBuffer, bufsize ) )
+		{
+			delete[] pBuffer;
+			return NULL;
+		}
+	}
+	else if ( !filesystem->ReadFileEx( loadfile, NULL, (void **)&pBuffer, true ) )
+	{
+		return NULL;
+	}
+#else
 	char *pBuffer = NULL;
 	size_t bufsize = scenefilecache->GetSceneBufferSize( loadfile );
 	if ( bufsize <= 0 )
@@ -417,6 +441,7 @@ CChoreoScene *LoadSceneForModel( const char *filename, IChoreoEventCallback *pCa
 		delete[] pBuffer;
 		return NULL;
 	}
+#endif
 
 	CChoreoScene *pScene;
 	if ( IsBufferBinaryVCD( pBuffer, bufsize ) )
