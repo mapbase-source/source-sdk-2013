@@ -24,22 +24,100 @@
 #define MAX_SOUNDSCAPE_RECURSION	8
 
 const float DEFAULT_SOUND_RADIUS = 36.0f;
+
+enum soundfadestyle_t
+{
+	FADE_VOLUME_LINEAR = 0,
+	FADE_VOLUME_SINE = 1,
+};
+
+// contains a set of data to implement a simple envelope to fade in/out sounds
+struct soundfader_t
+{
+	float m_flCurrent;
+	float m_flTarget;
+	float m_flRate;
+	float m_flStart;
+	float m_flFadeT;
+	int	m_nType;
+
+	bool IsFading()
+	{
+		return (m_flCurrent != m_flTarget) ? true : false;
+	}
+
+	void FadeToValue(float flTarget, float flRate, soundfadestyle_t fadeType)
+	{
+		m_flStart = m_flCurrent;
+		m_flFadeT = 0;
+		m_flTarget = flTarget;
+		m_flRate = flRate;
+		m_nType = fadeType;
+	}
+
+	void ForceToTargetValue(float flTarget)
+	{
+		m_flFadeT = 1.0f;
+		m_flCurrent = m_flTarget = flTarget;
+		m_flRate = 0;
+	}
+
+	void UpdateFade(float flDt)
+	{
+		m_flFadeT += flDt * m_flRate;
+		if (m_flFadeT >= 1.0f)
+		{
+			ForceToTargetValue(m_flTarget);
+			return;
+		}
+		float flFactor = m_flFadeT;
+		float flDelta = m_flTarget - m_flStart;
+		switch (m_nType)
+		{
+		case FADE_VOLUME_LINEAR:
+			break;
+		case FADE_VOLUME_SINE:
+			if (flDelta >= 0)
+			{
+				flFactor = sin(m_flFadeT * M_PI * 0.5f);
+			}
+			else
+			{
+				flFactor = 1.0f - cos(m_flFadeT * M_PI * 0.5f);
+			}
+			break;
+		}
+		m_flCurrent = m_flStart + flDelta * flFactor;
+	}
+};
+
 // Keep an array of all looping sounds so they can be faded in/out
 // OPTIMIZE: Get a handle/pointer to the engine's sound channel instead 
 //			of searching each frame!
 struct loopingsound_t
 {
 	Vector		position;		// position (if !isAmbient)
-	const char *pWaveName;		// name of the wave file
-	float		volumeTarget;	// target volume level (fading towards this)
-	float		volumeCurrent;	// current volume level
+	const char* pWaveName;		// name of the wave file
+	soundfader_t m_volume;
 	soundlevel_t soundlevel;	// sound level (if !isAmbient)
 	int			pitch;			// pitch shift
 	int			id;				// Used to fade out sounds that don't belong to the most current setting
+	int			engineGuid;
+	float		radius;			// if set, sound plays at full volume inside the radius and fallsoff as you move out of the radius.  Sound will lose directionality as you move inside the radius
 	bool		isAmbient;		// Ambient sounds have no spatialization - they play from everywhere
 };
 
 ConVar soundscape_fadetime( "soundscape_fadetime", "3.0", FCVAR_CHEAT, "Time to crossfade sound effects between soundscapes" );
+ConVar soundscape_message("soundscape_message", "0");
+ConVar soundscape_radius_debug("soundscape_radius_debug", "0", FCVAR_CHEAT, "Prints current volume of radius sounds");
+
+float GetSoundscapeFadeRate()
+{
+	float flFadeTime = soundscape_fadetime.GetFloat();
+	float flFadeRate = 1.0f / (flFadeTime > 0 ? flFadeTime : 3.0f);
+
+	return flFadeRate;
+}
 
 #include "interval.h"
 
@@ -67,6 +145,7 @@ struct subsoundscapeparams_t
 {
 	int		recurseLevel;		// test for infinite loops in the script / circular refs
 	float	masterVolume;
+	float	flFadeRate;
 	int		startingPosition;
 	int		positionOverride;	// forces all sounds to this position
 	int		ambientPositionOverride;	// forces all ambient sounds to this position
@@ -74,6 +153,23 @@ struct subsoundscapeparams_t
 	bool	wroteSoundMixer;
 	bool	wroteDSPVolume;
 };
+
+Vector getVectorFromString(const char* pString)
+{
+	char tempString[128];
+	Q_strncpy(tempString, pString, sizeof(tempString));
+
+	Vector result;
+	int i = 0;
+	char* token = strtok(tempString, ",");
+	while (token)
+	{
+		result[i] = atof(token);
+		token = strtok(NULL, ",");
+		i++;
+	}
+	return result;
+}
 
 class C_SoundscapeSystem : public CBaseGameSystemPerFrame
 {
@@ -170,11 +266,11 @@ public:
 	}
 	void DevReportSoundscapeName( int index );
 	void UpdateLoopingSounds( float frametime );
-	int AddLoopingAmbient( const char *pSoundName, float volume, int pitch );
+	int AddLoopingAmbient( const char *pSoundName, float volume, int pitch, float radius, float flFadeRate);
 	void UpdateLoopingSound( loopingsound_t &loopSound );
 	void StopLoopingSound( loopingsound_t &loopSound );
 	int AddLoopingSound( const char *pSoundName, bool isAmbient, float volume, 
-		soundlevel_t soundLevel, int pitch, const Vector &position );
+		soundlevel_t soundLevel, int pitch, const Vector &position, float radius, float flFadeRate);
 	int AddRandomSound( const randomsound_t &sound );
 	void PlayRandomSound( randomsound_t &sound );
 	void UpdateRandomSounds( float gameClock );
@@ -196,6 +292,8 @@ public:
 	void ProcessDSP( KeyValues *pDSP );
 	// "dsp_player"
 	void ProcessDSPPlayer( KeyValues *pDSPPlayer );
+	// "fadetime"
+	void ProcessSoundscapeFadetime(KeyValues* pKey, subsoundscapeparams_t& params);
 	// "playlooping"
 	void ProcessPlayLooping( KeyValues *pPlayLooping, const subsoundscapeparams_t &params );	
 	// "playrandom"
@@ -511,39 +609,75 @@ void C_SoundscapeSystem::DevReportSoundscapeName( int index )
 	{
 		pName = m_soundscapes[index]->GetName();
 	}
-	DevMsg( 1, "Soundscape: %s\n", pName  );
+	
+	if (soundscape_message.GetBool())
+	{
+		Msg("Soundscape: %s\n", pName);
+	}
 }
 
 
 // This makes all currently playing loops fade toward their target volume
 void C_SoundscapeSystem::UpdateLoopingSounds( float frametime )
 {
-	float period = soundscape_fadetime.GetFloat();
-	float amount = frametime;
-	if ( period > 0 )
-	{
-		amount *= 1.0 / period;
-	}
-
 	int fadeCount = m_loopingSounds.Count();
 	while ( fadeCount > 0 )
 	{
 		fadeCount--;
 		loopingsound_t &sound = m_loopingSounds[fadeCount];
 
-		if ( sound.volumeCurrent != sound.volumeTarget )
+		bool bUpdateSound = sound.m_volume.IsFading();
+
+		// for radius looping sounds, volume is manually set based on listener's distance
+		if (sound.radius > 0)
 		{
-			sound.volumeCurrent = Approach( sound.volumeTarget, sound.volumeCurrent, amount );
-			if ( sound.volumeTarget == 0 && sound.volumeCurrent == 0 )
+			C_BasePlayer* pPlayer = C_BasePlayer::GetLocalPlayer();
+			if (pPlayer)
+			{
+				C_BaseEntity* pEnt = pPlayer;
+				if (pEnt)
+				{
+					float distance = pEnt->GetAbsOrigin().DistTo(sound.position);
+
+					if (distance > sound.radius * 100.0f)
+					{
+						// long way away, let sound fade to silence
+						sound.m_volume.FadeToValue(0.01f, 1.0f, FADE_VOLUME_LINEAR);	// HACK: Don't set sound to zero volume else it'll be removed and never started again!
+					}
+					else
+					{
+						float flTarget = 1.0f;
+						// inside the radius, full volume, outside fade out
+						if (distance >= sound.radius)
+						{
+							flTarget = 1.0f / (1 + 0.5f * (distance - sound.radius) / sound.radius);
+						}
+						sound.m_volume.ForceToTargetValue(flTarget);
+					}
+
+					if (soundscape_radius_debug.GetBool())
+					{
+						DevMsg(1, "Updated looping radius sound %d to vol=%f\n", fadeCount, sound.m_volume.m_flTarget);
+					}
+
+					bUpdateSound = true;
+				}
+			}
+		}
+
+		if (bUpdateSound)
+		{
+			sound.m_volume.UpdateFade(frametime);
+			if (sound.m_volume.m_flTarget == 0 && sound.m_volume.m_flCurrent == 0)
 			{
 				// sound is done, remove from list.
-				StopLoopingSound( sound );
-				m_loopingSounds.FastRemove( fadeCount );
+				StopLoopingSound(sound);
+				m_loopingSounds.FastRemove(fadeCount);
 			}
 			else
 			{
 				// tell the engine about the new volume
-				UpdateLoopingSound( sound );
+				UpdateLoopingSound(sound);
 			}
 		}
 	}
@@ -604,15 +738,19 @@ void C_SoundscapeSystem::StartNewSoundscape( KeyValues *pSoundscape )
 {
 	int i;
 
+	float flFadeRate = GetSoundscapeFadeRate();
+
 	// Reset the system
 	// fade out the current loops
+	// save off the count of old looping sounds
+	int nOldLoopingSoundMax = m_loopingSounds.Count() - 1;
 	for ( i = m_loopingSounds.Count()-1; i >= 0; --i )
 	{
-		m_loopingSounds[i].volumeTarget = 0;
-		if ( !pSoundscape )
+		m_loopingSounds[i].m_volume.FadeToValue(0, flFadeRate, FADE_VOLUME_SINE);
+		if (!pSoundscape)
 		{
 			// if we're cancelling the soundscape, stop the sound immediately
-			m_loopingSounds[i].volumeCurrent = 0;
+			m_loopingSounds[i].m_volume.ForceToTargetValue(0);
 		}
 	}
 	// update ID
@@ -634,6 +772,7 @@ void C_SoundscapeSystem::StartNewSoundscape( KeyValues *pSoundscape )
 		params.recurseLevel = 0;
 		params.positionOverride = -1;
 		params.ambientPositionOverride = -1;
+		params.flFadeRate = flFadeRate;
 		StartSubSoundscape( pSoundscape, params );
 
 		if ( !params.wroteDSPVolume )
@@ -643,6 +782,20 @@ void C_SoundscapeSystem::StartNewSoundscape( KeyValues *pSoundscape )
 		if ( !params.wroteSoundMixer )
 		{
 			m_pSoundMixerVar->Revert();
+		}
+		// if we processed a fade rate, update the fade
+		// This is a little bit of a hack but since we don't pre-parse soundscapes
+		// into structs we can't know if there is a rate change on this soundscape
+		if (params.flFadeRate != flFadeRate)
+		{
+			for (i = nOldLoopingSoundMax; i >= 0; --i)
+			{
+				// if we're still fading out at the old rate, fade at the new rate
+				if (m_loopingSounds[i].m_volume.m_flTarget == 0.0f && m_loopingSounds[i].m_volume.m_flRate == flFadeRate)
+				{
+					m_loopingSounds[i].m_volume.m_flRate = params.flFadeRate;
+				}
+			}
 		}
 	}
 }
@@ -665,6 +818,14 @@ void C_SoundscapeSystem::StartSubSoundscape( KeyValues *pSoundscape, subsoundsca
 			if ( params.allowDSP )
 			{
 				ProcessDSPPlayer( pKey );
+			}
+		}
+		else if (!Q_strcasecmp(pKey->GetName(), "fadetime"))
+		{
+			// don't allow setting these recursively since they are order dependent
+			if (params.recurseLevel < 1)
+			{
+				ProcessSoundscapeFadetime(pKey, params);
 			}
 		}
 		else if ( !Q_strcasecmp( pKey->GetName(), "playlooping" ) )
@@ -740,6 +901,15 @@ void C_SoundscapeSystem::ProcessDSPVolume( KeyValues *pKey, subsoundscapeparams_
 	params.wroteDSPVolume = true;
 }
 
+void C_SoundscapeSystem::ProcessSoundscapeFadetime(KeyValues* pKey, subsoundscapeparams_t& params)
+{
+	float flFadeTime = pKey->GetFloat();
+	if (flFadeTime > 0.0f)
+	{
+		params.flFadeRate = 1.0f / flFadeTime;
+	}
+}
+
 // start a new looping sound
 void C_SoundscapeSystem::ProcessPlayLooping( KeyValues *pAmbient, const subsoundscapeparams_t &params )
 {
@@ -748,7 +918,11 @@ void C_SoundscapeSystem::ProcessPlayLooping( KeyValues *pAmbient, const subsound
 	const char *pSoundName = NULL;
 	int pitch = PITCH_NORM;
 	int positionIndex = -1;
+	bool randomPosition = false;
 	bool suppress = false;
+	bool useTextOrigin = false;
+	Vector textOrigin;
+	float radius = 0;
 	KeyValues *pKey = pAmbient->GetFirstSubKey();
 	while ( pKey )
 	{
@@ -764,9 +938,22 @@ void C_SoundscapeSystem::ProcessPlayLooping( KeyValues *pAmbient, const subsound
 		{
 			pSoundName = pKey->GetString();
 		}
+		else if (!Q_strcasecmp(pKey->GetName(), "origin"))
+		{
+			textOrigin = getVectorFromString(pKey->GetString());
+			useTextOrigin = true;
+		}
 		else if ( !Q_strcasecmp( pKey->GetName(), "position" ) )
 		{
-			positionIndex = params.startingPosition + pKey->GetInt();
+			if (!Q_strcasecmp(pKey->GetString(), "random"))
+			{
+				randomPosition = true;
+			}
+			else
+			{
+				positionIndex = params.startingPosition + pKey->GetInt();
+			}
+			//	positionIndex = params.startingPosition + pKey->GetInt();
 		}
 		else if ( !Q_strcasecmp( pKey->GetName(), "attenuation" ) )
 		{
@@ -786,6 +973,10 @@ void C_SoundscapeSystem::ProcessPlayLooping( KeyValues *pAmbient, const subsound
 		else if ( !Q_strcasecmp( pKey->GetName(), "suppress_on_restore" ) )
 		{
 			suppress = Q_atoi( pKey->GetString() ) != 0 ? true : false;
+		}
+		else if (!Q_strcasecmp(pKey->GetName(), "radius"))
+		{
+			radius = (float)atof(pKey->GetString());
 		}
 		else
 		{
@@ -811,19 +1002,27 @@ void C_SoundscapeSystem::ProcessPlayLooping( KeyValues *pAmbient, const subsound
 
 	if ( volume != 0 && pSoundName != NULL )
 	{
-		if ( positionIndex < 0 )
+		if (randomPosition)
 		{
-			AddLoopingAmbient( pSoundName, volume, pitch );
+			AddLoopingSound(pSoundName, false, volume, soundlevel, pitch, GenerateRandomSoundPosition(), radius, params.flFadeRate);
+		}
+		else if (useTextOrigin)
+		{
+			AddLoopingSound(pSoundName, false, volume, soundlevel, pitch, textOrigin, radius, params.flFadeRate);
+		}
+		else if (positionIndex < 0)
+		{
+			AddLoopingAmbient(pSoundName, volume, pitch, radius, params.flFadeRate);
 		}
 		else
 		{
-			if ( positionIndex > 31 || !(m_params.localBits & (1<<positionIndex) ) )
+			if (positionIndex > 31 || !(m_params.localBits & (1 << positionIndex)))
 			{
 				// suppress sounds if the position isn't available
 				//DevMsg( 1, "Bad position %d\n", positionIndex );
 				return;
 			}
-			AddLoopingSound( pSoundName, false, volume, soundlevel, pitch, m_params.localSound[positionIndex] );
+			AddLoopingSound(pSoundName, false, volume, soundlevel, pitch, m_params.localSound[positionIndex], radius, params.flFadeRate);
 		}
 	}
 }
@@ -931,6 +1130,8 @@ void C_SoundscapeSystem::ProcessPlayRandom( KeyValues *pPlayRandom, const subsou
 	int positionIndex = -1;
 	bool suppress = false;
 	bool randomPosition = false;
+	bool useTextOrigin = false;
+	Vector textOrigin;
 	KeyValues *pKey = pPlayRandom->GetFirstSubKey();
 	while ( pKey )
 	{
@@ -986,6 +1187,12 @@ void C_SoundscapeSystem::ProcessPlayRandom( KeyValues *pPlayRandom, const subsou
 				positionIndex = params.startingPosition + pKey->GetInt();
 			}
 		}
+		else if (!Q_strcasecmp(pKey->GetName(), "origin"))
+		{
+			const char* originString = pKey->GetString();
+			textOrigin = getVectorFromString(originString);
+			useTextOrigin = true;
+		}
 		else if ( !Q_strcasecmp( pKey->GetName(), "suppress_on_restore" ) )
 		{
 			suppress = Q_atoi( pKey->GetString() ) != 0 ? true : false;
@@ -1016,21 +1223,25 @@ void C_SoundscapeSystem::ProcessPlayRandom( KeyValues *pPlayRandom, const subsou
 
 	if ( sound.waveCount != 0 )
 	{
-		if ( positionIndex < 0 && !randomPosition )
+		if (positionIndex < 0 && !randomPosition && !useTextOrigin)
 		{
 			sound.isAmbient = true;
-			AddRandomSound( sound );
+			AddRandomSound(sound);
 		}
 		else
 		{
 			sound.isAmbient = false;
-			if ( randomPosition )
+			if (randomPosition)
 			{
 				sound.isRandom = true;
 			}
+			else if (useTextOrigin)
+			{
+				sound.position = textOrigin;
+			}
 			else
 			{
-				if ( positionIndex > 31 || !(m_params.localBits & (1<<positionIndex) ) )
+				if (positionIndex > 31 || !(m_params.localBits & (1 << positionIndex)))
 				{
 					// suppress sounds if the position isn't available
 					//DevMsg( 1, "Bad position %d\n", positionIndex );
@@ -1038,7 +1249,7 @@ void C_SoundscapeSystem::ProcessPlayRandom( KeyValues *pPlayRandom, const subsou
 				}
 				sound.position = m_params.localSound[positionIndex];
 			}
-			AddRandomSound( sound );
+			AddRandomSound(sound);
 		}
 	}
 }
@@ -1114,15 +1325,15 @@ void C_SoundscapeSystem::ProcessPlaySoundscape( KeyValues *pPlaySoundscape, subs
 }
 
 // special kind of looping sound with no spatialization
-int C_SoundscapeSystem::AddLoopingAmbient( const char *pSoundName, float volume, int pitch )
+int C_SoundscapeSystem::AddLoopingAmbient( const char *pSoundName, float volume, int pitch, float radius, float flFadeRate)
 {
-	return AddLoopingSound( pSoundName, true, volume, SNDLVL_NORM, pitch, vec3_origin );
+	return AddLoopingSound( pSoundName, true, volume, SNDLVL_NORM, pitch, vec3_origin, radius, flFadeRate);
 }
 
 // add a looping sound to the list
 // NOTE: will reuse existing entry (fade from current volume) if possible
 //		this prevents pops
-int C_SoundscapeSystem::AddLoopingSound( const char *pSoundName, bool isAmbient, float volume, soundlevel_t soundlevel, int pitch, const Vector &position )
+int C_SoundscapeSystem::AddLoopingSound( const char *pSoundName, bool isAmbient, float volume, soundlevel_t soundlevel, int pitch, const Vector &position, float radius, float flFadeRate)
 {
 	loopingsound_t *pSoundSlot = NULL;
 	int soundSlot = m_loopingSounds.Count() - 1;
@@ -1153,6 +1364,7 @@ int C_SoundscapeSystem::AddLoopingSound( const char *pSoundName, bool isAmbient,
 					pSoundSlot = &sound;
 					break;
 				}
+#if 0
 				else
 				{
 					// If it's trying to fade out one positional sound and fade in another, then it gets screwy
@@ -1165,9 +1377,11 @@ int C_SoundscapeSystem::AddLoopingSound( const char *pSoundName, bool isAmbient,
 
 					// make a note to update the sound immediately. Otherwise, if its volume happens to be
 					// the same as the old sound's volume, it will never update at all.
-					bForceSoundUpdate = true; 
+					bForceSoundUpdate = true;
 					break;
 				}
+#endif // 0
+
 			}
 		}
 		soundSlot--;
@@ -1181,7 +1395,7 @@ int C_SoundscapeSystem::AddLoopingSound( const char *pSoundName, bool isAmbient,
 		{
 			// start at 0 and fade in
 			enginesound->EmitAmbientSound( pSoundName, 0, pitch );
-			m_loopingSounds[soundSlot].volumeCurrent = 0.0;
+			m_loopingSounds[soundSlot].m_volume.m_flCurrent = 0.0;
 		}
 		else
 		{
@@ -1197,18 +1411,28 @@ int C_SoundscapeSystem::AddLoopingSound( const char *pSoundName, bool isAmbient,
 			ep.m_pOrigin = &position;
 
 			C_BaseEntity::EmitSound( filter, SOUND_FROM_WORLD, ep );
-			m_loopingSounds[soundSlot].volumeCurrent = 0.05;
+			m_loopingSounds[soundSlot].m_volume.m_flCurrent = 0.05;
 		}
+		m_loopingSounds[soundSlot].engineGuid = enginesound->GetGuidForLastSoundEmitted();
 	}
 	loopingsound_t &sound = m_loopingSounds[soundSlot];
 	// fill out the slot
 	sound.pWaveName = pSoundName;
-	sound.volumeTarget = volume;
+	sound.m_volume.FadeToValue(volume, flFadeRate, FADE_VOLUME_SINE);
 	sound.pitch = pitch;
 	sound.id = m_loopingSoundId;
 	sound.isAmbient = isAmbient;
 	sound.position = position;
 	sound.soundlevel = soundlevel;
+	sound.radius = radius;
+	if (radius > 0)
+	{
+		sound.soundlevel = SNDLVL_NONE;	  // play without attenuation if sound has a radius (volume will be manually set based on distance of listener to the radius)
+	}
+	else
+	{
+		sound.soundlevel = soundlevel;
+	}
 	
 	if (bForceSoundUpdate)
 	{
@@ -1221,22 +1445,21 @@ int C_SoundscapeSystem::AddLoopingSound( const char *pSoundName, bool isAmbient,
 // stop this loop forever
 void C_SoundscapeSystem::StopLoopingSound( loopingsound_t &loopSound )
 {
-	if ( loopSound.isAmbient )
-	{
-		enginesound->EmitAmbientSound( loopSound.pWaveName, 0, 0, SND_STOP );
-	}
-	else
-	{
-		C_BaseEntity::StopSound( SOUND_FROM_WORLD, CHAN_STATIC, loopSound.pWaveName );
-	}
+	enginesound->StopSoundByGuid(loopSound.engineGuid);
 }
 
 // update with new volume
 void C_SoundscapeSystem::UpdateLoopingSound( loopingsound_t &loopSound )
 {
-	if ( loopSound.isAmbient )
+	if (enginesound->IsSoundStillPlaying(loopSound.engineGuid))
 	{
-		enginesound->EmitAmbientSound( loopSound.pWaveName, loopSound.volumeCurrent, loopSound.pitch, SND_CHANGE_VOL );
+		enginesound->SetVolumeByGuid(loopSound.engineGuid, loopSound.m_volume.m_flCurrent);
+		return;
+	}
+
+	if (loopSound.isAmbient)
+	{
+		enginesound->EmitAmbientSound(loopSound.pWaveName, loopSound.m_volume.m_flCurrent, loopSound.pitch, SND_CHANGE_VOL);
 	}
 	else
 	{
@@ -1244,15 +1467,16 @@ void C_SoundscapeSystem::UpdateLoopingSound( loopingsound_t &loopSound )
 
 		EmitSound_t ep;
 		ep.m_nChannel = CHAN_STATIC;
-		ep.m_pSoundName =  loopSound.pWaveName;
-		ep.m_flVolume = loopSound.volumeCurrent;
+		ep.m_pSoundName = loopSound.pWaveName;
+		ep.m_flVolume = loopSound.m_volume.m_flCurrent;
 		ep.m_SoundLevel = loopSound.soundlevel;
 		ep.m_nFlags = SND_CHANGE_VOL;
 		ep.m_nPitch = loopSound.pitch;
 		ep.m_pOrigin = &loopSound.position;
 
-		C_BaseEntity::EmitSound( filter, SOUND_FROM_WORLD, ep );
+		C_BaseEntity::EmitSound(filter, SOUND_FROM_WORLD, ep);
 	}
+	loopSound.engineGuid = enginesound->GetGuidForLastSoundEmitted();
 }
 
 // add a recurring random sound event
@@ -1343,4 +1567,11 @@ void C_SoundscapeSystem::UpdateRandomSounds( float gameTime )
 CON_COMMAND(cl_soundscape_printdebuginfo, "print soundscapes")
 {
 	g_SoundscapeSystem.PrintDebugInfo();
+}
+
+
+CON_COMMAND(cl_ss_origin, "print origin in script format")
+{
+	Vector org = MainViewOrigin();
+	Warning("\"origin\"\t\"%.1f, %.1f, %.1f\"\n", org.x, org.y, org.z);
 }
