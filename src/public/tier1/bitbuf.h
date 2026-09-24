@@ -388,7 +388,7 @@ inline void	bf_write::WriteOneBitAt( int iBit, int nValue )
 #endif
 }
 
-BITBUF_INLINE void bf_write::WriteUBitLong( unsigned int curData, int numbits, bool bCheckRange ) RESTRICT
+BITBUF_INLINE void bf_write::WriteUBitLong( unsigned int curData, int numbits, bool bCheckRange )
 {
 #ifdef _DEBUG
 	// Make sure it doesn't overflow.

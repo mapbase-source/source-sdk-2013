@@ -187,7 +187,7 @@ void bf_write::SetAssertOnOverflow( bool bAssert )
 }
 
 
-const char* bf_write::GetDebugName() RESTRICT
+const char* bf_write::GetDebugName()
 {
 	return m_pDebugName;
 }
@@ -849,7 +849,7 @@ void bf_read::SetDebugName( const char *pName )
 	m_pDebugName = pName;
 }
 
-void bf_read::SetOverflowFlag() RESTRICT
+void bf_read::SetOverflowFlag()
 {
 	if ( m_bAssertOnOverflow )
 	{

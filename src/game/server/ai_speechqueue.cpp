@@ -48,7 +48,7 @@ void CResponseQueue::Add( const AIConcept_t &rconcept,  ///< concept to dispatch
 /// Remove a deferred response matching the concept and issuer. 
 void CResponseQueue::Remove( const AIConcept_t &rconcept,  ///< concept to dispatch
 			CBaseEntity * const RESTRICT pIssuer		  ///< the entity issuing the response, if one exists.
-			) RESTRICT
+			)
 {
 	// walk through the queue until we find a response matching the concept and issuer, then strike it.
 	QueueType_t::IndexLocalType_t idx = m_Queue.Head();

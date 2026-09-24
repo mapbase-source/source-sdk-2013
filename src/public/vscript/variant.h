@@ -445,7 +445,7 @@ template< class CValueAllocator >
 template< typename T > 
 inline void CVariantBase<CValueAllocator>::CopyData( const T &src, bool bForceCopy )
 {
-	COMPILE_TIME_ASSERT( ( ExtendedFieldType_t )VariantDeduceType( T ) != FIELD_TYPEUNKNOWN );
+	COMPILE_TIME_ASSERT( ( ExtendedFieldType_t )VariantDeducer_t<T>::FIELD_TYPE != FIELD_TYPEUNKNOWN );
 
 	Free();
 	m_type = VariantDeduceType( T );
