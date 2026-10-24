@@ -1602,7 +1602,7 @@ void CRestore::StartBlock( SaveRestoreRecordHeader_t *pHeader )
 
 //-------------------------------------
 
-void CRestore::StartBlock( char szBlockName[] )
+void CRestore::StartBlock( char szBlockName[SIZE_BLOCK_NAME_BUF] )
 {
 	SaveRestoreRecordHeader_t header;
 	StartBlock( &header );
