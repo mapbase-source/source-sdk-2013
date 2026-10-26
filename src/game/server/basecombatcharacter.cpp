@@ -4738,6 +4738,22 @@ HSCRIPT CBaseCombatCharacter::ScriptGetVehicleEntity()
 {
 	return ToHScript( GetVehicleEntity() );
 }
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+bool CBaseCombatCharacter::ScriptEntInViewCone( HSCRIPT hEntity )
+{
+	CBaseEntity *pEntity = ToEnt( hEntity );
+	return pEntity && FInViewCone( pEntity );
+}
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+bool CBaseCombatCharacter::ScriptEntInAimCone( HSCRIPT hEntity )
+{
+	CBaseEntity *pEntity = ToEnt( hEntity );
+	return pEntity && FInAimCone( pEntity );
+}
 #endif
 
 //-----------------------------------------------------------------------------

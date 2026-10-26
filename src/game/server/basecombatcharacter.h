@@ -453,10 +453,10 @@ public:
 	HSCRIPT				ScriptGetVehicleEntity();
 
 	bool				ScriptInViewCone( const Vector &vecSpot ) { return FInViewCone( vecSpot ); }
-	bool				ScriptEntInViewCone( HSCRIPT pEntity ) { return FInViewCone( ToEnt( pEntity ) ); }
+	bool				ScriptEntInViewCone( HSCRIPT hEntity );
 
 	bool				ScriptInAimCone( const Vector &vecSpot ) { return FInAimCone( vecSpot ); }
-	bool				ScriptEntInAimCone( HSCRIPT pEntity ) { return FInAimCone( ToEnt( pEntity ) ); }
+	bool				ScriptEntInAimCone( HSCRIPT hEntity );
 
 	const Vector&		ScriptBodyAngles( void ) { static Vector vec; QAngle qa = BodyAngles(); vec.x = qa.x; vec.y = qa.y; vec.z = qa.z; return vec; }
 
