@@ -5,6 +5,11 @@
 // $NoKeywords: $
 //=============================================================================//
 
+#ifdef SDK_SP
+// SP counterpart too different to combine cleanly
+#include "../../public_sp/tier0/mem.h"
+#endif
+
 #ifndef TIER0_MEM_H
 #define TIER0_MEM_H
 

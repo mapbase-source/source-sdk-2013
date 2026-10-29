@@ -106,6 +106,7 @@ struct mstudiodata_t
 #define STUDIO_PROC_AIMATATTACH 4
 #define STUDIO_PROC_JIGGLE 5
 
+#ifdef SDK_MP
 // If you want to embed a pointer into one of the structures that is serialized, use this class! It will ensure that the pointers consume the 
 // right amount of space and work correctly across 32 and 64 bit. It also makes sure that there is no surprise about how large the structure
 // is when placed in the middle of another structure, and supports Intel's desired behavior on 64-bit that pointers are always 8-byte aligned.
@@ -137,6 +138,7 @@ struct ALIGN4 serializedstudioptr_t
 } ALIGN4_POST;
 
 #pragma pack( pop )
+#endif
 
 
 struct mstudioaxisinterpbone_t
@@ -2413,6 +2415,7 @@ struct studiohdr_t
 	inline int			BoneFlexDriverCount() const { return studiohdr2index ? pStudioHdr2()->m_nBoneFlexDriverCount : 0; }
 	inline const mstudioboneflexdriver_t* BoneFlexDriver( int i ) const { Assert( i >= 0 && i < BoneFlexDriverCount() ); return studiohdr2index ? pStudioHdr2()->pBoneFlexDriver( i ) : NULL; }
 
+#ifdef SDK_MP
 #ifdef PLATFORM_64BITS
 	void* 				VirtualModel() const { return studiohdr2index ? (void *)( pStudioHdr2()->virtualModel ) : nullptr; }
 	void				SetVirtualModel( void* ptr ) { Assert( studiohdr2index ); if ( studiohdr2index ) { pStudioHdr2()->virtualModel = ptr; } }
@@ -2429,6 +2432,7 @@ struct studiohdr_t
 	void				SetVertexBase( void* _pVertexBase ) const { pVertexBase = _pVertexBase; }
 	void*				IndexBase() const { return pIndexBase; }
 	void				SetIndexBase( void* _pIndexBase ) const { pIndexBase = _pIndexBase; }
+#endif
 #endif
 
 	// NOTE: No room to add stuff? Up the .mdl file format version 

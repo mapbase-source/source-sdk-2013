@@ -73,10 +73,14 @@ typedef struct player_info_s player_info_t;
 #define DLLEXPORT /* */
 #endif
 
+#ifdef SDK_MP
 #define INTERFACEVERSION_VENGINESERVER_VERSION_21	"VEngineServer021"
 #define INTERFACEVERSION_VENGINESERVER_VERSION_22	"VEngineServer022"
 #define INTERFACEVERSION_VENGINESERVER				"VEngineServer023"
 #define INTERFACEVERSION_VENGINESERVER_INT			23
+#else
+#define INTERFACEVERSION_VENGINESERVER	"VEngineServer021"
+#endif
 
 struct bbox_t
 {
@@ -84,6 +88,7 @@ struct bbox_t
 	Vector maxs;
 };
 
+#ifdef SDK_MP
 struct WorkshopMapDesc_t
 {
 	char	szMapName[MAX_PATH];
@@ -91,6 +96,7 @@ struct WorkshopMapDesc_t
 	uint32	uTimestamp;
 	bool	bDownloaded;
 };
+#endif
 
 //-----------------------------------------------------------------------------
 // Purpose: Interface the engine exposes to the game DLL
@@ -423,6 +429,7 @@ public:
 	// Get sv.GetTime()
 	virtual float GetServerTime() const = 0;
 
+#ifdef SDK_MP
 	// Exposed for server plugin authors
 	virtual IServer *GetIServer() = 0;
 
@@ -453,8 +460,10 @@ public:
 	virtual eFindMapResult FindMap( /* in/out */ char *pMapName, int nMapNameMax ) = 0;
 	
 	virtual void SetPausedForced( bool bPaused, float flDuration = -1.f ) = 0;
+#endif
 };
 
+#ifdef SDK_MP
 // These only differ in new items added to the end
 typedef IVEngineServer IVEngineServer021;
 typedef IVEngineServer IVEngineServer022;
@@ -466,6 +475,11 @@ typedef IVEngineServer IVEngineServer022;
 #define INTERFACEVERSION_SERVERGAMEDLL_VERSION_11	"ServerGameDLL011"
 #define INTERFACEVERSION_SERVERGAMEDLL				"ServerGameDLL012"
 #define INTERFACEVERSION_SERVERGAMEDLL_INT			12
+#else
+#define INTERFACEVERSION_SERVERGAMEDLL_VERSION_8	"ServerGameDLL008"
+#define INTERFACEVERSION_SERVERGAMEDLL				"ServerGameDLL009"
+#define INTERFACEVERSION_SERVERGAMEDLL_INT			9
+#endif
 
 class IServerGCLobby;
 
@@ -594,6 +608,7 @@ public:
 	// Get gamedata string to send to the master serer updater.
 	virtual const char *GetServerBrowserGameData() = 0;
 
+#ifdef SDK_MP
 	// Called to add output to the status command
 	virtual void 			Status( void (*print) (const char *fmt, ...) ) = 0;
 
@@ -646,6 +661,7 @@ public:
 	// Used primarily for listmaps code.
 	// Returns true if uIndex was valid, false if invalid.
 	virtual bool			GetWorkshopMap( uint32 uIndex, WorkshopMapDesc_t *pDesc ) = 0;
+#endif
 };
 
 typedef IServerGameDLL IServerGameDLL008;
@@ -688,8 +704,12 @@ public:
 };
 
 #define INTERFACEVERSION_SERVERGAMECLIENTS_VERSION_3	"ServerGameClients003"
+#ifdef SDK_MP
 #define INTERFACEVERSION_SERVERGAMECLIENTS_VERSION_4	"ServerGameClients004"
 #define INTERFACEVERSION_SERVERGAMECLIENTS				"ServerGameClients005"
+#else
+#define INTERFACEVERSION_SERVERGAMECLIENTS				"ServerGameClients004"
+#endif
 
 //-----------------------------------------------------------------------------
 // Purpose: Player / Client related functions
@@ -755,12 +775,16 @@ public:
 	// Hook for player spawning
 	virtual void			ClientSpawned( edict_t *pPlayer ) = 0;
 
+#ifdef SDK_MP
 	// Hook for player voice
 	virtual void			ClientVoice( edict_t *pPlayer ) = 0;
+#endif
 };
 
 typedef IServerGameClients IServerGameClients003;
+#ifdef SDK_MP
 typedef IServerGameClients IServerGameClients004;
+#endif
 
 #define INTERFACEVERSION_UPLOADGAMESTATS		"ServerUploadGameStats001"
 
@@ -842,8 +866,10 @@ public:
 	virtual void UpdateServerDetails(void) = 0;
 	virtual bool ShouldHibernate() = 0;
 
+#ifdef SDK_MP
 	virtual bool MatchAllowsNameChanges() = 0;
 	virtual bool GetPlayerGCMatchName( const CSteamID &steamId, char *pszOutGCMatchName, size_t nGCMatchNameLen ) = 0;
+#endif
 };
 
 #endif // EIFACE_H

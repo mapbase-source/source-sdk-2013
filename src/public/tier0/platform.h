@@ -145,6 +145,14 @@
 		#define IsX360() true
 		#define IsPS3() false
 	#endif
+	#ifndef SDK_MP
+		// Adding IsPlatformOpenGL() to help fix a bunch of code that was using IsPosix() to infer if the DX->GL translation layer was being used.
+		#if defined( DX_TO_GL_ABSTRACTION )
+			#define IsPlatformOpenGL() true
+		#else
+			#define IsPlatformOpenGL() false
+		#endif
+	#endif
 #elif defined(POSIX)
 	#define IsPC() true
 	#define IsWindows() false
@@ -164,6 +172,9 @@
 	#endif
 	
 	#define IsPosix() true
+	#ifndef SDK_MP
+		#define IsPlatformOpenGL() true
+	#endif
 #else
 	#error
 #endif
@@ -1197,8 +1208,13 @@ PLATFORM_INTERFACE bool				Plat_IsInBenchmarkMode();
 
 PLATFORM_INTERFACE double			Plat_FloatTime();		// Returns time in seconds since the module was loaded.
 PLATFORM_INTERFACE uint32			Plat_MSTime();			// Time in milliseconds.
+#ifdef SDK_MP
 PLATFORM_INTERFACE uint64			Plat_USTime();			// Time in microseconds.
+#else
+PLATFORM_INTERFACE char *			Plat_asctime( const struct tm *tm, char *buf );
+#endif
 PLATFORM_INTERFACE char *			Plat_ctime( const time_t *timep, char *buf, size_t bufsize );
+#ifdef SDK_MP
 PLATFORM_INTERFACE void				Plat_GetModuleFilename( char *pOut, int nMaxBytes );
 
 PLATFORM_INTERFACE void				Plat_ExitProcess( int nCode );
@@ -1224,6 +1240,7 @@ PLATFORM_INTERFACE void				Plat_ExitProcessWithError( int nCode, bool bGenerateM
 //to be terminated
 typedef bool (*ExitProcessWithErrorCBFn)( int nCode );
 PLATFORM_INTERFACE void				Plat_SetExitProcessWithErrorCB( ExitProcessWithErrorCBFn pfnCB );
+#endif
 
 PLATFORM_INTERFACE struct tm *		Plat_gmtime( const time_t *timep, struct tm *result );
 PLATFORM_INTERFACE time_t			Plat_timegm( struct tm *timeptr );
@@ -1328,6 +1345,7 @@ struct CPUInformation
 // extern "C" implied by PLATFORM_INTERFACE.
 PLATFORM_INTERFACE const CPUInformation* GetCPUInformation();
 
+#ifdef SDK_MP
 #define MEMORY_INFORMATION_VERSION 0
 
 struct MemoryInformation
@@ -1349,6 +1367,7 @@ struct MemoryInformation
 
 // Returns true if the passed in MemoryInformation structure was filled out, otherwise false.
 PLATFORM_INTERFACE bool GetMemoryInformation( MemoryInformation *pOutMemoryInfo );
+#endif
 
 PLATFORM_INTERFACE float GetCPUUsage();
 
@@ -1425,7 +1444,11 @@ PLATFORM_INTERFACE void* Plat_SimpleLog( const tchar* file, int line );
 // Returns true if debugger attached, false otherwise
 //-----------------------------------------------------------------------------
 #if defined(_WIN32) || defined(LINUX) || defined(OSX)
+#ifdef SDK_MP
+PLATFORM_INTERFACE bool Plat_IsInDebugSession( bool bForceRecheck = false );
+#else
 PLATFORM_INTERFACE bool Plat_IsInDebugSession();
+#endif
 PLATFORM_INTERFACE void Plat_DebugString( const char * );
 #else
 inline bool Plat_IsInDebugSession( bool bForceRecheck = false ) { return false; }
@@ -1836,6 +1859,7 @@ private:
 #endif
 
 
+#ifdef SDK_MP
 // Watchdog timer support. Call Plat_BeginWatchdogTimer( nn ) to kick the timer off.  if you don't call
 // Plat_EndWatchdogTimer within nn seconds, the program will kick off an exception.  This is for making
 // sure that hung dedicated servers abort (and restart) instead of staying hung. Calling
@@ -1897,6 +1921,7 @@ DECLARE_ALIGNED_BYTE_ARRAY(16);
 DECLARE_ALIGNED_BYTE_ARRAY(32);
 DECLARE_ALIGNED_BYTE_ARRAY(64);
 DECLARE_ALIGNED_BYTE_ARRAY(128);
+#endif
 
 //-----------------------------------------------------------------------------
 

@@ -40,7 +40,6 @@ enum ShadowFlags_t
 {
 	SHADOW_FLAGS_FLASHLIGHT				= (1 << 0),
 	SHADOW_FLAGS_SHADOW					= (1 << 1),
-
 	// Update this if you add flags
 	SHADOW_FLAGS_LAST_FLAG				= SHADOW_FLAGS_SHADOW
 };

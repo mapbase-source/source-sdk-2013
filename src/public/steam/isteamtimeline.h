@@ -1,8 +1,13 @@
-//====== Copyright © Valve Corporation, All rights reserved. =======
+//====== Copyright ï¿½ Valve Corporation, All rights reserved. =======
 //
 // Purpose: interface to Steam Timeline
 //
 //=============================================================================
+
+#ifdef SDK_SP
+// Not in SP SDK
+#define ISTEAMTIMELINE_H
+#endif
 
 #ifndef ISTEAMTIMELINE_H
 #define ISTEAMTIMELINE_H

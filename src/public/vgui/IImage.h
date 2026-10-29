@@ -19,8 +19,6 @@ class Color;
 namespace vgui
 {
 
-typedef uint32 HTexture;
-
 enum iimage_rotation_t
 {
 	ROTATED_UNROTATED = 0,

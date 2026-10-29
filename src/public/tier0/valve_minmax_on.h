@@ -1,5 +1,5 @@
 //========= Copyright Valve Corporation, All rights reserved. ============//
-#if !defined(POSIX)
+#if !defined(POSIX) && (!defined(SDK_MP) || !defined(MINMAX_H))
 #ifndef min
 	#define min(a,b)  (((a) < (b)) ? (a) : (b))
 #endif

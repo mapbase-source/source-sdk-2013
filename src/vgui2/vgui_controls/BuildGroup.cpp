@@ -1233,7 +1233,9 @@ void BuildGroup::DeleteAllControlsCreatedByControlSettingsFile()
 //-----------------------------------------------------------------------------
 void BuildGroup::ApplySettings( KeyValues *resourceData )
 {
+#ifdef SDK_MP
 	tmZone( TELEMETRY_LEVEL0, TMZF_NONE, "%s", __FUNCTION__ );
+#endif
 
 	// loop through all the keys, applying them wherever
 	for (KeyValues *controlKeys = resourceData->GetFirstSubKey(); controlKeys != NULL; controlKeys = controlKeys->GetNextKey())

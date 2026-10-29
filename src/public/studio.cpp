@@ -1589,6 +1589,16 @@ void CStudioHdr::RunFlexRules( const float *src, float *dest )
 					const mstudioflexcontroller_t *const pCloseLid = pFlexcontroller( static_cast< LocalFlexController_t >( (int)stack[ k - 1 ] ) );
 					const float flCloseLid = RemapValClamped( src[ pCloseLid->localToGlobal ], pCloseLid->min, pCloseLid->max, 0.0f, 1.0f );
 
+#ifndef SDK_MP
+					int nBlinkIndex = static_cast< int >( stack[ k - 2 ] );
+					float flBlink = 0.0f;
+					if ( nBlinkIndex >= 0 )
+					{
+						const mstudioflexcontroller_t *const pBlink = pFlexcontroller( static_cast< LocalFlexController_t >( (int)stack[ k - 2 ] ) );
+						flBlink = RemapValClamped( src[ pBlink->localToGlobal ], pBlink->min, pBlink->max, 0.0f, 1.0f );
+					}
+#endif
+
 					int nEyeUpDownIndex = static_cast< int >( stack[ k - 3 ] );
 					float flEyeUpDown = 0.0f;
 					if ( nEyeUpDownIndex >= 0 )
@@ -1620,6 +1630,16 @@ void CStudioHdr::RunFlexRules( const float *src, float *dest )
 
 					const mstudioflexcontroller_t *const pCloseLid = pFlexcontroller( static_cast< LocalFlexController_t >( (int)stack[ k - 1 ] ) );
 					const float flCloseLid = RemapValClamped( src[ pCloseLid->localToGlobal ], pCloseLid->min, pCloseLid->max, 0.0f, 1.0f );
+
+#ifndef SDK_MP
+					int nBlinkIndex = static_cast< int >( stack[ k - 2 ] );
+					float flBlink = 0.0f;
+					if ( nBlinkIndex >= 0 )
+					{
+						const mstudioflexcontroller_t *const pBlink = pFlexcontroller( static_cast< LocalFlexController_t >( (int)stack[ k - 2 ] ) );
+						flBlink = RemapValClamped( src[ pBlink->localToGlobal ], pBlink->min, pBlink->max, 0.0f, 1.0f );
+					}
+#endif
 
 					int nEyeUpDownIndex = static_cast< int >( stack[ k - 3 ] );
 					float flEyeUpDown = 0.0f;

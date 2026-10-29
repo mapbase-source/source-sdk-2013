@@ -1378,4 +1378,8 @@ bool PATHSEPARATOR( char c );
 //   returns <0 if strings do not match even in a case-insensitive way
 int	_V_stricmp_NegativeForUnequal	  ( const char *s1, const char *s2 );
 
+#ifdef SDK_SP
+int _sscanf_s( const char *pBuffer, PRINTF_FORMAT_STRING const char *const pFormat, ... ) FMTFUNCTION( 3, 4 );
+#endif
+
 #endif	// TIER1_STRTOOLS_H

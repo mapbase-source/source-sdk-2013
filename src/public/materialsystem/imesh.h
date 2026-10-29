@@ -19,7 +19,7 @@
 #include "tier2/meshutils.h"
 #include "mathlib/mathlib.h"
 
-#if defined( OSX )
+#if defined( OSX ) || (!defined(SDK_MP) && defined( DX_TO_GL_ABSTRACTION ))
 	// Needed to support older versions of MacOS.
 	// No longer needed on Linux as we have BGRA there.
 	#define OPENGL_SWAP_COLORS
@@ -216,6 +216,7 @@ inline void IncrementFloatPointer( float* &pBufferPointer, int vertexSize )
 	pBufferPointer = reinterpret_cast<float*>( reinterpret_cast<unsigned char*>( pBufferPointer ) + vertexSize );
 }
 
+#ifdef SDK_MP
 inline int PackRGBToPlatformColor( int r, int g, int b, int a )
 {
 	#if defined( OPENGL_SWAP_COLORS )
@@ -227,6 +228,7 @@ inline int PackRGBToPlatformColor( int r, int g, int b, int a )
 	#endif
 	return col;
 }
+#endif
 
 //-----------------------------------------------------------------------------
 // Used in lists of indexed primitives.

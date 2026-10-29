@@ -204,7 +204,9 @@ DBG_INTERFACE void   _SpewInfo( SpewType_t type, const tchar* pFile, int line );
 DBG_INTERFACE SpewRetval_t   _SpewMessage( PRINTF_FORMAT_STRING const tchar* pMsg, ... ) FMTFUNCTION( 1, 2 );
 DBG_INTERFACE SpewRetval_t   _DSpewMessage( const tchar *pGroupName, int level, PRINTF_FORMAT_STRING const tchar* pMsg, ... ) FMTFUNCTION( 3, 4 );
 DBG_INTERFACE SpewRetval_t   ColorSpewMessage( SpewType_t type, const Color *pColor, PRINTF_FORMAT_STRING const tchar* pMsg, ... ) FMTFUNCTION( 3, 4 );
+#ifdef SDK_MP
 DBG_INTERFACE SpewRetval_t   ColorSpewMessage2( SpewType_t type, const Color &color, PRINTF_FORMAT_STRING const tchar* pMsg, ... ) FMTFUNCTION( 3, 4 );
+#endif
 DBG_INTERFACE void _ExitOnFatalAssert( const tchar* pFile, int line );
 DBG_INTERFACE bool ShouldUseNewAssertDialog();
 
@@ -222,8 +224,19 @@ typedef void (*AssertFailedNotifyFunc_t)( const char *pchFile, int nLine, const 
 DBG_INTERFACE void SetAssertFailedNotifyFunc( AssertFailedNotifyFunc_t func );
 DBG_INTERFACE void CallAssertFailedNotifyFunc( const char *pchFile, int nLine, const char *pchMessage );
 
+#ifdef SDK_MP
 /* True if -hushasserts was passed on command line. */
 DBG_INTERFACE bool HushAsserts();
+#else
+
+#ifdef _DEBUG
+#include "icommandline.h"
+#define HushAsserts() CommandLine()->FindParm("-hushasserts")
+#else
+#define HushAsserts() true
+#endif
+
+#endif
 
 #if defined( USE_SDL )
 DBG_INTERFACE void SetAssertDialogParent( struct SDL_Window *window );
@@ -432,7 +445,9 @@ DBG_INTERFACE void LogV( PRINTF_FORMAT_STRING const tchar *pMsg, va_list arglist
 DBG_INTERFACE void Error( PRINTF_FORMAT_STRING const tchar *pMsg, ... ) FMTFUNCTION( 1, 2 );
 #else
 DBG_INTERFACE void NORETURN Error( PRINTF_FORMAT_STRING const tchar *pMsg, ... ) FMTFUNCTION( 1, 2 );
+#ifdef SDK_MP
 DBG_INTERFACE void NORETURN ErrorV( PRINTF_FORMAT_STRING const tchar *pMsg, va_list arglist );
+#endif
 
 #endif
 
@@ -556,6 +571,34 @@ public:
 #define SCOPE_MSG( msg ) CScopeMsg scopeMsg( msg )
 #else
 #define SCOPE_MSG( msg )
+#endif
+
+#ifndef SDK_MP
+//-----------------------------------------------------------------------------
+// Macro to assist in asserting constant invariants during compilation
+
+// This implementation of compile time assert has zero cost (so it can safely be
+// included in release builds) and can be used at file scope or function scope.
+// We're using an ancient version of GCC that can't quite handle some
+// of our complicated templates properly.  Use some preprocessor trickery
+// to workaround this
+#ifdef __GNUC__
+	#define COMPILE_TIME_ASSERT( pred ) typedef int UNIQUE_ID[ (pred) ? 1 : -1 ]
+#else
+	#if _MSC_VER >= 1600
+	// If available use static_assert instead of weird language tricks. This
+	// leads to much more readable messages when compile time assert constraints
+	// are violated.
+	#define COMPILE_TIME_ASSERT( pred ) static_assert( pred, "Compile time assert constraint is not true: " #pred )
+	#else
+	// Due to gcc bugs this can in rare cases (some template functions) cause redeclaration
+	// errors when used multiple times in one scope. Fix by adding extra scoping.
+	#define COMPILE_TIME_ASSERT( pred ) typedef char compile_time_assert_type[(pred) ? 1 : -1];
+	#endif
+#endif
+// ASSERT_INVARIANT used to be needed in order to allow COMPILE_TIME_ASSERTs at global
+// scope. However the new COMPILE_TIME_ASSERT macro supports that by default.
+#define ASSERT_INVARIANT( pred )	COMPILE_TIME_ASSERT( pred )
 #endif
 
 //-----------------------------------------------------------------------------

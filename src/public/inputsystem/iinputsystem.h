@@ -17,7 +17,9 @@
 #include "inputsystem/ButtonCode.h"
 #include "inputsystem/AnalogCode.h"
 
+#ifdef SDK_MP
 #include "steam/isteamcontroller.h"
+#endif
 
 //-----------------------------------------------------------------------------
 // Main interface for input. This is a low-level interface
@@ -127,6 +129,7 @@ public:
 	// being initialized.
 	virtual void SetConsoleTextMode( bool bConsoleTextMode ) = 0;
 
+#ifdef SDK_MP
 	virtual ISteamController* SteamControllerInterface() = 0;
 	virtual uint32 GetNumSteamControllersConnected() = 0;
 	virtual bool IsSteamControllerActive() = 0;
@@ -156,6 +159,7 @@ public:
 	void ActivateSteamControllerActionSet( GameActionSet_t eActionSet ) {
 		ActivateSteamControllerActionSetForSlot( 0xffffffffffffffff, eActionSet );
 	}
+#endif
 };
 
 

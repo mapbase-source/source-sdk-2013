@@ -46,7 +46,9 @@ public:
 	virtual void SaveGlobalStateIfDirty( bool bAsync ) = 0;
 	virtual bool HasAchieved( const char *pchName ) = 0;
 	virtual bool WereCheatsEverOn() = 0;
+#ifdef SDK_MP
 	virtual void ResetAchievements() = 0;
+#endif
 };
 
 // flags for IAchievement::GetFlags

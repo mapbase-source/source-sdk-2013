@@ -237,6 +237,9 @@ class ISteamGameSearch;
 class ISteamInput;
 class ISteamParties;
 class ISteamRemotePlay;
+#ifndef SDK_MP
+class ISteamUnifiedMessages;
+#endif
 
 // Forward declare types
 struct SteamNetworkingIdentity;
@@ -266,7 +269,11 @@ enum { k_iSteam2AsyncCallbacks = 1900 };
 enum { k_iSteamGameStatsCallbacks = 2000 };
 enum { k_iSteamHTTPCallbacks = 2100 };
 enum { k_iSteamScreenshotsCallbacks = 2300 };
+#ifdef SDK_MP
 // NOTE: 2500-2599 are reserved
+#else
+enum { k_iClientUnifiedMessagesCallbacks = 2500 };
+#endif
 enum { k_iSteamStreamLauncherCallbacks = 2600 };
 enum { k_iSteamControllerCallbacks = 2800 };
 enum { k_iSteamUGCCallbacks = 3400 };
@@ -308,6 +315,7 @@ enum { k_iSteamChatCallbacks = 5900 };
 #define STEAM_CALL_BACK(RESULT_TYPE) STEAM_CLANG_ATTR("callback:" #RESULT_TYPE ";")
 #define STEAM_FLAT_NAME(NAME) STEAM_CLANG_ATTR("flat_name:" #NAME ";")
 
+#ifdef SDK_MP
 // CSteamAPIContext encapsulates the Steamworks API global accessors into
 // a single object.
 //
@@ -395,5 +403,6 @@ private:
 	ISteamInventory				*m_pSteamInventory;
 	ISteamUGC					*m_pSteamUGC;
 };
+#endif
 
 

@@ -41,6 +41,7 @@ enum FindAudioSourceFlags_t
 	FINDAUDIOSOURCE_PLAYONCE = 0x4,
 };
 
+#ifdef SDK_MP
 #include "soundsystem/audio_mix.h"
 
 /* filter types */
@@ -67,6 +68,7 @@ public:
 
 class CAudioMixState;
 class CAudioMixDescription;
+#endif
 
 //-----------------------------------------------------------------------------
 // Purpose: DLL interface for low-level sound utilities

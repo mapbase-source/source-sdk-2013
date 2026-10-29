@@ -4614,3 +4614,16 @@ void V_StripAndPreserveHTML( CUtlBuffer *pbuffer, const char *pchHTML, const cha
 	const char *rgszNoCloseTags[] = { "br", "img" };
 	V_StripAndPreserveHTMLCore( pbuffer, pchHTML, rgszPreserveTags, cPreserveTags, rgszNoCloseTags, V_ARRAYSIZE( rgszNoCloseTags ), cMaxResultSize );
 }
+
+#ifdef SDK_SP
+int _sscanf_s( const char *pBuffer, const char *const pFormat, ... )
+{
+	va_list args;
+
+	va_start( args, pFormat );
+	int i = sscanf_s( pBuffer, pFormat, args );
+	va_end( args );
+
+	return i;
+}
+#endif

@@ -53,6 +53,7 @@ inline bool SteamGameServer_Init( uint32 unIP, uint16 usGamePort, uint16 usQuery
 // Shutdown SteamGameSeverXxx interfaces, log out, and free resources.
 S_API void SteamGameServer_Shutdown();
 
+#ifdef SDK_MP
 // Most Steam API functions allocate some amount of thread-local memory for
 // parameter storage. Calling SteamGameServer_ReleaseCurrentThreadMemory()
 // will free all API-related memory associated with the calling thread.
@@ -71,6 +72,13 @@ S_API uint64 SteamGameServer_GetSteamID();
 // SteamGameServer_InitSafe has been replaced with SteamGameServer_Init and
 // is no longer supported. Use SteamGameServer_Init instead.
 //S_API void S_CALLTYPE SteamGameServer_InitSafe();
+#else
+S_API void SteamGameServer_Shutdown();
+S_API void SteamGameServer_RunCallbacks();
+
+S_API bool SteamGameServer_BSecure();
+S_API uint64 SteamGameServer_GetSteamID();
+#endif
 
 //=============================================================================
 //
@@ -78,6 +86,7 @@ S_API uint64 SteamGameServer_GetSteamID();
 //
 //=============================================================================
 
+#ifdef SDK_MP
 #ifndef STEAM_API_EXPORTS
 // This function must be declared inline in the header so the module using steam_api.dll gets the version names they want.
 inline bool CSteamGameServerAPIContext::Init()
@@ -113,5 +122,90 @@ inline void SteamGameServer_ReleaseCurrentThreadMemory()
 {
 	SteamAPI_ReleaseCurrentThreadMemory();
 }
+#else
+S_API HSteamPipe SteamGameServer_GetHSteamPipe();
+
+#ifdef VERSION_SAFE_STEAM_API_INTERFACES
+//----------------------------------------------------------------------------------------------------------------------------------------------------------//
+// VERSION_SAFE_STEAM_API_INTERFACES uses CSteamAPIContext to provide interfaces to each module in a way that 
+// lets them each specify the interface versions they are compiled with.
+//
+// It's important that these stay inlined in the header so the calling module specifies the interface versions
+// for whatever Steam API version it has.
+//----------------------------------------------------------------------------------------------------------------------------------------------------------//
+
+S_API HSteamUser SteamGameServer_GetHSteamUser();
+
+class CSteamGameServerAPIContext
+{
+public:
+	CSteamGameServerAPIContext();
+	void Clear();
+
+	bool Init();
+
+	ISteamGameServer *SteamGameServer() { return m_pSteamGameServer; }
+	ISteamUtils *SteamGameServerUtils() { return m_pSteamGameServerUtils; }
+	ISteamNetworking *SteamGameServerNetworking() { return m_pSteamGameServerNetworking; }
+	ISteamGameServerStats *SteamGameServerStats() { return m_pSteamGameServerStats; }
+	ISteamHTTP *SteamHTTP() { return m_pSteamHTTP; }
+
+private:
+	ISteamGameServer			*m_pSteamGameServer;
+	ISteamUtils					*m_pSteamGameServerUtils;
+	ISteamNetworking			*m_pSteamGameServerNetworking;
+	ISteamGameServerStats		*m_pSteamGameServerStats;
+	ISteamHTTP					*m_pSteamHTTP;
+};
+
+inline CSteamGameServerAPIContext::CSteamGameServerAPIContext()
+{
+	Clear();
+}
+
+inline void CSteamGameServerAPIContext::Clear()
+{
+	m_pSteamGameServer = NULL;
+	m_pSteamGameServerUtils = NULL;
+	m_pSteamGameServerNetworking = NULL;
+	m_pSteamGameServerStats = NULL;
+	m_pSteamHTTP = NULL;
+}
+
+S_API ISteamClient *g_pSteamClientGameServer;
+// This function must be inlined so the module using steam_api.dll gets the version names they want.
+inline bool CSteamGameServerAPIContext::Init()
+{
+	if ( !g_pSteamClientGameServer )
+		return false;
+
+	HSteamUser hSteamUser = SteamGameServer_GetHSteamUser();
+	HSteamPipe hSteamPipe = SteamGameServer_GetHSteamPipe();
+
+	m_pSteamGameServer = g_pSteamClientGameServer->GetISteamGameServer( hSteamUser, hSteamPipe, STEAMGAMESERVER_INTERFACE_VERSION );
+	if ( !m_pSteamGameServer )
+		return false;
+
+	m_pSteamGameServerUtils = g_pSteamClientGameServer->GetISteamUtils( hSteamPipe, STEAMUTILS_INTERFACE_VERSION );
+	if ( !m_pSteamGameServerUtils )
+		return false;
+
+	m_pSteamGameServerNetworking = g_pSteamClientGameServer->GetISteamNetworking( hSteamUser, hSteamPipe, STEAMNETWORKING_INTERFACE_VERSION );
+	if ( !m_pSteamGameServerNetworking )
+		return false;
+
+	m_pSteamGameServerStats = g_pSteamClientGameServer->GetISteamGameServerStats( hSteamUser, hSteamPipe, STEAMGAMESERVERSTATS_INTERFACE_VERSION );
+	if ( !m_pSteamGameServerStats )
+		return false;
+
+	m_pSteamHTTP = g_pSteamClientGameServer->GetISteamHTTP( hSteamUser, hSteamPipe, STEAMHTTP_INTERFACE_VERSION );
+	if ( !m_pSteamHTTP )
+		return false;
+
+	return true;
+}
+
+#endif // VERSION_SAFE_STEAM_API_INTERFACES
+#endif
 
 #endif // STEAM_GAMESERVER_H

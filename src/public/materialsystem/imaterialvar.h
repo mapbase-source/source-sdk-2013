@@ -239,7 +239,11 @@ private:
 		m_nTempIndex = nIndex;
 	}
 
+#ifdef SDK_MP
+	friend void EnableThreadedMaterialVarAccess( bool bEnable, IMaterialVar **ppParams, int nVarCount );
+#else
 	friend void EnableThreadedMaterialVarAccess( bool bEnable );
+#endif
 };
 
 #endif // IMATERIALVAR_H

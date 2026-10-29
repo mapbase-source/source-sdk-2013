@@ -102,7 +102,11 @@ void PerforceFileExplorer::SetCurrentDirectory( const char *pFullPath )
 
 	m_CurrentDirectory = pFullPath;
 	m_CurrentDirectory.StripTrailingSlash();
+#ifdef SDK_MP
     m_CurrentDirectory.FixSlashes();
+#else
+	Q_FixSlashes( m_CurrentDirectory.Get() );
+#endif
 
 	PopulateFileList();
 	PopulateDriveList();

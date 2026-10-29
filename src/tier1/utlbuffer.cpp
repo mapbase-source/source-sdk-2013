@@ -21,6 +21,10 @@
 #include "tier0/memdbgon.h"
 			    
 
+#ifndef SDK_MP
+#define GetStringInternal GetString
+#endif
+
 //-----------------------------------------------------------------------------
 // Character conversions for C strings
 //-----------------------------------------------------------------------------
@@ -324,6 +328,7 @@ void CUtlBuffer::AssumeMemory( void *pMemory, int nSize, int nInitialPut, int nF
 	AddNullTermination();
 }
 
+#ifdef SDK_MP
 //-----------------------------------------------------------------------------
 // Allows the caller to control memory
 //-----------------------------------------------------------------------------
@@ -337,6 +342,7 @@ void* CUtlBuffer::DetachMemory()
 	m_nOffset = 0;
 	return m_Memory.DetachMemory( );
 }
+#endif
 
 
 //-----------------------------------------------------------------------------
@@ -622,7 +628,11 @@ int CUtlBuffer::PeekDelimitedStringLength( CUtlCharConversion *pConv, bool bActu
 //-----------------------------------------------------------------------------
 // Reads a null-terminated string
 //-----------------------------------------------------------------------------
+#ifdef SDK_MP
 void CUtlBuffer::GetStringInternal( char *pString, size_t maxLenInChars )
+#else
+void CUtlBuffer::GetString( char *pString, int maxLenInChars )
+#endif
 {
 	if ( !IsValid() )
 	{
@@ -630,9 +640,11 @@ void CUtlBuffer::GetStringInternal( char *pString, size_t maxLenInChars )
 		return;
 	}
 
+#ifdef SDK_MP
 	// This can legitimately be zero if we were told that the buffer is zero length, and
 	// we're asking to duplicate the buffer, so let that pass, too.
 	Assert( maxLenInChars != 0 || PeekStringLength() == 0 );
+#endif
 
 	if ( maxLenInChars == 0 )
 	{
@@ -655,7 +667,11 @@ void CUtlBuffer::GetStringInternal( char *pString, size_t maxLenInChars )
 		return;
 	}
 
+#ifdef SDK_MP
 	const size_t nCharsToRead = min( (size_t)nLen, maxLenInChars ) - 1;
+#else
+	const size_t nCharsToRead = min( (size_t)nLen, (size_t)maxLenInChars ) - 1;
+#endif
 
 	Get( pString, (int) nCharsToRead );
 	pString[nCharsToRead] = 0;

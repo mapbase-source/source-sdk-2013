@@ -62,6 +62,7 @@ data field should not be broadcasted to clients, use the type "local".
 class KeyValues;
 class CGameEvent;
 
+#ifdef SDK_MP
 // Class for visiting every key of data on an event
 abstract_class IGameEventVisitor2
 {
@@ -75,6 +76,7 @@ public:
 	virtual bool VisitWString( const char* name, const wchar_t* value ) { return true; }
 	virtual bool VisitBool( const char* name, bool value ) { return true; }
 };
+#endif
 
 abstract_class IGameEvent
 {
@@ -87,16 +89,24 @@ public:
 	virtual bool  IsEmpty(const char *keyName = NULL) = 0; // check if data field exists
 	
 	// Data access
+#ifdef SDK_MP
 	virtual bool  GetBool( const char *keyName = NULL, bool defaultValue = false ) const = 0;
 	virtual int   GetInt( const char *keyName = NULL, int defaultValue = 0 ) const = 0;
 	virtual float GetFloat( const char *keyName = NULL, float defaultValue = 0.0f ) const = 0;
 	virtual const char *GetString( const char *keyName = NULL, const char *defaultValue = "" ) const = 0;
+#else
+	virtual bool  GetBool( const char *keyName = NULL, bool defaultValue = false ) = 0;
+	virtual int   GetInt( const char *keyName = NULL, int defaultValue = 0 ) = 0;
+	virtual float GetFloat( const char *keyName = NULL, float defaultValue = 0.0f ) = 0;
+	virtual const char *GetString( const char *keyName = NULL, const char *defaultValue = "" ) = 0;
+#endif
 
 	virtual void SetBool( const char *keyName, bool value ) = 0;
 	virtual void SetInt( const char *keyName, int value ) = 0;
 	virtual void SetFloat( const char *keyName, float value ) = 0;
 	virtual void SetString( const char *keyName, const char *value ) = 0;
 
+#ifdef SDK_MP
 	// New stuff!
 	virtual uint64 GetUint64( const char *keyName = NULL, uint64 defaultValue = 0 ) const = 0;
 	virtual const wchar_t *GetWString( const char *keyName = NULL, const wchar_t *defaultValue = L"" ) const = 0;
@@ -110,6 +120,7 @@ public:
 
 	// returns true if iteration aborted normally, false if it was aborted by the visitor callback
 	virtual bool ForEventData( IGameEventVisitor2* event ) const = 0;
+#endif
 };
 
 

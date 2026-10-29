@@ -256,7 +256,11 @@ public:
 	virtual void SetSilentMode( bool bSilent );						//change the panel's silent mode; if silent, the panel will not post any action signals
 
 	// install a mouse handler
+#ifdef SDK_MP
 	virtual void InstallMouseHandler( Panel *pHandler, bool bThisHandlesAsWell = false, bool bMovementEvents = false );	// mouse events will be send to handler panel instead and, by default, not this panel
+#else
+	virtual void InstallMouseHandler( Panel *pHandler );
+#endif
 	PHandle	GetMouseHandlerPanel() const { return m_hMouseEventHandler; }
 
 	// drawing state
@@ -939,10 +943,17 @@ private:
 	// 1 == Textured (TextureId1 only)
 	// 2 == Rounded Corner Box
 	CPanelAnimationVar( int, m_nPaintBackgroundType, "PaintBackgroundType", "0" );
+#ifdef SDK_MP
 	CPanelAnimationVarAliasType( int, m_nBgTextureId1, "Texture1", "vgui/hud/8x800corner1", "textureid" );
 	CPanelAnimationVarAliasType( int, m_nBgTextureId2, "Texture2", "vgui/hud/8x800corner2", "textureid" );
 	CPanelAnimationVarAliasType( int, m_nBgTextureId3, "Texture3", "vgui/hud/8x800corner3", "textureid" );
 	CPanelAnimationVarAliasType( int, m_nBgTextureId4, "Texture4", "vgui/hud/8x800corner4", "textureid" );
+#else
+	CPanelAnimationVarAliasType( int, m_nBgTextureId1, "Texture1", "vgui/hud/800corner1", "textureid" );
+	CPanelAnimationVarAliasType( int, m_nBgTextureId2, "Texture2", "vgui/hud/800corner2", "textureid" );
+	CPanelAnimationVarAliasType( int, m_nBgTextureId3, "Texture3", "vgui/hud/800corner3", "textureid" );
+	CPanelAnimationVarAliasType( int, m_nBgTextureId4, "Texture4", "vgui/hud/800corner4", "textureid" );
+#endif
 
 	//=============================================================================
 	// HPE_BEGIN:
@@ -1032,7 +1043,11 @@ public:
 
 
 void VguiPanelGetSortedChildPanelList( Panel *pParentPanel, void *pSortedPanels );
+#ifdef SDK_MP
+void VguiPanelGetSortedChildButtonList( Panel *pParentPanel, void *pSortedPanels, char *pchFilter = NULL, int nFilterType = 0 );
+#else
 void VguiPanelGetSortedChildButtonList( Panel *pParentPanel, void *pSortedPanels, const char *pchFilter = NULL, int nFilterType = 0 );
+#endif
 int VguiPanelNavigateSortedChildButtonList( void *pSortedPanels, int nDir );
 int ComputeWide(Panel* pPanel, unsigned int& nBuildFlags, KeyValues *inResourceData, int nParentWide, int nParentTall, bool bComputingForTall);
 int ComputeTall(Panel* pPanel, unsigned int& nBuildFlags, KeyValues *inResourceData, int nParentWide, int nParentTall, bool bComputingForWide);

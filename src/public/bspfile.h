@@ -388,9 +388,13 @@ struct lump_t
 	DECLARE_BYTESWAP_DATADESC();
 	int		fileofs, filelen;
 	int		version;		// default to zero
+#ifdef SDK_MP
 	// this field was char fourCC[4] previously, but was unused, favoring the LUMP IDs above instead. It has been
 	// repurposed for compression.  0 implies the lump is not compressed.
 	int		uncompressedSize; // default to zero
+#else
+	char	fourCC[4];		// default to ( char )0, ( char )0, ( char )0, ( char )0
+#endif
 };
 
 

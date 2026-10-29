@@ -136,6 +136,7 @@ public:
 	/// Region identifier.  This is an optional field, the default value is empty, meaning the "world" region
 	virtual void SetRegion( const char *pszRegion ) = 0;
 
+#ifdef SDK_MP
 	/// Indicate whether you wish to be listed on the master server list
 	/// and/or respond to server browser / LAN discovery packets.
 	/// The server starts with this value set to false.  You should set all
@@ -155,6 +156,47 @@ public:
 	// SteamNetworkingIdentity is an optional parameter to hold the public IP address of the entity you are connecting to
 	// if an IP address is passed Steam will only allow the ticket to be used by an entity with that IP address
 	virtual HAuthTicket GetAuthSessionTicket( void *pTicket, int cbMaxTicket, uint32 *pcbTicket, const SteamNetworkingIdentity *pSnid ) = 0;
+#else
+//
+// Player list management / authentication
+//
+
+	// Handles receiving a new connection from a Steam user.  This call will ask the Steam
+	// servers to validate the users identity, app ownership, and VAC status.  If the Steam servers 
+	// are off-line, then it will validate the cached ticket itself which will validate app ownership 
+	// and identity.  The AuthBlob here should be acquired on the game client using SteamUser()->InitiateGameConnection()
+	// and must then be sent up to the game server for authentication.
+	//
+	// Return Value: returns true if the users ticket passes basic checks. pSteamIDUser will contain the Steam ID of this user. pSteamIDUser must NOT be NULL
+	// If the call succeeds then you should expect a GSClientApprove_t or GSClientDeny_t callback which will tell you whether authentication
+	// for the user has succeeded or failed (the steamid in the callback will match the one returned by this call)
+	virtual bool SendUserConnectAndAuthenticate( uint32 unIPClient, const void *pvAuthBlob, uint32 cubAuthBlobSize, CSteamID *pSteamIDUser ) = 0;
+
+	// Creates a fake user (ie, a bot) which will be listed as playing on the server, but skips validation.  
+	// 
+	// Return Value: Returns a SteamID for the user to be tracked with, you should call HandleUserDisconnect()
+	// when this user leaves the server just like you would for a real user.
+	virtual CSteamID CreateUnauthenticatedUserConnection() = 0;
+
+	// Should be called whenever a user leaves our game server, this lets Steam internally
+	// track which users are currently on which servers for the purposes of preventing a single
+	// account being logged into multiple servers, showing who is currently on a server, etc.
+	virtual void SendUserDisconnect( CSteamID steamIDUser ) = 0;
+
+	// Update the data to be displayed in the server browser and matchmaking interfaces for a user
+	// currently connected to the server.  For regular users you must call this after you receive a
+	// GSUserValidationSuccess callback.
+	// 
+	// Return Value: true if successful, false if failure (ie, steamIDUser wasn't for an active player)
+	virtual bool BUpdateUserData( CSteamID steamIDUser, const char *pchPlayerName, uint32 uScore ) = 0;
+
+	// New auth system APIs - do not mix with the old auth system APIs.
+	// ----------------------------------------------------------------
+
+	// Retrieve ticket to be sent to the entity who wishes to authenticate you ( using BeginAuthSession API ). 
+	// pcbTicket retrieves the length of the actual ticket.
+	virtual HAuthTicket GetAuthSessionTicket( void *pTicket, int cbMaxTicket, uint32 *pcbTicket ) = 0;
+#endif
 
 	// Authenticate ticket ( from GetAuthSessionTicket ) from entity steamID to be sure it is valid and isnt reused
 	// Registers for callbacks if the entity goes offline or cancels the ticket ( see ValidateAuthTicketResponse_t callback and EAuthSessionResponse )
@@ -206,6 +248,24 @@ public:
 	// Call this each frame until it returns 0.
 	virtual int GetNextOutgoingPacket( void *pOut, int cbMaxOut, uint32 *pNetAdr, uint16 *pPort ) = 0;
 
+#ifndef SDK_MP
+//
+// Control heartbeats / advertisement with master server
+//
+
+	// Call this as often as you like to tell the master server updater whether or not
+	// you want it to be active (default: off).
+	virtual void EnableHeartbeats( bool bActive ) = 0;
+
+	// You usually don't need to modify this.
+	// Pass -1 to use the default value for iHeartbeatInterval.
+	// Some mods change this.
+	virtual void SetHeartbeatInterval( int iHeartbeatInterval ) = 0;
+
+	// Force a heartbeat to steam at the next opportunity
+	virtual void ForceHeartbeat() = 0;
+#endif
+
 //
 // Server clan association
 //
@@ -221,6 +281,7 @@ public:
 
 
 
+#ifdef SDK_MP
 	// Handles receiving a new connection from a Steam user.  This call will ask the Steam
 	// servers to validate the users identity, app ownership, and VAC status.  If the Steam servers 
 	// are off-line, then it will validate the cached ticket itself which will validate app ownership 
@@ -264,9 +325,14 @@ public:
 		virtual void SetMasterServerHeartbeatInterval_DEPRECATED( int iHeartbeatInterval ) = 0;
 		virtual void ForceMasterServerHeartbeat_DEPRECATED() = 0;
 	)
+#endif
 };
 
+#ifdef SDK_MP
 #define STEAMGAMESERVER_INTERFACE_VERSION "SteamGameServer015"
+#else
+#define STEAMGAMESERVER_INTERFACE_VERSION "SteamGameServer012"
+#endif
 
 // Global accessor
 inline ISteamGameServer *SteamGameServer();

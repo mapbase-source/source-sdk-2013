@@ -102,7 +102,9 @@ namespace VideoSystem
 		WMV,
 		QUICKTIME,
 		WEBM,
+#ifdef SDK_MP
 		SOURCE2_WRAPPER,
+#endif
 		
 		VIDEO_SYSTEM_COUNT,
 		VIDEO_SYSTEM_FIRST = 1,

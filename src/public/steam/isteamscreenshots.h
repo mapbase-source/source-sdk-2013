@@ -68,6 +68,7 @@ public:
 	// Tags a published file as being visible in the screenshot
 	virtual bool TagPublishedFile( ScreenshotHandle hScreenshot, PublishedFileId_t unPublishedFileID ) = 0;
 
+#ifdef SDK_MP
 	// Returns true if the app has hooked the screenshot
 	virtual bool IsScreenshotsHooked() = 0;
 
@@ -77,13 +78,18 @@ public:
 	// The return value is a handle that is valid for the duration of the game process and can be used to apply tags.
 	// JPEG, TGA, and PNG formats are supported.
 	virtual ScreenshotHandle AddVRScreenshotToLibrary( EVRScreenshotType eType, const char *pchFilename, const char *pchVRFilename ) = 0;
+#endif
 };
 
+#ifdef SDK_MP
 #define STEAMSCREENSHOTS_INTERFACE_VERSION "STEAMSCREENSHOTS_INTERFACE_VERSION003"
 
 // Global interface accessor
 inline ISteamScreenshots *SteamScreenshots();
 STEAM_DEFINE_USER_INTERFACE_ACCESSOR( ISteamScreenshots *, SteamScreenshots, STEAMSCREENSHOTS_INTERFACE_VERSION );
+#else
+#define STEAMSCREENSHOTS_INTERFACE_VERSION "STEAMSCREENSHOTS_INTERFACE_VERSION002"
+#endif
 
 // callbacks
 #if defined( VALVE_CALLBACK_PACK_SMALL )

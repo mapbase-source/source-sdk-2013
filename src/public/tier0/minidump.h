@@ -75,11 +75,13 @@ PLATFORM_INTERFACE bool WriteMiniDumpUsingExceptionInfo(
 	tchar *ptchMinidumpFileNameBuffer = NULL
 	);
 
+#ifdef SDK_MP
 // A slightly smart wrapper around WriteMiniDumpUsingExceptionInfo that tries to select the right minidump type on
 // context.
 PLATFORM_INTERFACE void AutoWriteMiniDumpUsingExceptionInfo( unsigned int uStructuredExceptionCode,
                                                              _EXCEPTION_POINTERS * pExceptionInfo,
                                                              const char *pszFilenameSuffix );
+#endif
 
 // Call this to enable a handler for unhandled exceptions.
 PLATFORM_INTERFACE void MinidumpSetUnhandledExceptionFunction( FnMiniDump pfn );
@@ -90,6 +92,7 @@ PLATFORM_INTERFACE void EnableCrashingOnCrashes();
 
 #endif // defined(_WIN32) && !defined(_X360)
 
+#ifdef SDK_MP
 //
 // Minidump User Stream Info Comments.
 //
@@ -105,6 +108,7 @@ PLATFORM_INTERFACE void MinidumpUserStreamInfoAppend( const char *pFormat, ... )
 //  Returns NULL when you've reached the end of the comment string array
 //  Empty strings ("\0") can be returned if comment hasn't been set
 PLATFORM_INTERFACE const char *MinidumpUserStreamInfoGet( int Index );
+#endif
 
 #endif // MINIDUMP_H
 

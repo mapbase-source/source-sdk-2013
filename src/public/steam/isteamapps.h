@@ -78,6 +78,7 @@ public:
 	// Check for new launch parameters on callback NewUrlLaunchParameters_t
 	virtual const char *GetLaunchQueryParam( const char *pchKey ) = 0; 
 
+#ifdef SDK_MP
 	// get download progress for optional DLC
 	virtual bool GetDlcDownloadProgress( AppId_t nAppID, uint64 *punBytesDownloaded, uint64 *punBytesTotal ) = 0; 
 
@@ -111,13 +112,18 @@ public:
 
 	// set current DLC AppID being played (or 0 if none). Allows Steam to track usage of major DLC extensions
 	virtual bool SetDlcContext( AppId_t nAppID ) = 0; 
+#endif
 };
 
+#ifdef SDK_MP
 #define STEAMAPPS_INTERFACE_VERSION "STEAMAPPS_INTERFACE_VERSION008"
 
 // Global interface accessor
 inline ISteamApps *SteamApps();
 STEAM_DEFINE_USER_INTERFACE_ACCESSOR( ISteamApps *, SteamApps, STEAMAPPS_INTERFACE_VERSION );
+#else
+#define STEAMAPPS_INTERFACE_VERSION "STEAMAPPS_INTERFACE_VERSION006"
+#endif
 
 // callbacks
 #if defined( VALVE_CALLBACK_PACK_SMALL )

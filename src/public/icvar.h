@@ -87,9 +87,15 @@ public:
 	// Install a console printer
 	virtual void			InstallConsoleDisplayFunc( IConsoleDisplayFunc* pDisplayFunc ) = 0;
 	virtual void			RemoveConsoleDisplayFunc( IConsoleDisplayFunc* pDisplayFunc ) = 0;
+#ifdef SDK_MP
 	virtual void			ConsoleColorPrintf( const Color& clr, PRINTF_FORMAT_STRING const char *pFormat, ... ) const FMTFUNCTION( 3, 4 ) = 0;
 	virtual void			ConsolePrintf( PRINTF_FORMAT_STRING const char *pFormat, ... ) const FMTFUNCTION( 2, 3 ) = 0;
 	virtual void			ConsoleDPrintf( PRINTF_FORMAT_STRING const char *pFormat, ... ) const FMTFUNCTION( 2, 3 ) = 0;
+#else
+	virtual void			ConsoleColorPrintf( const Color& clr, PRINTF_FORMAT_STRING const char *pFormat, ... ) const = 0;
+	virtual void			ConsolePrintf( PRINTF_FORMAT_STRING const char *pFormat, ... ) const = 0;
+	virtual void			ConsoleDPrintf( PRINTF_FORMAT_STRING const char *pFormat, ... ) const = 0;
+#endif
 
 	// Reverts cvars which contain a specific flag
 	virtual void			RevertFlaggedConVars( int nFlag ) = 0;

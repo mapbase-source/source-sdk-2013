@@ -1,8 +1,13 @@
-//====== Copyright © 1996-2014 Valve Corporation, All rights reserved. =======
+//====== Copyright ï¿½ 1996-2014 Valve Corporation, All rights reserved. =======
 //
 // Purpose: interface to Steam Inventory
 //
 //=============================================================================
+
+#ifdef SDK_SP
+// Not in SP SDK
+#define ISTEAMINVENTORY_H
+#endif
 
 #ifndef ISTEAMINVENTORY_H
 #define ISTEAMINVENTORY_H

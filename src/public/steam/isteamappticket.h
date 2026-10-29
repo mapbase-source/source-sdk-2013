@@ -6,6 +6,11 @@
 //
 //=============================================================================
 
+#ifdef SDK_SP
+// Not in SP SDK
+#define ISTEAMAPPTICKET_H
+#endif
+
 #ifndef ISTEAMAPPTICKET_H
 #define ISTEAMAPPTICKET_H
 #pragma once
