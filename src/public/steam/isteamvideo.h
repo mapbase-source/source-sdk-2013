@@ -1,8 +1,13 @@
-//====== Copyright © 1996-2014 Valve Corporation, All rights reserved. =======
+//====== Copyright ï¿½ 1996-2014 Valve Corporation, All rights reserved. =======
 //
 // Purpose: interface to Steam Video
 //
 //=============================================================================
+
+#ifdef SDK_SP
+// Not in SP SDK
+#define ISTEAMVIDEO_H
+#endif
 
 #ifndef ISTEAMVIDEO_H
 #define ISTEAMVIDEO_H

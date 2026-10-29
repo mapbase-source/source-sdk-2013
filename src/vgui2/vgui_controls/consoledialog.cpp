@@ -1035,7 +1035,11 @@ void CConsolePanel::AddToHistory( const char *commandText, const char *extraText
 	free( extra );
 }
 
+#ifdef SDK_MP
 void CConsolePanel::GetConsoleText( char *pchText, int nBufSize ) const
+#else
+void CConsolePanel::GetConsoleText( char *pchText, size_t nBufSize ) const
+#endif
 {
 	wchar_t *temp = new wchar_t[nBufSize];
 	m_pHistory->GetText( 0, temp, nBufSize * (int)sizeof( wchar_t ) );

@@ -64,9 +64,11 @@ public:
 
 #define STEAMMUSICREMOTE_INTERFACE_VERSION "STEAMMUSICREMOTE_INTERFACE_VERSION001"
 
+#ifdef SDK_MP
 // Global interface accessor
 inline ISteamMusicRemote *SteamMusicRemote();
 STEAM_DEFINE_USER_INTERFACE_ACCESSOR( ISteamMusicRemote *, SteamMusicRemote, STEAMMUSICREMOTE_INTERFACE_VERSION );
+#endif
 
 // callbacks
 #if defined( VALVE_CALLBACK_PACK_SMALL )

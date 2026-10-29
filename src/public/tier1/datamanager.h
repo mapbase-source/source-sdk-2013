@@ -133,6 +133,7 @@ class CDataManager : public CDataManagerBase
 	typedef CDataManagerBase BaseClass;
 public:
 
+#ifdef SDK_MP
 	CDataManager( unsigned int size = (unsigned)-1 ) : BaseClass(size) {}
 	
 
@@ -141,6 +142,16 @@ public:
 		// NOTE: This must be called in all implementations of CDataManager
 		FreeAllLists();
 	}
+#else
+	CDataManager<STORAGE_TYPE, CREATE_PARAMS, LOCK_TYPE, MUTEX_TYPE>( unsigned int size = (unsigned)-1 ) : BaseClass(size) {}
+	
+
+	~CDataManager<STORAGE_TYPE, CREATE_PARAMS, LOCK_TYPE, MUTEX_TYPE>()
+	{
+		// NOTE: This must be called in all implementations of CDataManager
+		FreeAllLists();
+	}
+#endif
 
 	// Use GetData() to translate pointer to LOCK_TYPE
 	LOCK_TYPE LockResource( memhandle_t hMem )
@@ -180,10 +191,17 @@ public:
 	// Wrapper to match implementation of allocation with typed storage & alloc params.
 	memhandle_t CreateResource( const CREATE_PARAMS &createParams, bool bCreateLocked = false )
 	{
+#ifdef SDK_MP
 		BaseClass::EnsureCapacity((unsigned int)STORAGE_TYPE::EstimatedSize(createParams));
 		unsigned short memoryIndex = BaseClass::CreateHandle( bCreateLocked );
 		STORAGE_TYPE *pStore = STORAGE_TYPE::CreateResource( createParams );
 		return BaseClass::StoreResourceInHandle( memoryIndex, pStore, (unsigned int) pStore->Size() );
+#else
+		BaseClass::EnsureCapacity(STORAGE_TYPE::EstimatedSize(createParams));
+		unsigned short memoryIndex = BaseClass::CreateHandle( bCreateLocked );
+		STORAGE_TYPE *pStore = STORAGE_TYPE::CreateResource( createParams );
+		return BaseClass::StoreResourceInHandle( memoryIndex, pStore, pStore->Size() );
+#endif
 	}
 
 	// Iteration. Must lock first

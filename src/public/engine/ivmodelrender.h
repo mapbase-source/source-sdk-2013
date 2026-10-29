@@ -178,7 +178,9 @@ public:
 	virtual void AddColoredDecal( ModelInstanceHandle_t handle, Ray_t const& ray, 
 		Vector const& decalUp, int decalIndex, int body, Color cColor, bool noPokeThru = false, int maxLODToDecal = ADDDECAL_TO_ALL_LODS ) = 0;
 
-	virtual void GetMaterialOverride( IMaterial** ppOutForcedMaterial, OverrideType_t* pOutOverrideType ) = 0;
+#ifdef SDK_MP
+		virtual void GetMaterialOverride( IMaterial** ppOutForcedMaterial, OverrideType_t* pOutOverrideType ) = 0;
+#endif
 };
 
 

@@ -55,14 +55,23 @@ typedef uintp VPANEL;
 
 // handles to vgui objects
 // NULL values signify an invalid value
+#ifdef SDK_MP
 typedef uint32 HScheme;
 // Both -1 and 0 are used for invalid textures. Be careful.
 typedef uint32 HTexture;
 typedef uint32 HCursor;
 typedef uint32 HPanel;
-const HPanel INVALID_PANEL = 0xffffffff;
 typedef uint32 HFont;
+#else
+typedef unsigned long HScheme;
+// Both -1 and 0 are used for invalid textures. Be careful.
+typedef unsigned long HTexture;
+typedef unsigned long HCursor;
+typedef unsigned long HPanel;
+typedef unsigned long HFont;
+#endif
 const HFont INVALID_FONT = 0; // the value of an invalid font handle
+const HPanel INVALID_PANEL = 0xffffffff;
 }
 
 #include "tier1/strtools.h"

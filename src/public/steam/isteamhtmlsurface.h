@@ -139,7 +139,11 @@ public:
 
 	// keyboard interactions, native keycode is the virtual key code value from your OS, system key flags the key to not
 	// be sent as a typed character as well as a key down
+#ifdef SDK_MP
 	virtual void KeyDown( HHTMLBrowser unBrowserHandle, uint32 nNativeKeyCode, EHTMLKeyModifiers eHTMLKeyModifiers, bool bIsSystemKey = false ) = 0;
+#else
+	virtual void KeyDown( HHTMLBrowser unBrowserHandle, uint32 nNativeKeyCode, EHTMLKeyModifiers eHTMLKeyModifiers ) = 0;
+#endif
 	virtual void KeyUp( HHTMLBrowser unBrowserHandle, uint32 nNativeKeyCode, EHTMLKeyModifiers eHTMLKeyModifiers ) = 0;
 	// cUnicodeChar is the unicode character point for this keypress (and potentially multiple chars per press)
 	virtual void KeyChar( HHTMLBrowser unBrowserHandle, uint32 cUnicodeChar, EHTMLKeyModifiers eHTMLKeyModifiers ) = 0;
@@ -172,6 +176,7 @@ public:
 	// Zoom the current page by flZoom ( from 0.0 to 2.0, so to zoom to 120% use 1.2 ), zooming around point X,Y in the page (use 0,0 if you don't care)
 	virtual void SetPageScaleFactor( HHTMLBrowser unBrowserHandle, float flZoom, int nPointX, int nPointY ) = 0;
 
+#ifdef SDK_MP
 	// Enable/disable low-resource background mode, where javascript and repaint timers are throttled, resources are
 	// more aggressively purged from memory, and audio/video elements are paused. When background mode is enabled,
 	// all HTML5 video and audio objects will execute ".pause()" and gain the property "._steam_background_paused = 1".
@@ -184,6 +189,7 @@ public:
 
 	// Open HTML/JS developer tools
 	virtual void OpenDeveloperTools( HHTMLBrowser unBrowserHandle ) = 0;
+#endif
 
 	// CALLBACKS
 	//
@@ -204,11 +210,15 @@ public:
 	virtual void FileLoadDialogResponse( HHTMLBrowser unBrowserHandle, const char **pchSelectedFiles ) = 0;
 };
 
+#ifdef SDK_MP
 #define STEAMHTMLSURFACE_INTERFACE_VERSION "STEAMHTMLSURFACE_INTERFACE_VERSION_005"
 
 // Global interface accessor
 inline ISteamHTMLSurface *SteamHTMLSurface();
 STEAM_DEFINE_USER_INTERFACE_ACCESSOR( ISteamHTMLSurface *, SteamHTMLSurface, STEAMHTMLSURFACE_INTERFACE_VERSION );
+#else
+#define STEAMHTMLSURFACE_INTERFACE_VERSION "STEAMHTMLSURFACE_INTERFACE_VERSION_002"
+#endif
 
 // callbacks
 #if defined( VALVE_CALLBACK_PACK_SMALL )

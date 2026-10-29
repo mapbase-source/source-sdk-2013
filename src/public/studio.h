@@ -26,7 +26,9 @@
 #include "datamap.h"
 #include "generichash.h"
 #include "localflexcontroller.h"
+#ifdef SDK_MP
 #include "utlsymbol.h"
+#endif
 
 #define STUDIO_ENABLE_PERF_COUNTERS
 
@@ -106,6 +108,7 @@ struct mstudiodata_t
 #define STUDIO_PROC_AIMATATTACH 4
 #define STUDIO_PROC_JIGGLE 5
 
+#ifdef SDK_MP
 // If you want to embed a pointer into one of the structures that is serialized, use this class! It will ensure that the pointers consume the 
 // right amount of space and work correctly across 32 and 64 bit. It also makes sure that there is no surprise about how large the structure
 // is when placed in the middle of another structure, and supports Intel's desired behavior on 64-bit that pointers are always 8-byte aligned.
@@ -137,6 +140,7 @@ struct ALIGN4 serializedstudioptr_t
 } ALIGN4_POST;
 
 #pragma pack( pop )
+#endif
 
 
 struct mstudioaxisinterpbone_t
@@ -788,6 +792,7 @@ struct mstudioautolayer_t
 	float				end;	// end of all influence
 };
 
+#ifdef SDK_MP
 struct mstudioactivitymodifier_t
 {
 	DECLARE_BYTESWAP_DATADESC();
@@ -795,6 +800,7 @@ struct mstudioactivitymodifier_t
 	int					sznameindex;
 	inline char			*pszName() { return (sznameindex) ? (char *)(((byte *)this) + sznameindex ) : NULL; }
 };
+#endif
 
 // sequence descriptions
 struct mstudioseqdesc_t
@@ -892,11 +898,15 @@ struct mstudioseqdesc_t
 
 	int					cycleposeindex;		// index of pose parameter to use as cycle index
 
+#ifdef SDK_MP
 	int					activitymodifierindex;
 	int					numactivitymodifiers;
 	inline mstudioactivitymodifier_t *pActivityModifier( int i ) const { Assert( i >= 0 && i < numactivitymodifiers); return activitymodifierindex != 0 ? (mstudioactivitymodifier_t *)(((byte *)this) + activitymodifierindex) + i : NULL; };
 
 	int					unused[5];		// remove/add as appropriate (grow back to 8 ints on version change!)
+#else
+	int					unused[7];		// remove/add as appropriate (grow back to 8 ints on version change!)
+#endif
 
 	mstudioseqdesc_t() = default;
 private:
@@ -2269,7 +2279,11 @@ struct studiohdr_t
 //public:
 	int					EntryNode( int iSequence );
 	int					ExitNode( int iSequence );
+#ifdef SDK_MP
 	char				*pszNodeName( int iNode );
+#else
+	const char			*pszNodeName( int iNode );
+#endif
 	int					GetTransition( int iFrom, int iTo ) const;
 
 	int					numflexdesc;
@@ -2413,6 +2427,7 @@ struct studiohdr_t
 	inline int			BoneFlexDriverCount() const { return studiohdr2index ? pStudioHdr2()->m_nBoneFlexDriverCount : 0; }
 	inline const mstudioboneflexdriver_t* BoneFlexDriver( int i ) const { Assert( i >= 0 && i < BoneFlexDriverCount() ); return studiohdr2index ? pStudioHdr2()->pBoneFlexDriver( i ) : NULL; }
 
+#ifdef SDK_MP
 #ifdef PLATFORM_64BITS
 	void* 				VirtualModel() const { return studiohdr2index ? (void *)( pStudioHdr2()->virtualModel ) : nullptr; }
 	void				SetVirtualModel( void* ptr ) { Assert( studiohdr2index ); if ( studiohdr2index ) { pStudioHdr2()->virtualModel = ptr; } }
@@ -2429,6 +2444,7 @@ struct studiohdr_t
 	void				SetVertexBase( void* _pVertexBase ) const { pVertexBase = _pVertexBase; }
 	void*				IndexBase() const { return pIndexBase; }
 	void				SetIndexBase( void* _pIndexBase ) const { pIndexBase = _pIndexBase; }
+#endif
 #endif
 
 	// NOTE: No room to add stuff? Up the .mdl file format version 
@@ -2472,12 +2488,17 @@ public:
 	inline const studiohdr_t	*GetRenderHdr( void ) const { return m_pStudioHdr; };
 	const studiohdr_t *pSeqStudioHdr( int sequence );
 	const studiohdr_t *pAnimStudioHdr( int animation );
+#ifdef SDK_MP
 	const virtualmodel_t * ResetVModel( const virtualmodel_t *pVModel ) const;
+#endif
 
 private:
 	mutable const studiohdr_t		*m_pStudioHdr;
 	mutable virtualmodel_t	*m_pVModel;
 
+#ifndef SDK_MP
+	const virtualmodel_t * ResetVModel( const virtualmodel_t *pVModel ) const;
+#endif
 	const studiohdr_t *GroupStudioHdr( int group );
 	mutable CUtlVector< const studiohdr_t * > m_pStudioHdrCache;
 
@@ -2513,7 +2534,11 @@ public:
 
 	int					EntryNode( int iSequence );
 	int					ExitNode( int iSequence );
+#ifdef SDK_MP
 	char				*pszNodeName( int iNode );
+#else
+	const char			*pszNodeName( int iNode );
+#endif
 	// FIXME: where should this one be?
 	int					GetTransition( int iFrom, int iTo ) const;
 
@@ -2629,8 +2654,10 @@ public:
 		{
 			short		seqnum;
 			short		weight; // the absolute value of the weight from the sequence header
+#ifdef SDK_MP
 			CUtlSymbol	*pActivityModifiers;		// list of activity modifier symbols
 			int			iNumActivityModifiers;
+#endif
 		};
 
 		// The type of the hash's stored data, a composite of both key and value
@@ -2703,10 +2730,12 @@ public:
 		{	
 			if ( m_pSequenceTuples != NULL )
 			{
+#ifdef SDK_MP
 				if ( m_pSequenceTuples->pActivityModifiers != NULL )
 				{
 					delete[] m_pSequenceTuples->pActivityModifiers;
 				}
+#endif
 				delete[] m_pSequenceTuples;
 			}
 		}
@@ -2737,8 +2766,10 @@ public:
 		/// A more efficient version of the old SelectWeightedSequence() function in animation.cpp. 
 		int SelectWeightedSequence( CStudioHdr *pstudiohdr, int activity, int curSequence );
 
+#ifdef SDK_MP
 		// selects the sequence with the most matching modifiers
 		int SelectWeightedSequenceFromModifiers( CStudioHdr *pstudiohdr, int activity, CUtlSymbol *pActivityModifiers, int iModifierCount );
+#endif
 
 		// Actually a big array, into which the hash values index.
 		SequenceTuple *m_pSequenceTuples;
@@ -2761,8 +2792,13 @@ public:
 		const void *m_expectedVModel;
 
 		// double-check that the data I point to hasn't changed
+#ifdef SDK_MP
 		bool ValidateAgainst( const CStudioHdr * RESTRICT pstudiohdr ) RESTRICT;
 		void SetValidationPair( const CStudioHdr *RESTRICT pstudiohdr ) RESTRICT;
+#else
+		bool ValidateAgainst( const CStudioHdr * RESTRICT pstudiohdr );
+		void SetValidationPair( const CStudioHdr *RESTRICT pstudiohdr );
+#endif
 
 		friend class CStudioHdr;
 	};
@@ -2784,6 +2820,7 @@ public:
 		return m_ActivityToSequence.SelectWeightedSequence( this, activity, curSequence );
 	}
 
+#ifdef SDK_MP
 	inline int SelectWeightedSequenceFromModifiers( int activity, CUtlSymbol *pActivityModifiers, int iModifierCount )
 	{
 #if STUDIO_SEQUENCE_ACTIVITY_LAZY_INITIALIZE
@@ -2796,6 +2833,7 @@ public:
 #endif
 		return m_ActivityToSequence.SelectWeightedSequenceFromModifiers( this, activity, pActivityModifiers, iModifierCount );
 	}
+#endif
 
 	/// True iff there is at least one sequence for the given activity.
 	inline bool HaveSequenceForActivity( int activity )	

@@ -8,13 +8,19 @@
 #define KEYFRAME_H
 #pragma once
 
+// Very ugly, but not as bad as putting ifdefs everywhere this is used
+#ifdef SDK_MP
+#define POS_INTERP_CONST const
+#else
+#define POS_INTERP_CONST
+#endif
 
 class IPositionInterpolator
 {
 public:
 	virtual void		Release() = 0;
 
-	virtual void		GetDetails( const char **outName, int *outMinKeyReq, int *outMaxKeyReq ) = 0;
+	virtual void		GetDetails( POS_INTERP_CONST char **outName, int *outMinKeyReq, int *outMaxKeyReq ) = 0;
 	virtual void		SetKeyPosition( int keyNum, Vector const &vPos ) = 0;
 	virtual void		InterpolatePosition( float time, Vector &vOut ) = 0;
 	
@@ -34,7 +40,7 @@ IPositionInterpolator* Motion_GetPositionInterpolator( int interpNum );
 
 // Rotation interpolators.
 int Motion_GetNumberOfRotationInterpolators( void );
-bool Motion_GetRotationInterpolatorDetails( int rotInterpNum, const char **outName, int *outMinKeyReq, int *outMaxKeyReq );
+bool Motion_GetRotationInterpolatorDetails( int rotInterpNum, POS_INTERP_CONST char **outName, int *outMinKeyReq, int *outMaxKeyReq );
 bool Motion_InterpolateRotation( float time, int interpFuncNum, Quaternion &outQuatRotation );
 bool Motion_SetKeyAngles( int keyNum, Quaternion &quatAngles );
 

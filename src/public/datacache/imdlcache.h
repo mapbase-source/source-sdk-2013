@@ -203,7 +203,11 @@ public:
 	virtual vertexFileHeader_t *GetVertexData( MDLHandle_t handle ) = 0;
 
 	// Brings all data associated with an MDL into memory
+#ifdef SDK_MP
 	virtual void TouchAllData_Old( MDLHandle_t handle ) = 0;
+#else
+	virtual void TouchAllData( MDLHandle_t handle ) = 0;
+#endif
 
 	// Gets/sets user data associated with the MDL
 	virtual void SetUserData( MDLHandle_t handle, void* pData ) = 0;
@@ -266,7 +270,9 @@ public:
 
 	virtual void MarkFrame() = 0;
 	
+#ifdef SDK_MP
 	virtual bool TouchAllData( MDLHandle_t handle ) = 0;
+#endif
 };
 
 

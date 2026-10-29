@@ -46,6 +46,7 @@ class Vector;
 #define SNDLEVEL_IS_COMPATIBILITY_MODE( x )		( (x) >= soundlevel_t(256) )
 
 
+#ifdef SDK_MP
 // IAudioOutputStream from source2
 // a separate stream that connects to the main output
 class IAudioOutputStream
@@ -71,6 +72,7 @@ public:
 	virtual void Pause() = 0;
 	virtual void Resume() = 0;
 };
+#endif
 
 
 
@@ -147,6 +149,7 @@ public:
 	virtual void	NotifyBeginMoviePlayback() = 0;
 	virtual void	NotifyEndMoviePlayback() = 0;
 
+#ifdef SDK_MP
 	// create/destroy an audio stream
 	virtual IAudioOutputStream *CreateOutputStream( uint nSampleRate, uint nChannels, uint nBits ) = 0;
 	virtual void DestroyOutputStream( IAudioOutputStream *pStream ) = 0;
@@ -155,6 +158,7 @@ public:
 	virtual void	ManualUpdate( const AudioState_t *pListenerState ) = 0;
 	// Force an extra update.
 	virtual void	ExtraUpdate() = 0;
+#endif
 };
 
 

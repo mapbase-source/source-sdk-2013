@@ -292,6 +292,7 @@ public:
 	STEAM_FLAT_NAME( GetGlobalStatHistoryDouble )
 	virtual int32 GetGlobalStatHistory( const char *pchStatName, STEAM_ARRAY_COUNT(cubData) double *pData, uint32 cubData ) = 0;
 
+#ifdef SDK_MP
 	// For achievements that have related Progress stats, use this to query what the bounds of that progress are.
 	// You may want this info to selectively call IndicateAchievementProgress when appropriate milestones of progress
 	// have been made, to show a progress notification to the user.
@@ -300,14 +301,18 @@ public:
 
 	STEAM_FLAT_NAME( GetAchievementProgressLimitsFloat )
 	virtual bool GetAchievementProgressLimits( const char *pchName, float *pfMinProgress, float *pfMaxProgress ) = 0;
-
+#endif
 };
 
+#ifdef SDK_MP
 #define STEAMUSERSTATS_INTERFACE_VERSION "STEAMUSERSTATS_INTERFACE_VERSION012"
 
 // Global interface accessor
 inline ISteamUserStats *SteamUserStats();
 STEAM_DEFINE_USER_INTERFACE_ACCESSOR( ISteamUserStats *, SteamUserStats, STEAMUSERSTATS_INTERFACE_VERSION );
+#else
+#define STEAMUSERSTATS_INTERFACE_VERSION "STEAMUSERSTATS_INTERFACE_VERSION011"
+#endif
 
 // callbacks
 #if defined( VALVE_CALLBACK_PACK_SMALL )

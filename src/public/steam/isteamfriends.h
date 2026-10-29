@@ -242,6 +242,7 @@ public:
 	virtual bool GetFriendGamePlayed( CSteamID steamIDFriend, STEAM_OUT_STRUCT() FriendGameInfo_t *pFriendGameInfo ) = 0;
 	// accesses old friends names - returns an empty string when their are no more items in the history
 	virtual const char *GetFriendPersonaNameHistory( CSteamID steamIDFriend, int iPersonaName ) = 0;
+#ifdef SDK_MP
 	// friends steam level
 	virtual int GetFriendSteamLevel( CSteamID steamIDFriend ) = 0;
 
@@ -260,6 +261,10 @@ public:
 	virtual int GetFriendsGroupMembersCount( FriendsGroupID_t friendsGroupID ) = 0;
 	// gets up to nMembersCount members of the given friends group, if fewer exist than requested those positions' SteamIDs will be invalid
 	virtual void GetFriendsGroupMembersList( FriendsGroupID_t friendsGroupID, STEAM_OUT_ARRAY_CALL(nMembersCount, GetFriendsGroupMembersCount, friendsGroupID ) CSteamID *pOutSteamIDMembers, int nMembersCount ) = 0;
+#else
+	// Returns nickname the current user has set for the specified player. Returns NULL if the no nickname has been set for that player.
+	virtual const char *GetPlayerNickname( CSteamID steamIDPlayer ) = 0;
+#endif
 
 	// returns true if the specified user meets any of the criteria specified in iFriendFlags
 	// iFriendFlags can be the union (binary or, |) of one or more k_EFriendFlags values
@@ -274,8 +279,13 @@ public:
 	virtual bool GetClanActivityCounts( CSteamID steamIDClan, int *pnOnline, int *pnInGame, int *pnChatting ) = 0;
 
 	// for clans a user is a member of, they will have reasonably up-to-date information, but for others you'll have to download the info to have the latest
+#ifdef SDK_MP
 	STEAM_CALL_RESULT( DownloadClanActivityCountsResult_t )
 	virtual SteamAPICall_t DownloadClanActivityCounts( STEAM_ARRAY_COUNT(cClansToRequest) CSteamID *psteamIDClans, int cClansToRequest ) = 0;
+#else
+	// for clans a user is a member of, they will have reasonably up-to-date information, but for others you'll have to download the info to have the latest
+	virtual SteamAPICall_t DownloadClanActivityCounts( CSteamID *psteamIDClans, int cClansToRequest ) = 0;
+#endif
 
 	// iterators for getting users in a chat room, lobby, game server or clan
 	// note that large clans that cannot be iterated by the local user
@@ -310,7 +320,11 @@ public:
 
 	// activates game overlay web browser directly to the specified URL
 	// full address with protocol type is required, e.g. http://www.steamgames.com/
+#ifdef SDK_MP
 	virtual void ActivateGameOverlayToWebPage( const char *pchURL, EActivateGameOverlayToWebPageMode eMode = k_EActivateGameOverlayToWebPageMode_Default ) = 0;
+#else
+	virtual void ActivateGameOverlayToWebPage( const char *pchURL ) = 0;
+#endif
 
 	// activates game overlay to store page for app
 	virtual void ActivateGameOverlayToStore( AppId_t nAppID, EOverlayToStoreFlag eFlag ) = 0;
@@ -345,7 +359,9 @@ public:
 	// you can only ask about clans that a user is a member of
 	// note that this won't download avatars automatically; if you get an officer,
 	// and no avatar image is available, call RequestUserInformation( steamID, false ) to download the avatar
+#ifdef SDK_MP
 	STEAM_CALL_RESULT( ClanOfficerListResponse_t )
+#endif
 	virtual SteamAPICall_t RequestClanOfficerList( CSteamID steamIDClan ) = 0;
 
 	// iteration of clan officers - can only be done when a RequestClanOfficerList() call has completed
@@ -402,7 +418,9 @@ public:
 	// this allows in-game access to group (clan) chats from in the game
 	// the behavior is somewhat sophisticated, because the user may or may not be already in the group chat from outside the game or in the overlay
 	// use ActivateGameOverlayToUser( "chat", steamIDClan ) to open the in-game overlay version of the chat
+#ifdef SDK_MP
 	STEAM_CALL_RESULT( JoinClanChatRoomCompletionResult_t )
+#endif
 	virtual SteamAPICall_t JoinClanChatRoom( CSteamID steamIDClan ) = 0;
 	virtual bool LeaveClanChatRoom( CSteamID steamIDClan ) = 0;
 	virtual int GetClanChatMemberCount( CSteamID steamIDClan ) = 0;
@@ -430,6 +448,7 @@ public:
 	STEAM_CALL_RESULT( FriendsEnumerateFollowingList_t )
 	virtual SteamAPICall_t EnumerateFollowingList( uint32 unStartIndex ) = 0;
 
+#ifdef SDK_MP
 	virtual bool IsClanPublic( CSteamID steamIDClan ) = 0;
 	virtual bool IsClanOfficialGameGroup( CSteamID steamIDClan ) = 0;
 
@@ -459,13 +478,18 @@ public:
 	virtual bool BHasEquippedProfileItem( CSteamID steamID, ECommunityProfileItemType itemType ) = 0;
 	virtual const char *GetProfileItemPropertyString( CSteamID steamID, ECommunityProfileItemType itemType, ECommunityProfileItemProperty prop ) = 0;
 	virtual uint32 GetProfileItemPropertyUint( CSteamID steamID, ECommunityProfileItemType itemType, ECommunityProfileItemProperty prop ) = 0;
+#endif
 };
 
+#ifdef SDK_MP
 #define STEAMFRIENDS_INTERFACE_VERSION "SteamFriends017"
 
 // Global interface accessor
 inline ISteamFriends *SteamFriends();
 STEAM_DEFINE_USER_INTERFACE_ACCESSOR( ISteamFriends *, SteamFriends, STEAMFRIENDS_INTERFACE_VERSION );
+#else
+#define STEAMFRIENDS_INTERFACE_VERSION "SteamFriends014"
+#endif
 
 // callbacks
 #if defined( VALVE_CALLBACK_PACK_SMALL )

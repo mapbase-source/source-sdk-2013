@@ -114,8 +114,10 @@ DEFPARTICLE_ATTRIBUTE( TRACE_P1, 18 );						// end pnt of trace
 DEFPARTICLE_ATTRIBUTE( TRACE_HIT_T, 19 );					// 0..1 if hit
 DEFPARTICLE_ATTRIBUTE( TRACE_HIT_NORMAL, 20 );				// 0 0 0 if no hit
 
+#ifdef SDK_MP
 // target cp index
 DEFPARTICLE_ATTRIBUTE( CONTROL_POINT_INDEX, 21 );
+#endif
 
 
 #define MAX_PARTICLE_CONTROL_POINTS 64
@@ -126,7 +128,11 @@ DEFPARTICLE_ATTRIBUTE( CONTROL_POINT_INDEX, 21 );
                                           PARTICLE_ATTRIBUTE_HITBOX_RELATIVE_XYZ_MASK )
 #define ATTRIBUTES_WHICH_ARE_0_TO_1 (PARTICLE_ATTRIBUTE_ALPHA_MASK | PARTICLE_ATTRIBUTE_ALPHA2_MASK)
 #define ATTRIBUTES_WHICH_ARE_ANGLES (PARTICLE_ATTRIBUTE_ROTATION_MASK | PARTICLE_ATTRIBUTE_YAW_MASK )
+#ifdef SDK_MP
 #define ATTRIBUTES_WHICH_ARE_INTS (PARTICLE_ATTRIBUTE_PARTICLE_ID_MASK | PARTICLE_ATTRIBUTE_HITBOX_INDEX_MASK | PARTICLE_ATTRIBUTE_CONTROL_POINT_INDEX_MASK )
+#else
+#define ATTRIBUTES_WHICH_ARE_INTS (PARTICLE_ATTRIBUTE_PARTICLE_ID_MASK | PARTICLE_ATTRIBUTE_HITBOX_INDEX_MASK )
+#endif
 
 #if defined( _X360 )
 #define MAX_PARTICLES_IN_A_SYSTEM 2000
@@ -212,6 +218,7 @@ public:
 };
 
 
+#ifdef SDK_MP
 //-----------------------------------------------------------------------------
 // ParticlesCheckFloat
 //-----------------------------------------------------------------------------
@@ -224,6 +231,7 @@ FORCEINLINE bool ParticlesCheckFloat( const Vector& v );
 FORCEINLINE bool ParticlesCheckFloat( const matrix3x4_t& v );
 FORCEINLINE bool ParticlesCheckFloat( const Quaternion& v );
 
+#endif
 #endif
 
 //-----------------------------------------------------------------------------
@@ -405,7 +413,9 @@ public:
 	// Cache/uncache materials used by particle systems
 	void PrecacheParticleSystem( const char *pName );
 	void UncacheAllParticleSystems();
+#ifdef SDK_MP
 	void RecreateDictionary();
+#endif
 
 	// Sets the last simulation time, used for particle system sleeping logic
 	void SetLastSimulationTime( float flTime );
@@ -685,7 +695,11 @@ public:
 	}
 	
 	// should the constraint be run only once after all other constraints?
+#ifdef SDK_MP
 	virtual bool IsFinalConstraint( void ) const
+#else
+	virtual bool IsFinalConstaint( void ) const
+#endif
 	{
 		return false;
 	}
@@ -737,11 +751,13 @@ public:
 		return false;
 	}
 
+#ifdef SDK_MP
 	// Does this operator require that particles remain in the order they were emitted?
 	virtual bool RequiresOrderInvariance( void ) const
 	{
 		return false;
 	}
+#endif
 
 	// Called when the SFM wants to skip forward in time
 	virtual void SkipToTime( float flTime, CParticleCollection *pParticles, void *pContext ) const {}
@@ -986,7 +1002,9 @@ struct CParticleVisibilityData
 {
 	float	m_flAlphaVisibility;
 	float	m_flRadiusVisibility;
+#ifdef SDK_MP
 	float	m_flCameraBias;
+#endif
 	bool	m_bUseVisibility;
 };
 
@@ -1000,11 +1018,13 @@ struct CParticleControlPoint
 	Vector m_UpVector = vec3_origin;
 	Vector m_RightVector = vec3_origin;
 
+#ifdef SDK_MP
 	Vector m_vVelocity = vec3_origin;
 
 	float m_flRadius = 0.;
 	float m_flDensity = 1.;
 	float m_flDuration = 0.;
+#endif
 
 	// reference to entity or whatever this control point comes from
 	void *m_pObject = nullptr;
@@ -1059,9 +1079,11 @@ public:
 	// compute bounds from particle list
 	void RecomputeBounds( void );
 
+#ifdef SDK_MP
 	void ResetControlPoints( void );
 	void SetControlPointIndex( int nWhichPoint );
 	int	GetControlPointIndex( void ) const { return m_nTargetCP; }
+#endif
 	void SetControlPoint( int nWhichPoint, const Vector &v );
 	void SetControlPointObject( int nWhichPoint, void *pObject );
 
@@ -1073,6 +1095,7 @@ public:
 	void SetControlPointRightVector( int nWhichPoint, const Vector &v );
 	void SetControlPointParent( int nWhichPoint, int n );
 
+#ifdef SDK_MP
 	// if unset, vel is [ 0 0 0]
 	void SetControlPointVelocity( int nWhichPoint, Vector vVel );
 	// if unset, radius is 0
@@ -1081,6 +1104,7 @@ public:
 	void SetControlPointDensity( int nWhichPoint, float flDensity );
 	// if unset, duration is 0
 	void SetControlPointDuration( int nWhichPoint, float flDuration );
+#endif
 
 	// get the pointer to an attribute for a given particle.  
 	// !!speed!! if you find yourself calling this anywhere that matters, 
@@ -1099,7 +1123,9 @@ public:
 	float *GetFloatAttributePtrForWrite( int nAttribute, int nParticleNumber );
 	fltx4 *GetM128AttributePtrForWrite( int nAttribute, size_t *pStrideOut );
 	FourVectors *Get4VAttributePtrForWrite( int nAttribute, size_t *pStrideOut );
+#ifdef SDK_MP
 	FourInts *Get4IAttributePtrForWrite( int nAttribute, size_t *pStrideOut ) const;
+#endif
 
 	const float *GetInitialFloatAttributePtr( int nAttribute, int nParticleNumber ) const;
 	const fltx4 *GetInitialM128AttributePtr( int nAttribute, size_t *pStrideOut ) const;
@@ -1107,7 +1133,12 @@ public:
 	float *GetInitialFloatAttributePtrForWrite( int nAttribute, int nParticleNumber );
 	fltx4 *GetInitialM128AttributePtrForWrite( int nAttribute, size_t *pStrideOut );
 
+#ifdef SDK_MP
 	void Simulate( float dt, bool updateBboxOnly );
+#else
+	void Simulate( float dt );
+	inline void Simulate( float dt, bool updateBboxOnly ) { Simulate( dt ); }
+#endif
 	void SkipToTime( float t );
 
 	// the camera objetc may be compared for equality against control point objects
@@ -1137,6 +1168,7 @@ public:
 	void GetControlPointTransformAtCurrentTime( int nControlPoint, VMatrix *pMat );
 	int GetControlPointParent( int nControlPoint ) const;
 
+#ifdef SDK_MP
 	float GetFloatAttributeValue( int nAttribute, int nParticleNumber ) const;
 	Vector GetVectorAttributeValue( int nAttribute, int nParticleNumber ) const;
 
@@ -1144,11 +1176,17 @@ public:
 	float GetControlPointDensityAtCurrentTime( int nControlPoint ) const;
 	float GetControlPointDurationAtCurrentTime( int nControlPoint ) const;
 	Vector GetControlPointVelocityAtCurrentTime( int nControlPoint ) const;
+#endif
 
 	// Used to retrieve the position of a control point
 	// somewhere between m_fCurTime and m_fCurTime - m_fPreviousDT
+#ifdef SDK_MP
 	void GetControlPointAtTime( int nControlPoint, float flTime, Vector *pControlPoint ) const;
 	void GetControlPointAtPrevTime( int nControlPoint, Vector *pControlPoint ) const;
+#else
+	void GetControlPointAtTime( int nControlPoint, float flTime, Vector *pControlPoint );
+	void GetControlPointAtPrevTime( int nControlPoint, Vector *pControlPoint );
+#endif
 	void GetControlPointOrientationAtTime( int nControlPoint, float flTime, Vector *pForward, Vector *pRight, Vector *pUp );
 	void GetControlPointTransformAtTime( int nControlPoint, float flTime, matrix3x4_t *pMat );
 	void GetControlPointTransformAtTime( int nControlPoint, float flTime, VMatrix *pMat );
@@ -1256,8 +1294,12 @@ protected:
 	void BloatBoundsUsingControlPoint();
 
 private:
+#ifdef SDK_MP
 	int GenerateSortedIndexList( ParticleRenderData_t *pOut, Vector vecCamera, CParticleVisibilityData *pVisibilityData, bool bSorted );
 	int GenerateCulledSortedIndexList( ParticleRenderData_t *pOut, Vector vecCamera, Vector vecFwd, CParticleVisibilityData *pVisibilityData, bool bSorted );
+#else
+	void GenerateSortedIndexList( Vector vecCameraPos, CParticleVisibilityData *pVisibilityData, bool bSorted );
+#endif
 
 	void Init( CParticleSystemDefinition *pDef, float flDelay, int nRandomSeed );
 	void InitStorage( CParticleSystemDefinition *pDef );
@@ -1306,7 +1348,9 @@ private:
 	bool ComputeIsTranslucent();
 	bool ComputeIsTwoPass();
 	bool ComputeIsBatchable();
+#ifdef SDK_MP
 	bool ComputeRequiresOrderInvariance();
+#endif
 
 	void LabelTextureUsage( void );
 
@@ -1328,7 +1372,9 @@ public:
 	int m_nMaxAllowedParticles;
 	bool m_bDormant;
 	bool m_bEmissionStopped;
+#ifdef SDK_MP
 	bool m_bRequiresOrderInvariance;
+#endif
 
 	int m_LocalLightingCP;
 	Color m_LocalLighting;
@@ -1337,7 +1383,9 @@ public:
 	// particle control points can act as emitter centers, repulsions points, etc.  what they are
 	// used for depends on what operators and parameters your system has.
 	CParticleControlPoint m_ControlPoints[MAX_PARTICLE_CONTROL_POINTS];
+#ifdef SDK_MP
 	FORCEINLINE const CParticleControlPoint &ControlPoint( int nIdx ) const;
+#endif
 	
 	CModelHitBoxesInfo m_ControlPointHitBoxes[MAX_PARTICLE_CONTROL_POINTS];
 
@@ -1363,7 +1411,9 @@ protected:
 	Vector m_MinBounds;
 	Vector m_MaxBounds;
 	int m_nHighestCP;  //Highest CP set externally.  Needs to assert if a system calls to an unassigned CP.
+#ifdef SDK_MP
 	int m_nTargetCP; // Active CP set externally.
+#endif
 
 private:
 
@@ -1398,7 +1448,9 @@ private:
 	
 	// How many frames have we drawn?
 	int m_nDrawnFrames;
+#ifdef SDK_MP
 	int m_nSimulatedFrames;
+#endif
 
 	Vector m_Center;										// average of particle centers
 
@@ -1465,6 +1517,7 @@ public:
 	}
 };
 
+#ifdef SDK_MP
 class C4IAttributeWriteIterator : public CStridedConstPtr<FourInts>
 {
 public:
@@ -1473,6 +1526,7 @@ public:
 		m_pData = pParticles->Get4IAttributePtrForWrite( nAttribute, &m_nStride );
 	}
 };
+#endif
 
 class CM128AttributeWriteIterator : public CStridedPtr<fltx4>
 {
@@ -1546,10 +1600,12 @@ inline void CParticleCollection::SwapPosAndPrevPos( void )
 	V_swap( m_pParticleAttributes[ PARTICLE_ATTRIBUTE_XYZ ], m_pParticleAttributes[ PARTICLE_ATTRIBUTE_PREV_XYZ ] );
 }
 
+#ifdef SDK_MP
 FORCEINLINE const CParticleControlPoint &CParticleCollection::ControlPoint( int nIdx ) const
 {
 	return m_ControlPoints[nIdx];
 }
+#endif
 
 inline void CParticleCollection::LoanKillListTo( CParticleCollection *pBorrower ) const
 {
@@ -1572,6 +1628,7 @@ inline void CParticleCollection::SetAttributeToConstant( int nAttribute, float f
 	fconst[8] = fconst[9] = fconst[10] = fconst[11] = fValueZ;
 }
 
+#ifdef SDK_MP
 inline void CParticleCollection::ResetControlPoints( void )
 {
 	m_nHighestCP = 0;
@@ -1591,6 +1648,7 @@ inline void CParticleCollection::SetControlPointIndex( int nWhichPoint )
 		i->SetControlPointIndex( nWhichPoint );
 	}
 }
+#endif
 
 inline void CParticleCollection::SetControlPoint( int nWhichPoint, const Vector &v )
 {
@@ -1703,6 +1761,7 @@ inline void CParticleCollection::SetControlPointParent( int nWhichPoint, int n )
 	}
 }
 
+#ifdef SDK_MP
 inline void CParticleCollection::SetControlPointVelocity( int nWhichPoint, Vector vVelocity )
 {
 	//AssertDbg( ( nWhichPoint >= 0 ) && ( nWhichPoint < MAX_PARTICLE_CONTROL_POINTS ) );
@@ -1762,6 +1821,7 @@ inline void CParticleCollection::SetControlPointRadius( int nWhichPoint, float f
 		i->SetControlPointRadius( nWhichPoint, flRadius );
 	}
 }
+#endif
 
 // Returns the memory for a particular constant attribute
 inline float *CParticleCollection::GetConstantAttributeMemory( int nAttribute )
@@ -1899,6 +1959,7 @@ inline int *CParticleCollection::GetIntAttributePtrForWrite( int nAttribute, int
 	return reinterpret_cast< int* >( GetFloatAttributePtrForWrite( nAttribute, nParticleNumber ) );
 }
 
+#ifdef SDK_MP
 inline float CParticleCollection::GetFloatAttributeValue( int nAttribute, int nParticleNumber ) const
 {
 	return *GetFloatAttributePtr( nAttribute, nParticleNumber );
@@ -1910,6 +1971,7 @@ inline Vector CParticleCollection::GetVectorAttributeValue( int nAttribute, int 
 	Vector vRet( pValue[0], pValue[4], pValue[8] );
 	return vRet;
 }
+#endif
 
 inline const int *CParticleCollection::GetIntAttributePtr( int nAttribute, int nParticleNumber ) const
 {
@@ -1922,6 +1984,7 @@ inline const fltx4 *CParticleCollection::GetM128AttributePtr( int nAttribute, si
 	return reinterpret_cast<fltx4 *>( m_pParticleAttributes[ nAttribute ] );
 }
 
+#ifdef SDK_MP
 inline const FourInts *CParticleCollection::Get4IAttributePtr( int nAttribute, size_t *pStrideOut ) const
 {
 	*(pStrideOut) = m_nParticleFloatStrides[ nAttribute ]/4;
@@ -1933,6 +1996,13 @@ inline FourInts *CParticleCollection::Get4IAttributePtrForWrite( int nAttribute,
 	*(pStrideOut) = m_nParticleFloatStrides[ nAttribute ]/4;
 	return reinterpret_cast<FourInts *>( m_pParticleAttributes[ nAttribute ] );
 }
+#else
+inline const FourInts *CParticleCollection::Get4IAttributePtr( int nAttribute, size_t *pStrideOut ) const
+{
+	*(pStrideOut) = m_nParticleFloatStrides[ nAttribute ]/4;
+	return reinterpret_cast<FourInts *>( m_pParticleAttributes[ nAttribute ] );
+}
+#endif
 
 inline const int32 *CParticleCollection::GetIntAttributePtr( int nAttribute, size_t *pStrideOut ) const
 {
@@ -2412,6 +2482,7 @@ FORCEINLINE int CParticleCollection::GetControlPointParent( int nControlPoint ) 
 	return m_ControlPoints[nControlPoint].m_nParent;
 }
 
+#ifdef SDK_MP
 FORCEINLINE float CParticleCollection::GetControlPointRadiusAtCurrentTime( int nControlPoint ) const
 {
 	return ControlPoint( nControlPoint ).m_flRadius;
@@ -2431,6 +2502,7 @@ FORCEINLINE Vector CParticleCollection::GetControlPointVelocityAtCurrentTime( in
 {
 	return ControlPoint( nControlPoint ).m_vVelocity;
 }
+#endif
 
 FORCEINLINE bool CParticleCollection::IsValid( void ) const 
 { 
@@ -2438,6 +2510,7 @@ FORCEINLINE bool CParticleCollection::IsValid( void ) const
 }
 
 
+#ifdef SDK_MP
 //-----------------------------------------------------------------------------
 // Floating point validation
 //
@@ -2608,5 +2681,6 @@ FORCEINLINE bool ParticlesCheckColorMasked( const FourVectors& fv, int nBlockInd
 #else
 #define PARTICLES_CHECK_FLOAT_NAME_SCOPE( ctx, name ) void(0)
 #endif // DBGFLAG_ASSERT
+#endif
 
 #endif	// PARTICLES_H

@@ -288,6 +288,7 @@ public:
 	// max packet size, in bytes
 	virtual int GetMaxPacketSize( SNetSocket_t hSocket ) = 0;
 };
+#ifdef SDK_MP
 #define STEAMNETWORKING_INTERFACE_VERSION "SteamNetworking006"
 
 // Global interface accessor
@@ -297,6 +298,9 @@ STEAM_DEFINE_USER_INTERFACE_ACCESSOR( ISteamNetworking *, SteamNetworking, STEAM
 // Global accessor for the gameserver client
 inline ISteamNetworking *SteamGameServerNetworking();
 STEAM_DEFINE_GAMESERVER_INTERFACE_ACCESSOR( ISteamNetworking *, SteamGameServerNetworking, STEAMNETWORKING_INTERFACE_VERSION );
+#else
+#define STEAMNETWORKING_INTERFACE_VERSION "SteamNetworking005"
+#endif
 
 // callbacks
 #if defined( VALVE_CALLBACK_PACK_SMALL )

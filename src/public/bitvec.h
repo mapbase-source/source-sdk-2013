@@ -266,8 +266,13 @@ public:
 	void	SetDWord(int i, uint32 val);
 
 	CBitVecT<BASE_OPS>&	operator=(const CBitVecT<BASE_OPS> &other)	{ other.CopyTo( this ); return *this; }
+#ifdef SDK_MP
 	bool			operator==(const CBitVecT<BASE_OPS> &other) const { return Compare( other ); }
 	bool			operator!=(const CBitVecT<BASE_OPS> &other) const { return !operator==( other ); }
+#else
+	bool			operator==(const CBitVecT<BASE_OPS> &other)		{ return Compare( other ); }
+	bool			operator!=(const CBitVecT<BASE_OPS> &other)		{ return !operator==( other ); }
+#endif
 
 	static void GetOffsetMaskForBit( uint32 bitNum, uint32 *pOffset, uint32 *pMask )	{ *pOffset = BitVec_Int( bitNum ); *pMask = BitVec_Bit( bitNum ); }
 };
@@ -1007,6 +1012,20 @@ inline int CVarBitVecBase<BITCOUNTTYPE>::FindNextSetBit( int startBit ) const
 			const uint32 * RESTRICT pCurElem = Base() + wordIndex;
 			unsigned int elem = *pCurElem;
 			elem &= startMask;
+#ifdef SDK_MP
+			while ( wordIndex < NUM_INTS )
+			{
+				if ( elem )
+				{
+					return FirstBitInWord(elem, wordIndex << 5);
+				}
+				else if ( ++wordIndex < NUM_INTS )
+				{
+					++pCurElem;
+					elem = *pCurElem;
+				}
+			}
+#else
 			do 
 			{
 				if ( elem )
@@ -1015,6 +1034,7 @@ inline int CVarBitVecBase<BITCOUNTTYPE>::FindNextSetBit( int startBit ) const
 				elem = *pCurElem;
 				++wordIndex;
 			} while( wordIndex <= lastWord );
+#endif
 		}
 
 	}
@@ -1065,18 +1085,14 @@ inline int CFixedBitVecBase<NUM_BITS>::FindNextSetBit( int startBit ) const
 			const uint32 * RESTRICT pCurElem = Base() + wordIndex;
 			unsigned int elem = *pCurElem;
 			elem &= startMask;
-			while ( wordIndex < NUM_INTS )
+			do 
 			{
 				if ( elem )
-				{
 					return FirstBitInWord(elem, wordIndex << 5);
-				}
-				else if ( ++wordIndex < NUM_INTS )
-				{
-					++pCurElem;
-					elem = *pCurElem;
-				}
-			}
+				++pCurElem;
+				elem = *pCurElem;
+				++wordIndex;
+			} while( wordIndex <= NUM_INTS-1);
 		}
 
 	}

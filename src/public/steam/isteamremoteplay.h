@@ -1,5 +1,10 @@
 //============ Copyright (c) Valve Corporation, All rights reserved. ============
 
+#ifdef SDK_SP
+// Not in SP SDK
+#define ISTEAMREMOTEPLAY_H
+#endif
+
 #ifndef ISTEAMREMOTEPLAY_H
 #define ISTEAMREMOTEPLAY_H
 #ifdef _WIN32

@@ -123,6 +123,9 @@ enum PrecompiledShaderType_t
 enum
 {
 	// runtime flags
+#ifndef SDK_MP
+	SHADER_DYNAMIC_COMPILE_IS_HLSL = 0x1,
+#endif
 	SHADER_IS_ASM = 0x1,
 	SHADER_FAILED_LOAD = 0x2,
 };

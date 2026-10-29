@@ -755,6 +755,10 @@ public:
 	// simple accessors
 	void SetAccountID( uint32 unAccountID )		{ m_steamid.m_comp.m_unAccountID = unAccountID; }
 	void SetAccountInstance( uint32 unInstance ){ m_steamid.m_comp.m_unAccountInstance = unInstance; }
+#ifndef SDK_MP
+	void ClearIndividualInstance()				{ if ( BIndividualAccount() ) m_steamid.m_comp.m_unAccountInstance = 0; }
+	bool HasNoIndividualInstance() const		{ return BIndividualAccount() && (m_steamid.m_comp.m_unAccountInstance==0); }
+#endif
 		
 	AccountID_t GetAccountID() const			{ return m_steamid.m_comp.m_unAccountID; }
 	uint32 GetUnAccountInstance() const			{ return m_steamid.m_comp.m_unAccountInstance; }
@@ -775,6 +779,9 @@ public:
     // and is preferred when the caller knows it's safe to be strict.
     // Returns whether the string parsed correctly.
 	bool SetFromStringStrict( const char *pchSteamID, EUniverse eDefaultUniverse );
+#ifndef SDK_MP
+	bool SetFromSteam2String( const char *pchSteam2ID, EUniverse eUniverse );
+#endif
 
 	inline bool operator==( const CSteamID &val ) const { return m_steamid.m_unAll64Bits == val.m_steamid.m_unAll64Bits; } 
 	inline bool operator!=( const CSteamID &val ) const { return !operator==( val ); }

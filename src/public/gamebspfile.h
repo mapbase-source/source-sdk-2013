@@ -21,6 +21,7 @@
 //-----------------------------------------------------------------------------
 // This enumerations defines all the four-CC codes for the client lump names
 //-----------------------------------------------------------------------------
+#ifdef SDK_MP
 enum
 {
 	GAMELUMP_DETAIL_PROPS = 'dprp',
@@ -28,13 +29,28 @@ enum
 	GAMELUMP_STATIC_PROPS = 'sprp',
 	GAMELUMP_DETAIL_PROP_LIGHTING_HDR = 'dplh',
 };
+#else
+// TODO: We may have some endian considerations here!
+#define GAMELUMP_MAKE_CODE(a, b, c, d) ((a) << 24 | (b) << 16 | (c) << 8 | (d) << 0)
+enum
+{
+	GAMELUMP_DETAIL_PROPS = GAMELUMP_MAKE_CODE('d', 'p', 'r', 'p'),
+	GAMELUMP_DETAIL_PROP_LIGHTING = GAMELUMP_MAKE_CODE('d', 'p', 'l', 't'),
+	GAMELUMP_STATIC_PROPS = GAMELUMP_MAKE_CODE('s', 'p', 'r', 'p'),
+	GAMELUMP_DETAIL_PROP_LIGHTING_HDR = GAMELUMP_MAKE_CODE('d', 'p', 'l', 'h'),
+};
+#endif
 
 // Versions...
 enum
 {
 	GAMELUMP_DETAIL_PROPS_VERSION = 4,
 	GAMELUMP_DETAIL_PROP_LIGHTING_VERSION = 0,
+#ifdef SDK_MP
 	GAMELUMP_STATIC_PROPS_VERSION = 10,
+#else
+	GAMELUMP_STATIC_PROPS_VERSION = 6,
+#endif
 	GAMELUMP_STATIC_PROP_LIGHTING_VERSION = 0,
 	GAMELUMP_DETAIL_PROP_LIGHTING_HDR_VERSION = 0,
 };
@@ -137,9 +153,13 @@ enum
 	
 	STATIC_PROP_NO_SELF_SHADOWING = 0x80,					// disable self shadowing in vrad
 
+#ifdef SDK_MP
 	STATIC_PROP_NO_PER_TEXEL_LIGHTING = 0x100,				// whether we should do per-texel lightmaps in vrad.
 
 	STATIC_PROP_WC_MASK		= 0x1d8,						// all flags settable in hammer (?)
+#else
+	STATIC_PROP_WC_MASK		= 0xd8,							// all flags settable in hammer (?)
+#endif
 };
 
 struct StaticPropDictLump_t
@@ -183,7 +203,11 @@ struct StaticPropLumpV5_t
 //	int				m_Lighting;			// index into the GAMELUMP_STATIC_PROP_LIGHTING lump
 };
 
+#ifdef SDK_MP
 struct StaticPropLumpV6_t
+#else
+struct StaticPropLump_t
+#endif
 {
 	DECLARE_BYTESWAP_DATADESC();
 	Vector			m_Origin;
@@ -203,6 +227,7 @@ struct StaticPropLumpV6_t
 	//	int				m_Lighting;			// index into the GAMELUMP_STATIC_PROP_LIGHTING lump
 };
 
+#ifdef SDK_MP
 struct StaticPropLump_t
 {
 	DECLARE_BYTESWAP_DATADESC();
@@ -269,6 +294,7 @@ struct StaticPropLump_t
 		return *this;
 	}
 };
+#endif
 
 
 
