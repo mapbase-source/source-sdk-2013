@@ -342,10 +342,12 @@ public:
 								ConVar( const char *pName, const char *pDefaultValue, int flags, 
 									const char *pHelpString, bool bMin, float fMin, bool bMax, float fMax,
 									FnChangeCallback_t callback );
+#ifdef SDK_MP
 								ConVar( const char *pName, const char *pDefaultValue, int flags,
 									const char *pHelpString, bool bMin, float fMin, bool bMax, float fMax,
 									bool bCompMin, float fCompMin, bool bCompMax, float fCompMax,
 									FnChangeCallback_t callback );
+#endif
 
 
 
@@ -385,12 +387,14 @@ public:
 	const char					*GetDefault( void ) const;
 	void						SetDefault( const char *pszDefault );
 
+#ifdef SDK_MP
 	// True if it has a min/max competitive setting
 	bool						GetCompMin( float& minVal ) const;
 	bool						GetCompMax( float& maxVal ) const;
 
 	FORCEINLINE_CVAR bool		IsCompetitiveRestricted() const;
 	bool						SetCompetitiveMode( bool bCompetitive );
+#endif
 
 private:
 	// Called by CCvar when the value of a var is changing.
@@ -402,6 +406,7 @@ private:
 	virtual bool				ClampValue( float& value );
 	virtual void				ChangeStringValue( const char *tempVal, float flOldValue );
 
+#ifdef SDK_MP
 	virtual void				Create_Vtbl( const char *pName, const char *pDefaultValue, int flags = 0,
 									const char *pHelpString = 0, bool bMin = false, float fMin = 0.0,
 									bool bMax = false, float fMax = false, FnChangeCallback_t callback = 0 );
@@ -412,13 +417,22 @@ private:
 									bool bCompMin = false, float fCompMin = 0.0, 
 									bool bCompMax = false, float fCompMax = 0.0,
 									FnChangeCallback_t callback = 0 );
+#else
+	virtual void				Create( const char *pName, const char *pDefaultValue, int flags = 0,
+									const char *pHelpString = 0, bool bMin = false, float fMin = 0.0,
+									bool bMax = false, float fMax = false, FnChangeCallback_t callback = 0 );
+#endif
 
 
 	// Used internally by OneTimeInit to initialize.
 	virtual void				Init();
 	int GetFlags() { return m_pParent->m_nFlags; }
 	
+#ifdef SDK_MP
 	virtual void				InternalSetFloatValue2( float fNewValue, bool bForce = false );
+#else
+	inline void					InternalSetFloatValue2( float fNewValue, bool bForce = false ) { this->InternalSetFloatValue( fNewValue ); }
+#endif
 	inline	void				InternalSetFloatValue( float fNewValue, bool bForce )
 	{
 		this->InternalSetFloatValue2( fNewValue, bForce );
@@ -451,6 +465,7 @@ private:
 	// Call this function when ConVar changes
 	FnChangeCallback_t			m_fnChangeCallback;
 	
+#ifdef SDK_MP
 	// Min/Max values for competitive.
 	bool						m_bHasCompMin;
 	float						m_fCompMinVal;
@@ -458,6 +473,7 @@ private:
 	float						m_fCompMaxVal;
 
 	bool						m_bCompetitiveRestrictions;
+#endif
 };
 
 
@@ -502,6 +518,7 @@ FORCEINLINE_CVAR const char *ConVar::GetString( void ) const
 	return ( m_pParent->m_pszString ) ? m_pParent->m_pszString : "";
 }
 
+#ifdef SDK_MP
 //-----------------------------------------------------------------------------
 // Purpose: Return whether this convar is restricted for competitive play.
 // Output : bool
@@ -516,6 +533,7 @@ FORCEINLINE_CVAR bool ConVar::IsCompetitiveRestricted() const
 
 	return bHasCompSettings || !( bClientCanAdjust || bInternalUseOnly );
 }
+#endif
 
 
 //-----------------------------------------------------------------------------
@@ -536,12 +554,16 @@ public:
 	// Get/Set value
 	float GetFloat( void ) const;
 	int GetInt( void ) const;
+#ifndef SDK_MP
 	Color GetColor( void ) const;
+#endif
 	bool GetBool() const { return !!GetInt(); }
 	const char *GetString( void ) const;
+#ifdef SDK_MP
 	// True if it has a min/max setting
 	bool GetMin( float& minVal ) const;
 	bool GetMax( float& maxVal ) const;
+#endif
 
 	void SetValue( const char *pValue );
 	void SetValue( float flValue );
@@ -594,6 +616,7 @@ FORCEINLINE_CVAR int ConVarRef::GetInt( void ) const
 	return m_pConVarState->m_nValue;
 }
 
+#ifndef SDK_MP
 //-----------------------------------------------------------------------------
 // Purpose: Return ConVar value as a color
 // Output : Color
@@ -603,6 +626,7 @@ FORCEINLINE_CVAR Color ConVarRef::GetColor( void ) const
 	unsigned char *pColorElement = ((unsigned char *)&m_pConVarState->m_nValue);
 	return Color( pColorElement[0], pColorElement[1], pColorElement[2], pColorElement[3] );
 }
+#endif
 
 //-----------------------------------------------------------------------------
 // Purpose: Return ConVar value as a string, return "" for bogus string pointer, etc.
@@ -613,6 +637,7 @@ FORCEINLINE_CVAR const char *ConVarRef::GetString( void ) const
 	return m_pConVarState->m_pszString;
 }
 
+#ifdef SDK_MP
 FORCEINLINE_CVAR bool ConVarRef::GetMin( float& minVal ) const
 {
 	return m_pConVarState->GetMin( minVal );
@@ -622,6 +647,7 @@ FORCEINLINE_CVAR bool ConVarRef::GetMax( float& maxVal ) const
 {
 	return m_pConVarState->GetMax( maxVal );
 }
+#endif
 
 FORCEINLINE_CVAR void ConVarRef::SetValue( const char *pValue )
 {
@@ -648,6 +674,7 @@ FORCEINLINE_CVAR const char *ConVarRef::GetDefault() const
 	return m_pConVarState->m_pszDefaultValue;
 }
 
+#ifdef SDK_MP
 class IVEngineClient;
 // Josh:
 // This class is here to solve the problem
@@ -693,6 +720,9 @@ private:
 
 	IVEngineClient *m_pEngine;
 };
+#else
+typedef ConVarRef UIConVarRef;
+#endif
 
 //-----------------------------------------------------------------------------
 // Called by the framework to register ConCommands with the ICVar
@@ -768,7 +798,7 @@ private:
    static void name( const CCommand &args ); \
    static ConCommand name##_command( #name, name, description ); \
    static void name( const CCommand &args )
-
+   
 #ifdef CLIENT_DLL
 	#define CON_COMMAND_SHARED( name, description ) \
 		static void name( const CCommand &args ); \

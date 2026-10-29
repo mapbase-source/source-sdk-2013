@@ -324,7 +324,11 @@ void ScrollBarSlider::ApplySchemeSettings(IScheme *pScheme)
 	SetFgColor(GetSchemeColor("ScrollBarSlider.FgColor", pScheme));
 	SetBgColor(GetSchemeColor("ScrollBarSlider.BgColor", pScheme));
 
+#ifdef SDK_MP
 	IBorder *newBorder = pScheme->GetBorder2("ScrollBarSliderBorder");
+#else
+	IBorder *newBorder = pScheme->GetBorder("ScrollBarSliderBorder");
+#endif
 
 	if ( newBorder )
 	{

@@ -186,7 +186,7 @@ public:
 		if( !m_bSwapBytes || ( sizeof(T) == 1 ) )
 		{
 			// If we were just going to swap in place then return.
-			if( inputBuffer == outputBuffer )
+			if( !inputBuffer )
 				return;
 		
 			// Otherwise copy the inputBuffer to the outputBuffer:

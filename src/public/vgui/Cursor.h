@@ -40,7 +40,11 @@ enum CursorCode
 	dc_alwaysvisible_pop,
 };
 
+#ifdef SDK_MP
 typedef uint32 HCursor;
+#else
+typedef unsigned long HCursor;
+#endif
 
 }
 

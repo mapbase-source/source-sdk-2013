@@ -41,9 +41,15 @@ class Image;
 class Point;
 
 // handles
+#ifdef SDK_MP
 typedef uint32 HCursor;
 typedef uint32 HTexture;
 typedef uint32 HFont;
+#else
+typedef unsigned long HCursor;
+typedef unsigned long HTexture;
+typedef unsigned long HFont;
+#endif
 
 
 //SRC only defines

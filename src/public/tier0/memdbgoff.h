@@ -7,6 +7,11 @@
 // $NoKeywords: $
 //=============================================================================//
 
+#ifdef SDK_SP
+// SP counterpart too different to combine cleanly
+#include "../../public_sp/tier0/memdbgoff.h"
+#endif
+
 #ifdef MEM_OVERRIDE_ON
 
 #undef malloc

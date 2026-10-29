@@ -673,18 +673,28 @@ ConVar::ConVar( const char *pName, const char *pDefaultValue, int flags, const c
 
 ConVar::ConVar( const char *pName, const char *pDefaultValue, int flags, const char *pHelpString, FnChangeCallback_t callback )
 {
+#ifdef SDK_MP
 	Create( pName, pDefaultValue, flags, pHelpString, false, 0.0, false, 0.0, false, 0.0, false, 0.0, callback );
+#else
+	Create( pName, pDefaultValue, flags, pHelpString, false, 0.0, false, 0.0, callback );
+#endif
 }
 
 ConVar::ConVar( const char *pName, const char *pDefaultValue, int flags, const char *pHelpString, bool bMin, float fMin, bool bMax, float fMax, FnChangeCallback_t callback )
 {
+#ifdef SDK_MP
 	Create( pName, pDefaultValue, flags, pHelpString, bMin, fMin, bMax, fMax, false, 0.0, false, 0.0, callback );
+#else
+	Create( pName, pDefaultValue, flags, pHelpString, bMin, fMin, bMax, fMax, callback );
+#endif
 }
 
+#ifdef SDK_MP
 ConVar::ConVar( const char *pName, const char *pDefaultValue, int flags, const char *pHelpString, bool bMin, float fMin, bool bMax, float fMax, bool bCompMin, float fCompMin, bool bCompMax, float fCompMax, FnChangeCallback_t callback )
 {
 	Create( pName, pDefaultValue, flags, pHelpString, bMin, fMin, bMax, fMax, bCompMin, fCompMin, bCompMax, fCompMax, callback );
 }
+#endif
 
 
 //-----------------------------------------------------------------------------
@@ -865,6 +875,7 @@ void ConVar::ChangeStringValue( const char *tempVal, float flOldValue )
 //-----------------------------------------------------------------------------
 bool ConVar::ClampValue( float& value )
 {
+#ifdef SDK_MP
 	// Competitive /should/ be more restrictive, so do it first.
 	if ( m_bCompetitiveRestrictions )
 	{
@@ -890,6 +901,7 @@ bool ConVar::ClampValue( float& value )
 			}
 		}
 	}
+#endif
 
 	if ( m_bHasMin && ( value < m_fMinVal ) )
 	{
@@ -906,19 +918,28 @@ bool ConVar::ClampValue( float& value )
 	return false;
 }
 
+#ifdef SDK_MP
 void ConVar::InternalSetFloatValue( float fNewValue )
 {
 	InternalSetFloatValue2( fNewValue );
 }
+#endif
 
 //-----------------------------------------------------------------------------
 // Purpose: 
 // Input  : *value - 
 //-----------------------------------------------------------------------------
+#ifdef SDK_MP
 void ConVar::InternalSetFloatValue2( float fNewValue, bool bForce /*= false */ )
 {
 	if ( fNewValue == m_fValue && !bForce )
 		return;
+#else
+void ConVar::InternalSetFloatValue( float fNewValue )
+{
+	if ( fNewValue == m_fValue )
+		return;
+#endif
 
 	if ( IsFlagSet( FCVAR_MATERIAL_THREAD_MASK ) )
 	{
@@ -994,6 +1015,7 @@ void ConVar::InternalSetIntValue( int nValue )
 	}
 }
 
+#ifdef SDK_MP
 void ConVar::Create_Vtbl( const char *pName, const char *pDefaultValue, int flags /* = 0 */,
 							const char *pHelpString /* = 0 */, bool bMin /* = false */, float fMin /* = 0.0 */,
 							bool bMax /* = false */, float fMax /* = false */, FnChangeCallback_t callback /* = 0 */ )
@@ -1009,6 +1031,14 @@ void ConVar::Create( const char *pName, const char *pDefaultValue, int flags /*=
 	bool bMax /*= false*/, float fMax /*= false*/, bool bCompMin /*= false */, 
 	float fCompMin /*= 0.0*/, bool bCompMax /*= false*/, float fCompMax /*= 0.0*/,
 	FnChangeCallback_t callback /*= NULL*/ )
+#else
+//-----------------------------------------------------------------------------
+// Purpose: Private creation
+//-----------------------------------------------------------------------------
+void ConVar::Create( const char *pName, const char *pDefaultValue, int flags /*= 0*/,
+	const char *pHelpString /*= NULL*/, bool bMin /*= false*/, float fMin /*= 0.0*/,
+	bool bMax /*= false*/, float fMax /*= false*/, FnChangeCallback_t callback /*= NULL*/ )
+#endif
 {
 	m_pParent = this;
 
@@ -1024,12 +1054,14 @@ void ConVar::Create( const char *pName, const char *pDefaultValue, int flags /*=
 	m_bHasMax = bMax;
 	m_fMaxVal = fMax;
 
+#ifdef SDK_MP
 	m_bHasCompMin = bCompMin;
 	m_fCompMinVal = fCompMin;
 	m_bHasCompMax = bCompMax;
 	m_fCompMaxVal = fCompMax;
 
 	m_bCompetitiveRestrictions = false;
+#endif
 	
 	m_fnChangeCallback = callback;
 
@@ -1104,6 +1136,7 @@ bool ConVar::GetMax( float& maxVal ) const
 	return m_pParent->m_bHasMax;
 }
 
+#ifdef SDK_MP
 //-----------------------------------------------------------------------------
 // Purpose: 
 // Input  : minVal - 
@@ -1161,6 +1194,7 @@ bool ConVar::SetCompetitiveMode( bool bCompetitive )
 	Assert( !bForceToDefault || IsFlagSet( FCVAR_MATERIAL_THREAD_MASK ) || ( var->m_fValue == fDefaultAsFloat ) );
 	return true;
 }
+#endif
 
 
 
@@ -1179,6 +1213,7 @@ void ConVar::SetDefault( const char *pszDefault )
 	Assert( m_pszDefaultValue );
 }
 
+#ifdef SDK_MP
 // Josh:
 // See comments in convar.h about UIConVarRef
 // and it's purpose/implementation.
@@ -1237,6 +1272,7 @@ bool UIConVarRef::CanSetWithoutEngine()
 {
 	return !IsFlagSet( FCVAR_UNREGISTERED | FCVAR_DEVELOPMENTONLY | FCVAR_REPLICATED | FCVAR_CHEAT | FCVAR_SPONLY );
 }
+#endif
 
 
 //-----------------------------------------------------------------------------

@@ -265,8 +265,10 @@ public:
 
 	virtual void			ReloadSoundEntriesInList( IFileList *pFilesToReload ) = 0;
 
+#ifdef SDK_MP
 	// Called by either client or server to force ModShutdown and ModInit
 	virtual void			Flush() = 0;
+#endif
 };
 
 #endif // ISOUNDEMITTERSYSTEMBASE_H

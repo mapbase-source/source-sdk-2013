@@ -15,7 +15,9 @@
 
 #include "interface.h"
 #include "vgui/VGUI.h"
+#ifdef SDK_MP
 #include "eiface.h"
+#endif
 
 // Forward declarations.
 namespace vgui
@@ -32,7 +34,9 @@ enum VGuiPanel_t
 	PANEL_INGAMESCREENS,
 	PANEL_GAMEDLL,
 	PANEL_CLIENTDLL_TOOLS,
+#ifdef SDK_MP
 	PANEL_SIZING,
+#endif
 };
 
 // In-game panels are cropped to the current engine viewport size
@@ -52,11 +56,17 @@ public:
 
 	virtual bool			IsGameUIVisible() = 0;
 
+#ifdef SDK_MP
 	virtual bool			GetWorkshopMap( uint32 uIndex, WorkshopMapDesc_t *pDesc ) = 0;
+#endif
 };
 
+#ifdef SDK_MP
 #define VENGINE_VGUI_VERSION		"VEngineVGui002"
 #define VENGINE_VGUI_VERSION_OLD	"VEngineVGui001"
+#else
+#define VENGINE_VGUI_VERSION	"VEngineVGui001"
+#endif
 
 #if defined(_STATIC_LINKED) && defined(CLIENT_DLL)
 namespace Client

@@ -99,7 +99,12 @@ struct InputEvent_t
 // Steam Controller Enums
 //-----------------------------------------------------------------------------
 
+#ifdef SDK_MP
 #define MAX_STEAM_CONTROLLERS 8
+#else
+// Prevents macro redefinition
+#include "steam/isteamcontroller.h"
+#endif
 
 typedef enum
 {

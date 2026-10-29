@@ -23,7 +23,11 @@ ConVar cl_jiggle_bone_debug_yaw_constraints( "cl_jiggle_bone_debug_yaw_constrain
 ConVar cl_jiggle_bone_debug_pitch_constraints( "cl_jiggle_bone_debug_pitch_constraints", "0", FCVAR_CHEAT, "Display physics-based 'jiggle bone' debugging information" );
 #endif // CLIENT_DLL
 
+#ifdef SDK_MP
 ConVar cl_jiggle_bone_framerate_cutoff( "cl_jiggle_bone_framerate_cutoff", "20", 0, "Skip jiggle bone simulation if framerate drops below this value (frames/second)" );
+#else
+ConVar cl_jiggle_bone_framerate_cutoff( "cl_jiggle_bone_framerate_cutoff", "45", 0, "Skip jiggle bone simulation if framerate drops below this value (frames/second)" );
+#endif
 
 
 //-----------------------------------------------------------------------------
@@ -40,9 +44,11 @@ JiggleData * CJiggleBones::GetJiggleData( int bone, float currenttime, const Vec
 	JiggleData data;
 	data.Init( bone, currenttime, initBasePos, initTipPos );
 
+#ifdef SDK_MP
 	// Start out using jiggle bones for at least 16 frames.
 	data.useGoalMatrixCount = 0;
 	data.useJiggleBoneCount = 16;
+#endif
 
 	int idx = m_jiggleBoneState.AddToHead( data );
 	if ( idx == m_jiggleBoneState.InvalidIndex() )
@@ -57,7 +63,11 @@ JiggleData * CJiggleBones::GetJiggleData( int bone, float currenttime, const Vec
  * Do spring physics calculations and update "jiggle bone" matrix
  * (Michael Booth, Turtle Rock Studios)
  */
+ #ifdef SDK_MP
 void CJiggleBones::BuildJiggleTransformations( int boneIndex, float currenttime, const mstudiojigglebone_t *jiggleInfo, const matrix3x4_t &goalMX, matrix3x4_t &boneMX, bool coordSystemIsFlipped )
+#else
+void CJiggleBones::BuildJiggleTransformations( int boneIndex, float currenttime, const mstudiojigglebone_t *jiggleInfo, const matrix3x4_t &goalMX, matrix3x4_t &boneMX )
+#endif
 {
 	Vector goalBasePosition;
 	MatrixPosition( goalMX, goalBasePosition );
@@ -78,7 +88,11 @@ void CJiggleBones::BuildJiggleTransformations( int boneIndex, float currenttime,
 
 	// if frames have been skipped since our last update, we were likely
 	// disabled and re-enabled, so re-init
+#if !defined(SDK_MP) && (defined(CLIENT_DLL) || defined(GAME_DLL))
+	float timeTolerance = 1.2f * gpGlobals->frametime;
+#else
 	float timeTolerance = 0.5f;
+#endif
 
 	if ( currenttime - data->lastUpdate > timeTolerance )
 	{
@@ -99,6 +113,7 @@ void CJiggleBones::BuildJiggleTransformations( int boneIndex, float currenttime,
 	bool bMaxDeltaT = deltaT < thousandHZ;
 	bool bUseGoalMatrix = cl_jiggle_bone_framerate_cutoff.GetFloat() <= 0.0f || deltaT > ( 1.0f / cl_jiggle_bone_framerate_cutoff.GetFloat() );
 
+#ifdef SDK_MP
 	if ( bUseGoalMatrix )
 	{
 		// We hit the jiggle bone framerate cutoff. Reset the useGoalMatrixCount so we
@@ -124,6 +139,7 @@ void CJiggleBones::BuildJiggleTransformations( int boneIndex, float currenttime,
 		data->useGoalMatrixCount = 0;
 		bUseGoalMatrix = false;
 	}
+#endif
 
 	if ( bMaxDeltaT )
 	{
@@ -438,6 +454,7 @@ void CJiggleBones::BuildJiggleTransformations( int boneIndex, float currenttime,
 		// Build bone matrix to align along current tip direction
 		//
 		Vector left, up;
+#ifdef SDK_MP
 		if ( coordSystemIsFlipped )											  
 		{
 			// If the coordinate system is flipped, use left handed rules.
@@ -446,9 +463,13 @@ void CJiggleBones::BuildJiggleTransformations( int boneIndex, float currenttime,
 			up = CrossProduct( left, forward );
 		}
 		else									   
+#endif
 		{
 			left = CrossProduct( goalUp, forward );
 			left.NormalizeInPlace();
+#ifndef SDK_MP
+			data->lastLeft = left;
+#endif
 			up = CrossProduct( forward, left );
 		}
 

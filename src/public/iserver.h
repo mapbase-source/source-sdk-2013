@@ -13,7 +13,9 @@
 #include <inetmsghandler.h>
 #include <bitvec.h>
 #include <const.h>
+#ifdef SDK_MP
 #include <tier1/netadr.h>
+#endif
 
 class INetMessage;
 class IRecipientFilter;
@@ -32,9 +34,13 @@ public:
 	virtual int		GetMaxClients( void ) const = 0; // returns current client limit
 	virtual IClient	*GetClient( int index ) = 0; // returns interface to client 
 	virtual int		GetClientCount() const = 0; // returns number of clients slots (used & unused)
+#ifdef SDK_MP
 	virtual netadr_t	GetPublicAddress( void ) const = 0; // returns public IP:port that should be advertised in server browser, etc. (If any!)
 	virtual bool	IsUsingFakeIP() const = 0; // Returns true if we're using FakeIP.  (If so, the value will be returned by GetPublicAddress().  note that it might be invalid if FakeIP allocation hasn't finished yet!"
 	virtual int		GetLocalUDPPort( void ) const = 0; // returns current UDP port we are actually listening on, if any
+#else
+	virtual int		GetUDPPort( void ) const = 0; // returns current used UDP port
+#endif
 	virtual float	GetTime( void ) const = 0;	// returns game world time
 	virtual int		GetTick( void ) const = 0;	// returns game world tick
 	virtual float	GetTickInterval( void ) const = 0; // tick interval in seconds

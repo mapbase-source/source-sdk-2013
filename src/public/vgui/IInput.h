@@ -21,7 +21,11 @@ namespace vgui
 {
 
 class Cursor;
+#ifdef SDK_MP
 typedef uint32 HCursor;
+#else
+typedef unsigned long HCursor;
+#endif
 
 #define VGUI_GCS_COMPREADSTR                 0x0001
 #define VGUI_GCS_COMPREADATTR                0x0002

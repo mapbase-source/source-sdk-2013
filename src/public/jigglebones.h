@@ -66,15 +66,21 @@ struct JiggleData
 	float boingSpeed;		// current estimation of jiggle bone speed for boing effect
 	float boingTime;
 	
+#ifdef SDK_MP
 	int useGoalMatrixCount;	// Count of times we need to fast draw using goal matrix.
 	int useJiggleBoneCount; // Count of times we need to draw using real jiggly bones.
+#endif
 };
 
 class CJiggleBones
 {
 public:
 	JiggleData * GetJiggleData( int bone, float currenttime, const Vector &initBasePos, const Vector &initTipPos );
+#ifdef SDK_MP
 	void BuildJiggleTransformations( int boneIndex, float currentime, const mstudiojigglebone_t *jiggleParams, const matrix3x4_t &goalMX, matrix3x4_t &boneMX, bool coordSystemIsFlipped = false );
+#else
+	void BuildJiggleTransformations( int boneIndex, float currentime, const mstudiojigglebone_t *jiggleParams, const matrix3x4_t &goalMX, matrix3x4_t &boneMX );
+#endif
 
 	CUtlLinkedList< JiggleData >	m_jiggleBoneState;
 };

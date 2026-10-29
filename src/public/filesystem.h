@@ -919,6 +919,7 @@ public:
 	// Called when we unload a file, to remove that file's info for pure server purposes.
 	virtual void			NotifyFileUnloaded( const char *pszFilename, const char *pPathId ) = 0;
 
+#ifdef SDK_MP
 	// Returns true on successfully retrieve case-sensitive full path, otherwise false
 	// Prefer using the GetCaseCorrectFullPath template wrapper to calling this directly
 	virtual bool			GetCaseCorrectFullPath_Ptr( const char *pFullPath, OUT_Z_CAP( maxLenInChars ) char *pDest, int maxLenInChars ) = 0;
@@ -932,6 +933,7 @@ public:
 	// remote users can coerce us into writing things down via a clickable URL.
 	virtual void			SetWriteProtectionEnable( bool bEnable ) = 0;
 	virtual bool			GetWriteProtectionEnable() const = 0;
+#endif
 };
 
 //-----------------------------------------------------------------------------

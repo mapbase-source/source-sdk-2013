@@ -37,6 +37,9 @@ public:
 	CBaseHandle( INVALID_EHANDLE_tag );
 	CBaseHandle( const CBaseHandle &other );
 	explicit CBaseHandle( IHandleEntity* pHandleObj );
+#ifndef SDK_MP
+	CBaseHandle( unsigned long value );
+#endif
 	CBaseHandle( int iEntry, int iSerialNumber );
 
 	// NOTE: The following constructor is not type-safe, and can allow creating an
@@ -99,6 +102,13 @@ inline CBaseHandle::CBaseHandle( const CBaseHandle &other )
 	m_Index = other.m_Index;
 }
 
+#ifndef SDK_MP
+inline CBaseHandle::CBaseHandle( unsigned long value )
+{
+	m_Index = value;
+}
+#endif
+
 inline CBaseHandle::CBaseHandle( IHandleEntity* pEntity )
 {
 	Set( pEntity );
@@ -118,10 +128,17 @@ inline CBaseHandle CBaseHandle::UnsafeFromIndex( int index )
 
 inline void CBaseHandle::Init( int iEntry, int iSerialNumber )
 {
+#ifdef SDK_MP
 	Assert( iEntry >= 0 && (iEntry & ENT_ENTRY_MASK) == iEntry);
 	Assert( iSerialNumber >= 0 && iSerialNumber < (1 << NUM_SERIAL_NUM_BITS) );
 
 	m_Index = iEntry | (iSerialNumber << NUM_SERIAL_NUM_SHIFT_BITS);
+#else
+	Assert( iEntry >= 0 && iEntry < NUM_ENT_ENTRIES );
+	Assert( iSerialNumber >= 0 && iSerialNumber < (1 << NUM_SERIAL_NUM_BITS) );
+
+	m_Index = iEntry | (iSerialNumber << NUM_ENT_ENTRY_BITS);
+#endif
 }
 
 inline void CBaseHandle::Term()
@@ -136,6 +153,7 @@ inline bool CBaseHandle::IsValid() const
 
 inline int CBaseHandle::GetEntryIndex() const
 {
+#ifdef SDK_MP
 	// There is a hack here: due to a bug in the original implementation of the 
 	// entity handle system, an attempt to look up an invalid entity index in 
 	// certain cirumstances might fall through to the the mask operation below.
@@ -150,12 +168,17 @@ inline int CBaseHandle::GetEntryIndex() const
 	// retains the prior (bug-submarining) behavior.
 	if ( !IsValid() )
 		return NUM_ENT_ENTRIES-1;
+#endif
 	return m_Index & ENT_ENTRY_MASK;
 }
 
 inline int CBaseHandle::GetSerialNumber() const
 {
+#ifdef SDK_MP
 	return m_Index >> NUM_SERIAL_NUM_SHIFT_BITS;
+#else
+	return m_Index >> NUM_ENT_ENTRY_BITS;
+#endif
 }
 
 inline int CBaseHandle::ToInt() const

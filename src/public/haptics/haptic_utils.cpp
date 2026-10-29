@@ -138,7 +138,7 @@ void ConnectHaptics(CreateInterfaceFn appFactory)
 	HookHapticMessages();
 }
 
-#if _MSC_VER >= 1925
+#if _MSC_VER >= 1925 && !defined(SDK_MP)
 // deleting haptics results in a warning about deleting something with a non-virtual destructor
 // big yikes but we can't do anything about it as it's accessed via interface
 #pragma warning (disable: 5205) 

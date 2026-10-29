@@ -26,6 +26,7 @@
 #include "tier1/strtools.h"
 #include "vstdlib/random.h"
 
+#ifdef SDK_MP
 #define FOR_EACH_VEC( vecName, iteratorName ) \
 	for ( int iteratorName = 0; (vecName).IsUtlVector && iteratorName < (vecName).Count(); iteratorName++ )
 #define FOR_EACH_VEC_BACK( vecName, iteratorName ) \
@@ -37,6 +38,12 @@ struct base_vector_t
 public:
 	enum { IsUtlVector = true }; // Used to match this at compiletime 		
 };
+#else
+#define FOR_EACH_VEC( vecName, iteratorName ) \
+	for ( int iteratorName = 0; iteratorName < (vecName).Count(); iteratorName++ )
+#define FOR_EACH_VEC_BACK( vecName, iteratorName ) \
+	for ( int iteratorName = (vecName).Count()-1; iteratorName >= 0; iteratorName-- )
+#endif
 
 //-----------------------------------------------------------------------------
 // The CUtlVector class:
@@ -47,7 +54,11 @@ public:
 // by index (they should *never* maintain pointers to elements in the vector).
 //-----------------------------------------------------------------------------
 template< class T, class A = CUtlMemory<T> >
+#ifdef SDK_MP
 class CUtlVector : public base_vector_t
+#else
+class CUtlVector
+#endif
 {
 	typedef A CAllocator;
 public:
@@ -77,8 +88,10 @@ public:
 	const T& Head() const;
 	T& Tail();
 	const T& Tail() const;
+#ifdef SDK_MP
 	T& Random();
 	const T& Random() const;
+#endif
 
 	// STL compatible member functions. These allow easier use of std::sort
 	// and they are forward compatible with the C++ 11 range-based for loops.
@@ -109,7 +122,9 @@ public:
 	// Adds an element, uses default constructor
 	int AddToHead();
 	int AddToTail();
+#ifdef SDK_MP
 	T *AddToTailGetPtr();
+#endif
 	int InsertBefore( int elem );
 	int InsertAfter( int elem );
 
@@ -121,10 +136,15 @@ public:
 
 	// Adds multiple elements, uses default constructor
 	int AddMultipleToHead( int num );
+#ifdef SDK_MP
 	int AddMultipleToTail( int num );	   
 	int AddMultipleToTail( int num, const T *pToCopy );	   
 	int InsertMultipleBefore( int elem, int num );
 	int InsertMultipleBefore( int elem, int num, const T *pToCopy );
+#else
+	int AddMultipleToTail( int num, const T *pToCopy = NULL );
+	int InsertMultipleBefore( int elem, int num, const T *pToCopy = NULL );	// If pToCopy is set, then it's an array of length 'num' and
+#endif
 	int InsertMultipleAfter( int elem, int num );
 
 	// Calls RemoveAll() then AddMultipleToTail.
@@ -148,6 +168,7 @@ public:
 	// Finds an element (element needs operator== defined)
 	int Find( const T& src ) const;
 
+#ifdef SDK_MP
 	// Helper to find using std::find_if with a predicate
 	//   e.g. [] -> bool ( T &a ) { return a.IsTheThingIWant(); }
 	//
@@ -156,6 +177,7 @@ public:
 	int FindPredicate( F&& predicate ) const;
 
 	void FillWithValue( const T& src );
+#endif
 
 	bool HasElement( const T& src ) const;
 
@@ -193,22 +215,26 @@ public:
 
 	void Sort( int (__cdecl *pfnCompare)(const T *, const T *) );
 
+#ifdef SDK_MP
 	void Shuffle( IUniformRandomStream* pSteam = NULL );
 	
 	// Call this to quickly sort non-contiguously allocated vectors
 	void InPlaceQuickSort( int (__cdecl *pfnCompare)(const T *, const T *) );
 	// reverse the order of elements
 	void Reverse( );
+#endif
 
 #ifdef DBGFLAG_VALIDATE
 	void Validate( CValidator &validator, char *pchName );		// Validate our internal structures
 #endif // DBGFLAG_VALIDATE
 
+#ifdef SDK_MP
 	/// sort using std:: and expecting a "<" function to be defined for the type
 	void Sort( void );
 
 	/// sort using std:: with a predicate. e.g. [] -> bool ( T &a, T &b ) { return a < b; }
 	template <class F> void SortPredicate( F &&predicate );
+#endif
 
 protected:
 	// Can't copy this unless we explicitly do it!
@@ -238,7 +264,9 @@ protected:
 #endif
 
 private:
+#ifdef SDK_MP
 	void InPlaceQuickSort_r( int (__cdecl *pfnCompare)(const T *, const T *), int nLeft, int nRight );
+#endif
 };
 
 
@@ -538,7 +566,9 @@ public:
 		return false;
 	}
 
+#ifdef SDK_MP
 	bool DebugCompileError_ANonVectorIsUsedInThe_FOR_EACH_VEC_Macro( void ) const { return true; }
+#endif
 
 	struct Data_t
 	{
@@ -750,6 +780,7 @@ inline int CUtlVector<T, A>::Size() const
 	return m_Size;
 }
 
+#ifdef SDK_MP
 template< typename T, class A >
 inline T& CUtlVector<T, A>::Random()
 {
@@ -780,6 +811,7 @@ void CUtlVector<T, A>::Shuffle( IUniformRandomStream* pSteam )
 		}
 	}
 }
+#endif
 
 template< typename T, class A >
 inline int CUtlVector<T, A>::Count() const
@@ -788,6 +820,7 @@ inline int CUtlVector<T, A>::Count() const
 }
 
 
+#ifdef SDK_MP
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 // Reverse - reverse the order of elements, akin to std::vector<>::reverse()
@@ -806,6 +839,7 @@ void CUtlVector<T, A>::Reverse( )
 #endif
 	}
 }
+#endif
 
 
 //-----------------------------------------------------------------------------
@@ -881,6 +915,7 @@ void CUtlVector<T, A>::Sort( int (__cdecl *pfnCompare)(const T *, const T *) )
 }
 
 
+#ifdef SDK_MP
 //----------------------------------------------------------------------------------------------
 // Private function that does the in-place quicksort for non-contiguously allocated vectors.
 //----------------------------------------------------------------------------------------------
@@ -950,6 +985,7 @@ void CUtlVector<T, A>::SortPredicate( F &&predicate )
 {
 	std::sort( Base(), Base() + Count(), predicate );
 }
+#endif
 
 //-----------------------------------------------------------------------------
 // Makes sure we have enough memory allocated to store a requested # of elements
@@ -1019,11 +1055,13 @@ inline int CUtlVector<T, A>::AddToTail()
 	return InsertBefore( m_Size );
 }
 
+#ifdef SDK_MP
 template< typename T, class A >
 inline T *CUtlVector<T, A>::AddToTailGetPtr()
 {
 	return &Element( AddToTail() );
 }
+#endif
 
 template< typename T, class A >
 inline int CUtlVector<T, A>::InsertAfter( int elem )
@@ -1096,11 +1134,13 @@ inline int CUtlVector<T, A>::AddMultipleToHead( int num )
 	return InsertMultipleBefore( 0, num );
 }
 
+#ifdef SDK_MP
 template< typename T, class A >
 inline int CUtlVector<T, A>::AddMultipleToTail( int num )
 {
 	return InsertMultipleBefore( m_Size, num );
 }
+#endif
 
 template< typename T, class A >
 inline int CUtlVector<T, A>::AddMultipleToTail( int num, const T *pToCopy )
@@ -1183,6 +1223,7 @@ int CUtlVector<T, A>::AddVectorToTail( CUtlVector const &src )
 	return base;
 }
 
+#ifdef SDK_MP
 template< typename T, class A >
 inline int CUtlVector<T, A>::InsertMultipleBefore( int elem, int num )
 {
@@ -1203,6 +1244,7 @@ inline int CUtlVector<T, A>::InsertMultipleBefore( int elem, int num )
 
 	return elem;
 }
+#endif
 
 template< typename T, class A >
 inline int CUtlVector<T, A>::InsertMultipleBefore( int elem, int num, const T *pToInsert )
@@ -1216,6 +1258,7 @@ inline int CUtlVector<T, A>::InsertMultipleBefore( int elem, int num, const T *p
 	GrowVector(num);
 	ShiftElementsRight( elem, num );
 
+#ifdef SDK_MP
 	// Invoke default constructors
 	if ( !pToInsert )
 	{
@@ -1231,6 +1274,20 @@ inline int CUtlVector<T, A>::InsertMultipleBefore( int elem, int num, const T *p
 			CopyConstruct( &Element( elem+i ), pToInsert[i] );
 		}
 	}
+#else
+	// Invoke default constructors
+	for (int i = 0; i < num; ++i )
+		Construct( &Element( elem+i ) );
+
+	// Copy stuff in?
+	if ( pToInsert )
+	{
+		for ( int i=0; i < num; i++ )
+		{
+			Element( elem+i ) = pToInsert[i];
+		}
+	}
+#endif
 
 	return elem;
 }
@@ -1250,6 +1307,7 @@ int CUtlVector<T, A>::Find( const T& src ) const
 	return -1;
 }
 
+#ifdef SDK_MP
 //-----------------------------------------------------------------------------
 // Finds an element using a predicate, using std::find_if
 //-----------------------------------------------------------------------------
@@ -1279,6 +1337,7 @@ void CUtlVector<T, A>::FillWithValue( const T& src )
 		Element(i) = src;
 	}
 }
+#endif
 
 template< typename T, class A >
 bool CUtlVector<T, A>::HasElement( const T& src ) const
@@ -1531,6 +1590,7 @@ inline void CSplitString::Set( const char *pString, const char **pSeparators, in
 	Construct( pString, pSeparators, nSeparators );
 }
 
+#ifdef SDK_MP
 // A fixed growable vector that's castable to CUtlVector
 template< class T, size_t FIXED_SIZE >
 class CUtlVectorFixedGrowableCompat : public CUtlVector< T >
@@ -1546,5 +1606,6 @@ public:
 
 	AlignedByteArray_t< FIXED_SIZE, T > m_FixedMemory;
 };
+#endif
 
 #endif // CCVECTOR_H

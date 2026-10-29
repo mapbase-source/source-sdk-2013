@@ -109,6 +109,7 @@ public:
 		return m_szBuf;
 	}
 
+#ifdef SDK_MP
 	// Same as sprintf above, but for compatibility with Steam interface
 	const char *Format( PRINTF_FORMAT_STRING const char *pszFormat, ... ) FMTFUNCTION( 2, 3 )
 	{
@@ -116,7 +117,7 @@ public:
 		FmtStrVSNPrintf( m_szBuf, SIZE_BUF, m_bQuietTruncation, &pszFormat, 0, pszFormat );
 		return m_szBuf;
 	}
-
+#endif	
 
 	// Use this for va_list formatting
 	const char *sprintf_argv(const char *pszFormat, va_list arg_ptr)

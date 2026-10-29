@@ -26,6 +26,14 @@
 
 using namespace vgui;
 
+#ifndef SDK_MP
+#define k_eHTMLKeyModifier_AltDown eHTMLKeyModifier_AltDown
+#define k_eHTMLKeyModifier_CtrlDown eHTMLKeyModifier_CrtlDown
+#define k_eHTMLKeyModifier_ShiftDown eHTMLKeyModifier_ShiftDown
+
+const uint32 INVALID_HTMLBROWSER = 0;
+#endif
+
 //-----------------------------------------------------------------------------
 // Purpose: A simple passthrough panel to render the border onto the HTML widget
 //-----------------------------------------------------------------------------

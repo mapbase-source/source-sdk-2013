@@ -178,6 +178,7 @@ struct DrawModelResults_t
 	CUtlVectorFixed<IMaterial *,MAX_DRAW_MODEL_INFO_MATERIALS> m_Materials;
 };
 
+#ifdef SDK_MP
 struct ColorTexelsInfo_t
 {
 	int						m_nWidth;
@@ -187,6 +188,7 @@ struct ColorTexelsInfo_t
 	int						m_nByteCount;
 	byte*					m_pTexelData;
 };
+#endif
 
 struct ColorMeshInfo_t
 {
@@ -196,8 +198,10 @@ struct ColorMeshInfo_t
 	IPooledVBAllocator	*	m_pPooledVBAllocator;
 	int						m_nVertOffsetInBytes;
 	int						m_nNumVerts;
+#ifdef SDK_MP
 	ITexture			*   m_pLightmap;
 	ColorTexelsInfo_t   *   m_pLightmapData;
+#endif
 };
 
 struct DrawModelInfo_t
@@ -377,7 +381,9 @@ public:
 	// draw an array of models with the same state
 	virtual void DrawModelArray( const DrawModelInfo_t &drawInfo, int arrayCount, model_array_instance_t *pInstanceData, int instanceStride, int flags = STUDIORENDER_DRAW_ENTIRE_MODEL ) = 0;
 
+#ifdef SDK_MP
 	virtual void GetMaterialOverride( IMaterial** ppOutForcedMaterial, OverrideType_t* pOutOverrideType ) = 0;
+#endif
 };
 
 extern IStudioRender *g_pStudioRender;

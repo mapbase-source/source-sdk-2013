@@ -32,9 +32,11 @@ class CBaseAnimating;
 class CTakeDamageInfo;
 class ITempEntsSystem;
 class IEntityFactoryDictionary;
+#ifdef SDK_MP
 class CBaseTempEntity;
 class CGlobalEntityList;
 class IEntityFindFilter;
+#endif
 
 
 //-----------------------------------------------------------------------------
@@ -220,6 +222,7 @@ public:
 	virtual void RadiusDamage( const CTakeDamageInfo &info, const Vector &vecSrc, float flRadius, int iClassIgnore, CBaseEntity *pEntityIgnore ) = 0;
 
 	virtual ITempEntsSystem *GetTempEntsSystem( void ) = 0;
+#ifdef SDK_MP
 	virtual CBaseTempEntity *GetTempEntList( void ) = 0;
 
 	virtual CGlobalEntityList *GetEntityList( void ) = 0;
@@ -240,15 +243,22 @@ public:
 	virtual CBaseEntity *FindEntityNearestFacing( const Vector &origin, const Vector &facing, float threshold ) = 0;
 	virtual CBaseEntity *FindEntityClassNearestFacing( const Vector &origin, const Vector &facing, float threshold, char *classname ) = 0;
 	virtual CBaseEntity *FindEntityProcedural( const char *szName, CBaseEntity *pSearchingEntity = NULL, CBaseEntity *pActivator = NULL, CBaseEntity *pCaller = NULL ) = 0;
+#endif
 };
 
 typedef IServerTools IServerTools001;
 typedef IServerTools IServerTools002;
 
+#ifdef SDK_MP
 #define VSERVERTOOLS_INTERFACE_VERSION_1	"VSERVERTOOLS001"
 #define VSERVERTOOLS_INTERFACE_VERSION_2	"VSERVERTOOLS002"
 #define VSERVERTOOLS_INTERFACE_VERSION		"VSERVERTOOLS003"
 #define VSERVERTOOLS_INTERFACE_VERSION_INT	3
+#else
+#define VSERVERTOOLS_INTERFACE_VERSION_1	"VSERVERTOOLS001"
+#define VSERVERTOOLS_INTERFACE_VERSION		"VSERVERTOOLS002"
+#define VSERVERTOOLS_INTERFACE_VERSION_INT	2
+#endif
 
 //-----------------------------------------------------------------------------
 // Purpose: Client side tool interace (right now just handles IClientRenderables).

@@ -24,8 +24,13 @@ namespace vgui
 {
 
 // safe handle to a panel - can be converted to and from a VPANEL
+#ifdef SDK_MP
 typedef uint32 HPanel;
 typedef uint32 HContext;
+#else
+typedef unsigned long HPanel;
+typedef unsigned long HContext;
+#endif
 
 enum : vgui::HContext
 {
@@ -101,10 +106,12 @@ public:
 	// add a tick signal like above, but to the head of the list of tick signals
 	virtual void AddTickSignalToHead( VPANEL panel, int intervalMilliseconds = 0 ) = 0;
 
+#ifdef SDK_MP
 	virtual IVEngineClient *GetVGUIEngine() = 0;
 
 	virtual void InvalidateMdlCache() = 0;
 	virtual uint32 GetMdlCacheSerial() = 0;
+#endif
 };
 
 #define VGUI_IVGUI_INTERFACE_VERSION "VGUI_ivgui008"

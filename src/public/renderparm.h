@@ -56,12 +56,22 @@ enum RenderParamInt_t
 	INT_FLASHLIGHT_DEPTHTEXTURE_FALLBACK_FIRST,
 	INT_FLASHLIGHT_DEPTHTEXTURE_FALLBACK_LAST = INT_FLASHLIGHT_DEPTHTEXTURE_FALLBACK_FIRST + 4,
 
+#ifdef SDK_SP
+	// In lieu of dedicated interface functions
+	INT_RENDERPARM_FOG_TYPE,
+#endif
+
 	MAX_INT_RENDER_PARMS = 20
 };
 
 // for INT_RENDERPARM_BACK_BUFFER_INDEX
 #define BACK_BUFFER_INDEX_DEFAULT	0
 #define BACK_BUFFER_INDEX_HDR		1
+
+#ifdef SDK_SP
+// For fog type workaround
+#define MATERIAL_FOG_RANGE_RADIAL 3
+#endif
 
 enum RenderParamTexture_t
 {

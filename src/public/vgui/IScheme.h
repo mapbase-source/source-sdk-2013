@@ -21,8 +21,13 @@ class KeyValues;
 namespace vgui
 {
 
+#ifdef SDK_MP
 typedef uint32 HScheme;
 typedef uint32 HTexture;
+#else
+typedef unsigned long HScheme;
+typedef unsigned long HTexture;
+#endif
 
 class IBorder;
 class IImage;
@@ -64,10 +69,12 @@ public:
 	// Get color data
 	virtual const KeyValues *GetColorData() const = 0;
 
+#ifdef SDK_MP
 	// returns a pointer to an existing border
 	virtual IBorder* GetBorder2( const char* borderName ) = 0;
 
 	virtual VPANEL GetSizingPanel() = 0;
+#endif
 };
 
 
@@ -134,7 +141,9 @@ public:
 	// Returns true if image evicted, false otherwise
 	virtual bool DeleteImage( const char *pImageName ) = 0;
 
+#ifdef SDK_MP
 	virtual void UpdateBorders() = 0;
+#endif
 };
 
 #define VGUI_SCHEME_INTERFACE_VERSION "VGUI_Scheme010"

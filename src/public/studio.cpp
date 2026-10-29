@@ -530,7 +530,11 @@ void studiohdr_t::SetAttachmentBone( int iAttachment, int iBone )
 // Purpose:
 //-----------------------------------------------------------------------------
 
+#ifdef SDK_MP
 char *studiohdr_t::pszNodeName( int iNode )
+#else
+const char *studiohdr_t::pszNodeName( int iNode )
+#endif
 {
 	if (numincludemodels == 0)
 	{
@@ -1189,7 +1193,11 @@ void CStudioHdr::SetAttachmentBone( int iAttachment, int iBone )
 // Purpose:
 //-----------------------------------------------------------------------------
 
+#ifdef SDK_MP
 char *CStudioHdr::pszNodeName( int iNode )
+#else
+const char *CStudioHdr::pszNodeName( int iNode )
+#endif
 {
 	if (m_pVModel == NULL)
 	{
@@ -1589,6 +1597,16 @@ void CStudioHdr::RunFlexRules( const float *src, float *dest )
 					const mstudioflexcontroller_t *const pCloseLid = pFlexcontroller( static_cast< LocalFlexController_t >( (int)stack[ k - 1 ] ) );
 					const float flCloseLid = RemapValClamped( src[ pCloseLid->localToGlobal ], pCloseLid->min, pCloseLid->max, 0.0f, 1.0f );
 
+#ifndef SDK_MP
+					int nBlinkIndex = static_cast< int >( stack[ k - 2 ] );
+					float flBlink = 0.0f;
+					if ( nBlinkIndex >= 0 )
+					{
+						const mstudioflexcontroller_t *const pBlink = pFlexcontroller( static_cast< LocalFlexController_t >( (int)stack[ k - 2 ] ) );
+						flBlink = RemapValClamped( src[ pBlink->localToGlobal ], pBlink->min, pBlink->max, 0.0f, 1.0f );
+					}
+#endif
+
 					int nEyeUpDownIndex = static_cast< int >( stack[ k - 3 ] );
 					float flEyeUpDown = 0.0f;
 					if ( nEyeUpDownIndex >= 0 )
@@ -1620,6 +1638,16 @@ void CStudioHdr::RunFlexRules( const float *src, float *dest )
 
 					const mstudioflexcontroller_t *const pCloseLid = pFlexcontroller( static_cast< LocalFlexController_t >( (int)stack[ k - 1 ] ) );
 					const float flCloseLid = RemapValClamped( src[ pCloseLid->localToGlobal ], pCloseLid->min, pCloseLid->max, 0.0f, 1.0f );
+
+#ifndef SDK_MP
+					int nBlinkIndex = static_cast< int >( stack[ k - 2 ] );
+					float flBlink = 0.0f;
+					if ( nBlinkIndex >= 0 )
+					{
+						const mstudioflexcontroller_t *const pBlink = pFlexcontroller( static_cast< LocalFlexController_t >( (int)stack[ k - 2 ] ) );
+						flBlink = RemapValClamped( src[ pBlink->localToGlobal ], pBlink->min, pBlink->max, 0.0f, 1.0f );
+					}
+#endif
 
 					int nEyeUpDownIndex = static_cast< int >( stack[ k - 3 ] );
 					float flEyeUpDown = 0.0f;
@@ -1678,7 +1706,9 @@ void CStudioHdr::RunFlexRules( const float *src, float *dest )
 //-----------------------------------------------------------------------------
 #define iabs(i) (( (i) >= 0 ) ? (i) : -(i) )
 
+#ifdef SDK_MP
 CUtlSymbolTable g_ActivityModifiersTable;
+#endif
 
 extern void SetActivityForSequence( CStudioHdr *pstudiohdr, int i );
 void CStudioHdr::CActivityToSequenceMapping::Initialize( CStudioHdr * __restrict pstudiohdr )
@@ -1799,6 +1829,7 @@ void CStudioHdr::CActivityToSequenceMapping::Initialize( CStudioHdr * __restrict
 			int tupleOffset = seqsPerAct[seqdesc.activity];
 			Assert( tupleOffset < element.count );
 
+#ifdef SDK_MP
 			if ( seqdesc.numactivitymodifiers > 0 )
 			{
 				// add entries for this model's activity modifiers
@@ -1815,6 +1846,7 @@ void CStudioHdr::CActivityToSequenceMapping::Initialize( CStudioHdr * __restrict
 				(tupleList + element.startingIdx + tupleOffset)->pActivityModifiers = NULL;
 				(tupleList + element.startingIdx + tupleOffset)->iNumActivityModifiers = 0;
 			}
+#endif
 
 			// You might be tempted to collapse this pointer math into a single pointer --
 			// don't! the tuple list is marked __restrict above.
