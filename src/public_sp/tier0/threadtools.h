@@ -703,6 +703,11 @@ private:
 	int				m_depth;
 };
 
+#ifdef COMPILER_CLANG
+#  pragma clang diagnostic push
+#  pragma clang diagnostic ignored "-Wunused-private-field"
+#endif // Q_CC_CLANG
+
 class ALIGN128 CAlignedThreadFastMutex : public CThreadFastMutex
 {
 public:
@@ -714,6 +719,10 @@ public:
 private:
 	uint8 pad[128-sizeof(CThreadFastMutex)];
 } ALIGN128_POST;
+
+#ifdef COMPILER_CLANG
+#  pragma clang diagnostic pop
+#endif
 
 #else
 typedef CThreadMutex CThreadFastMutex;
@@ -834,7 +843,7 @@ template<typename T> T strip_cv_quals_for_mutex(volatile T&);
 template<typename T> T strip_cv_quals_for_mutex(const volatile T&);
 
 #define AUTO_LOCK( mutex ) \
-    AUTO_LOCK_( typeof(::strip_cv_quals_for_mutex(mutex)), mutex )
+    AUTO_LOCK_( __typeof__(::strip_cv_quals_for_mutex(mutex)), mutex )
 
 #else // GNUC
 
@@ -875,7 +884,7 @@ public:
 	//-----------------------------------------------------
 #ifdef _WIN32
 	operator HANDLE() { return GetHandle(); }
-	const HANDLE GetHandle() const { return m_hSyncObject; }
+	HANDLE GetHandle() const { return m_hSyncObject; }
 #endif
 	//-----------------------------------------------------
 	// Wait for a signal from the object
@@ -1016,7 +1025,7 @@ inline int ThreadWaitForEvents( int nEvents, CThreadEvent * const *pEvents, bool
 	return WAIT_TIMEOUT;
 #else
 	HANDLE handles[64];
-	for ( unsigned int i = 0; i < min( nEvents, ARRAYSIZE(handles) ); i++ )
+	for ( unsigned int i = 0; i < min( (unsigned int)nEvents, ARRAYSIZE(handles) ); i++ )
 		handles[i] = pEvents[i]->GetHandle();
 	return ThreadWaitForObjects( nEvents, handles, bWaitAll, timeout );
 #endif
@@ -1227,9 +1236,9 @@ protected:
 	CThreadMutex m_Lock;
 
 #ifdef WIN32
-	const ThreadHandle_t GetThreadID() const { return (ThreadHandle_t)m_hThread; }
+	ThreadHandle_t GetThreadID() const { return (ThreadHandle_t)m_hThread; }
 #else
-	const ThreadId_t GetThreadID() const { return (ThreadId_t)m_threadId; }
+	ThreadId_t GetThreadID() const { return (ThreadId_t)m_threadId; }
 #endif
 
 private:

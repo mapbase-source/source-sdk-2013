@@ -31,7 +31,7 @@ if [[ ! -e "$solution_out.ninja" ]]; then
     # Remove some unsupported clang commands.
     sed -i 's/-fpredictive-commoning//g; s/-fvar-tracking-assignments//g' compile_commands.json
     sed -i 's|/my_mod/src|.|g' compile_commands.json
-    sed -i 's|i386|i686|g' "$solution_out.ninja"
+    sed -i 's|i386|i686|g' "$solution_out.ninja" # Need i686-linux-gnu-g++, not i386-linux-gnu-g++
 fi
 
 ninja -f "$solution_out.ninja" -j$(nproc)

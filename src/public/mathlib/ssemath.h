@@ -3019,7 +3019,13 @@ inline fltx4 fnegate( const fltx4 & x )
 }
 
 
+#if defined(SDK_SP) && defined(__GNUC__)
+// The handling for __m128 in GCC has changed since SP's particles.a was compiled.
+// This links the function directly to the symbol inside of that library.
+fltx4 Pow_FixedPoint_Exponent_SIMD( const fltx4 & x, int exponent) asm("_Z28Pow_FixedPoint_Exponent_SIMDRKU8__vectorfi");
+#else
 fltx4 Pow_FixedPoint_Exponent_SIMD( const fltx4 & x, int exponent);
+#endif
 
 // PowSIMD - raise a SIMD register to a power.  This is analogous to the C pow() function, with some
 // restictions: fractional exponents are only handled with 2 bits of precision. Basically,

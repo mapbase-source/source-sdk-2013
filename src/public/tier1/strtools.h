@@ -1378,7 +1378,9 @@ bool PATHSEPARATOR( char c );
 //   returns <0 if strings do not match even in a case-insensitive way
 int	_V_stricmp_NegativeForUnequal	  ( const char *s1, const char *s2 );
 
-#ifdef SDK_SP
+#if defined(SDK_SP) && defined(_WIN32)
+// SP's dmxloader.lib uses this, but it does not appear to be defined anywhere (toolset difference?)
+// For now, just redirects to sscanf_s
 int _sscanf_s( const char *pBuffer, PRINTF_FORMAT_STRING const char *const pFormat, ... ) FMTFUNCTION( 3, 4 );
 #endif
 

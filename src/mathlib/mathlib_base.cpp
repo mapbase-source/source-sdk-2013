@@ -3334,7 +3334,7 @@ void MathLib_Init( float gamma, float texGamma, float brightness, int overbright
 
 	// SSE Generally performs better than 3DNow when present, so this is placed 
 	// first to allow SSE to override these settings.
-#if !defined( OSX ) && !defined( PLATFORM_WINDOWS_PC64 ) && !defined(LINUX)
+#if !defined( OSX ) && !defined( PLATFORM_WINDOWS_PC64 ) && !defined(LINUX) && !defined(__clang__)
 	if ( bAllow3DNow && pi.m_b3DNow )
 	{
 		s_b3DNowEnabled = true;
