@@ -54,8 +54,10 @@ struct StaticPropBuild_t
 	float	m_flForcedFadeScale;
 	unsigned short	m_nMinDXLevel;
 	unsigned short	m_nMaxDXLevel;
+#ifdef SDK_MP
 	int		m_LightmapResolutionX;
 	int		m_LightmapResolutionY;
+#endif
 };
  
 
@@ -520,8 +522,10 @@ static void AddStaticPropToLump( StaticPropBuild_t const& build )
 		}
 	}
 
+#ifdef SDK_MP
 	propLump.m_nLightmapResolutionX = build.m_LightmapResolutionX;
 	propLump.m_nLightmapResolutionY = build.m_LightmapResolutionY;
+#endif
 
 	// Add the leaves to the leaf lump
 	for (int j = 0; j < leafList.Size(); ++j)
@@ -661,6 +665,7 @@ void EmitStaticProps()
 				build.m_Flags |= STATIC_PROP_SCREEN_SPACE_FADE;
 			}
 
+#ifdef SDK_MP
 			if (IntForKey( &entities[i], "generatelightmaps") == 0)
 			{
 				build.m_Flags |= STATIC_PROP_NO_PER_TEXEL_LIGHTING;			
@@ -672,6 +677,7 @@ void EmitStaticProps()
 				build.m_LightmapResolutionX = IntForKey( &entities[i], "lightmapresolutionx" );
 				build.m_LightmapResolutionY = IntForKey( &entities[i], "lightmapresolutiony" );
 			}
+#endif
 
 			const char *pKey = ValueForKey( &entities[i], "fadescale" );
 			if ( pKey && pKey[0] )
