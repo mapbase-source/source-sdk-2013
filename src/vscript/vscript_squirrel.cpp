@@ -3009,7 +3009,7 @@ bool SquirrelVM::GenerateUniqueKey(const char* pszRoot, char* pBuf, int nBufSize
 	static unsigned keyIdx = 0;
 	// This gets used for script scope, still confused why it needs to be inside IScriptVM
 	// is it just to be a compatible name for CreateScope?
-	V_snprintf(pBuf, nBufSize, "%08X_%s", ++keyIdx, pszRoot);
+	V_snprintf(pBuf, nBufSize, "_%08X_%s", ++keyIdx, pszRoot);
 	return true;
 }
 
