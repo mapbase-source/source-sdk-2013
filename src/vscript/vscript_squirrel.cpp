@@ -2477,14 +2477,26 @@ void SquirrelVM::ReleaseScope(HSCRIPT hScript)
 	SquirrelSafeCheck safeCheck(vm_);
 	if (!hScript) return;
 	HSQOBJECT* obj = (HSQOBJECT*)hScript;
+	SQInteger top = sq_gettop(vm_);
 	sq_pushobject(vm_, *obj);
 
 	sq_getdelegate(vm_, -1);
 
 	sq_pushstring(vm_, "__vname", -1);
-	sq_rawdeleteslot(vm_, -2, SQFalse);
+	if (SQ_SUCCEEDED(sq_rawget(vm_, -3)))
+	{
+		HSQOBJECT current;
+		sq_push(vm_, -1);
+		if (SQ_SUCCEEDED(sq_rawget(vm_, -3)) &&
+			SQ_SUCCEEDED(sq_getstackobj(vm_, -1, &current)) &&
+			current._unVal.pTable == obj->_unVal.pTable)
+		{
+			sq_pop(vm_, 1);
+			sq_rawdeleteslot(vm_, -2, SQFalse);
+		}
+	}
 
-	sq_pop(vm_, 2);
+	sq_settop(vm_, top);
 
 	sq_release(vm_, obj);
 	delete obj;
