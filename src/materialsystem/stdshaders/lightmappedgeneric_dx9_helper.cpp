@@ -35,7 +35,9 @@ ConVar mat_force_lightmapped_phong( "mat_force_lightmapped_phong", "0", FCVAR_CH
 ConVar mat_force_lightmapped_phong_boost( "mat_force_lightmapped_phong_boost", "5.0", FCVAR_CHEAT );
 ConVar mat_force_lightmapped_phong_exp( "mat_force_lightmapped_phong_exp", "50.0", FCVAR_CHEAT );
 
+#ifdef SDK_MP // SP lacks some changes required for this :(
 ConVar r_lightmap_bicubic( "r_lightmap_bicubic", "0", FCVAR_NONE, "Enable bi-cubic (high quality) lightmap sampling." );
+#endif
 
 extern ConVar r_flashlight_version2;
 
@@ -1591,7 +1593,11 @@ void DrawLightmappedGeneric_DX9_Internal(CBaseVSShader *pShader, IMaterialVar** 
 			SET_DYNAMIC_PIXEL_SHADER_COMBO( WRITE_DEPTH_TO_DESTALPHA, bWriteDepthToAlpha );
 			SET_DYNAMIC_PIXEL_SHADER_COMBO( WRITEWATERFOGTODESTALPHA, bWriteWaterFogToAlpha );
 			SET_DYNAMIC_PIXEL_SHADER_COMBO( LIGHTING_PREVIEW, nFixedLightingMode );
+#ifdef SDK_MP
 			SET_DYNAMIC_PIXEL_SHADER_COMBO( BICUBIC_LIGHTMAP, r_lightmap_bicubic.GetBool() ? 1 : 0 );
+#else
+			SET_DYNAMIC_PIXEL_SHADER_COMBO( BICUBIC_LIGHTMAP, 0 );
+#endif
 
 			SET_DYNAMIC_PIXEL_SHADER_CMD( DynamicCmdsOut, lightmappedgeneric_ps30 );
 		}
@@ -1606,7 +1612,11 @@ void DrawLightmappedGeneric_DX9_Internal(CBaseVSShader *pShader, IMaterialVar** 
 			SET_DYNAMIC_PIXEL_SHADER_COMBO( WRITE_DEPTH_TO_DESTALPHA, bWriteDepthToAlpha );
 			SET_DYNAMIC_PIXEL_SHADER_COMBO( WRITEWATERFOGTODESTALPHA, bWriteWaterFogToAlpha );
 			SET_DYNAMIC_PIXEL_SHADER_COMBO( LIGHTING_PREVIEW, nFixedLightingMode );
+#ifdef SDK_MP
 			SET_DYNAMIC_PIXEL_SHADER_COMBO( BICUBIC_LIGHTMAP, r_lightmap_bicubic.GetBool() ? 1 : 0 );
+#else
+			SET_DYNAMIC_PIXEL_SHADER_COMBO( BICUBIC_LIGHTMAP, 0 );
+#endif
 			
 			SET_DYNAMIC_PIXEL_SHADER_CMD( DynamicCmdsOut, lightmappedgeneric_ps20b );
 		}
