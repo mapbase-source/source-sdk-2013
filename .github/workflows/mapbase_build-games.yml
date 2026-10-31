@@ -6,7 +6,7 @@
 #
 # See mapbase_build-base.yml for more information on how this works.
 
-name: Build Game Projects #(SP Release)
+name: Build Game [MP]
 
 on:
   pull_request:
@@ -18,6 +18,12 @@ on:
       - '.github/workflows/mapbase_build-games.yml'
       - 'src/vpc_scripts/**'
       - 'src/game/**'
+      - '!src/game/server/hl2/**'
+      - '!src/game/client/hl2/**'
+      - '!src/game/shared/hl2/**'
+      - '!src/game/server/episodic/**'
+      - '!src/game/client/episodic/**'
+      - '!src/game/shared/episodic/**'
       - 'src/mathlib/**'
       - 'src/responserules/runtime/**'
       - 'src/tier1/**'
@@ -34,4 +40,5 @@ jobs:
       configuration: ${{ matrix.configuration }}
       game: 'tf /hl2mp' # Change this if your mod is not using these game projects
       project-group: 'game'
-      build-on-linux: true # Disable this if you don't want to compile for Linux
+      build-linux: true # Disable this if you don't want to compile for Linux
+      arch: '64'
