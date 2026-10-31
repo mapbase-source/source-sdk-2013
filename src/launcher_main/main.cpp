@@ -47,6 +47,10 @@ extern "C" { __declspec( dllexport ) int AmdPowerXpressRequestHighPerformance = 
 #endif
 
 
+#ifndef SDK_MP
+#define Q_snprintf snprintf
+#endif
+
 #include <steam/steam_api.h>
 
 #ifdef _WIN32
@@ -169,6 +173,7 @@ static bool LoadSteam( const char *pRootDir )
 		fclose( pFile );
 	}
 
+#ifdef SDK_MP
 	decltype(SteamAPI_Init) *pfnSAPIInit = (decltype( SteamAPI_Init ) *) GetProcAddress( s_SteamModule, "SteamAPI_Init" );
 	if ( !pfnSAPIInit )
 	{
@@ -185,6 +190,7 @@ static bool LoadSteam( const char *pRootDir )
 	}
 
 	s_bInittedSteam = true;
+#endif
 	return true;
 }
 
@@ -195,6 +201,7 @@ static bool GetGameInstallDir( const char *pRootDir, char *pszBuf, int nBufSize 
 		return false;
 	}
 
+#ifdef SDK_MP
 	decltype( SteamAPI_GetHSteamUser )* pfnSteamAPI_GetHSteamUser = ( decltype( SteamAPI_GetHSteamUser )* )GetProcAddress( s_SteamModule, "SteamAPI_GetHSteamUser" );
 	if ( !pfnSteamAPI_GetHSteamUser )
 	{
@@ -229,6 +236,7 @@ static bool GetGameInstallDir( const char *pRootDir, char *pszBuf, int nBufSize 
 		MessageBox( 0, "Source SDK 2013 Multiplayer (243750) must be installed to launch this mod.", "Launcher Error", MB_OK );
 		return false;
 	}
+#endif
 
 	return true;
 }
