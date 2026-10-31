@@ -74,7 +74,8 @@ $Project "tier1"
 		$File	"uniqueid.cpp"
 		$File	"utlbuffer.cpp"
 		$File	"utlbufferutil.cpp"
-		$File	"utlstring.cpp"
+		$File	"utlstring.cpp" [$WIN64||$LINUX64] // SDK_MP
+		$File	"utlstring_sp.cpp" [$WIN32||$LINUX32] // SDK_SP
 		$File	"utlsymbol.cpp"
 		$File	"utlbinaryblock.cpp"
 		$File	"pathmatch.cpp" [$LINUXALL]
@@ -160,7 +161,8 @@ $Project "tier1"
 		$File	"$SRCDIR\public\tier1\utlrbtree.h"
 		$File	"$SRCDIR\public\tier1\UtlSortVector.h"
 		$File	"$SRCDIR\public\tier1\utlstack.h"
-		$File	"$SRCDIR\public\tier1\utlstring.h"
+		$File	"$SRCDIR\public\tier1\utlstring.h" [$WIN64||$LINUX64] // SDK_MP
+		$File	"$SRCDIR\public_sp\tier1\utlstring.h" [$WIN32||$LINUX32] // SDK_SP
 		$File	"$SRCDIR\public\tier1\UtlStringMap.h"
 		$File	"$SRCDIR\public\tier1\utlsymbol.h"
 		$File	"$SRCDIR\public\tier1\utlsymbollarge.h"

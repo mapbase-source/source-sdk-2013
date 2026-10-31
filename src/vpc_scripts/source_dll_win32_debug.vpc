@@ -55,7 +55,8 @@ $Configuration "Debug"
 	$Compiler
 	{
 		// General
-		$AdditionalIncludeDirectories		"$SRCDIR\common;$SRCDIR\public;$SRCDIR\public\tier0;$SRCDIR\public\tier1"
+		$AdditionalIncludeDirectories		"$SRCDIR\common;$SRCDIR\public_sp;$SRCDIR\public;$SRCDIR\public\tier0;$SRCDIR\public\tier1"	[$WIN32||$LINUX32] // SDK_SP
+		$AdditionalIncludeDirectories		"$SRCDIR\common;$SRCDIR\public;$SRCDIR\public\tier0;$SRCDIR\public\tier1"					[$WIN64||$LINUX64] // SDK_MP
 		$Resolve#UsingReferences
 		$DebugInformationFormat				"Program Database for Edit And Continue (/ZI)" [$WIN32]
 		$DebugInformationFormat				"Program Database (/Zi)" [$WIN64]
