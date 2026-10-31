@@ -1170,6 +1170,7 @@ CBasePlayer* UTIL_PlayerByCommandArg( const char *arg )
 		UTIL_PLAYERBYCMDARG_CHECKMATCH( bMatch ? UTIL_PlayerBySteamID( steamID ) : NULL );
 	}
 
+#ifdef SDK_MP
 	// Legacy SteamID?
 	const char szPrefix[] = "STEAM_";
 	if ( nLength >= V_ARRAYSIZE( szPrefix ) && V_strncmp( szPrefix, arg, V_ARRAYSIZE( szPrefix ) - 1 ) == 0 )
@@ -1178,6 +1179,7 @@ CBasePlayer* UTIL_PlayerByCommandArg( const char *arg )
 		bool bMatch = SteamIDFromSteam2String( arg, GetUniverse(), &steamID );
 		UTIL_PLAYERBYCMDARG_CHECKMATCH( bMatch ? UTIL_PlayerBySteamID( steamID ) : NULL );
 	}
+#endif
 
 	// UserID preceded by a pound (#4)
 	if ( nLength > 1 && arg[0] == '#' && bAllButFirstNumbers )
@@ -1302,10 +1304,12 @@ char *UTIL_GetFilteredPlayerName( const CSteamID &steamID, char *pszName )
 		pszName = "";
 	}
 
+#ifdef SDK_MP
 	if ( SteamUtils() )
 	{
 		SteamUtils()->FilterText( k_ETextFilteringContextName, steamID, pszName, pszName, MAX_PLAYER_NAME_LENGTH );
 	}
+#endif
 	return pszName;
 }
 
@@ -1329,6 +1333,7 @@ wchar_t *UTIL_GetFilteredPlayerNameAsWChar( const CSteamID &steamID, const char 
 		pszName = "";
 	}
 
+#ifdef SDK_MP
 	if ( SteamUtils() )
 	{
 		char szName[ MAX_PLAYER_NAME_LENGTH ];
@@ -1336,6 +1341,7 @@ wchar_t *UTIL_GetFilteredPlayerNameAsWChar( const CSteamID &steamID, const char 
 		g_pVGuiLocalize->ConvertANSIToUnicode( szName, pwszName, MAX_PLAYER_NAME_LENGTH * sizeof( wchar_t ) );
 	}
 	else
+#endif
 	{
 		g_pVGuiLocalize->ConvertANSIToUnicode( pszName, pwszName, MAX_PLAYER_NAME_LENGTH * sizeof( wchar_t ) );
 	}
@@ -1345,6 +1351,7 @@ wchar_t *UTIL_GetFilteredPlayerNameAsWChar( const CSteamID &steamID, const char 
 
 char *UTIL_GetFilteredChatText( int iPlayerIndex, char *pszText, int nTextBufferSize )
 {
+#ifdef SDK_MP
 	if ( SteamUtils() )
 	{
 		CSteamID steamIDPlayer;
@@ -1355,6 +1362,7 @@ char *UTIL_GetFilteredChatText( int iPlayerIndex, char *pszText, int nTextBuffer
 		}
 		SteamUtils()->FilterText( k_ETextFilteringContextChat, steamIDPlayer, pszText, pszText, nTextBufferSize );
 	}
+#endif
 	return pszText;
 }
 #endif // CLIENT_DLL
@@ -1637,6 +1645,7 @@ CSteamID SteamIDFromDecimalString( const char *pszUint64InDecimal )
 	}
 }
 
+#ifdef SDK_MP
 //-----------------------------------------------------------------------------
 // Purpose: Try to parse an un-ambiguous steamID from a string
 //
@@ -1741,6 +1750,7 @@ CSteamID UTIL_GuessSteamIDFromFuzzyInput( const char *pszInputRaw, bool bCurrent
 
 	return CSteamID();
 }
+#endif
 
 #define WORKSHOP_PREFIX_1		"workshop/"
 #define MAP_WORKSHOP_PREFIX_1	"maps/" WORKSHOP_PREFIX_1

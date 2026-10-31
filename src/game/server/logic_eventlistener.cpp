@@ -32,6 +32,7 @@ DEFINE_OUTPUT( m_OnEventFired, "OnEventFired" ),
 END_DATADESC()
 
 
+#ifdef SDK_MP
 class CScriptEventTableWriter : public IGameEventVisitor2
 {
 public:
@@ -70,6 +71,7 @@ private:
 	IScriptVM* mVM;
 	HSCRIPT mTable;
 };
+#endif
 
 //-----------------------------------------------------------------------------
 // Purpose: Spawn
@@ -118,8 +120,12 @@ void CLogicEventListener::FireGameEvent( IGameEvent *event )
 			ScriptVariant_t table;
 			vm->CreateTable( table );
 			{
+#ifdef SDK_MP
 				CScriptEventTableWriter tableWriter( vm, table );
 				event->ForEventData( &tableWriter );
+#else
+				Warning( "CLogicEventListener vscript not supported in SP branch at the moment\n" );
+#endif
 			}
 			vm->SetValue( entityTable, "event_data", table );
 			vm->ReleaseValue( table );

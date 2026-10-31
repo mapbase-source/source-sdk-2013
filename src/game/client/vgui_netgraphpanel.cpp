@@ -885,6 +885,7 @@ void CNetGraphPanel::DrawTextFields( int graphvalue, int x, int y, int w, netban
 		g_pMatSystemSurface->DrawColoredText( m_hFontSmall, x, y, 0, 0, 128, 255, "voice" );
 		y -= textTall;
 	}
+#ifdef SDK_MP
 	else
 	{
 		const CPUFrequencyResults frequency = GetCPUFrequencyResults();
@@ -914,6 +915,7 @@ void CNetGraphPanel::DrawTextFields( int graphvalue, int x, int y, int w, netban
 						"CPU freq: %3.1f%%   Min: %3.1f%%", frequency.m_percentage, frequency.m_lowestPercentage );
 		}
 	}
+#endif
 }
 
 //-----------------------------------------------------------------------------

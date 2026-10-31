@@ -336,6 +336,7 @@ int CStudioHdr::CActivityToSequenceMapping::SelectWeightedSequence( CStudioHdr *
 
 }
 
+#ifdef SDK_MP
 int CStudioHdr::CActivityToSequenceMapping::SelectWeightedSequenceFromModifiers( CStudioHdr *pstudiohdr, int activity, CUtlSymbol *pActivityModifiers, int iModifierCount )
 {
 	if ( !pstudiohdr->SequencesAvailable() )
@@ -406,6 +407,7 @@ int CStudioHdr::CActivityToSequenceMapping::SelectWeightedSequenceFromModifiers(
 	
 	return topScoring[ RandomInt( 0, topScoring.Count() - 1 ) ];
 }
+#endif
 
 
 #endif
