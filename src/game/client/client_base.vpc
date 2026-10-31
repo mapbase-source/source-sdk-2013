@@ -383,7 +383,7 @@ $Project
 		$File	"in_camera.cpp"
 		$File	"in_joystick.cpp"
 		$File	"in_main.cpp"
-		$File	"in_steamcontroller.cpp"
+		$File	"in_steamcontroller.cpp" [$WIN64||$LINUX64] // SDK_MP
 		$File	"initializer.cpp"
 		$File	"interpolatedvar.cpp"
 		$File	"IsNPCProxy.cpp"
@@ -456,7 +456,7 @@ $Project
 		$File	"spritemodel.cpp"
 		$File	"$SRCDIR\game\shared\SpriteTrail.cpp"
 		$File	"$SRCDIR\game\shared\studio_shared.cpp"
-		$File	"steamshare.cpp"
+		$File	"steamshare.cpp" [$WIN64||$LINUX64] // SDK_MP
 		$File	"studio_stats.cpp"
 		$File	"studio_stats.h"
 		$File	"$SRCDIR\game\shared\takedamageinfo.cpp"
@@ -522,7 +522,7 @@ $Project
 		$File	"$SRCDIR\public\haptics\haptic_msgs.cpp"	[!$X360]
 		$File	"$SRCDIR\public\haptics\haptic_utils.cpp"	[$WINDOWS&&!$X360]
 
-		$File	"$SRCDIR\game\shared\secure_command_line.cpp"
+		$File	"$SRCDIR\game\shared\secure_command_line.cpp" [$WIN64||$LINUX64] // SDK_MP
 
 
 		$Folder	"Sixense"
@@ -562,6 +562,7 @@ $Project
 				"$SRCDIR\public\studio.cpp"							\
 				"$SRCDIR\public\vallocator.cpp"						\
 				"$SRCDIR\public\vgui_controls\vgui_controls.cpp"	\
+				"$SRCDIR\public\jigglebones.cpp"					\
 				"hud_lcd.cpp"										\
 				"in_mouse.cpp"										\
 				"mumble.cpp"						\
@@ -867,8 +868,9 @@ $Project
 		$File	"simple_keys.h"
 		$File	"smoke_fog_overlay.h"
 		$File	"splinepatch.h"
-		$File	"$SRCDIR\public\steam\steam_api.h"
-		$File	"steamshare.h"
+		$File	"$SRCDIR\public\steam\steam_api.h" [$WIN64||$LINUX64] // SDK_MP
+		$File	"$SRCDIR\public_sp\steam\steam_api.h" [$WIN32||$LINUX32] // SDK_SP
+		$File	"steamshare.h" [$WIN64||$LINUX64] // SDK_MP
 		$File	"TeamBitmapImage.h"
 		$File	"tempent.h"
 		$File	"text_message.h"
@@ -895,7 +897,7 @@ $Project
 		$File	"weapons_resource.h"
 		$File	"vgui_video.h"
 		$File   "vgui_video_player.h"
-		$File	"$SRCDIR\game\shared\secure_command_line.h"
+		$File	"$SRCDIR\game\shared\secure_command_line.h" [$WIN64||$LINUX64] // SDK_MP
 
 	}
 

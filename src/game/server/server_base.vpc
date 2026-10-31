@@ -625,7 +625,8 @@ $Project
 		$File	"sprite_perfmonitor.cpp"
 		$File	"$SRCDIR\game\shared\SpriteTrail.h"
 		$File	"$SRCDIR\public\vphysics\stats.h"
-		$File	"$SRCDIR\public\steam\steam_api.h"
+		$File	"$SRCDIR\public\steam\steam_api.h" [$WIN64||$LINUX64] // SDK_MP
+		$File	"$SRCDIR\public_sp\steam\steam_api.h" [$WIN32||$LINUX32] // SDK_SP
 		$File	"$SRCDIR\public\stringregistry.h"
 		$File	"$SRCDIR\game\shared\studio_shared.cpp"
 		$File	"subs.cpp"
