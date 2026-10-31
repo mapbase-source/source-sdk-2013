@@ -5,7 +5,8 @@
 //-----------------------------------------------------------------------------
 
 $Macro SRCDIR		"..\.."
-$Macro OUTBINNAME "game_shader_generic_example"
+$Macro OUTBINNAME "game_shader_generic_example"	[$SDK_MP]
+$Macro OUTBINNAME "game_shader_dx9"	[$SDK_SP]
 $Macro GAMENAME "mod_episodic"
 $Include "$SRCDIR\materialsystem\stdshaders\game_shader_generic_example_base.vpc"
 

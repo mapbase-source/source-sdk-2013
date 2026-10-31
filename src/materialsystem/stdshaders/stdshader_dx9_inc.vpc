@@ -162,7 +162,7 @@ $Project
 		$File	"writestencil_dx9.cpp"
 
 		$File	"splinerope.cpp"	[$MAPBASE]
-		$File	"mapbase_sdk_stubs.cpp"	[$MAPBASE]
+		$File	"mapbase_sdk_stubs.cpp"	[$MAPBASE && ($WIN64||$LINUX64)] // SDK_MP
 
 		$Folder	"Remove me when VAC2 is out" [$WINDOWS && !$SOURCESDK]
 		{

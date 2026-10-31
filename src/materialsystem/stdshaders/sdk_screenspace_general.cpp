@@ -9,6 +9,10 @@
 
 #include "sdk_screenspaceeffect_vs20.inc"
 
+#ifdef SDK_SP
+#include "mapbase_sdk_macros_off.h"
+#endif
+
 DEFINE_FALLBACK_SHADER( SDK_screenspace_general, SDK_screenspace_general_dx9 )
 BEGIN_VS_SHADER_FLAGS( SDK_screenspace_general_dx9, "Help for screenspace_general", SHADER_NOT_EDITABLE )
 	BEGIN_SHADER_PARAMS
