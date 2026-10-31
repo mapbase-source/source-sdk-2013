@@ -368,7 +368,8 @@ namespace SQVector
 
 		if (key[0] < 'x' || key[0] > 'z' || key[1] != '\0')
 		{
-			return sqstd_throwerrorf(vm, "the index '%.50s' does not exist", key);
+			sq_pushnull(vm);
+			return sq_throwobject(vm);
 		}
 
 		Vector* v = nullptr;
@@ -868,7 +869,7 @@ namespace SQVector
 
 		if (sq_gettop(vm) != 2 ||
 			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR)) ||
-			SQ_SUCCEEDED(sq_getfloat(vm, 2, &s)))
+			SQ_FAILED(sq_getfloat(vm, 2, &s)))
 		{
 			return sq_throwerror(vm, "Expected (Vector, float)");
 		}
@@ -1269,6 +1270,8 @@ bool CreateParamCheck(const ScriptFunctionBinding_t& func, char* output)
 			break;
 		case FIELD_CSTRING:
 			*output++ = 's';
+			*output++ = '|';
+			*output++ = 'o';
 			break;
 		case FIELD_VECTOR:
 		case FIELD_QANGLE:
@@ -1516,8 +1519,8 @@ SQInteger function_stub(HSQUIRRELVM vm)
 		}
 		case FIELD_CSTRING:
 		{
-			const char* val;
-			if (SQ_FAILED(sq_getstring(vm, i + 2, &val)))
+			const char* val = "";
+			if (sq_gettype(vm, i + 2) != OT_NULL && SQ_FAILED(sq_getstring(vm, i + 2, &val)))
 				return sq_throwerror(vm, "Expected string");
 			params[i] = val;
 			break;
@@ -1816,7 +1819,8 @@ SQInteger get_stub(HSQUIRRELVM vm)
 		}
 		else
 		{
-			sq_retval = sqstd_throwerrorf(vm, "the index '%.50s' does not exist", key);
+			sq_pushnull(vm);
+			sq_retval = sq_throwobject(vm);
 		}
 	}
 
@@ -2473,14 +2477,26 @@ void SquirrelVM::ReleaseScope(HSCRIPT hScript)
 	SquirrelSafeCheck safeCheck(vm_);
 	if (!hScript) return;
 	HSQOBJECT* obj = (HSQOBJECT*)hScript;
+	SQInteger top = sq_gettop(vm_);
 	sq_pushobject(vm_, *obj);
 
 	sq_getdelegate(vm_, -1);
 
 	sq_pushstring(vm_, "__vname", -1);
-	sq_rawdeleteslot(vm_, -2, SQFalse);
+	if (SQ_SUCCEEDED(sq_rawget(vm_, -3)))
+	{
+		HSQOBJECT current;
+		sq_push(vm_, -1);
+		if (SQ_SUCCEEDED(sq_rawget(vm_, -3)) &&
+			SQ_SUCCEEDED(sq_getstackobj(vm_, -1, &current)) &&
+			current._unVal.pTable == obj->_unVal.pTable)
+		{
+			sq_pop(vm_, 1);
+			sq_rawdeleteslot(vm_, -2, SQFalse);
+		}
+	}
 
-	sq_pop(vm_, 2);
+	sq_settop(vm_, top);
 
 	sq_release(vm_, obj);
 	delete obj;
@@ -2651,7 +2667,7 @@ void SquirrelVM::RegisterFunction(ScriptFunctionBinding_t* pScriptFunction)
 		return;
 
 	char typemask[64];
-	Assert(pScriptFunction->m_desc.m_Parameters.Count() < sizeof(typemask));
+	Assert(pScriptFunction->m_desc.m_Parameters.Count() * 3 < sizeof(typemask));
 	if (!CreateParamCheck(*pScriptFunction, typemask))
 	{
 		return;
@@ -2758,7 +2774,7 @@ bool SquirrelVM::RegisterClass(ScriptClassDesc_t* pClassDesc)
 		auto& scriptFunction = pClassDesc->m_FunctionBindings[i];
 
 		char typemask[64];
-		Assert(scriptFunction.m_desc.m_Parameters.Count() < sizeof(typemask));
+		Assert(scriptFunction.m_desc.m_Parameters.Count() * 3 < sizeof(typemask));
 		if (!CreateParamCheck(scriptFunction, typemask))
 		{
 			Warning("Unable to create param check for %s.%s\n",
@@ -3005,7 +3021,7 @@ bool SquirrelVM::GenerateUniqueKey(const char* pszRoot, char* pBuf, int nBufSize
 	static unsigned keyIdx = 0;
 	// This gets used for script scope, still confused why it needs to be inside IScriptVM
 	// is it just to be a compatible name for CreateScope?
-	V_snprintf(pBuf, nBufSize, "%08X_%s", ++keyIdx, pszRoot);
+	V_snprintf(pBuf, nBufSize, "_%08X_%s", ++keyIdx, pszRoot);
 	return true;
 }
 

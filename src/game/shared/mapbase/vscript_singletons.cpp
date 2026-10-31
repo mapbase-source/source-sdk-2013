@@ -597,7 +597,9 @@ private:
 
 				SetVarInfo();
 #ifdef GAME_DLL
-				pInfo->stringsize = 0;
+				int fieldOffset;
+				typedescription_t *pField = FindInDataMap( (char*)pEnt, pEnt->GetDataDescMap(), szProp, &fieldOffset );
+				pInfo->stringsize = ( pField && pField->fieldType == FIELD_CHARACTER ) ? pField->fieldSizeInBytes : 0;
 #else
 				pInfo->stringsize = pProp->m_StringBufferSize;
 #endif
@@ -1609,8 +1611,8 @@ public:
 			{
 				V_strncpy( (char*)pEnt + pInfo->GetOffset( index ), value, pInfo->stringsize );
 				NetworkStateChanged( pEnt, pInfo->GetOffset( index ) );
-				break;
 			}
+			break;
 		}
 		case types::_STRING_T:
 		{
