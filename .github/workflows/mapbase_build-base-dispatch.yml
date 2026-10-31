@@ -20,14 +20,13 @@ on:
         - Debug
       game:
         description: 'Name of the game to build (if relevant)'
-        default: 'episodic'
+        default: 'tf /hl2mp'
         required: false
         type: choice
         options:
-        - episodic
+        - episodic /hl2
         - hl2
         - hl2mp
-        - hl2mp /episodic
         - tf
         - tf /hl2mp
       project-group:
@@ -39,8 +38,21 @@ on:
         - game
         - shaders
         - maptools
-      build-on-linux:
-        description: 'Build on Ubuntu/Linux?'
+      arch:
+        description: 'Which architecture to build for'
+        default: '64'
+        required: false
+        type: choice
+        options:
+        - 64
+        - 32
+      build-windows:
+        description: 'Build on Windows?'
+        default: true
+        required: false
+        type: boolean
+      build-linux:
+        description: 'Build on Linux?'
         default: true
         required: false
         type: boolean
@@ -52,4 +64,6 @@ jobs:
       configuration: '${{ github.event.inputs.configuration }}'
       game: '${{ github.event.inputs.game }}'
       project-group: '${{ github.event.inputs.project-group }}'
-      build-on-linux: "${{ github.event.inputs.build-on-linux == 'true' }}"
+      arch: '${{ github.event.inputs.arch }}'
+      build-windows: "${{ github.event.inputs.build-windows == 'true' }}"
+      build-linux: "${{ github.event.inputs.build-linux == 'true' }}"

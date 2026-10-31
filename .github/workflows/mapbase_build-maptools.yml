@@ -6,7 +6,7 @@
 #
 # See mapbase_build-base.yml for more information on how this works.
 
-name: Build Map Tool Projects #(SP Release)
+name: Build Map Tools
 
 on:
   pull_request:
@@ -31,8 +31,9 @@ jobs:
     strategy:
       matrix:
         configuration: [Release, Debug]
+        arch: [32, 64]
     uses: ./.github/workflows/mapbase_build-base.yml
     with:
       configuration: ${{ matrix.configuration }}
       project-group: 'maptools'
-      solution-name: 'maptools'
+      arch: ${{ matrix.arch }}

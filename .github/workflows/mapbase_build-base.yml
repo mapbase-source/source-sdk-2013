@@ -30,15 +30,26 @@ on:
         description: 'Which group of projects to compile'
         required: true
         type: string
-      build-on-linux:
-        description: 'Build on Ubuntu/Linux?'
+      arch:
+        description: 'Which architecture to build for'
+        default: '64'
+        required: false
+        type: string
+      build-windows:
+        description: 'Build on Windows?'
+        default: true
+        required: false
+        type: boolean
+      build-linux:
+        description: 'Build on Linux?'
         default: true
         required: false
         type: boolean
 
 jobs:
   build_windows:
-    name: Windows (VS2022)
+    if: inputs.build-windows
+    name: Windows
     runs-on: windows-latest
 
     steps:
@@ -65,7 +76,7 @@ jobs:
       working-directory: 'src'
       shell: cmd
       run: |
-        devtools\bin\vpc.exe /${{inputs.game}} /define:SOURCESDK +${{inputs.project-group}} /mksln build.sln
+        devtools\bin\vpc.exe /${{inputs.game}} /win${{inputs.arch}} /define:SOURCESDK +${{inputs.project-group}} /mksln build.sln
 
       # --------------------------------------------------------------------
 
@@ -75,14 +86,14 @@ jobs:
       shell: cmd
       run: |
         devenv build.sln /upgrade
-        msbuild -m -t:Rebuild -p:Configuration=${{inputs.configuration}};Platform=win64 build.sln
+        msbuild -m -t:Rebuild -p:Configuration=${{inputs.configuration}};Platform=win${{inputs.arch}} build.sln
 
       # --------------------------------------------------------------------
 
     - name: Publish binaries
       uses: actions/upload-artifact@v4
       with:
-        name: '${{inputs.project-group}}_win64_${{ inputs.configuration }}'
+        name: '${{inputs.project-group}}_win${{inputs.arch}}_${{ inputs.configuration }}'
         path: |
           game/bin
           game/bin/x64
@@ -93,8 +104,8 @@ jobs:
         if-no-files-found: error
 
   build_ubuntu:
-    if: inputs.build-on-linux == true && inputs.project-group != 'maptools' # No Linux map tools for now
-    name: Ubuntu (GCC/G++)
+    if: inputs.build-linux == true && inputs.project-group != 'maptools' # No Linux map tools for now
+    name: Linux
     runs-on: ubuntu-latest
     env:
       config: ${{ inputs.configuration }}
@@ -114,6 +125,7 @@ jobs:
       run: |
         sed -i 's|/hl2mp /tf|/${{inputs.game}}|' buildgameprojects
         sed -i 's|+game|+${{inputs.project-group}}|' buildgameprojects
+        sed -i 's|/linux64|/linux${{inputs.arch}}|' buildgameprojects
 
     - name: Set configuration
       working-directory: 'src'
@@ -145,7 +157,7 @@ jobs:
     - name: Publish binaries
       uses: actions/upload-artifact@v4
       with:
-        name: '${{inputs.project-group}}_linux64_${{ inputs.configuration }}'
+        name: '${{inputs.project-group}}_linux${{inputs.arch}}_${{ inputs.configuration }}'
         path: |
           game/bin/linux64/*.so
           game/bin/*.so

@@ -6,7 +6,7 @@
 #
 # See mapbase_build-base.yml for more information on how this works.
 
-name: Build Shader Projects #(SP Release)
+name: Build Shaders
 
 on:
   pull_request:
@@ -24,9 +24,16 @@ jobs:
     strategy:
       matrix:
         configuration: [Release, Debug]
+        arch: [32, 64]
+        include:
+          - game: 'episodic' # Should be switched to 'tf /hl2mp' once we figure out what's wrong with the MP projects
+            arch: 64
+          - game: 'episodic'
+            arch: 32
     uses: ./.github/workflows/mapbase_build-base.yml
     with:
       configuration: ${{ matrix.configuration }}
-      game: 'episodic' # Change this if your mod is not using HL2/Episodic game projects
+      game: ${{ matrix.game }}
       project-group: 'shaders'
-      build-on-linux: true # Disable this if you don't want to compile for Linux
+      build-linux: true # Disable this if you don't want to compile for Linux
+      arch: ${{ matrix.arch }}
