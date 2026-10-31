@@ -1269,6 +1269,8 @@ bool CreateParamCheck(const ScriptFunctionBinding_t& func, char* output)
 			break;
 		case FIELD_CSTRING:
 			*output++ = 's';
+			*output++ = '|';
+			*output++ = 'o';
 			break;
 		case FIELD_VECTOR:
 		case FIELD_QANGLE:
@@ -1516,8 +1518,8 @@ SQInteger function_stub(HSQUIRRELVM vm)
 		}
 		case FIELD_CSTRING:
 		{
-			const char* val;
-			if (SQ_FAILED(sq_getstring(vm, i + 2, &val)))
+			const char* val = "";
+			if (sq_gettype(vm, i + 2) != OT_NULL && SQ_FAILED(sq_getstring(vm, i + 2, &val)))
 				return sq_throwerror(vm, "Expected string");
 			params[i] = val;
 			break;
@@ -2651,7 +2653,7 @@ void SquirrelVM::RegisterFunction(ScriptFunctionBinding_t* pScriptFunction)
 		return;
 
 	char typemask[64];
-	Assert(pScriptFunction->m_desc.m_Parameters.Count() < sizeof(typemask));
+	Assert(pScriptFunction->m_desc.m_Parameters.Count() * 3 < sizeof(typemask));
 	if (!CreateParamCheck(*pScriptFunction, typemask))
 	{
 		return;
@@ -2758,7 +2760,7 @@ bool SquirrelVM::RegisterClass(ScriptClassDesc_t* pClassDesc)
 		auto& scriptFunction = pClassDesc->m_FunctionBindings[i];
 
 		char typemask[64];
-		Assert(scriptFunction.m_desc.m_Parameters.Count() < sizeof(typemask));
+		Assert(scriptFunction.m_desc.m_Parameters.Count() * 3 < sizeof(typemask));
 		if (!CreateParamCheck(scriptFunction, typemask))
 		{
 			Warning("Unable to create param check for %s.%s\n",
