@@ -15,7 +15,7 @@ $Configuration
 	$Compiler
 	{
 		$AdditionalIncludeDirectories		"$BASE,..\common,..\vmpi,..\vmpi\mysql\mysqlpp\include,..\vmpi\mysql\include"
-		$PreprocessorDefinitions			"$BASE;MPI" [$WIN32]
+		//$PreprocessorDefinitions			"$BASE;MPI" [$WIN32] // SDK_SP compat
 		$PreprocessorDefinitions			"$BASE;PROTECTED_THINGS_DISABLE;VRAD"
 	}
 
@@ -40,10 +40,10 @@ $Project "VRAD"
 		$File	"$SRCDIR\public\loadcmdline.cpp"
 		$File	"$SRCDIR\public\lumpfiles.cpp"
 		$File	"macro_texture.cpp"
-		$File	"..\common\mpi_stats.cpp" [$WIN32]
-		$File	"mpivrad.cpp" [$WIN32]
-		$File	"$SRCDIR\public\filesystem_init.cpp" [!$WIN32]
-		$File	"..\common\filesystem_tools.cpp" [!$WIN32]
+		//$File	"..\common\mpi_stats.cpp" [$WIN32] // SDK_SP compat
+		//$File	"mpivrad.cpp" [$WIN32] // SDK_SP compat
+		$File	"$SRCDIR\public\filesystem_init.cpp" //[!$WIN32] // SDK_SP compat
+		$File	"..\common\filesystem_tools.cpp" //[!$WIN32] // SDK_SP compat
 		$File	"..\common\MySqlDatabase.cpp"
 		$File	"..\common\pacifier.cpp"
 		$File	"..\common\physdll.cpp"
@@ -52,8 +52,8 @@ $Project "VRAD"
 		$File	"trace.cpp"
 		$File	"..\common\utilmatlib.cpp"
 		$File	"vismat.cpp"
-		$File	"..\common\vmpi_tools_shared.cpp" [$WIN32]
-		$File	"..\common\vmpi_tools_shared.h" [$WIN32]
+		//$File	"..\common\vmpi_tools_shared.cpp" [$WIN32] // SDK_SP compat
+		//$File	"..\common\vmpi_tools_shared.h" [$WIN32] // SDK_SP compat
 		$File	"vrad.cpp"
 		$File	"VRAD_DispColl.cpp"
 		$File	"VradDetailProps.cpp"
@@ -110,24 +110,24 @@ $Project "VRAD"
 			$File	"..\common\bsplib.h"
 			$File	"..\common\cmdlib.h"
 			$File	"..\common\consolewnd.h"
-			$File	"..\vmpi\ichannel.h" [$WIN32]
-			$File	"..\vmpi\imysqlwrapper.h" [$WIN32]
-			$File	"..\vmpi\iphelpers.h" [$WIN32]
+			//$File	"..\vmpi\ichannel.h" [$WIN32] // SDK_SP compat
+			//$File	"..\vmpi\imysqlwrapper.h" [$WIN32] // SDK_SP compat
+			//$File	"..\vmpi\iphelpers.h" [$WIN32] // SDK_SP compat
 			$File	"..\common\ISQLDBReplyTarget.h"
 			$File	"..\common\map_shared.h"
-			$File	"..\vmpi\messbuf.h" [$WIN32]
-			$File	"..\common\mpi_stats.h" [$WIN32]
+			//$File	"..\vmpi\messbuf.h" [$WIN32] // SDK_SP compat
+			//$File	"..\common\mpi_stats.h" [$WIN32] // SDK_SP compat
 			$File	"..\common\MySqlDatabase.h"
 			$File	"..\common\pacifier.h"
 			$File	"..\common\polylib.h"
 			$File	"..\common\scriplib.h"
-			$File	"..\vmpi\threadhelpers.h" [$WIN32]
+			//$File	"..\vmpi\threadhelpers.h" [$WIN32] // SDK_SP compat
 			$File	"..\common\threads.h"
 			$File	"..\common\utilmatlib.h"
-			$File	"..\vmpi\vmpi_defs.h" [$WIN32]
-			$File	"..\vmpi\vmpi_dispatch.h" [$WIN32]
-			$File	"..\vmpi\vmpi_distribute_work.h" [$WIN32]
-			$File	"..\vmpi\vmpi_filesystem.h" [$WIN32]
+			//$File	"..\vmpi\vmpi_defs.h" [$WIN32] // SDK_SP compat
+			//$File	"..\vmpi\vmpi_dispatch.h" [$WIN32] // SDK_SP compat
+			//$File	"..\vmpi\vmpi_distribute_work.h" [$WIN32] // SDK_SP compat
+			//$File	"..\vmpi\vmpi_filesystem.h" [$WIN32] // SDK_SP compat
 		}
 
 		$Folder	"Public Header Files"
@@ -204,7 +204,7 @@ $Project "VRAD"
 			$File	"$SRCDIR\public\mathlib\vector2d.h"
 			$File	"$SRCDIR\public\mathlib\vector4d.h"
 			$File	"$SRCDIR\public\mathlib\vmatrix.h"
-			$File	"..\vmpi\vmpi.h" [$WIN32]
+			//$File	"..\vmpi\vmpi.h" [$WIN32] // SDK_SP compat
 			$File	"$SRCDIR\public\vphysics_interface.h"
 			$File	"$SRCDIR\public\mathlib\vplane.h"
 			$File	"$SRCDIR\public\tier0\vprof.h"
@@ -221,10 +221,10 @@ $Project "VRAD"
 		$Lib mathlib
 		$Lib raytrace
 		$Lib tier2
-		$Lib vmpi [$WIN32]
+		//$Lib vmpi [$WIN32] // SDK_SP compat
 		$Lib vtf
-		$Lib "$LIBCOMMON/lzma"
-		$File "$SRCDIR\thirdparty\libcurl\lib\win32\libcurl.lib" [$WIN32]
+		$Lib "$LIBCOMMON/lzma" [$WIN64||$LINUX64] // SDK_MP
+		//$File "$SRCDIR\thirdparty\libcurl\lib\win32\libcurl.lib" [$WIN32] // SDK_SP compat
 	}
 
 	$File	"notes.txt"

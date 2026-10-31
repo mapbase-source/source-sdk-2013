@@ -297,8 +297,13 @@ void	PrintBSPFileSizes(void);
 void	PrintBSPPackDirectory(void);
 void	ReleasePakFileLumps(void);
 
+#ifdef SDK_MP
 bool	RepackBSPCallback_LZMA( CUtlBuffer &inputBuffer, CUtlBuffer &outputBuffer );
 bool	RepackBSP( CUtlBuffer &inputBuffer, CUtlBuffer &outputBuffer, CompressFunc_t pCompressFunc, IZip::eCompressionType packfileCompression );
+#else
+bool	CompressBSP( CUtlBuffer &inputBuffer, CUtlBuffer &outputBuffer, CompressFunc_t pCompressFunc );
+FORCEINLINE bool	RepackBSP( CUtlBuffer &inputBuffer, CUtlBuffer &outputBuffer, CompressFunc_t pCompressFunc, IZip::eCompressionType packfileCompression ) { return CompressBSP( inputBuffer, outputBuffer, pCompressFunc ); }
+#endif
 bool	SwapBSPFile( const char *filename, const char *swapFilename, bool bSwapOnLoad, VTFConvertFunc_t pVTFConvertFunc, VHVFixupFunc_t pVHVFixupFunc, CompressFunc_t pCompressFunc );
 
 bool	GetPakFileLump( const char *pBSPFilename, void **pPakData, int *pPakSize );

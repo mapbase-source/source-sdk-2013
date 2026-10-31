@@ -2427,7 +2427,6 @@ struct studiohdr_t
 	inline int			BoneFlexDriverCount() const { return studiohdr2index ? pStudioHdr2()->m_nBoneFlexDriverCount : 0; }
 	inline const mstudioboneflexdriver_t* BoneFlexDriver( int i ) const { Assert( i >= 0 && i < BoneFlexDriverCount() ); return studiohdr2index ? pStudioHdr2()->pBoneFlexDriver( i ) : NULL; }
 
-#ifdef SDK_MP
 #ifdef PLATFORM_64BITS
 	void* 				VirtualModel() const { return studiohdr2index ? (void *)( pStudioHdr2()->virtualModel ) : nullptr; }
 	void				SetVirtualModel( void* ptr ) { Assert( studiohdr2index ); if ( studiohdr2index ) { pStudioHdr2()->virtualModel = ptr; } }
@@ -2444,7 +2443,6 @@ struct studiohdr_t
 	void				SetVertexBase( void* _pVertexBase ) const { pVertexBase = _pVertexBase; }
 	void*				IndexBase() const { return pIndexBase; }
 	void				SetIndexBase( void* _pIndexBase ) const { pIndexBase = _pIndexBase; }
-#endif
 #endif
 
 	// NOTE: No room to add stuff? Up the .mdl file format version 

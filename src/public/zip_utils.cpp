@@ -23,11 +23,13 @@
 #include "byteswap.h"
 #include "utlstring.h"
 
+#ifdef SDK_MP
 #include "tier1/lzmaDecoder.h"
 
 // Not every user of zip utils wants to link LZMA encoder
 #ifdef ZIP_SUPPORT_LZMA_ENCODE
 #include "lzma/lzma.h"
+#endif
 #endif
 
 #include "tier0/memdbgon.h"
@@ -1172,6 +1174,7 @@ bool CZipFile::ReadFileFromZip( HANDLE hZipFile, const char *pRelativeName, bool
 		pData = readBuffer.Base();
 	}
 
+#ifdef SDK_MP
 	CUtlBuffer decompressTransform;
 	if ( pEntry->m_eCompressionType != IZip::eCompressionType_None )
 	{
@@ -1203,6 +1206,7 @@ bool CZipFile::ReadFileFromZip( HANDLE hZipFile, const char *pRelativeName, bool
 			return false;
 		}
 	}
+#endif
 
 	if ( bTextMode )
 	{
@@ -1691,7 +1695,11 @@ public:
 	virtual void			Reset() OVERRIDE;
 
 	// Add a single file to a zip - maintains the zip's previous alignment state
+#ifdef SDK_MP
 	virtual void			AddFileToZip( const char *relativename, const char *fullpath, eCompressionType compressionType ) OVERRIDE;
+#else
+	virtual void			AddFileToZip( const char *relativename, const char *fullpath ) OVERRIDE;
+#endif
 
 	// Whether a file is contained in a zip - maintains alignment
 	virtual bool			FileExistsInZip( const char *pRelativeName ) OVERRIDE;
@@ -1713,8 +1721,12 @@ public:
 	virtual unsigned int	EstimateSize( void ) OVERRIDE;
 
 	// Add buffer to zip as a file with given name - uses current alignment size, default 0 (no alignment)
+#ifdef SDK_MP
 	virtual void			AddBufferToZip( const char *relativename, void *data, int length,
 											bool bTextMode, eCompressionType compressionType ) OVERRIDE;
+#else
+	virtual void			AddBufferToZip( const char *relativename, void *data, int length, bool bTextMode ) OVERRIDE;
+#endif
 
 	// Writes out zip file to a buffer - uses current alignment size
 	// (set by file's previous alignment, or a call to ForceAlignment)
@@ -1780,10 +1792,17 @@ void CZip::ActivateByteSwapping( bool bActivate )
 	m_ZipFile.ActivateByteSwapping( bActivate );
 }
 
+#ifdef SDK_MP
 void CZip::AddFileToZip( const char *relativename, const char *fullpath, eCompressionType compressionType )
 {
 	m_ZipFile.AddFileToZip( relativename, fullpath, compressionType );
 }
+#else
+void CZip::AddFileToZip( const char *relativename, const char *fullpath )
+{
+	m_ZipFile.AddFileToZip( relativename, fullpath, eCompressionType_None );
+}
+#endif
 
 bool CZip::FileExistsInZip( const char *pRelativeName )
 {
@@ -1826,10 +1845,17 @@ unsigned int CZip::EstimateSize( void )
 }
 
 // Add buffer to zip as a file with given name
+#ifdef SDK_MP
 void CZip::AddBufferToZip( const char *relativename, void *data, int length, bool bTextMode, eCompressionType compressionType )
 {
 	m_ZipFile.AddBufferToZip( relativename, data, length, bTextMode, compressionType );
 }
+#else
+void CZip::AddBufferToZip( const char *relativename, void *data, int length, bool bTextMode )
+{
+	m_ZipFile.AddBufferToZip( relativename, data, length, bTextMode, eCompressionType_None );
+}
+#endif
 
 void CZip::SaveToBuffer( CUtlBuffer& outbuf )
 {
