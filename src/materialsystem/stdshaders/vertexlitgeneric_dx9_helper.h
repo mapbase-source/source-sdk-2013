@@ -54,7 +54,9 @@ struct VertexLitGeneric_DX9_Vars_t
 	int m_nFlashlightNoLambert;
 	int m_nFlashlightTexture;
 	int m_nFlashlightTextureFrame;
+#ifdef SDK_MP
 	int m_nLightmap;
+#endif
 
 	int m_nSelfIllumTint;
 	int m_nSelfIllumFresnel;
