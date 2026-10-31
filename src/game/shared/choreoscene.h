@@ -329,7 +329,9 @@ private:
 	// Current simulation time
 	float			m_flCurrentTime;
 
+#ifdef SDK_MP
 	float			m_flStartLoopTime;
+#endif
 
 	float			m_flStartTime;
 	float			m_flEndTime;

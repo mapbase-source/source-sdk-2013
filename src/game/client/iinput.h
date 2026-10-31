@@ -97,9 +97,11 @@ public:
 	virtual	bool		CAM_IsOrthographic() const = 0;
 	virtual	void		CAM_OrthographicSize( float& w, float& h ) const = 0;
 
+#ifdef SDK_MP
 	virtual void		SetPreferredGameActionSet( GameActionSet_t action_set ) = 0;
 	virtual GameActionSet_t GetPreferredGameActionSet() = 0;
 	virtual void		SetGameActionSetFlags( GameActionSetFlags_t action_set_flags ) = 0;
+#endif
 
 #if defined( HL2_CLIENT_DLL )
 	// IK back channel info
@@ -116,7 +118,11 @@ public:
 
 	virtual	bool		EnableJoystickMode() = 0;
 
+#ifdef SDK_MP
 	virtual bool		IsSteamControllerActive() = 0;
+#else
+	FORCEINLINE bool	IsSteamControllerActive() { return false; }
+#endif
 };
 
 extern ::IInput *input;

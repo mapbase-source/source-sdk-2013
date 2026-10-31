@@ -2191,8 +2191,10 @@ bool SquirrelVM::Init()
 		//sqstd_register_iolib(vm_);
 		//sqstd_register_systemlib(vm_);
 		
+#ifdef SDK_MP // Save/restore doesn't like it. Use different method for disabling?
 		// bloblib is used in the TF2 SDK
 		sqstd_register_bloblib(vm_);
+#endif
 
 		// There is no vulnerability in getting time.
 		sqstd_register_timelib(vm_);

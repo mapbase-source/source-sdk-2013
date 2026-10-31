@@ -331,11 +331,13 @@ ClientModeShared::~ClientModeShared()
 
 void ClientModeShared::ReloadScheme( bool flushLowLevel )
 {
+#ifdef SDK_MP
 	// Invalidate the global cache first.
 	if (flushLowLevel)
 	{
 		KeyValuesSystem()->InvalidateCache();
 	}
+#endif
 
 	BuildGroup::ClearResFileCache();
 
