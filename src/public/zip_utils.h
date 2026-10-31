@@ -28,7 +28,12 @@ public:
 	virtual void			Reset() = 0;
 
 	// Add a single file to a zip - maintains the zip's previous alignment state.
+#ifdef SDK_MP
 	virtual void			AddFileToZip		( const char *relativename, const char *fullpath, eCompressionType compressionType = eCompressionType_None ) = 0;
+#else
+	virtual void			AddFileToZip		( const char *relativename, const char *fullpath ) = 0;
+	FORCEINLINE void		AddFileToZip( const char *relativename, const char *fullpath, eCompressionType compressionType ) { AddFileToZip( relativename, fullpath ); }
+#endif
 
 	// Whether a file is contained in a zip - maintains alignment
 	virtual bool			FileExistsInZip		( const char *pRelativeName ) = 0;
@@ -50,7 +55,12 @@ public:
 	virtual unsigned int	EstimateSize		( void ) = 0;
 
 	// Add buffer to zip as a file with given name - uses current alignment size, default 0 (no alignment)
+#ifdef SDK_MP
 	virtual void			AddBufferToZip		( const char *relativename, void *data, int length, bool bTextMode, eCompressionType compressionType = eCompressionType_None ) = 0;
+#else
+	virtual void			AddBufferToZip		( const char *relativename, void *data, int length, bool bTextMode ) = 0;
+	FORCEINLINE void		AddBufferToZip		( const char *relativename, void *data, int length, bool bTextMode, eCompressionType compressionType ) { AddBufferToZip( relativename, data, length, bTextMode ); }
+#endif
 
 	// Writes out zip file to a buffer - uses current alignment size
 	// (set by file's previous alignment, or a call to ForceAlignment)

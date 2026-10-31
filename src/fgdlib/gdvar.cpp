@@ -51,8 +51,10 @@ static TypeMap_t TypeMap[] =
 	{ ivVecLine,			"vecline",				STRING },
 	{ ivPointEntityClass,	"pointentityclass",		STRING },
 	{ ivNodeDest,			"node_dest",			INTEGER },
+#ifdef SDK_MP
 	{ ivScript,				"script",				STRING },
 	{ ivScriptList,			"scriptlist",			STRING },
+#endif
 	{ ivInstanceFile,		"instance_file",		STRING },
 	{ ivAngleNegativePitch,	"angle_negative_pitch",	STRING },
 	{ ivInstanceVariable,	"instance_variable",	STRING },
@@ -424,7 +426,8 @@ BOOL GDinputvariable::InitFromTokens(TokenReader& tr)
 			GDError(tr, "no %s specified", m_eType == ivFlags ? "flags" : "choices");
 			return(FALSE);
 		}
-		
+
+#ifdef SDK_MP
 		// For boolean values, we construct it as if it were a choices dialog
 		if ( m_eType == ivBoolean )
 		{
@@ -459,6 +462,7 @@ BOOL GDinputvariable::InitFromTokens(TokenReader& tr)
 				return(FALSE);
 			}
 		}
+#endif
 
 		return(TRUE);
 	}

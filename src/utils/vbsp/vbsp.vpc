@@ -190,7 +190,7 @@ $Project "VBSP"
 		$Lib mathlib
 		$Lib tier2
 		$Lib vtf
-		$Lib "$LIBCOMMON/lzma"
+		$Lib "$LIBCOMMON/lzma" [$WIN64||$LINUX64] // SDK_MP
 		$Lib vscript [$MAPBASE_VSCRIPT]
 	}
 

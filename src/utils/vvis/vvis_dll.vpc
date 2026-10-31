@@ -15,7 +15,7 @@ $Configuration
 	$Compiler
 	{
 		$AdditionalIncludeDirectories		"$BASE,..\common,..\vmpi,..\vmpi\mysql\include"
-		$PreprocessorDefinitions			"$BASE;MPI" [$WIN32]
+		//$PreprocessorDefinitions			"$BASE;MPI" [$WIN32] // SDK_SP compat
 		$PreprocessorDefinitions			"$BASE;PROTECTED_THINGS_DISABLE"
 	}
 
@@ -40,10 +40,10 @@ $Project "VVIS"
 		$File	"flow.cpp"
 		$File	"$SRCDIR\public\loadcmdline.cpp"
 		$File	"$SRCDIR\public\lumpfiles.cpp"
-		$File	"..\common\mpi_stats.cpp" [$WIN32]
-		$File	"mpivis.cpp" [$WIN32]
-		$File	"$SRCDIR\public\filesystem_init.cpp" [!$WIN32]
-		$File	"..\common\filesystem_tools.cpp" [!$WIN32]
+		//$File	"..\common\mpi_stats.cpp" [$WIN32] // SDK_SP compat
+		//$File	"mpivis.cpp" [$WIN32] // SDK_SP compat
+		$File	"$SRCDIR\public\filesystem_init.cpp" //[!$WIN32] // SDK_SP compat
+		$File	"..\common\filesystem_tools.cpp" //[!$WIN32] // SDK_SP compat
 		$File	"..\common\MySqlDatabase.cpp"
 		$File	"..\common\pacifier.cpp"
 		$File	"$SRCDIR\public\scratchpad3d.cpp"
@@ -52,7 +52,7 @@ $Project "VVIS"
 		$File	"..\common\threads.cpp"
 		$File	"..\common\tools_minidump.cpp"
 		$File	"..\common\tools_minidump.h"
-		$File	"..\common\vmpi_tools_shared.cpp" [$WIN32]
+		//$File	"..\common\vmpi_tools_shared.cpp" [$WIN32] // SDK_SP compat
 		$File	"vvis.cpp"
 		$File	"WaterDist.cpp"
 		$File	"$SRCDIR\public\zip_utils.cpp"
@@ -92,8 +92,8 @@ $Project "VVIS"
 		$File	"$SRCDIR\public\mathlib\vector.h"
 		$File	"$SRCDIR\public\mathlib\vector2d.h"
 		$File	"vis.h"
-		$File	"..\vmpi\vmpi_distribute_work.h" [$WIN32]
-		$File	"..\common\vmpi_tools_shared.h" [$WIN32]
+		//$File	"..\vmpi\vmpi_distribute_work.h" [$WIN32] // SDK_SP compat
+		//$File	"..\common\vmpi_tools_shared.h" [$WIN32] // SDK_SP compat
 		$File	"$SRCDIR\public\vstdlib\vstdlib.h"
 		$File	"$SRCDIR\public\wadtypes.h"
 	}
@@ -102,8 +102,8 @@ $Project "VVIS"
 	{
 		$Lib mathlib
 		$Lib tier2
-		$Lib vmpi [$WIN32]
-		$Lib "$LIBCOMMON/lzma"
-		$File "$SRCDIR\thirdparty\libcurl\lib\win32\libcurl.lib" [$WIN32]
+		//$Lib vmpi [$WIN32] // SDK_SP compat
+		$Lib "$LIBCOMMON/lzma" [$WIN64||$LINUX64] // SDK_MP
+		//$File "$SRCDIR\thirdparty\libcurl\lib\win32\libcurl.lib" [$WIN32] // SDK_SP compat
 	}
 }
