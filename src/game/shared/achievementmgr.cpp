@@ -126,8 +126,13 @@ static void WriteAchievementGlobalState( KeyValues *pKV, bool bPersistToSteamClo
 
         if (pRemoteStorage)
         {
+#ifdef SDK_MP
 	        uint64 availableBytes = 0;
             uint64 totalBytes = 0;
+#else
+            int32 availableBytes = 0;
+            int32 totalBytes = 0;
+#endif
             if ( pRemoteStorage->GetQuota( &totalBytes, &availableBytes ) )
             {
                 if ( totalBytes > 0 )

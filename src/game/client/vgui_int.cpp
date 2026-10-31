@@ -268,7 +268,11 @@ void VGui_PreRender()
 		
 		bool bShowPausedImage = !enginevgui->IsGameUIVisible() && cl_showpausedimage.GetBool() && engine->IsPaused() && !engine->IsTakingScreenshot() && !engine->IsPlayingDemo();
 #if !defined( TF_CLIENT_DLL )
+#ifdef SDK_MP
 		loadingdisc->SetPausedVisible( bShowPausedImage, engine->GetPausedExpireTime()  );
+#else
+		loadingdisc->SetPausedVisible( bShowPausedImage );
+#endif
 #else
 		bShowPausedImage &= ( TFGameRules() && !TFGameRules()->IsInTraining() );
 		loadingdisc->SetPausedVisible( bShowPausedImage, engine->GetPausedExpireTime() );

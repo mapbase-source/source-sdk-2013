@@ -150,11 +150,13 @@ public:
 					m_mapNameLockedList.RemoveAt( i );
 					break;
 				}
+#ifdef SDK_MP
 				// See if they reconnected
 				else if ( pPlayer && !engine->IsPlayerNameLocked( pPlayer->edict() ) )
 				{
 					engine->ServerCommand( UTIL_VarArgs( "namelockid %d %d\n", pPlayer->GetUserID(), 1 ) );
 				}
+#endif
 			}
 
 			m_flNextNameLockCheckTime = gpGlobals->curtime + 1.f;

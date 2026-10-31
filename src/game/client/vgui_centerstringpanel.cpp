@@ -123,7 +123,11 @@ void CCenterStringLabel::ApplySchemeSettings(vgui::IScheme *pScheme)
 	BaseClass::ApplySchemeSettings(pScheme);
 
 	// Use a large font
+#ifdef SDK_MP
 	m_hFont = pScheme->GetFont( "Trebuchet24", true );
+#else
+	m_hFont = pScheme->GetFont( "Trebuchet24" );
+#endif
 	assert( m_hFont );
 	SetFont( m_hFont );
 

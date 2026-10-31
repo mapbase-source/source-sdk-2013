@@ -362,6 +362,7 @@ public:
 #endif
 	}
 
+#ifdef SDK_MP
 	void Flush()
 	{
 		Assert( soundemitterbase );
@@ -370,6 +371,7 @@ public:
 #endif
 		soundemitterbase->Flush();
 	}
+#endif
 		
 	void InternalPrecacheWaves( int soundIndex )
 	{
@@ -1016,9 +1018,18 @@ void S_SoundEmitterSystemFlush( void )
 		return;
 #endif
 
+#ifdef SDK_MP
 	// save the current soundscape
 	// kill the system
 	g_SoundEmitterSystem.Flush();
+#else
+	// save the current soundscape
+	// kill the system
+	g_SoundEmitterSystem.Shutdown();
+
+	// restart the system
+	g_SoundEmitterSystem.Init();
+#endif
 
 #if !defined( CLIENT_DLL )
 	// Redo precache all wave files... (this should work now that we have dynamic string tables)

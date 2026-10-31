@@ -592,6 +592,7 @@ void CSpectatorGUI::ShowPanel(bool bShow)
 {
 	if ( bShow && !IsVisible() )
 	{
+#ifdef SDK_MP
 		// Josh: Someone made this InvalidateLayout with reloadScheme = true
 		// every time when adding SteamController support, when it should only
 		// have done this if the state changes, because otherwise whenever
@@ -611,6 +612,7 @@ void CSpectatorGUI::ShowPanel(bool bShow)
 			InvalidateLayout( true, true );
 			m_iWasSteamController = bWasSteamController ? 1 : 0;
 		}
+#endif
 		m_bSpecScoreboard = false;
 	}
 
@@ -739,11 +741,13 @@ void CSpectatorGUI::Update()
 //-----------------------------------------------------------------------------
 const char * CSpectatorGUI::GetResFile( void )
 {
+#ifdef SDK_MP
 	if ( ::input->IsSteamControllerActive() )
 	{
 		return "Resource/UI/Spectator_SC.res";
 	}
 	else
+#endif
 	{
 		return "Resource/UI/Spectator.res";
 	}

@@ -1782,7 +1782,8 @@ void CParticleMgr::BuildParticleSimList( CUtlVector< ParticleSimListEntry_t > &l
 		{
 			g_nNumParticlesSimulated += pNewEffect->m_nActiveParticles;
 		}
-		
+
+#ifdef SDK_MP
 		// Particles that are attached to moving things will need to update their bboxes even if they
 		// otherwise would like to skip the updates. Check that here.
 		if (bSkip)
@@ -1790,6 +1791,7 @@ void CParticleMgr::BuildParticleSimList( CUtlVector< ParticleSimListEntry_t > &l
 			bNeedsBboxUpdate = pNewEffect->HasMoved();
 			bSkip = !bNeedsBboxUpdate;
 		}
+#endif
 
 		if (!bSkip)
 		{

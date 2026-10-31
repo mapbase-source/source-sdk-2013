@@ -38,7 +38,11 @@ typedef CGameTrace trace_t;
 
 namespace vgui
 {
+#ifdef SDK_MP
 	typedef uint32 HFont;
+#else
+	typedef unsigned long HFont;
+#endif
 };
 
 

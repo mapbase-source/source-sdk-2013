@@ -252,6 +252,7 @@ void NDebugOverlay::ScreenText( float flXpos, float flYpos, const char *text, in
 	}
 }
 
+#ifdef SDK_MP
 //-----------------------------------------------------------------------------
 // Purpose: Add debug overlay text with screen position and line offset
 //-----------------------------------------------------------------------------
@@ -262,6 +263,7 @@ void NDebugOverlay::ScreenTextLine( float flXpos, float flYpos, int iLine, const
         debugoverlay->AddScreenTextOverlay( flXpos, flYpos, iLine, duration, r, g, b, a, text );
     }
 }
+#endif
 
 //-----------------------------------------------------------------------------
 // Purpose: Draw a colored 3D cross of the given hull size at the given position
