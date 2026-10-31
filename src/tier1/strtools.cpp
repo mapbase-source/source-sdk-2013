@@ -4615,7 +4615,9 @@ void V_StripAndPreserveHTML( CUtlBuffer *pbuffer, const char *pchHTML, const cha
 	V_StripAndPreserveHTMLCore( pbuffer, pchHTML, rgszPreserveTags, cPreserveTags, rgszNoCloseTags, V_ARRAYSIZE( rgszNoCloseTags ), cMaxResultSize );
 }
 
-#ifdef SDK_SP
+#if defined(SDK_SP) && defined(_WIN32)
+// SP's dmxloader.lib uses this, but it does not appear to be defined anywhere (toolset difference?)
+// For now, just redirects to sscanf_s
 int _sscanf_s( const char *pBuffer, const char *const pFormat, ... )
 {
 	va_list args;

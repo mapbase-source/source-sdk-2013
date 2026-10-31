@@ -71,7 +71,19 @@ $Configuration
 
 $Project
 {
-
+	$Folder "Source Files"
+	{
+		$File	"$SRCDIR\devtools\sp_gcc9+support.cpp" [$WIN32||$LINUX32] // SDK_SP
+		{
+			$Configuration
+			{
+				$Compiler
+				{
+					$Create/UsePrecompiledHeader	"Not Using Precompiled Headers"
+				}
+			}
+		}
+	}
 	$Folder	"Link Libraries"
 	{
 		$ImpLib "$LIBPUBLIC\tier0"		[!$IS_LIB_PROJECT]

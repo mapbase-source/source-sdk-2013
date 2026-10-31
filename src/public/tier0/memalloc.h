@@ -7,6 +7,11 @@
 // $NoKeywords: $
 //=============================================================================//
 
+#ifdef SDK_SP
+// SP counterpart too different to combine cleanly
+#include "../../public_sp/tier0/memalloc.h"
+#endif
+
 #ifndef TIER0_MEMALLOC_H
 #define TIER0_MEMALLOC_H
 
