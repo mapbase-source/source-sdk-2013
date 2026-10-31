@@ -51,3 +51,8 @@ $Configuration "Release"
 		$PreprocessorDefinitions		"$BASE;MAPBASE_MP"	[$MAPBASE&&($HL2MP||$TF)]
 	}
 }
+
+//-----------------------------------------------------------------------------
+
+// MP/SP compatibility
+$Include "$SRCDIR\vpc_scripts\sdk_sp_branch.vpc"

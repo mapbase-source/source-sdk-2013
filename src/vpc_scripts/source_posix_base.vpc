@@ -42,7 +42,8 @@ $Configuration
 
 	$Compiler
 	{
-		$AdditionalIncludeDirectories		"$SRCDIR\common;$SRCDIR\public;$SRCDIR\public\tier0;$SRCDIR\public\tier1"
+		$AdditionalIncludeDirectories		"$SRCDIR\common;$SRCDIR\public_sp;$SRCDIR\public;$SRCDIR\public\tier0;$SRCDIR\public\tier1"	[$WIN32||$LINUX32] // SDK_SP
+		$AdditionalIncludeDirectories		"$SRCDIR\common;$SRCDIR\public;$SRCDIR\public\tier0;$SRCDIR\public\tier1"					[$WIN64||$LINUX64] // SDK_MP
 		$PreprocessorDefinitions		"$BASE;GNUC;POSIX;COMPILER_GCC;_DLL_EXT=$_DLL_EXT"
 		$PreprocessorDefinitions		"$BASE;DEDICATED" [$DEDICATED]
 		// the 10240 in the following line is the output of `sysctl -n kern.maxfilesperproc`
