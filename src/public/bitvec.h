@@ -1012,20 +1012,6 @@ inline int CVarBitVecBase<BITCOUNTTYPE>::FindNextSetBit( int startBit ) const
 			const uint32 * RESTRICT pCurElem = Base() + wordIndex;
 			unsigned int elem = *pCurElem;
 			elem &= startMask;
-#ifdef SDK_MP
-			while ( wordIndex < NUM_INTS )
-			{
-				if ( elem )
-				{
-					return FirstBitInWord(elem, wordIndex << 5);
-				}
-				else if ( ++wordIndex < NUM_INTS )
-				{
-					++pCurElem;
-					elem = *pCurElem;
-				}
-			}
-#else
 			do 
 			{
 				if ( elem )
@@ -1034,7 +1020,6 @@ inline int CVarBitVecBase<BITCOUNTTYPE>::FindNextSetBit( int startBit ) const
 				elem = *pCurElem;
 				++wordIndex;
 			} while( wordIndex <= lastWord );
-#endif
 		}
 
 	}
@@ -1085,6 +1070,20 @@ inline int CFixedBitVecBase<NUM_BITS>::FindNextSetBit( int startBit ) const
 			const uint32 * RESTRICT pCurElem = Base() + wordIndex;
 			unsigned int elem = *pCurElem;
 			elem &= startMask;
+#ifdef SDK_MP
+			while ( wordIndex < NUM_INTS )
+			{
+				if ( elem )
+				{
+					return FirstBitInWord(elem, wordIndex << 5);
+				}
+				else if ( ++wordIndex < NUM_INTS )
+				{
+					++pCurElem;
+					elem = *pCurElem;
+				}
+			}
+#else
 			do 
 			{
 				if ( elem )
@@ -1093,6 +1092,7 @@ inline int CFixedBitVecBase<NUM_BITS>::FindNextSetBit( int startBit ) const
 				elem = *pCurElem;
 				++wordIndex;
 			} while( wordIndex <= NUM_INTS-1);
+#endif
 		}
 
 	}

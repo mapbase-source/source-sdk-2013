@@ -8,7 +8,6 @@
 #ifndef MINMAX_H
 #define MINMAX_H
 
-#ifdef SDK_MP
 // Remove the MSVC defines
 #ifdef min
 #undef min
@@ -37,6 +36,5 @@ const T& max(const T& a, const T& b)
 {
     return (a < b) ? b : a;
 }
-#endif // SDK_MP
 
 #endif // MINMAX_H

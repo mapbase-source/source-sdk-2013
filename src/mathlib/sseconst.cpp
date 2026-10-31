@@ -38,6 +38,12 @@ const fltx4 g_QuatMultRowSign[4] =
 	{ -1.0f, -1.0f, -1.0f, 1.0f }
 };
 
+#if defined(SDK_SP) && defined(LINUX)
+// Don't care about narrowing these
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wnarrowing"
+#endif
+
 const SIMD_mask_int ALIGN16 g_SIMD_clear_signmask[4] ALIGN16_POST = {0x7fffffff,0x7fffffff,0x7fffffff,0x7fffffff};
 const SIMD_mask_int ALIGN16 g_SIMD_signmask[4] ALIGN16_POST = { 0x80000000, 0x80000000, 0x80000000, 0x80000000 };
 const SIMD_mask_int ALIGN16 g_SIMD_lsbmask[4] ALIGN16_POST = { 0xfffffffe, 0xfffffffe, 0xfffffffe, 0xfffffffe };
@@ -57,6 +63,10 @@ const SIMD_mask_int ALIGN16 g_SIMD_SkipTailMask[4][4] ALIGN16_POST =
 	{ 0xffffffff, 0xffffffff, 0x00000000, 0x00000000 },
 	{ 0xffffffff, 0xffffffff, 0xffffffff, 0x00000000 },
 };
+
+#if defined(SDK_SP) && defined(LINUX)
+#pragma GCC diagnostic pop
+#endif
 
 
 	// FUNCTIONS

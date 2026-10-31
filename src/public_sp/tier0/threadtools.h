@@ -834,7 +834,7 @@ template<typename T> T strip_cv_quals_for_mutex(volatile T&);
 template<typename T> T strip_cv_quals_for_mutex(const volatile T&);
 
 #define AUTO_LOCK( mutex ) \
-    AUTO_LOCK_( typeof(::strip_cv_quals_for_mutex(mutex)), mutex )
+    AUTO_LOCK_( __typeof__(::strip_cv_quals_for_mutex(mutex)), mutex )
 
 #else // GNUC
 
@@ -1016,7 +1016,7 @@ inline int ThreadWaitForEvents( int nEvents, CThreadEvent * const *pEvents, bool
 	return WAIT_TIMEOUT;
 #else
 	HANDLE handles[64];
-	for ( unsigned int i = 0; i < min( nEvents, ARRAYSIZE(handles) ); i++ )
+	for ( unsigned int i = 0; i < min( (unsigned int)nEvents, ARRAYSIZE(handles) ); i++ )
 		handles[i] = pEvents[i]->GetHandle();
 	return ThreadWaitForObjects( nEvents, handles, bWaitAll, timeout );
 #endif

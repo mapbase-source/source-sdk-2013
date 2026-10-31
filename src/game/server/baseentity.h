@@ -1352,7 +1352,11 @@ public:
 		#define ENTITYFUNCPTR_SIZE	8
 	#endif
 #else // PLATFORM_64BITS
-	#define ENTITYFUNCPTR_SIZE	4
+	#if defined( COMPILER_GCC ) || defined( GNUC ) 
+		#define ENTITYFUNCPTR_SIZE	8
+	#else
+		#define ENTITYFUNCPTR_SIZE	4
+	#endif
 #endif // !PLATFORM_64BITS
 
 	void FunctionCheck( void *pFunction, const char *name );

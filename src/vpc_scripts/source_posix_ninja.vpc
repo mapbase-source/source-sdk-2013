@@ -29,7 +29,12 @@ $Macro NINJA_C_DEV_FLAGS			"-fstack-protector -fcf-protection"	[$DEVELOPMENT_ONL
 $Macro NINJA_C_FLAGS				"$NINJA_ARCH_FLAGS $NINJA_WARN_FLAGS_C $NINJA_C_DEV_FLAGS " \
                                     "-fpch-preprocess -fvar-tracking-assignments " \
                                     "-DVPROF_LEVEL=1 -DGNUC -DNO_HOOK_MALLOC -D_FILE_OFFSET_BITS=64 -fPIC -pipe " \
-                                    "-fdiagnostics-color -fdiagnostics-show-option "
+                                    "-fdiagnostics-color -fdiagnostics-show-option " [$WIN64||$LINUX64] // SDK_MP
+									
+$Macro NINJA_C_FLAGS				"$NINJA_ARCH_FLAGS $NINJA_WARN_FLAGS_C $NINJA_C_DEV_FLAGS " \
+                                    "-fpch-preprocess -fvar-tracking-assignments " \
+                                    "-DVPROF_LEVEL=1 -DGNUC -DNO_HOOK_MALLOC -DNO_MALLOC_OVERRIDE -fPIC -pipe " \
+                                    "-fdiagnostics-color -fdiagnostics-show-option " [$WIN32||$LINUX32] // SDK_SP
 
 // TODO:
 // Consider -fno-plt?
