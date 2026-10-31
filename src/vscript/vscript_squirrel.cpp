@@ -869,7 +869,7 @@ namespace SQVector
 
 		if (sq_gettop(vm) != 2 ||
 			SQ_FAILED(sq_getinstanceup(vm, 1, (SQUserPointer*)&v1, TYPETAG_VECTOR)) ||
-			SQ_SUCCEEDED(sq_getfloat(vm, 2, &s)))
+			SQ_FAILED(sq_getfloat(vm, 2, &s)))
 		{
 			return sq_throwerror(vm, "Expected (Vector, float)");
 		}
