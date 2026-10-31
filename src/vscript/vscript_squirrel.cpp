@@ -368,7 +368,8 @@ namespace SQVector
 
 		if (key[0] < 'x' || key[0] > 'z' || key[1] != '\0')
 		{
-			return sqstd_throwerrorf(vm, "the index '%.50s' does not exist", key);
+			sq_pushnull(vm);
+			return sq_throwobject(vm);
 		}
 
 		Vector* v = nullptr;
@@ -1818,7 +1819,8 @@ SQInteger get_stub(HSQUIRRELVM vm)
 		}
 		else
 		{
-			sq_retval = sqstd_throwerrorf(vm, "the index '%.50s' does not exist", key);
+			sq_pushnull(vm);
+			sq_retval = sq_throwobject(vm);
 		}
 	}
 
