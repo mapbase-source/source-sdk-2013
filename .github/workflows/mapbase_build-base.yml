@@ -53,19 +53,19 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-python@v5
+    - uses: actions/checkout@v7
+    - uses: actions/setup-python@v7
       with:
         python-version: '3.13'
 
     - name: Add MSBuild to PATH
-      uses: compnerd/gha-setup-vsdevenv@v6
+      uses: compnerd/gha-setup-vsdevenv@v7
 
       # HACKHACK: MSBuild doesn't seem to recognize Python even when its directory is within PATH,
       # so we currently have to make it call Python directly.
       # This assumes %Python3_ROOT_DIR% will always be set by setup-python above.
     - name: Implement Python workaround
-      if: inputs.project-group == 'game' || inputs.project-group == 'everything'
+      if: contains(inputs.project-group, 'game') || contains(inputs.project-group, 'everything')
       working-directory: 'src/game/server'
       shell: bash
       run: |
@@ -76,7 +76,7 @@ jobs:
       working-directory: 'src'
       shell: cmd
       run: |
-        devtools\bin\vpc.exe /${{inputs.game}} /win${{inputs.arch}} /define:SOURCESDK +${{inputs.project-group}} /mksln build.sln
+        devtools\bin\vpc.exe /${{inputs.game}} /win${{inputs.arch}} /define:SOURCESDK /define:CI_RUNNER +${{inputs.project-group}} /mksln build.sln
 
       # --------------------------------------------------------------------
 
@@ -91,7 +91,7 @@ jobs:
       # --------------------------------------------------------------------
 
     - name: Publish binaries
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: '${{inputs.project-group}}_win${{inputs.arch}}_${{ inputs.configuration }}'
         path: |
@@ -101,17 +101,19 @@ jobs:
           game/mod_*/x64/bin
           !game/bin/x64/steam_api64.dll
           !game/bin/linux64/libsteam_api.so
+          game/*.exe
+          game/*.exe
         if-no-files-found: error
 
   build_ubuntu:
-    if: inputs.build-linux == true && inputs.project-group != 'maptools' # No Linux map tools for now
+    if: inputs.build-linux == true
     name: Linux
     runs-on: ubuntu-latest
     env:
       config: ${{ inputs.configuration }}
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
 
     - name: Install dependencies
       run: |
@@ -119,12 +121,11 @@ jobs:
         sudo apt-get -y install podman python3
 
     - name: Pick game
-      if: inputs.project-group == 'game' || inputs.project-group == 'shaders'
       working-directory: 'src'
       shell: bash
       run: |
         sed -i 's|/hl2mp /tf|/${{inputs.game}}|' buildgameprojects
-        sed -i 's|+game|+${{inputs.project-group}}|' buildgameprojects
+        sed -i 's|+game|/define:CI_RUNNER +${{inputs.project-group}}|' buildgameprojects
         sed -i 's|/linux64|/linux${{inputs.arch}}|' buildgameprojects
 
     - name: Set configuration
@@ -155,7 +156,7 @@ jobs:
     # For now, don't publish the .dbg files even though we publish .pdb files on Windows
     # (they're too big)
     - name: Publish binaries
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: '${{inputs.project-group}}_linux${{inputs.arch}}_${{ inputs.configuration }}'
         path: |
@@ -168,4 +169,6 @@ jobs:
           !game/mod_*/bin/linux64/*_srv.so
           !game/mod_*/bin/*_srv.so
           !game/bin/linux64/libsteam_api.so
+          game/*
+          game/*
         if-no-files-found: error

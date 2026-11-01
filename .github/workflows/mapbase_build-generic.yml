@@ -1,0 +1,96 @@
+#
+# MAPBASE SOURCE 2013 CI
+#
+# Builds projects every time a pull request which modifies the code is opened.
+# If you're using a fork of Mapbase, feel free to configure this to meet your repository's needs.
+#
+# See mapbase_build-base.yml for more information on how this works.
+
+name: Build Projects
+
+on:
+  pull_request:
+    branches:
+      - develop
+      - mapbase-mp-2025
+      - feature/combined-sp-mp
+    paths:
+      - '.github/workflows/mapbase_build-generic.yml'
+      - 'src/**'
+
+jobs:
+  check-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      project-groups: ${{ steps.combine-group.outputs.groups }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Identify file changes
+        uses: dorny/paths-filter@v4
+        id: filter
+        with:
+          filters: |
+            games:
+              - 'src/game/**'
+              - 'src/responserules/runtime/**'
+              - 'src/vgui2/vgui_controls/**'
+              - 'src/vscript/**'
+            shaders:
+              - 'src/materialsystem/**'
+            maptools:
+              - 'src/utils/vbsp/**'
+              - 'src/utils/vvis/**'
+              - 'src/utils/vvis_launcher/**'
+              - 'src/utils/vrad/**'
+              - 'src/utils/vrad_launcher/**'
+              - 'src/vscript/**'
+            everything:
+              - 'src/vpc_scripts/**'
+              - 'src/mathlib/**'
+              - 'src/tier1/**'
+              - '.github/workflows/mapbase_build-generic.yml'
+
+      - name: Combine project groups
+        id: combine-group
+        env:
+          in_games_group: ${{ steps.filter.outputs.games }}
+          in_shaders_group: ${{ steps.filter.outputs.shaders }}
+          in_maptools_group: ${{ steps.filter.outputs.maptools }}
+          in_everything_group: ${{ steps.filter.outputs.everything }}
+        run: |
+          all_groups=""
+          if [ "$in_everything_group" = "true" ]; then
+            # 'everything' encompasses all other groups
+            all_groups+=" +everything"
+          else
+            if [ "$in_games_group" = "true" ]; then
+              all_groups+=" +game"
+            fi
+            if [ "$in_shaders_group" = "true" ]; then
+              all_groups+=" +shaders"
+            fi
+            if [ "$in_maptools_group" = "true" ]; then
+              all_groups+=" +maptools"
+            fi
+          fi
+          echo "groups=${all_groups:2}" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: check-changes
+    strategy:
+      matrix:
+        arch: [32, 64]
+        configuration: [Release, Debug]
+        include:
+          - game: 'tf /hl2mp'
+            arch: 64
+          - game: 'hl2 /episodic'
+            arch: 32
+    uses: ./.github/workflows/mapbase_build-base.yml
+    with:
+      configuration: ${{ matrix.configuration }}
+      game: ${{ matrix.game }}
+      project-group: ${{ needs.check-changes.outputs.project-groups }}
+      build-linux: true # Disable this if you don't want to compile for Linux
+      arch: ${{ matrix.arch }}
