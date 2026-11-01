@@ -92,7 +92,7 @@ $Project "motionmapper"
 
 $Project "phonemeextractor"
 {
-	"utils\phonemeextractor\phonemeextractor.vpc" [$WIN32]
+	"utils\phonemeextractor\phonemeextractor.vpc" [$WIN32&&!$CI_RUNNER]
 }
 
 $Project "raytrace"
