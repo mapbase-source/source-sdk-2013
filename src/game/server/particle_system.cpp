@@ -275,6 +275,7 @@ void CParticleSystem::ReadControlPointEnts( void )
 			const char* pszVector = STRING(m_iszControlPointNames[i]);
 			UTIL_StringToVector(vecCoords.Base(), pszVector);
 			m_vControlPointVecs.Set(i, vecCoords);
+			m_bUsesCoordinates = true;
 		}
 		else
 		{
@@ -290,7 +291,6 @@ void CParticleSystem::ReadControlPointEnts( void )
 			}
 
 			m_hControlPointEnts.Set( i, pPointEnt );
-			m_bUsesCoordinates = true;
 		}
 	}
 }
