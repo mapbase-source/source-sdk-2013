@@ -5508,12 +5508,19 @@ void Panel::SetSilentMode( bool bSilent )
 //-----------------------------------------------------------------------------
 // Purpose: mouse events will be send to handler panel instead of this panel
 //-----------------------------------------------------------------------------
+#ifdef SDK_MP
 void Panel::InstallMouseHandler( Panel *pHandler, bool bThisHandlesAsWell /* = false */, bool bMovementEvents /* = false */ )
 {
 	m_hMouseEventHandler = pHandler;
 	m_bActOnHandledMouseInput = bThisHandlesAsWell;
 	m_bSendMoveEventsToHandler = bMovementEvents;
 }
+#else
+void Panel::InstallMouseHandler( Panel *pHandler )
+{
+	m_hMouseEventHandler = pHandler;
+}
+#endif
 
 //-----------------------------------------------------------------------------
 // Purpose: Prepares the hierarchy panel maps for use (with message maps etc)
@@ -8635,7 +8642,11 @@ void VguiPanelGetSortedChildPanelList( Panel *pParentPanel, void *pSortedPanels 
 	}
 }
 
+#ifdef SDK_MP
+void VguiPanelGetSortedChildButtonList( Panel *pParentPanel, void *pSortedPanels, char *pchFilter /*= NULL*/, int nFilterType /*= 0*/ )
+#else
 void VguiPanelGetSortedChildButtonList( Panel *pParentPanel, void *pSortedPanels, const char *pchFilter /*= NULL*/, int nFilterType /*= 0*/ )
+#endif
 {
 	CUtlSortVector< SortedPanel_t, CSortedPanelYLess > *pList = reinterpret_cast< CUtlSortVector< SortedPanel_t, CSortedPanelYLess >* >( pSortedPanels );
 

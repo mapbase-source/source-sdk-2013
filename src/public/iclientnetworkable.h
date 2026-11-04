@@ -100,7 +100,9 @@ public:
 	// an uncompressed update that's caused it to destroy all entities & recreate them.
 	virtual void			SetDestroyedOnRecreateEntities( void ) = 0;
 
+#ifdef SDK_MP
 	virtual void			OnDataUnchangedInPVS() = 0;
+#endif
 };
 
 

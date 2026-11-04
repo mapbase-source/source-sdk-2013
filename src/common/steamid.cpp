@@ -524,8 +524,10 @@ bool SteamIDFromSteam2String( const char *pchSteam2ID, EUniverse eUniverse, CSte
 	if ( cExtraCharCheck != 0 || cFieldConverted == EOF || cFieldConverted < 2 || ( cFieldConverted < 3 && steam2ID.m_SteamInstanceID != 1 ) )
 		return false;
 
+#ifdef SDK_MP
 	// Now convert to steam ID from the Steam2 ID structure
 	*pSteamIDOut = SteamIDFromSteam2UserID( &steam2ID, eUniverse );
+#endif
 	return true;
 }
 #endif

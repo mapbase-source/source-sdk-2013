@@ -174,17 +174,23 @@ extern const fltx4 Four_Negative_FLT_MAX;						// -FLT_MAX, -FLT_MAX, -FLT_MAX, 
 extern const fltx4 g_SIMD_0123;									// 0 1 2 3 as float
 
 // external aligned integer constants
-extern const ALIGN16 uint32 g_SIMD_clear_signmask[] ALIGN16_POST;			// 0x7fffffff x 4
-extern const ALIGN16 uint32 g_SIMD_signmask[] ALIGN16_POST;				// 0x80000000 x 4
-extern const ALIGN16 uint32 g_SIMD_lsbmask[] ALIGN16_POST;				// 0xfffffffe x 4
-extern const ALIGN16 uint32 g_SIMD_clear_wmask[] ALIGN16_POST;			// -1 -1 -1 0
-extern const ALIGN16 uint32 g_SIMD_ComponentMask[4][4] ALIGN16_POST;		// [0xFFFFFFFF 0 0 0], [0 0xFFFFFFFF 0 0], [0 0 0xFFFFFFFF 0], [0 0 0 0xFFFFFFFF]
-extern const ALIGN16 uint32 g_SIMD_AllOnesMask[] ALIGN16_POST;			// ~0,~0,~0,~0
-extern const ALIGN16 uint32 g_SIMD_Low16BitsMask[] ALIGN16_POST;			// 0xffff x 4
+#ifdef SDK_MP
+typedef uint32 SIMD_mask_int;
+#else
+typedef int32 SIMD_mask_int;
+#endif
+
+extern const ALIGN16 SIMD_mask_int g_SIMD_clear_signmask[] ALIGN16_POST;			// 0x7fffffff x 4
+extern const ALIGN16 SIMD_mask_int g_SIMD_signmask[] ALIGN16_POST;				// 0x80000000 x 4
+extern const ALIGN16 SIMD_mask_int g_SIMD_lsbmask[] ALIGN16_POST;				// 0xfffffffe x 4
+extern const ALIGN16 SIMD_mask_int g_SIMD_clear_wmask[] ALIGN16_POST;			// -1 -1 -1 0
+extern const ALIGN16 SIMD_mask_int g_SIMD_ComponentMask[4][4] ALIGN16_POST;		// [0xFFFFFFFF 0 0 0], [0 0xFFFFFFFF 0 0], [0 0 0xFFFFFFFF 0], [0 0 0 0xFFFFFFFF]
+extern const ALIGN16 SIMD_mask_int g_SIMD_AllOnesMask[] ALIGN16_POST;			// ~0,~0,~0,~0
+extern const ALIGN16 SIMD_mask_int g_SIMD_Low16BitsMask[] ALIGN16_POST;			// 0xffff x 4
 
 // this mask is used for skipping the tail of things. If you have N elements in an array, and wish
 // to mask out the tail, g_SIMD_SkipTailMask[N & 3] what you want to use for the last iteration.
-extern const uint32 ALIGN16 g_SIMD_SkipTailMask[4][4] ALIGN16_POST;
+extern const SIMD_mask_int ALIGN16 g_SIMD_SkipTailMask[4][4] ALIGN16_POST;
 
 // Define prefetch macros.
 // The characteristics of cache and prefetch are completely 
@@ -3013,7 +3019,13 @@ inline fltx4 fnegate( const fltx4 & x )
 }
 
 
+#if defined(SDK_SP) && defined(__GNUC__)
+// The handling for __m128 in GCC has changed since SP's particles.a was compiled.
+// This links the function directly to the symbol inside of that library.
+fltx4 Pow_FixedPoint_Exponent_SIMD( const fltx4 & x, int exponent) asm("_Z28Pow_FixedPoint_Exponent_SIMDRKU8__vectorfi");
+#else
 fltx4 Pow_FixedPoint_Exponent_SIMD( const fltx4 & x, int exponent);
+#endif
 
 // PowSIMD - raise a SIMD register to a power.  This is analogous to the C pow() function, with some
 // restictions: fractional exponents are only handled with 2 bits of precision. Basically,

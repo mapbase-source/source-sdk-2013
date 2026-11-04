@@ -4,6 +4,11 @@
 //
 //=============================================================================
 
+#ifdef SDK_SP
+// Not in SP SDK
+#define ISTEAMPARENTALSETTINGS_H
+#endif
+
 #ifndef ISTEAMPARENTALSETTINGS_H
 #define ISTEAMPARENTALSETTINGS_H
 #ifdef _WIN32

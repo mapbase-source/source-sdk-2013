@@ -449,7 +449,9 @@ public:
 
 	// For prediction
 	int								SelectWeightedSequence ( int activity );
+#ifdef SDK_MP
 	int								SelectWeightedSequenceFromModifiers( Activity activity, CUtlSymbol *pActivityModifiers, int iModifierCount );
+#endif
 	void							ResetSequenceInfo( void );
 	float							SequenceDuration( void );
 	float							SequenceDuration( CStudioHdr *pStudioHdr, int iSequence );

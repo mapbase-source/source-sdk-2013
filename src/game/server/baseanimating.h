@@ -120,7 +120,9 @@ public:
 	void    ResetEventIndexes ( void );
 	int		SelectWeightedSequence ( Activity activity );
 	int		SelectWeightedSequence ( Activity activity, int curSequence );
+#ifdef SDK_MP
 	int		SelectWeightedSequenceFromModifiers( Activity activity, CUtlSymbol *pActivityModifiers, int iModifierCount );
+#endif
 	int		SelectHeaviestSequence ( Activity activity );
 	int		LookupActivity( const char *label );
 	int		LookupSequence ( const char *label );

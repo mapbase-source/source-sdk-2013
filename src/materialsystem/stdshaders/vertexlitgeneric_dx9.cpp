@@ -41,7 +41,9 @@ BEGIN_VS_SHADER( VertexLitGeneric, "Help for VertexLitGeneric" )
 		SHADER_PARAM( SELFILLUMFRESNELMINMAXEXP, SHADER_PARAM_TYPE_VEC4, "0", "Self illum fresnel min, max, exp" )
 		SHADER_PARAM( ALPHATESTREFERENCE, SHADER_PARAM_TYPE_FLOAT, "0.0", "" )	
 		SHADER_PARAM( FLASHLIGHTNOLAMBERT, SHADER_PARAM_TYPE_BOOL, "0", "Flashlight pass sets N.L=1.0" )
+#ifdef SDK_MP
 		SHADER_PARAM( LIGHTMAP, SHADER_PARAM_TYPE_TEXTURE, "shadertest/BaseTexture", "lightmap texture--will be bound by the engine")
+#endif
 
 		// Debugging term for visualizing ambient data on its own
 		SHADER_PARAM( AMBIENTONLY, SHADER_PARAM_TYPE_INTEGER, "0", "Control drawing of non-ambient light ()" )
@@ -194,7 +196,9 @@ BEGIN_VS_SHADER( VertexLitGeneric, "Help for VertexLitGeneric" )
 		info.m_nEnvmapSaturation = ENVMAPSATURATION;
 		info.m_nAlphaTestReference = ALPHATESTREFERENCE;
 		info.m_nFlashlightNoLambert = FLASHLIGHTNOLAMBERT;
+#ifdef SDK_MP
 		info.m_nLightmap = LIGHTMAP;
+#endif
 
 		info.m_nFlashlightTexture = FLASHLIGHTTEXTURE;
 		info.m_nFlashlightTextureFrame = FLASHLIGHTTEXTUREFRAME;

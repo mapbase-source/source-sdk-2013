@@ -95,8 +95,10 @@ public:
 	void SetExternalBuffer( const T* pMemory, int numElements );
 	// Takes ownership of the passed memory, including freeing it when this buffer is destroyed.
 	void AssumeMemory( T *pMemory, int nSize );
+#ifdef SDK_MP
 	T* Detach();
 	void* DetachMemory();
+#endif
 
 	// Fast swap
 	void Swap( CUtlMemory< T, I > &mem );
@@ -546,6 +548,7 @@ void CUtlMemory<T,I>::AssumeMemory( T* pMemory, int numElements )
 	m_nAllocationCount = numElements;
 }
 
+#ifdef SDK_MP
 template< class T, class I >
 void *CUtlMemory<T,I>::DetachMemory()
 {
@@ -563,6 +566,7 @@ inline T* CUtlMemory<T,I>::Detach()
 {
 	return (T*)DetachMemory();
 }
+#endif
 
 //-----------------------------------------------------------------------------
 // element access

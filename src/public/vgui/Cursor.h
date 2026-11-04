@@ -40,8 +40,6 @@ enum CursorCode
 	dc_alwaysvisible_pop,
 };
 
-typedef uint32 HCursor;
-
 }
 
 #endif // CURSOR_H

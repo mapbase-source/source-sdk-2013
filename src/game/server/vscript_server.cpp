@@ -495,7 +495,9 @@ void CScrollingScreenOverlay::Draw()
 {
 	if ( developer.GetBool() )
 	{
+#ifdef SDK_MP
 		int line = m_iFirstLine;
+#endif
 		int i;
 		int alpha;
 		float age;
@@ -514,6 +516,7 @@ void CScrollingScreenOverlay::Draw()
 			}
 		}
 
+#ifdef SDK_MP // TODO: Consider adapting
 		CFmtStrN<1024> msg;
 		float msgTime;
 		for ( int i = m_Text.Head(); i != m_Text.InvalidIndex(); i = m_Text.Next( i ) )
@@ -532,6 +535,7 @@ void CScrollingScreenOverlay::Draw()
 			msg.sprintf( "(%0.2f): %s", msgTime, m_Text[i].m_text.operator const char *() );
 			NDebugOverlay::ScreenTextLine( m_x, m_y, line++, msg, m_Text[i].m_r, m_Text[i].m_g, m_Text[i].m_b, alpha, NDEBUG_PERSIST_TILL_NEXT_SERVER );
 		}
+#endif
 	}
 }
 
@@ -801,8 +805,10 @@ void CVScriptGameEventListener::Init()
 void CVScriptGameEventListener::FireGameEvent( IGameEvent *event )
 {
 	// Pass all keyvales as a table of parameters
+#ifdef SDK_MP // TODO
 	HSCRIPT paramsTable = ScriptTableFromKeyValues( g_pScriptVM, event->GetDataKeys() );
 	RunGameEventCallbacks( event->GetName(), paramsTable );
+#endif
 }
 
 void CVScriptGameEventListener::ListenForScriptHook( const char* szName )
@@ -1319,7 +1325,9 @@ bool ScriptSendGlobalGameEvent( const char *szName, HSCRIPT params )
 				case FIELD_FLOAT:   event->SetFloat ( pszKeyName, (float)vValue );        break;
 				case FIELD_INTEGER: event->SetInt   ( pszKeyName, (int)vValue );          break;
 				case FIELD_CSTRING: event->SetString( pszKeyName, (const char *)vValue ); break;
+#ifdef SDK_MP
 				case FIELD_UINT64:  event->SetUint64( pszKeyName, (uint64)vValue );       break;
+#endif
 				default:
 				{
 					Log_Msg( LOG_VScript, "VSCRIPT: ScriptSendRealGameEvent: Don't understand FIELD_TYPE of value for key %s.", pszKeyName );
@@ -2768,7 +2776,9 @@ bool VScriptServerInit()
 				ScriptRegisterFunctionNamed( g_pScriptVM, Script_GetPlayerFromUserID, "GetPlayerFromUserID", "Given a user id, return the entity, or null");
 				ScriptRegisterFunctionNamed( g_pScriptVM, Script_IsPlayerABot, "IsPlayerABot", "Is this player/entity a bot");
 
+#ifdef SDK_MP
 				ScriptRegisterFunctionNamed( g_pScriptVM, NDebugOverlay::ScreenTextLine, "DebugDrawScreenTextLine", "Draw text with a line offset" );
+#endif
 				ScriptRegisterFunctionNamed( g_pScriptVM, NDebugOverlay::Text, "DebugDrawText", "Draw text in 3d (origin, text, bViewCheck, duration)" );
 				ScriptRegisterFunctionNamed( g_pScriptVM, NDebugOverlay::Box, "DebugDrawBox", "Draw a debug overlay box" );
 				ScriptRegisterFunctionNamed( g_pScriptVM, NDebugOverlay::Line, "DebugDrawLine", "Draw a debug overlay line" );

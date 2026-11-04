@@ -125,10 +125,14 @@
 #include "sourcevr/isourcevirtualreality.h"
 #include "client_virtualreality.h"
 #include "mumble.h"
+#ifdef SDK_MP
 #include "steamshare.h"
+#endif
 #include "vgui_controls/BuildGroup.h"
 
+#ifdef SDK_MP
 #include "secure_command_line.h"
+#endif
 
 // NVNT includes
 #include "hud_macros.h"
@@ -907,12 +911,14 @@ int CHLClient::Init( CreateInterfaceFn appSystemFactory, CreateInterfaceFn physi
 	ConnectTier2Libraries( &appSystemFactory, 1 );
 	ConnectTier3Libraries( &appSystemFactory, 1 );
 
+#ifdef SDK_MP
 	// Client needs to protect from writing files into random locations to avoid becoming a remote-code
 	// execution platform.
 	if ( g_pFullFileSystem )
 	{
 		g_pFullFileSystem->SetWriteProtectionEnable( true );
 	}
+#endif
 
 #ifndef NO_STEAM
 	ClientSteamContext().Activate();
@@ -1068,7 +1074,9 @@ int CHLClient::Init( CreateInterfaceFn appSystemFactory, CreateInterfaceFn physi
 	IGameSystem::Add( ClientSoundscapeSystem() );
 	IGameSystem::Add( PerfVisualBenchmark() );
 	IGameSystem::Add( MumbleSystem() );
+#ifdef SDK_MP
 	IGameSystem::Add( SteamShareSystem() );
+#endif
 
 	#if defined( TF_CLIENT_DLL )
 	IGameSystem::Add( CustomTextureToolCacheGameSystem() );
@@ -1156,6 +1164,7 @@ int CHLClient::Init( CreateInterfaceFn appSystemFactory, CreateInterfaceFn physi
 	CommandLine()->AppendParm( "+r_hunkalloclightmaps", "0" );
 #endif
 
+#ifdef SDK_MP
 	FnUnsafeCmdLineProcessor *pfnUnsafeCmdLineProcessor =
 #ifndef TF_CLIENT_DLL
 		&UnsafeCmdLineProcessor;
@@ -1167,6 +1176,7 @@ int CHLClient::Init( CreateInterfaceFn appSystemFactory, CreateInterfaceFn physi
 	{
 		RegisterSecureLaunchProcessFunc( pfnUnsafeCmdLineProcessor );
 	}
+#endif
 
 	return true;
 }

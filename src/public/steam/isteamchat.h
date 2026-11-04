@@ -4,6 +4,11 @@
 //
 //=============================================================================
 
+#ifdef SDK_SP
+// Not in SP SDK
+#define ISTEAMCHAT_H
+#endif
+
 #ifndef ISTEAMCHAT_H
 #define ISTEAMCHAT_H
 

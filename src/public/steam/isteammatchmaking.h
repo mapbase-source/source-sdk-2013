@@ -259,9 +259,11 @@ public:
 };
 #define STEAMMATCHMAKING_INTERFACE_VERSION "SteamMatchMaking009"
 
+#ifdef SDK_MP
 // Global interface accessor
 inline ISteamMatchmaking *SteamMatchmaking();
 STEAM_DEFINE_USER_INTERFACE_ACCESSOR( ISteamMatchmaking *, SteamMatchmaking, STEAMMATCHMAKING_INTERFACE_VERSION );
+#endif
 
 //-----------------------------------------------------------------------------
 // Callback interfaces for server list functions (see ISteamMatchmakingServers below)
@@ -524,9 +526,11 @@ public:
 };
 #define STEAMMATCHMAKINGSERVERS_INTERFACE_VERSION "SteamMatchMakingServers002"
 
+#ifdef SDK_MP
 // Global interface accessor
 inline ISteamMatchmakingServers *SteamMatchmakingServers();
 STEAM_DEFINE_USER_INTERFACE_ACCESSOR( ISteamMatchmakingServers *, SteamMatchmakingServers, STEAMMATCHMAKINGSERVERS_INTERFACE_VERSION );
+#endif
 
 // game server flags
 const uint32 k_unFavoriteFlagNone			= 0x00;
@@ -552,6 +556,7 @@ enum EChatMemberStateChange
 
 
 
+#ifdef SDK_MP
 //-----------------------------------------------------------------------------
 // Purpose: Functions for match making services for clients to get to favorites
 //			and to operate on game lobbies.
@@ -725,6 +730,7 @@ STEAM_DEFINE_USER_INTERFACE_ACCESSOR( ISteamParties *, SteamParties, STEAMPARTIE
 
 //-----------------------------------------------------------------------------
 // Callbacks for ISteamMatchmaking (which go through the regular Steam callback registration system)
+#endif
 
 //-----------------------------------------------------------------------------
 // Purpose: a server was added/removed from the favorites list, you should refresh now
@@ -918,6 +924,7 @@ struct FavoritesListAccountsUpdated_t
 
 
 
+#ifdef SDK_MP
 //-----------------------------------------------------------------------------
 // Callbacks for ISteamGameSearch (which go through the regular Steam callback registration system)
 
@@ -1082,6 +1089,7 @@ struct ActiveBeaconsUpdated_t
 
 
 #pragma pack( pop )
+#endif
 
 
 #endif // ISTEAMMATCHMAKING

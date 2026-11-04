@@ -181,7 +181,9 @@ public:
 	PROCESS_SVC_MESSAGE( GameEventList ) = 0;
 	PROCESS_SVC_MESSAGE( GetCvarValue ) = 0;
 	PROCESS_SVC_MESSAGE( CmdKeyValues ) = 0;
+#ifdef SDK_MP
 	PROCESS_SVC_MESSAGE( SetPauseTimed ) = 0;
+#endif
 };
 
 class MM_Heartbeat;

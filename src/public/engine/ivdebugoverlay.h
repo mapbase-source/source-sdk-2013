@@ -55,6 +55,7 @@ public:
 	virtual void AddLineOverlayAlpha(const Vector& origin, const Vector& dest, int r, int g, int b, int a, bool noDepthTest, float duration) = 0;
 	virtual void AddBoxOverlay2( const Vector& origin, const Vector& mins, const Vector& max, QAngle const& orientation, const Color& faceColor, const Color& edgeColor, float duration ) = 0;
 
+#ifdef SDK_MP
 	virtual void AddScreenTextOverlay2(float flXPos, float flYPos, int iLine, float flDuration, int r, int g, int b, int a, const char *text) = 0;
 
 	// misyl: compat.
@@ -63,6 +64,7 @@ public:
 	{
 		this->AddScreenTextOverlay2( flXPos, flYPos, iLine, flDuration, r, g, b, a, text );
 	}
+#endif
 
 private:
 	inline void AddTextOverlay(const Vector& origin, int line_offset, float duration, int r, int g, int b, int a, PRINTF_FORMAT_STRING const char *format, ...) {} /* catch improper use of bad interface. Needed because '0' duration can be resolved by compiler to NULL format string (i.e., compiles but calls wrong function) */

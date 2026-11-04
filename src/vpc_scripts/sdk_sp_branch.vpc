@@ -1,0 +1,41 @@
+//-----------------------------------------------------------------------------
+//	SDK_SP_BRANCH.VPC
+//
+//	This codebase integrates the libraries from Source 2013's singleplayer branch
+//	as the 32-bit equivalents to the default 64-bit MP libraries.
+//	They can be switched by specifying "/win32" or "/linux32" in the VPC generation
+//	options.
+//
+//	More complex logic may be needed if and when 64-bit support is added to singleplayer,
+//	or if this is expanded to include support for the pre-TF2 SDK MP branch.
+//	This VPC can be used as a base for that.
+//
+//-----------------------------------------------------------------------------
+
+//	You can also enable the following conditionals through additional "/define" options
+//	when calling VPC, rather than changing them here.
+
+// Enable this if you want to have the launcher exe in your SP game project.
+$Conditional SP_LAUNCHER	"0"
+
+//-----------------------------------------------------------------------------
+
+$Configuration "Debug"
+{
+	$Compiler
+	{
+		// SDK branch conditionals (based on platform for now)
+		$PreprocessorDefinitions		"$BASE;SDK_MP"							[$WIN64||$LINUX64] // SDK_MP
+		$PreprocessorDefinitions		"$BASE;SDK_SP;RAD_TELEMETRY_DISABLED"	[$WIN32||$LINUX32] // SDK_SP
+	}
+}
+
+$Configuration "Release"
+{
+	$Compiler
+	{
+		// SDK branch conditionals (based on platform for now)
+		$PreprocessorDefinitions		"$BASE;SDK_MP"							[$WIN64||$LINUX64] // SDK_MP
+		$PreprocessorDefinitions		"$BASE;SDK_SP;RAD_TELEMETRY_DISABLED"	[$WIN32||$LINUX32] // SDK_SP
+	}
+}

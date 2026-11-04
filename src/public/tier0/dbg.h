@@ -204,7 +204,9 @@ DBG_INTERFACE void   _SpewInfo( SpewType_t type, const tchar* pFile, int line );
 DBG_INTERFACE SpewRetval_t   _SpewMessage( PRINTF_FORMAT_STRING const tchar* pMsg, ... ) FMTFUNCTION( 1, 2 );
 DBG_INTERFACE SpewRetval_t   _DSpewMessage( const tchar *pGroupName, int level, PRINTF_FORMAT_STRING const tchar* pMsg, ... ) FMTFUNCTION( 3, 4 );
 DBG_INTERFACE SpewRetval_t   ColorSpewMessage( SpewType_t type, const Color *pColor, PRINTF_FORMAT_STRING const tchar* pMsg, ... ) FMTFUNCTION( 3, 4 );
+#ifdef SDK_MP
 DBG_INTERFACE SpewRetval_t   ColorSpewMessage2( SpewType_t type, const Color &color, PRINTF_FORMAT_STRING const tchar* pMsg, ... ) FMTFUNCTION( 3, 4 );
+#endif
 DBG_INTERFACE void _ExitOnFatalAssert( const tchar* pFile, int line );
 DBG_INTERFACE bool ShouldUseNewAssertDialog();
 
@@ -222,8 +224,19 @@ typedef void (*AssertFailedNotifyFunc_t)( const char *pchFile, int nLine, const 
 DBG_INTERFACE void SetAssertFailedNotifyFunc( AssertFailedNotifyFunc_t func );
 DBG_INTERFACE void CallAssertFailedNotifyFunc( const char *pchFile, int nLine, const char *pchMessage );
 
+#ifdef SDK_MP
 /* True if -hushasserts was passed on command line. */
 DBG_INTERFACE bool HushAsserts();
+#else
+
+#ifdef _DEBUG
+#include "icommandline.h"
+#define HushAsserts() CommandLine()->FindParm("-hushasserts")
+#else
+#define HushAsserts() true
+#endif
+
+#endif
 
 #if defined( USE_SDL )
 DBG_INTERFACE void SetAssertDialogParent( struct SDL_Window *window );
@@ -432,7 +445,9 @@ DBG_INTERFACE void LogV( PRINTF_FORMAT_STRING const tchar *pMsg, va_list arglist
 DBG_INTERFACE void Error( PRINTF_FORMAT_STRING const tchar *pMsg, ... ) FMTFUNCTION( 1, 2 );
 #else
 DBG_INTERFACE void NORETURN Error( PRINTF_FORMAT_STRING const tchar *pMsg, ... ) FMTFUNCTION( 1, 2 );
+#ifdef SDK_MP
 DBG_INTERFACE void NORETURN ErrorV( PRINTF_FORMAT_STRING const tchar *pMsg, va_list arglist );
+#endif
 
 #endif
 

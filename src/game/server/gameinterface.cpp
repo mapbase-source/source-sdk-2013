@@ -574,7 +574,11 @@ CServerGameDLL g_ServerGameDLL;
 EXPOSE_SINGLE_INTERFACE_GLOBALVAR(CServerGameDLL, IServerGameDLL, INTERFACEVERSION_SERVERGAMEDLL, g_ServerGameDLL);
 
 // When bumping the version to this interface, check that our assumption is still valid and expose the older version in the same way
+#ifdef SDK_MP
 COMPILE_TIME_ASSERT( INTERFACEVERSION_SERVERGAMEDLL_INT == 12 );
+#else
+COMPILE_TIME_ASSERT( INTERFACEVERSION_SERVERGAMEDLL_INT == 9 );
+#endif
 
 bool CServerGameDLL::DLLInit( CreateInterfaceFn appSystemFactory, 
 		CreateInterfaceFn physicsFactory, CreateInterfaceFn fileSystemFactory, 
@@ -1429,11 +1433,13 @@ void CServerGameDLL::LevelShutdown( void )
 	// In case we quit out during initial load
 	CBaseEntity::SetAllowPrecache( false );
 
+#ifdef SDK_MP
 	// Josh: Uncache all the particle systems on level shutdown
 	// otherwise we leak them constantly on changelevel in the
 	// particle precache stringtable list.
 	g_pParticleSystemMgr->UncacheAllParticleSystems();
 	g_pParticleSystemMgr->RecreateDictionary();
+#endif
 
 	g_nCurrentChapterIndex = -1;
 
@@ -2047,6 +2053,7 @@ const char *CServerGameDLL::GetServerBrowserGameData()
 	return rchResult;
 }
 
+#ifdef SDK_MP
 //-----------------------------------------------------------------------------
 void CServerGameDLL::Status( void (*print) (const char *fmt, ...) )
 {
@@ -2110,6 +2117,7 @@ bool CServerGameDLL::GetWorkshopMap( uint32 uIndex, WorkshopMapDesc_t *pDesc )
 #endif // TF_DLL
 	return false;
 }
+#endif
 
 //-----------------------------------------------------------------------------
 // Purpose: Called during a transition, to build a map adjacency list
@@ -2835,7 +2843,9 @@ void CServerGameEnts::CheckTransmit( CCheckTransmitInfo *pInfo, const unsigned s
 CServerGameClients g_ServerGameClients;
 // INTERFACEVERSION_SERVERGAMECLIENTS_VERSION_3 is compatible with the latest since we're only adding things to the end, so expose that as well.
 EXPOSE_SINGLE_INTERFACE_GLOBALVAR(CServerGameClients, IServerGameClients003, INTERFACEVERSION_SERVERGAMECLIENTS_VERSION_3, g_ServerGameClients );
+#ifdef SDK_MP
 EXPOSE_SINGLE_INTERFACE_GLOBALVAR(CServerGameClients, IServerGameClients004, INTERFACEVERSION_SERVERGAMECLIENTS_VERSION_4, g_ServerGameClients );
+#endif
 EXPOSE_SINGLE_INTERFACE_GLOBALVAR(CServerGameClients, IServerGameClients, INTERFACEVERSION_SERVERGAMECLIENTS, g_ServerGameClients );
 
 
@@ -3367,6 +3377,7 @@ void CServerGameClients::GetBugReportInfo( char *buf, int buflen )
 	}
 }
 
+#ifdef SDK_MP
 //-----------------------------------------------------------------------------
 // Purpose: A player sent a voice packet
 //-----------------------------------------------------------------------------
@@ -3381,6 +3392,7 @@ void CServerGameClients::ClientVoice( edict_t *pEdict )
 		PlayerVoiceListener().AddPlayerSpeakTime( pPlayer );
 	}
 }
+#endif
 
 //-----------------------------------------------------------------------------
 // Purpose: A user has had their network id setup and validated 

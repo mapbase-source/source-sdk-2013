@@ -58,7 +58,11 @@ public:
 	virtual void ColorPrint( const Color& clr, const char *pMessage );
 	virtual void Print( const char *pMessage );
 	virtual void DPrint( const char *pMessage );
+#ifdef SDK_MP
 	virtual void GetConsoleText( char *pchText, int nBufSize ) const;
+#else
+	virtual void GetConsoleText( char *pchText, size_t nBufSize ) const;
+#endif
 
 	// clears the console
 	void Clear();

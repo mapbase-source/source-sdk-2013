@@ -5,6 +5,11 @@
 //
 //=============================================================================
 
+#ifdef SDK_SP
+// Not in SP SDK
+#define STEAMAPIFLAT_H
+#endif
+
 #ifndef STEAMAPIFLAT_H
 #define STEAMAPIFLAT_H
 

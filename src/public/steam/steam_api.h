@@ -11,6 +11,11 @@
 //
 //=============================================================================
 
+#ifdef SDK_SP
+// SP counterpart too different to combine cleanly
+#include "steam_api_sp.h"
+#endif
+
 #ifndef STEAM_API_H
 #define STEAM_API_H
 #ifdef _WIN32

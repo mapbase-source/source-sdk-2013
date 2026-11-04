@@ -7,6 +7,11 @@
 //
 //=============================================================================
 
+#ifdef SDK_SP
+// Not in SP SDK
+#define ISTEAMINPUT_H
+#endif
+
 #ifndef ISTEAMINPUT_H
 #define ISTEAMINPUT_H
 #ifdef _WIN32

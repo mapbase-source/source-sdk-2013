@@ -30,7 +30,8 @@ $Group "game"
 
 $Group "shaders"
 {
-	//"game_shader_generic_example"
+	// Differentiated through SP/MP branch separation (see sdk_sp_branch.vpc.vpc)
+	"game_shader_generic_example"
 	"game_shader_generic_std"
 
 	"mathlib"
@@ -67,10 +68,9 @@ $Group "everything"
 	"vvis_dll"
 	"vvis_launcher"
 
-	//"game_shader_generic_example"
-
-	// For Mapbase, we want to override all shaders
-	"game_shader_generic_std"
+	// Differentiated through SP/MP branch separation (see sdk_sp_branch.vpc.vpc)
+	"game_shader_generic_example"
+	"game_shader_generic_std"	// For Mapbase, we want to override all shaders
 }
 
 $Group "dedicated"

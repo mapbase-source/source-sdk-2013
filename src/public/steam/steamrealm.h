@@ -4,6 +4,11 @@
 //
 //=============================================================================
 
+#ifdef SDK_SP
+// Not in SP SDK
+#define STEAMREALM_H
+#endif
+
 #ifndef STEAMREALM_H
 #define STEAMREALM_H
 

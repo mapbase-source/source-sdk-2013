@@ -1,8 +1,13 @@
-//====== Copyright © 1996-2008, Valve Corporation, All rights reserved. =======
+//====== Copyright ï¿½ 1996-2008, Valve Corporation, All rights reserved. =======
 //
 // Purpose: interface to steam for game play statistics
 //
 //=============================================================================
+
+#ifdef SDK_SP
+// Not in SP SDK
+#define ISTEAMGAMESTATS_H
+#endif
 
 #ifndef ISTEAMGAMESTATS_H
 #define ISTEAMGAMESTATS_H

@@ -656,6 +656,7 @@ bool KeyValues::LoadFromFile( IBaseFileSystem *filesystem, const char *resourceN
 	Assert( IsX360() || ( IsPC() && _heapchk() == _HEAPOK ) );
 #endif
 
+#ifdef SDK_MP
 	/*
 	People are cheating with the keyvalue cache enabled by doing the below, so disable it.
 
@@ -693,6 +694,7 @@ bool KeyValues::LoadFromFile( IBaseFileSystem *filesystem, const char *resourceN
 		COM_TimestampedLog( "KeyValues::LoadFromFile(%s%s%s): End / CacheHit", pathID ? pathID : "", pathID && resourceName ? "/" : "", resourceName ? resourceName : "" );
 		return true;
 	}
+#endif
 
 	FileHandle_t f = filesystem->Open(resourceName, "rb", pathID);
 	if ( !f )
@@ -721,13 +723,15 @@ bool KeyValues::LoadFromFile( IBaseFileSystem *filesystem, const char *resourceN
 		buffer[fileSize+1] = 0; // double NULL terminating in case this is a unicode file
 		bRetOK = LoadFromBuffer( resourceName, buffer, filesystem );
 	}
-	
+
+#ifdef SDK_MP
 	// The cache relies on the KeyValuesSystem string table, which will only be valid if we're
 	// using classic mode. 
 	if ( bUseCacheForWrite && bRetOK )
 	{
 		KeyValuesSystem()->AddFileKeyValuesToCache( this, resourceName, pathID );
 	}
+#endif
 
 	( (IFileSystem *)filesystem )->FreeOptimalReadBuffer( buffer );
 
@@ -752,10 +756,12 @@ bool KeyValues::SaveToFile( IBaseFileSystem *filesystem, const char *resourceNam
 		return false;
 	}
 
+#ifdef SDK_MP
 	KeyValuesSystem()->InvalidateCacheForFile( resourceName, pathID );
 	if ( bCacheResult ) {
 		KeyValuesSystem()->AddFileKeyValuesToCache( this, resourceName, pathID );
 	}
+#endif
 	RecursiveSaveToFile(filesystem, f, NULL, 0, sortKeys, bAllowEmptyString );
 	filesystem->Close(f);
 

@@ -30,7 +30,9 @@ $Project "QC Eyes"
 {
 	$Folder	"Source Files"
 	{		
-		-$File	"$SRCDIR\public\tier0\memoverride.cpp"
+		// SP/MP branch separation (see sdk_sp_branch.vpc.vpc)
+		-$File	"$SRCDIR\public_sp\tier0\memoverride.cpp" [$WIN32||$LINUX32]
+		-$File	"$SRCDIR\public\tier0\memoverride.cpp" [$WIN64||$LINUX64]
 		
 		$File	"QC_Eyes.cpp"
 		$File	"QC_Eyes.rc"

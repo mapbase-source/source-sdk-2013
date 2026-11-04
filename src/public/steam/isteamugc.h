@@ -221,8 +221,10 @@ public:
 	STEAM_FLAT_NAME( CreateQueryAllUGCRequestCursor )
 	virtual UGCQueryHandle_t CreateQueryAllUGCRequest( EUGCQuery eQueryType, EUGCMatchingUGCType eMatchingeMatchingUGCTypeFileType, AppId_t nCreatorAppID, AppId_t nConsumerAppID, const char *pchCursor = NULL ) = 0;
 
+#ifdef SDK_MP
 	// Query for the details of the given published file ids (the RequestUGCDetails call is deprecated and replaced with this)
 	virtual UGCQueryHandle_t CreateQueryUGCDetailsRequest( PublishedFileId_t *pvecPublishedFileID, uint32 unNumPublishedFileIDs ) = 0;
+#endif
 
 	// Send the query to Steam
 	STEAM_CALL_RESULT( SteamUGCQueryCompleted_t )
@@ -230,6 +232,7 @@ public:
 
 	// Retrieve an individual result after receiving the callback for querying UGC
 	virtual bool GetQueryUGCResult( UGCQueryHandle_t handle, uint32 index, SteamUGCDetails_t *pDetails ) = 0;
+#ifdef SDK_MP
 	virtual uint32 GetQueryUGCNumTags( UGCQueryHandle_t handle, uint32 index ) = 0;
 	virtual bool GetQueryUGCTag( UGCQueryHandle_t handle, uint32 index, uint32 indexTag, STEAM_OUT_STRING_COUNT( cchValueSize ) char* pchValue, uint32 cchValueSize ) = 0;
 	virtual bool GetQueryUGCTagDisplayName( UGCQueryHandle_t handle, uint32 index, uint32 indexTag, STEAM_OUT_STRING_COUNT( cchValueSize ) char* pchValue, uint32 cchValueSize ) = 0;
@@ -247,11 +250,13 @@ public:
 	virtual bool GetQueryUGCKeyValueTag( UGCQueryHandle_t handle, uint32 index, const char *pchKey, STEAM_OUT_STRING_COUNT(cchValueSize) char *pchValue, uint32 cchValueSize ) = 0;
 
 	virtual uint32 GetQueryUGCContentDescriptors( UGCQueryHandle_t handle, uint32 index, EUGCContentDescriptorID *pvecDescriptors, uint32 cMaxEntries ) = 0;
+#endif
 	
 	// Release the request to free up memory, after retrieving results
 	virtual bool ReleaseQueryUGCRequest( UGCQueryHandle_t handle ) = 0;
 
 	// Options to set for querying UGC
+#ifdef SDK_MP
 	virtual bool AddRequiredTag( UGCQueryHandle_t handle, const char *pTagName ) = 0;
 	virtual bool AddRequiredTagGroup( UGCQueryHandle_t handle, const SteamParamStringArray_t *pTagGroups ) = 0; // match any of the tags in this group
 	virtual bool AddExcludedTag( UGCQueryHandle_t handle, const char *pTagName ) = 0;
@@ -265,6 +270,13 @@ public:
 	virtual bool SetReturnPlaytimeStats( UGCQueryHandle_t handle, uint32 unDays ) = 0;
 	virtual bool SetLanguage( UGCQueryHandle_t handle, const char *pchLanguage ) = 0;
 	virtual bool SetAllowCachedResponse( UGCQueryHandle_t handle, uint32 unMaxAgeSeconds ) = 0;
+#else
+	virtual bool AddRequiredTag( UGCQueryHandle_t handle, const char *pTagName ) = 0;
+	virtual bool AddExcludedTag( UGCQueryHandle_t handle, const char *pTagName ) = 0;
+	virtual bool SetReturnLongDescription( UGCQueryHandle_t handle, bool bReturnLongDescription ) = 0;
+	virtual bool SetReturnTotalOnly( UGCQueryHandle_t handle, bool bReturnTotalOnly ) = 0;
+	virtual bool SetAllowCachedResponse( UGCQueryHandle_t handle, uint32 unMaxAgeSeconds ) = 0;
+#endif
 
 	// Options only for querying user UGC
 	virtual bool SetCloudFileNameFilter( UGCQueryHandle_t handle, const char *pMatchCloudFileName ) = 0;
@@ -273,9 +285,11 @@ public:
 	virtual bool SetMatchAnyTag( UGCQueryHandle_t handle, bool bMatchAnyTag ) = 0;
 	virtual bool SetSearchText( UGCQueryHandle_t handle, const char *pSearchText ) = 0;
 	virtual bool SetRankedByTrendDays( UGCQueryHandle_t handle, uint32 unDays ) = 0;
+#ifdef SDK_MP
 	virtual bool SetTimeCreatedDateRange( UGCQueryHandle_t handle, RTime32 rtStart, RTime32 rtEnd ) = 0;
 	virtual bool SetTimeUpdatedDateRange( UGCQueryHandle_t handle, RTime32 rtStart, RTime32 rtEnd ) = 0;
 	virtual bool AddRequiredKeyValueTag( UGCQueryHandle_t handle, const char *pKey, const char *pValue ) = 0;
+#endif
 
 	// DEPRECATED - Use CreateQueryUGCDetailsRequest call above instead!
 	STEAM_CALL_RESULT( SteamUGCRequestUGCDetailsResult_t )
@@ -289,11 +303,14 @@ public:
 
 	virtual bool SetItemTitle( UGCUpdateHandle_t handle, const char *pchTitle ) = 0; // change the title of an UGC item
 	virtual bool SetItemDescription( UGCUpdateHandle_t handle, const char *pchDescription ) = 0; // change the description of an UGC item
+#ifdef SDK_MP
 	virtual bool SetItemUpdateLanguage( UGCUpdateHandle_t handle, const char *pchLanguage ) = 0; // specify the language of the title or description that will be set
 	virtual bool SetItemMetadata( UGCUpdateHandle_t handle, const char *pchMetaData ) = 0; // change the metadata of an UGC item (max = k_cchDeveloperMetadataMax)
+#endif
 	virtual bool SetItemVisibility( UGCUpdateHandle_t handle, ERemoteStoragePublishedFileVisibility eVisibility ) = 0; // change the visibility of an UGC item
 	virtual bool SetItemTags( UGCUpdateHandle_t updateHandle, const SteamParamStringArray_t *pTags ) = 0; // change the tags of an UGC item
 	virtual bool SetItemContent( UGCUpdateHandle_t handle, const char *pszContentFolder ) = 0; // update item content from this local folder
+#ifdef SDK_MP
 	virtual bool SetItemPreview( UGCUpdateHandle_t handle, const char *pszPreviewFile ) = 0; //  change preview image file for this item. pszPreviewFile points to local image file, which must be under 1MB in size
 	virtual bool SetAllowLegacyUpload( UGCUpdateHandle_t handle, bool bAllowLegacyUpload ) = 0; //  use legacy upload for a single small file. The parameter to SetItemContent() should either be a directory with one file or the full path to the file.  The file must also be less than 10MB in size.
 	virtual bool RemoveAllItemKeyValueTags( UGCUpdateHandle_t handle ) = 0; // remove all existing key-value tags (you can add new ones via the AddItemKeyValueTag function)
@@ -306,6 +323,7 @@ public:
 	virtual bool RemoveItemPreview( UGCUpdateHandle_t handle, uint32 index ) = 0; // remove a preview by index starting at 0 (previews are sorted)
 	virtual bool AddContentDescriptor( UGCUpdateHandle_t handle, EUGCContentDescriptorID descid ) = 0;
 	virtual bool RemoveContentDescriptor( UGCUpdateHandle_t handle, EUGCContentDescriptorID descid ) = 0;
+#endif
 
 	STEAM_CALL_RESULT( SubmitItemUpdateResult_t )
 	virtual SteamAPICall_t SubmitItemUpdate( UGCUpdateHandle_t handle, const char *pchChangeNote ) = 0; // commit update process started with StartItemUpdate()
@@ -327,6 +345,7 @@ public:
 	virtual uint32 GetNumSubscribedItems() = 0; // number of subscribed items 
 	virtual uint32 GetSubscribedItems( PublishedFileId_t* pvecPublishedFileID, uint32 cMaxEntries ) = 0; // all subscribed item PublishFileIDs
 
+#ifdef SDK_MP
 	// get EItemState flags about item on this client
 	virtual uint32 GetItemState( PublishedFileId_t nPublishedFileID ) = 0;
 
@@ -382,8 +401,13 @@ public:
 	// Retrieve information related to the user's acceptance or not of the app's specific Workshop EULA
 	STEAM_CALL_RESULT( WorkshopEULAStatus_t )
 	virtual SteamAPICall_t GetWorkshopEULAStatus() = 0;
+#else
+	virtual bool GetItemInstallInfo( PublishedFileId_t nPublishedFileID, uint64 *punSizeOnDisk, char *pchFolder, uint32 cchFolderSize, bool *pbLegacyItem ) = 0; // returns true if item is installed
+	virtual bool GetItemUpdateInfo( PublishedFileId_t nPublishedFileID, bool *pbNeedsUpdate, bool *pbIsDownloading, uint64 *punBytesDownloaded, uint64 *punBytesTotal ) = 0;
+#endif
 };
 
+#ifdef SDK_MP
 #define STEAMUGC_INTERFACE_VERSION "STEAMUGC_INTERFACE_VERSION017"
 
 // Global interface accessor
@@ -393,6 +417,9 @@ STEAM_DEFINE_USER_INTERFACE_ACCESSOR( ISteamUGC *, SteamUGC, STEAMUGC_INTERFACE_
 // Global accessor for the gameserver client
 inline ISteamUGC *SteamGameServerUGC();
 STEAM_DEFINE_GAMESERVER_INTERFACE_ACCESSOR( ISteamUGC *, SteamGameServerUGC, STEAMUGC_INTERFACE_VERSION );
+#else
+#define STEAMUGC_INTERFACE_VERSION "STEAMUGC_INTERFACE_VERSION003"
+#endif
 
 //-----------------------------------------------------------------------------
 // Purpose: Callback for querying UGC

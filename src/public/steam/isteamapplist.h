@@ -32,9 +32,11 @@ public:
 
 #define STEAMAPPLIST_INTERFACE_VERSION "STEAMAPPLIST_INTERFACE_VERSION001"
 
+#ifdef SDK_MP
 // Global interface accessor
 inline ISteamAppList *SteamAppList();
 STEAM_DEFINE_USER_INTERFACE_ACCESSOR( ISteamAppList *, SteamAppList, STEAMAPPLIST_INTERFACE_VERSION );
+#endif
 
 // callbacks
 #if defined( VALVE_CALLBACK_PACK_SMALL )

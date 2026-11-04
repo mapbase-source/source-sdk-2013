@@ -8,6 +8,9 @@ $Macro OUTBINDIR	"$SRCDIR\..\game\$GAMENAME\bin"
 
 $Include "$SRCDIR\vpc_scripts\source_dll_base.vpc"
 
+// SP Mapbase shader replacements
+$Include "$SRCDIR\materialsystem\stdshaders\game_shader_sp_sdk_mapbase.vpc" [$MAPBASE && ($WIN32||$LINUX32)] // SDK_SP (see sdk_sp_branch.vpc)
+
 $Configuration	"Debug"
 {
 	$General
@@ -32,7 +35,8 @@ $Configuration
 	$Compiler
 	{
 		$AdditionalIncludeDirectories	"$BASE;include;"
-		$PreprocessorDefinitions		"$BASE;STDSHADER_DX9_DLL_EXPORT;FAST_MATERIALVAR_ACCESS;GAME_SHADER_DLL"
+		$PreprocessorDefinitions		"$BASE;STDSHADER_DX9_DLL_EXPORT;FAST_MATERIALVAR_ACCESS;GAME_SHADER_DLL"	[$WIN64||$LINUX64] // SDK_MP
+		$PreprocessorDefinitions		"$BASE;STDSHADER_DX9_DLL_EXPORT;FAST_MATERIALVAR_ACCESS"	[$WIN32||$LINUX32] // SDK_SP
 		$PreprocessorDefinitions		"$BASE;USE_ACTUAL_DX" [$WINDOWS && !$GL]
 	}
 
@@ -54,7 +58,7 @@ $Project
 		$File	"sdk_bloom.cpp"
 		$File	"sdk_screenspace_general.cpp"
 
-		$File	"mapbase_sdk_stubs.cpp"
+		$File	"mapbase_sdk_stubs.cpp" [$WIN64||$LINUX64] // SDK_MP
 	}
 
 	$Folder	"Header Files"

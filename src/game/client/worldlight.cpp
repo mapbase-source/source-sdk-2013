@@ -179,11 +179,13 @@ void CWorldLights::LevelInitPreEntity()
 	// then the BSP format changed and we're unaware
 	int lumpsize = lightLump.filelen;
 
+#ifdef SDK_MP
 	// account for compressed BSPs 
 	if ( lightLump.uncompressedSize > 0 )
 	{
 		lumpsize = lightLump.uncompressedSize;
 	}
+#endif
 
 	if( lumpsize % sizeof(dworldlight_t) )
 	{
@@ -200,6 +202,7 @@ void CWorldLights::LevelInitPreEntity()
 	m_nWorldLights = lumpsize / sizeof(dworldlight_t);
 	m_pWorldLights = new dworldlight_t[m_nWorldLights];
 
+#ifdef SDK_MP
 	// Read worldlights then close
 	if ( lightLump.uncompressedSize > 0 )
 	{
@@ -210,6 +213,7 @@ void CWorldLights::LevelInitPreEntity()
 		delete[] worldlights;
 	}
 	else
+#endif
 	{
 		g_pFullFileSystem->Read( m_pWorldLights, lightLump.filelen, hFile );
 	}

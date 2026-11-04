@@ -1181,7 +1181,9 @@ bool CBaseGameStats_Driver::AddBaseDataForSend( KeyValues *pKV, StatSendType_t s
 			int mapTime = gpGlobals->realtime - m_flLevelStartTime;
 			pKV->SetInt( "MapTime", mapTime );
 
+#ifdef SDK_MP
 			pKV->SetBool( "SteamControllerActive", g_pInputSystem->IsSteamControllerActive() );
+#endif
 
 			AddLoadTimeMainMenu(pKV);
 			AddLoadTimeMap(pKV);
@@ -1227,7 +1229,8 @@ void CBaseGameStats_Driver::ResetData()
 	pKV->SetUint64( "CPUFeatures1", cpu.m_nFeatures[ 1 ] );
 	pKV->SetUint64( "CPUFeatures2", cpu.m_nFeatures[ 2 ] );
 	pKV->SetInt( "NumCores", cpu.m_nPhysicalProcessors );
-	
+
+#ifdef SDK_MP
 	// Capture memory stats as well.
 	MemoryInformation memInfo;
 	if ( GetMemoryInformation( &memInfo ) )
@@ -1237,6 +1240,7 @@ void CBaseGameStats_Driver::ResetData()
 		pKV->SetInt( "VirtualRamMbTotal",      memInfo.m_nVirtualRamMbTotal );
 		pKV->SetInt( "VirtualRamMbAvailable",  memInfo.m_nVirtualRamMbAvailable );
 	}
+#endif
 			
 	MaterialAdapterInfo_t gpu;
 	materials->GetDisplayAdapterInfo( materials->GetCurrentAdapter(), gpu );

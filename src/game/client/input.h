@@ -114,6 +114,7 @@ public:
 
 	virtual	bool		EnableJoystickMode();
 
+#ifdef SDK_MP
 	// SteamController
 	bool		InitializeSteamControllerGameActionSets();
 	Vector2D	ScaleSteamControllerLook( Vector2D vecPosition );
@@ -127,6 +128,7 @@ public:
 	virtual void	SetGameActionSetFlags( GameActionSetFlags_t action_set_flags );
 
 	virtual bool IsSteamControllerActive();
+#endif
 
 // Private Implementation
 protected:
@@ -158,7 +160,9 @@ protected:
 	void		JoyStickMove ( float frametime, CUserCmd *cmd );
 	float		ScaleAxisValue( const float axisValue, const float axisThreshold );
 	virtual float JoyStickAdjustYaw( float flSpeed ) { return flSpeed; }
+#ifdef SDK_MP
 	virtual void SteamControllerMove( float frametime, CUserCmd *cmd );
+#endif
 
 	// Call this to get the cursor position. The call will be logged in the VCR file if there is one.
 	void		GetMousePos(int &x, int &y);
@@ -272,11 +276,13 @@ private:
 	// Steam controller stuff
 	int m_nControllerType[MAX_JOYSTICKS + MAX_STEAM_CONTROLLERS];
 
+#ifdef SDK_MP
 	GameActionSet_t m_PreferredGameActionSet;
 	GameActionSetFlags_t m_GameActionSetFlags;
 
 	bool m_bSteamControllerGameActionsInitialized;
 	bool m_bSteamControllerSeenInput = false;
+#endif
 
 	class CVerifiedUserCmd
 	{

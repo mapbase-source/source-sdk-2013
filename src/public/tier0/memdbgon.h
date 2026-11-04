@@ -7,6 +7,11 @@
 // $NoKeywords: $
 //=============================================================================//
 
+#ifdef SDK_SP
+// SP counterpart too different to combine cleanly
+#include "../../public_sp/tier0/memdbgon.h"
+#else
+
 // SPECIAL NOTE! This file must *not* use include guards; we need to be able
 // to include this potentially multiple times (since we can deactivate debugging
 // by including memdbgoff.h)
@@ -312,3 +317,5 @@ inline void *valve_aligned_malloc_check_oom( size_t size, size_t alignment )
 #undef _aligned_malloc
 
 #endif // NO_MALLOC_OVERRIDE
+
+#endif // SDK_SP

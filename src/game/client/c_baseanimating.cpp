@@ -1080,7 +1080,11 @@ void C_BaseAnimating::LockStudioHdr()
 	
 	if ( pNewWrapper->GetVirtualModel() )
 	{
+#ifdef SDK_MP
 		MDLHandle_t hVirtualModel = VoidPtrToMDLHandle( pStudioHdr->VirtualModel() );
+#else
+		MDLHandle_t hVirtualModel = (MDLHandle_t)(int)(pStudioHdr->virtualModel)&0xffff;
+#endif
 		mdlcache->LockStudioHdr( hVirtualModel );
 	}
 
@@ -1112,7 +1116,11 @@ void C_BaseAnimating::UnlockStudioHdr()
 			// Immediate-mode rendering, can unlock immediately
 			if ( pStudioHdr->GetVirtualModel() )
 			{
+#ifdef SDK_MP
 				MDLHandle_t hVirtualModel = VoidPtrToMDLHandle( pStudioHdr->VirtualModel() );
+#else
+				MDLHandle_t hVirtualModel = (MDLHandle_t)(int)pStudioHdr->virtualModel&0xffff;
+#endif
 				mdlcache->UnlockStudioHdr( hVirtualModel );
 			}
 			mdlcache->UnlockStudioHdr( m_hStudioHdr );
@@ -1815,7 +1823,11 @@ void C_BaseAnimating::BuildTransformations( CStudioHdr *hdr, Vector *pos, Quater
 				}
 
 				// do jiggle physics
+#ifdef SDK_MP
 				m_pJiggleBones->BuildJiggleTransformations( i, gpGlobals->realtime, jiggleInfo, goalMX, GetBoneForWrite( i ), this->ShouldFlipViewModel() );
+#else
+				m_pJiggleBones->BuildJiggleTransformations( i, gpGlobals->realtime, jiggleInfo, goalMX, GetBoneForWrite( i ) );
+#endif
 
 			}
 			else if (hdr->boneParent(i) == -1) 
@@ -3547,10 +3559,12 @@ int C_BaseAnimating::DrawModel( int flags )
 			extraFlags |= STUDIO_GENERATE_STATS;
 		}
 
+#ifdef SDK_MP
 		if ( flags & ( STUDIO_NO_OVERRIDE_FOR_ATTACH ) ) 
 		{
 			extraFlags |= STUDIO_NO_OVERRIDE_FOR_ATTACH;
 		}
+#endif
 
 		// Necessary for lighting blending
 		CreateModelInstance();
@@ -6270,12 +6284,14 @@ int C_BaseAnimating::SelectWeightedSequence ( int activity )
 
 }
 
+#ifdef SDK_MP
 int C_BaseAnimating::SelectWeightedSequenceFromModifiers( Activity activity, CUtlSymbol *pActivityModifiers, int iModifierCount )
 {
 	Assert( activity != ACT_INVALID );
 	Assert( GetModelPtr() );
 	return GetModelPtr()->SelectWeightedSequenceFromModifiers( activity, pActivityModifiers, iModifierCount );
 }
+#endif
 
 //=========================================================
 //=========================================================

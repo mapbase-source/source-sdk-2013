@@ -152,8 +152,10 @@ public:
 	// Takes ownership of the passed memory, including freeing it when this buffer is destroyed.
 	void			AssumeMemory( void *pMemory, int nSize, int nInitialPut, int nFlags = 0 );
 
+#ifdef SDK_MP
 	void* Detach();
 	void* DetachMemory();
+#endif
 
 	// copies data from another buffer
 	void			CopyBuffer( const CUtlBuffer &buffer );
@@ -196,6 +198,7 @@ public:
 	float			GetFloat( );
 	double			GetDouble( );
 	void *			GetPtr();
+#ifdef SDK_MP
 	template <size_t maxLenInChars> void GetString( char( &pString )[maxLenInChars] )
 	{
 		GetStringInternal( pString, maxLenInChars );
@@ -209,6 +212,18 @@ public:
 	{
 		GetStringInternal( pString, maxLenInChars );
 	}
+#else
+	void			GetString( char* pString, int nMaxChars = 0 );
+
+	template <size_t maxLenInChars> FORCEINLINE void GetString( char( &pString )[maxLenInChars] )
+	{
+		GetString( pString, (int)maxLenInChars );
+	}
+	void FORCEINLINE GetStringManualCharCount( char *pString, size_t maxLenInChars )
+	{
+		GetString( pString, (int)maxLenInChars );
+	}
+#endif
 
 	void			Get( void* pMem, int size );
 	void			GetLine( char* pLine, int nMaxChars = 0 );
@@ -405,7 +420,9 @@ protected:
 	// Call this to peek arbitrarily long into memory. It doesn't fail unless
 	// it can't read *anything* new
 	bool CheckArbitraryPeekGet( int nOffset, int &nIncrement );
+#ifdef SDK_MP
 	void GetStringInternal( char *pString, size_t maxLenInChars );
+#endif
 
 	template <typename T> void GetType( T& dest, const char *pszFmt );
 	template <typename T> void GetTypeBin( T& dest );
@@ -1149,12 +1166,14 @@ inline void	CUtlBuffer::CopyBuffer( const void *pubData, int cubData )
 	}
 }
 
+#ifdef SDK_MP
 inline void *CUtlBuffer::Detach()
 {
 	void *p = m_Memory.Detach();
 	Clear();
 	return p;
 }
+#endif
 
 #endif // UTLBUFFER_H
 

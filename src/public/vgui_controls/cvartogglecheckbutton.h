@@ -54,7 +54,11 @@ private:
 //-----------------------------------------------------------------------------
 template< class T >
 CvarToggleCheckButton<T>::CvarToggleCheckButton( Panel *parent, const char *panelName, const char *text, char const *cvarname, bool ignoreMissingCvar )
+#ifdef SDK_MP
 	: CheckButton( parent, panelName, text ), m_cvar( g_pVGui->GetVGUIEngine(), (cvarname)?cvarname:"", (cvarname)?ignoreMissingCvar:true )
+#else
+	: CheckButton( parent, panelName, text ), m_cvar( (cvarname)?cvarname:"", (cvarname)?ignoreMissingCvar:true )
+#endif
 {
 	m_bIgnoreMissingCvar = ignoreMissingCvar;
 
@@ -181,7 +185,11 @@ void CvarToggleCheckButton<T>::ApplySettings( KeyValues *inResourceData )
 	else
 		m_bStartValue = false;
 
+#ifdef SDK_MP
 	m_cvar.Init( g_pVGui->GetVGUIEngine(), cvarName, m_bIgnoreMissingCvar );
+#else
+	m_cvar.Init( cvarName, m_bIgnoreMissingCvar );
+#endif
 	if ( m_cvar.IsValid() )
 	{
 		SetSelected( m_cvar.GetBool() );

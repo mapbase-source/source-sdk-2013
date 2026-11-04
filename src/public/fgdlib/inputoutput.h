@@ -24,7 +24,9 @@ enum InputOutputType_t
 	iotVector,
 	iotEHandle,
 	iotColor,
+#ifdef SDK_MP
 	iotScript,
+#endif
 };
 
 

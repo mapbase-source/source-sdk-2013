@@ -41,9 +41,11 @@ public:
 	virtual INetChannel		*GetNetChannel( void ) const = 0;
 	virtual const char		*ToString( void ) const = 0; // returns a human readable string about message content
 
+#ifdef SDK_MP
 	virtual bool	BIncomingMessageForProcessing( double dblNetTime, int numBytes ) = 0;
 
 	virtual size_t			GetSize() const = 0;
+#endif
 };
 
 

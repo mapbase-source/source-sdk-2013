@@ -254,7 +254,11 @@ bool CAI_BaseActor::StartSceneEvent( CSceneEventInfo *info, CChoreoScene *scene,
 	{
 	case CChoreoEvent::FACE: 
 		{
+#ifdef MAPBASE
+			return BaseClass::StartSceneEvent( info, scene, event, actor, pTarget, pSceneEnt );
+#else
 			return BaseClass::StartSceneEvent( info, scene, event, actor, pTarget );
+#endif
 		}
 		break;
 
@@ -432,14 +436,22 @@ bool CAI_BaseActor::StartSceneEvent( CSceneEventInfo *info, CChoreoScene *scene,
 #endif
 			else
 			{
+#ifdef MAPBASE
+				return BaseClass::StartSceneEvent( info, scene, event, actor, pTarget, pSceneEnt );
+#else
 				return BaseClass::StartSceneEvent( info, scene, event, actor, pTarget );
+#endif
 			}
 			return true;
 		}
 		break;
 
 	default:
+#ifdef MAPBASE
+		return BaseClass::StartSceneEvent( info, scene, event, actor, pTarget, pSceneEnt );
+#else
 		return BaseClass::StartSceneEvent( info, scene, event, actor, pTarget );
+#endif
 	}
 }
 

@@ -15,7 +15,11 @@
 
 enum NormalDecodeMode_t
 {
-	NORMAL_DECODE_NONE			= 0
+	NORMAL_DECODE_NONE			= 0,
+#ifndef SDK_MP
+	NORMAL_DECODE_ATI2N			= 1,
+	NORMAL_DECODE_ATI2N_ALPHA	= 2
+#endif
 };
 
 // Forward declaration
@@ -450,9 +454,11 @@ namespace ImageLoader
 							   int height,	int depth, ImageFormat imageFormat, float srcGamma, float dstGamma, 
 							   int numLevels = 0 );
 
+#ifdef SDK_MP
 	// Low quality mipmap generation, but way faster. 
 	void GenerateMipmapLevelsLQ( unsigned char* pSrc, unsigned char* pDst, int width, int height, 
 		                         ImageFormat imageFormat, int numLevels );
+#endif
 
 	//-----------------------------------------------------------------------------
 	// operations on square images (src and dst can be the same)
@@ -516,10 +522,12 @@ namespace ImageLoader
 		return ( info.m_NumRedBits > 8 || info.m_NumGreeBits > 8 || info.m_NumBlueBits > 8 || info.m_NumAlphaBits > 8 );
 	}
 
+#ifdef SDK_MP
 	inline bool IsRuntimeCompressed( ImageFormat fmt )
 	{
 		return ( fmt == IMAGE_FORMAT_DXT1_RUNTIME ) || ( fmt == IMAGE_FORMAT_DXT5_RUNTIME );
 	}
+#endif
 
 } // end namespace ImageLoader
 

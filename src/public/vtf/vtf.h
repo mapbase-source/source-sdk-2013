@@ -56,11 +56,17 @@ enum CompiledVtfFlags
 	TEXTUREFLAGS_NODEBUGOVERRIDE               = 0x00020000,
 	TEXTUREFLAGS_SINGLECOPY		               = 0x00040000,
 	
+#ifdef SDK_MP
 	TEXTUREFLAGS_STAGING_MEMORY                = 0x00080000,
 	TEXTUREFLAGS_IMMEDIATE_CLEANUP			   = 0x00100000,
 	TEXTUREFLAGS_IGNORE_PICMIP				   = 0x00200000,
+#else
+	TEXTUREFLAGS_UNUSED_00080000			   = 0x00080000,
+	TEXTUREFLAGS_UNUSED_00100000			   = 0x00100000,
+	TEXTUREFLAGS_UNUSED_00200000			   = 0x00200000,
+#endif
 
-		TEXTUREFLAGS_UNUSED_00400000		   = 0x00400000,
+	TEXTUREFLAGS_UNUSED_00400000		   = 0x00400000,
 
 	TEXTUREFLAGS_NODEPTHBUFFER                 = 0x00800000,
 
@@ -77,9 +83,14 @@ enum CompiledVtfFlags
 	// Clamp to border color on all texture coordinates
 	TEXTUREFLAGS_BORDER						   = 0x20000000,
 
+#ifdef SDK_MP
 	TEXTUREFLAGS_STREAMABLE_COARSE			   = 0x40000000,
 	TEXTUREFLAGS_STREAMABLE_FINE		       = 0x80000000, 
 	TEXTUREFLAGS_STREAMABLE					   = ( TEXTUREFLAGS_STREAMABLE_COARSE | TEXTUREFLAGS_STREAMABLE_FINE )
+#else
+	TEXTUREFLAGS_UNUSED_40000000			   = 0x40000000,
+	TEXTUREFLAGS_UNUSED_80000000			   = 0x80000000,
+#endif
 
 };
 
@@ -354,12 +365,14 @@ public:
 	// Sets post-processing flags (settings are copied, pointer passed to distinguish between structure versions)
 	virtual void SetPostProcessingSettings( VtfProcessingOptions const *pOptions ) = 0;
 
+#ifdef SDK_MP
 	// Like Unserialize, but allows you to additionally specify some flags to forcibly enable. 
 	virtual bool UnserializeEx( CUtlBuffer &buf, bool bHeaderOnly = false, int nForceFlags = 0, int nSkipMipLevels = 0 ) = 0;
 
 	// Data is included in [ finest, coarsest ] mips--other ranges have garbage. This is particularly useful for 
 	// streaming textures.
 	virtual void GetMipmapRange( int* pOutFinest, int* pOutCoarsest ) = 0;
+#endif
 };
 
 //-----------------------------------------------------------------------------

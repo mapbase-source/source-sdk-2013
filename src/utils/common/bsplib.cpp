@@ -26,8 +26,10 @@
 #include "tier0/dbg.h"
 #include "lumpfiles.h"
 #include "vtf/vtf.h"
+#ifdef SDK_MP
 #include "lzma/lzma.h"
 #include "tier1/lzmaDecoder.h"
+#endif
 
 #include "tier0/memdbgon.h"
 
@@ -49,7 +51,11 @@ BEGIN_BYTESWAP_DATADESC( lump_t )
 	DEFINE_FIELD( fileofs, FIELD_INTEGER ),
 	DEFINE_FIELD( filelen, FIELD_INTEGER ),
 	DEFINE_FIELD( version, FIELD_INTEGER ),
+#ifdef SDK_MP
 	DEFINE_FIELD( uncompressedSize, FIELD_INTEGER ),
+#else
+	DEFINE_ARRAY( fourCC, FIELD_CHARACTER, 4 ),
+#endif
 END_BYTESWAP_DATADESC()
 
 BEGIN_BYTESWAP_DATADESC( dflagslump_t )
@@ -1357,7 +1363,14 @@ static void AddOcclusionLump( )
 	lump->fileofs = g_pFileSystem->Tell( g_hBSPFile );
 	lump->filelen = nLumpLength;
 	lump->version = LUMP_OCCLUSION_VERSION;
+#ifdef SDK_MP
 	lump->uncompressedSize = 0;
+#else
+	lump->fourCC[0] = ( char )0;
+	lump->fourCC[1] = ( char )0;
+	lump->fourCC[2] = ( char )0;
+	lump->fourCC[3] = ( char )0;
+#endif
 
 	// Data is swapped in place, so the 'Count' variables aren't safe to use after they're written
 	WriteData( FIELD_INTEGER, &nOccluderCount );
@@ -2274,10 +2287,12 @@ void LoadBSPFile( const char *filename )
 	CopyLump( FIELD_CHARACTER, LUMP_TEXDATA_STRING_DATA, g_TexDataStringData );
 	CopyLump( FIELD_INTEGER, LUMP_TEXDATA_STRING_TABLE, g_TexDataStringTable );
 
+#ifdef SDK_MP
 	// It's assumed by other code that the data lump is filled with C strings. We need to make sure that 
 	// the buffer as a whole ends with a '\0'.
 	if ( g_TexDataStringData.Count() > 0 && g_TexDataStringData.Tail() != 0 )
 		Error( "Cannot load corrupted bsp file %s", filename );
+#endif
 
 	g_nOverlayCount = CopyLump( LUMP_OVERLAYS, g_Overlays );
 	g_nWaterOverlayCount = CopyLump( LUMP_WATEROVERLAYS, g_WaterOverlays );
@@ -2555,7 +2570,14 @@ static void AddLumpInternal( int lumpnum, void *data, int len, int version )
 	lump->fileofs = g_pFileSystem->Tell( g_hBSPFile );
 	lump->filelen = len;
 	lump->version = version;
+#ifdef SDK_MP
 	lump->uncompressedSize = 0;
+#else
+	lump->fourCC[0] = ( char )0;
+	lump->fourCC[1] = ( char )0;
+	lump->fourCC[2] = ( char )0;
+	lump->fourCC[3] = ( char )0;
+#endif
 
 	SafeWrite( g_hBSPFile, data, len );
 
@@ -4467,6 +4489,8 @@ bool CompressGameLump( dheader_t *pInBSPHeader, dheader_t *pOutBSPHeader, CUtlBu
 	}
 
 	unsigned int newOffset = outputBuffer.TellPut();
+
+#ifdef SDK_MP
 	// Make room for gamelump header and gamelump structs, which we'll write at the end
 	outputBuffer.SeekPut( CUtlBuffer::SEEK_CURRENT, sizeof( dgamelumpheader_t ) );
 	outputBuffer.SeekPut( CUtlBuffer::SEEK_CURRENT, pInGameLumpHeader->lumpCount * sizeof( dgamelump_t ) );
@@ -4559,10 +4583,63 @@ bool CompressGameLump( dheader_t *pInBSPHeader, dheader_t *pOutBSPHeader, CUtlBu
 	outputBuffer.Put( &sOutGameLumpHeader, sizeof( dgamelumpheader_t ) );
 	outputBuffer.Put( sOutGameLumpBuf.Base(), sOutGameLumpBuf.TellPut() );
 	outputBuffer.SeekPut( CUtlBuffer::SEEK_HEAD, endOffset );
+#else
+	outputBuffer.Put( pInGameLumpHeader, sizeof( dgamelumpheader_t ) );
+	outputBuffer.Put( pInGameLump, pInGameLumpHeader->lumpCount * sizeof( dgamelump_t ) );
+
+	dgamelumpheader_t* pOutGameLumpHeader = (dgamelumpheader_t*)((byte *)outputBuffer.Base() + newOffset);
+	dgamelump_t* pOutGameLump = (dgamelump_t*)(pOutGameLumpHeader + 1);
+
+	// add a dummy terminal gamelump
+	// purposely NOT updating the .filelen to reflect the compressed size, but leaving as original size
+	// callers use the next entry offset to determine compressed size
+	pOutGameLumpHeader->lumpCount++;
+	dgamelump_t dummyLump = { 0 };
+	outputBuffer.Put( &dummyLump, sizeof( dgamelump_t ) );
+
+	for ( int i = 0; i < pInGameLumpHeader->lumpCount; i++ )
+	{
+		CUtlBuffer inputBuffer;
+		CUtlBuffer compressedBuffer;
+
+		pOutGameLump[i].fileofs = AlignBuffer( outputBuffer, 4 );
+
+		if ( pInGameLump[i].filelen )
+		{
+			inputBuffer.SetExternalBuffer( ((byte *)pInBSPHeader) + pInGameLump[i].fileofs, pInGameLump[i].filelen, pInGameLump[i].filelen );
+
+			bool bCompressed = pCompressFunc( inputBuffer, compressedBuffer );
+			if ( bCompressed )
+			{
+				pOutGameLump[i].flags |= GAMELUMPFLAG_COMPRESSED;
+
+				outputBuffer.Put( compressedBuffer.Base(), compressedBuffer.TellPut() );
+				compressedBuffer.Purge();
+			}
+			else
+			{
+				// as is
+				outputBuffer.Put( inputBuffer.Base(), inputBuffer.TellPut() );
+			}
+		}
+	}
+
+	// fix the dummy terminal lump
+	int lastLump = pOutGameLumpHeader->lumpCount-1;
+	pOutGameLump[lastLump].fileofs = outputBuffer.TellPut();
+
+	// fix the output for 360, swapping it back
+	byteSwap.SwapFieldsToTargetEndian( pOutGameLump, pOutGameLumpHeader->lumpCount );
+	byteSwap.SwapFieldsToTargetEndian( pOutGameLumpHeader );
+
+	pOutBSPHeader->lumps[LUMP_GAME_LUMP].fileofs = newOffset;
+	pOutBSPHeader->lumps[LUMP_GAME_LUMP].filelen = outputBuffer.TellPut() - newOffset;
+#endif
 
 	return true;
 }
 
+#ifdef SDK_MP
 //-----------------------------------------------------------------------------
 // Compress callback for RepackBSP
 //-----------------------------------------------------------------------------
@@ -4757,6 +4834,106 @@ bool RepackBSP( CUtlBuffer &inputBuffer, CUtlBuffer &outputBuffer, CompressFunc_
 
 	return true;
 }
+#else
+bool CompressBSP( CUtlBuffer &inputBuffer, CUtlBuffer &outputBuffer, CompressFunc_t pCompressFunc )
+{
+	CByteswap	byteSwap;
+
+	dheader_t *pInBSPHeader = (dheader_t *)inputBuffer.Base();
+	if ( pInBSPHeader->ident != BigLong( IDBSPHEADER ) || !pCompressFunc )
+	{
+		// only compress 360 bsp's
+		return false;
+	}
+
+	// bsp is 360, swap the header back
+	byteSwap.ActivateByteSwapping( true );
+	byteSwap.SwapFieldsToTargetEndian( pInBSPHeader );
+
+	// output will be smaller, use input size as upper bound
+	outputBuffer.EnsureCapacity( inputBuffer.TellMaxPut() );
+	outputBuffer.Put( pInBSPHeader, sizeof( dheader_t ) );
+
+	dheader_t *pOutBSPHeader = (dheader_t *)outputBuffer.Base();
+
+	// must adhere to input lump's offset order and process according to that, NOT lump num
+	// sort by offset order
+	CUtlVector< SortedLump_t > sortedLumps;
+	for ( int i = 0; i < HEADER_LUMPS; i++ )
+	{
+		int iIndex = sortedLumps.AddToTail();
+		sortedLumps[iIndex].lumpNum = i;
+		sortedLumps[iIndex].pLump = &pInBSPHeader->lumps[i];
+	}
+	sortedLumps.Sort( SortLumpsByOffset );
+
+	// iterate in sorted order
+	for ( int i = 0; i < HEADER_LUMPS; ++i )
+	{
+		SortedLump_t *pSortedLump = &sortedLumps[i];
+		int lumpNum = pSortedLump->lumpNum;
+
+		if ( !pSortedLump->pLump->filelen )
+		{
+			// degenerate
+			pOutBSPHeader->lumps[lumpNum].fileofs = 0;
+		}
+		else
+		{
+			int alignment = 4;
+			if ( lumpNum == LUMP_PAKFILE )
+			{
+				alignment = 2048;
+			}
+			unsigned int newOffset = AlignBuffer( outputBuffer, alignment );
+
+			// only set by compressed lumps, hides the uncompressed size
+			*((unsigned int *)pOutBSPHeader->lumps[lumpNum].fourCC) = 0;
+
+			CUtlBuffer inputBuffer;
+			inputBuffer.SetExternalBuffer( ((byte *)pInBSPHeader) + pSortedLump->pLump->fileofs, pSortedLump->pLump->filelen, pSortedLump->pLump->filelen );
+
+			if ( lumpNum == LUMP_GAME_LUMP )
+			{
+				// the game lump has to have each of its components individually compressed
+				CompressGameLump( pInBSPHeader, pOutBSPHeader, outputBuffer, pCompressFunc );
+			}
+			else if ( lumpNum == LUMP_PAKFILE )
+			{
+				// add as is
+				pOutBSPHeader->lumps[lumpNum].fileofs = newOffset;
+				outputBuffer.Put( inputBuffer.Base(), inputBuffer.TellPut() );
+			}
+			else
+			{
+				CUtlBuffer compressedBuffer;
+				bool bCompressed = pCompressFunc( inputBuffer, compressedBuffer );
+				if ( bCompressed )
+				{
+					// placing the uncompressed size in the unused fourCC, will decode at runtime
+					*((unsigned int *)pOutBSPHeader->lumps[lumpNum].fourCC) = BigLong( inputBuffer.TellPut() );
+					pOutBSPHeader->lumps[lumpNum].filelen = compressedBuffer.TellPut();
+					pOutBSPHeader->lumps[lumpNum].fileofs = newOffset;
+					outputBuffer.Put( compressedBuffer.Base(), compressedBuffer.TellPut() );
+					compressedBuffer.Purge();
+				}
+				else
+				{
+					// add as is
+					pOutBSPHeader->lumps[lumpNum].fileofs = newOffset;
+					outputBuffer.Put( inputBuffer.Base(), inputBuffer.TellPut() );
+				}
+			}
+		}
+	}
+
+	// fix the output for 360, swapping it back
+	byteSwap.SetTargetBigEndian( true );
+	byteSwap.SwapFieldsToTargetEndian( pOutBSPHeader );
+
+	return true;
+}
+#endif
 
 //-----------------------------------------------------------------------------
 //  For all lumps in a bsp: Loads the lump from file A, swaps it, writes it to file B.

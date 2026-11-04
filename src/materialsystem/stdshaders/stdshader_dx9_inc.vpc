@@ -16,8 +16,10 @@ $Configuration	"Debug"
 {
 	$General
 	{
-		$OutputDirectory		"Debug_dx9" [$WINDOWS]
-		$IntermediateDirectory	"Debug_dx9" [$WINDOWS]
+		// Causes problems when building multiple shader projects in parallel.
+		// It'd be nice to automate dependency, but for now, just fall back to game-based naming
+		$OutputDirectory		"Debug_dx9" [$WINDOWS&&!$MAPBASE]
+		$IntermediateDirectory	"Debug_dx9" [$WINDOWS&&!$MAPBASE]
 	}
 }
 
@@ -25,8 +27,8 @@ $Configuration	"Release"
 {
 	$General
 	{
-		$OutputDirectory		"Release_dx9" [$WINDOWS]
-		$IntermediateDirectory	"Release_dx9" [$WINDOWS]
+		$OutputDirectory		"Release_dx9" [$WINDOWS&&!$MAPBASE]
+		$IntermediateDirectory	"Release_dx9" [$WINDOWS&&!$MAPBASE]
 	}
 }
 
@@ -162,7 +164,7 @@ $Project
 		$File	"writestencil_dx9.cpp"
 
 		$File	"splinerope.cpp"	[$MAPBASE]
-		$File	"mapbase_sdk_stubs.cpp"	[$MAPBASE]
+		$File	"mapbase_sdk_stubs.cpp"	[$MAPBASE && ($WIN64||$LINUX64)] // SDK_MP
 
 		$Folder	"Remove me when VAC2 is out" [$WINDOWS && !$SOURCESDK]
 		{
