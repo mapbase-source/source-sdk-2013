@@ -453,7 +453,7 @@ BEGIN_DATADESC( CBasePlayer )
 
 #ifdef MAPBASE
 	DEFINE_FIELD( m_bInTriggerFall, FIELD_BOOLEAN ),
-
+	DEFINE_FIELD( m_bDrawPlayerLegs, FIELD_BOOLEAN ),
 	DEFINE_FIELD( m_bDrawPlayerModelExternally, FIELD_BOOLEAN ),
 #endif
 
