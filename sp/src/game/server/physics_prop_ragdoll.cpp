@@ -23,6 +23,8 @@
 #ifdef MAPBASE
 #include "decals.h"
 #include "death_pose.h"
+#include "physics_shared.h"
+#include "vphysics/object_hash.h"
 #endif
 
 // memdbgon must be the last include file in a .cpp file!!!
@@ -304,12 +306,29 @@ void CRagdollProp::CalcRagdollSize( void )
 }
 
 void CRagdollProp::UpdateOnRemove( void )
-{
+{	
+#ifdef MAPBASE
+	//entity pointers are keys in the collision exclusion hash
+    if (g_EntityCollisionHash)
+    {
+        g_EntityCollisionHash->RemoveAllPairsForObject(this);
+    }
+#endif
+	
 	for ( int i = 0; i < m_ragdoll.listCount; i++ )
 	{
-		if ( m_ragdoll.list[i].pObject )
-		{
-			g_pPhysSaveRestoreManager->ForgetModel( m_ragdoll.list[i].pObject );
+		IPhysicsObject *pObject = m_ragdoll.list[i].pObject;
+		if (pObject)
+		{		
+#ifdef MAPBASE
+			//physics object pointers are separate keys
+			if (g_EntityCollisionHash)
+			{
+				g_EntityCollisionHash->RemoveAllPairsForObject( pObject );
+			}
+#endif
+
+			g_pPhysSaveRestoreManager->ForgetModel(pObject);
 		}
 	}
 
