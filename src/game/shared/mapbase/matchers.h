@@ -1,6 +1,6 @@
 //========= Mapbase - https://github.com/mapbase-source/source-sdk-2013 =================
 //
-// Purpose: General matching functions for things like wildcards and !=.
+// Purpose: General matching functions for wildcards and leading operators (e.g. '!=1').
 //
 // $NoKeywords: $
 //=============================================================================
@@ -13,15 +13,11 @@
 
 #include "tier1/mapbase_matchers_base.h"
 
-// Compares with != and the like. Basically hijacks the response system matching.
-// This also loops back around to Matcher_NamesMatch.
-// pszQuery = The value that should have the operator(s) at the beginning.
-// szValue = The value tested against the criterion.
+// Complex string comparison.
+// Scans pszQuery for leading operators (!=, <, etc.) and then evaluates szValue against them,
+// if applicable. Then, uses Matcher_NamesMatch to compare using wildcards if necessary.
 bool Matcher_Match( const char *pszQuery, const char *szValue );
 bool Matcher_Match( const char *pszQuery, int iValue );
 bool Matcher_Match( const char *pszQuery, float flValue );
-
-// Deprecated; do not use
-//static inline bool Matcher_Compare( const char *pszQuery, const char *szValue ) { return Matcher_Match( pszQuery, szValue ); }
 
 #endif
