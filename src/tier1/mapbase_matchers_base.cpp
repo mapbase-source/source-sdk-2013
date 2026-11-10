@@ -1,6 +1,6 @@
 //========= Mapbase - https://github.com/mapbase-source/source-sdk-2013 =================
 //
-// Purpose: General matching functions for things like wildcards and !=.
+// Purpose: Utility functions for comparing strings with wildcards, regex, etc.
 //
 // $NoKeywords: $
 //=============================================================================
@@ -15,9 +15,8 @@
 #undef MINMAX_H
 //#include "minmax.h"
 
-ConVar mapbase_wildcards_enabled("mapbase_wildcards_enabled", "1", FCVAR_NONE, "Toggles Mapbase's '?' wildcard and true '*' features. Useful for maps that have '?' in their targetnames.");
-ConVar mapbase_wildcards_lazy_hack("mapbase_wildcards_lazy_hack", "1", FCVAR_NONE, "Toggles a hack which prevents Mapbase's lazy '?' wildcards from picking up \"???\", the default instance parameter.");
-ConVar mapbase_regex_enabled("mapbase_regex_enabled", "1", FCVAR_NONE, "Toggles Mapbase's regex matching handover.");
+static bool g_bWildcardsEnabled = true;
+static bool g_bRegexEnabled = true;
 
 //=============================================================================
 // These are the "matchers" that compare with wildcards ("any*" for text starting with "any")
@@ -48,7 +47,7 @@ bool Matcher_RunCharCompare(const char *pszQuery, const char *szValue)
 						if ( *(pszQuery+1) == 0 )
 							return true;
 
-						if (mapbase_wildcards_enabled.GetBool())
+						if (g_bWildcardsEnabled)
 						{
 							// There's text after this * which we need to test.
 							// This recursion allows for multiple wildcards
@@ -64,7 +63,7 @@ bool Matcher_RunCharCompare(const char *pszQuery, const char *szValue)
 					} break;
 				case '?':
 					// Just skip if we're capable of lazy wildcards
-					if (mapbase_wildcards_enabled.GetBool())
+					if (g_bWildcardsEnabled)
 						break;
 				default:
 					return false;
@@ -113,7 +112,7 @@ bool Matcher_NamesMatch(const char *pszQuery, const char *szValue)
 		return true;
 
 	// Check for regex
-	if ( *pszQuery == '@' && mapbase_regex_enabled.GetBool() )
+	if ( *pszQuery == '@' && g_bRegexEnabled )
 	{
 		// Make sure it has a forward slash
 		// (prevents confusion with instance fixup escape)
@@ -122,7 +121,7 @@ bool Matcher_NamesMatch(const char *pszQuery, const char *szValue)
 			return Matcher_Regex( pszQuery+2, szValue );
 		}
 	}
-	else if (pszQuery[0] == '?' && pszQuery[1] == '?' && pszQuery[2] == '?' && mapbase_wildcards_lazy_hack.GetBool())
+	else if (pszQuery[0] == '?' && pszQuery[1] == '?' && pszQuery[2] == '?')
 	{
 		// HACKHACK: There's a nasty issue where instances with blank parameters use "???", but Mapbase's lazy wildcard code
 		// recognizes this as essentially meaning "any name with 3 characters". This is a serious problem when the instance
@@ -163,7 +162,6 @@ bool Matcher_NamesMatch_Classic(const char *pszQuery, const char *szValue)
 	if ( *pszQuery == 0 && *szValue == 0 )
 		return true;
 
-	// @TODO (toml 03-18-03): Perhaps support real wildcards. Right now, only thing supported is trailing *
 	if ( *pszQuery == '*' )
 		return true;
 
@@ -202,7 +200,6 @@ bool Matcher_NamesMatch_MutualWildcard(const char *pszQuery, const char *szValue
 	if ( *pszQuery == 0 && *szValue == 0 )
 		return true;
 
-	// @TODO (toml 03-18-03): Perhaps support real wildcards. Right now, only thing supported is trailing *
 	if ( *pszQuery == '*' || *szValue == '*' )
 		return true;
 
@@ -226,18 +223,8 @@ bool Matcher_ContainsWildcard(const char *pszQuery)
 	return false;
 }
 
-// Matcher_Compare is a deprecated alias originally used when Matcher_Match didn't support wildcards.
-/*
-bool Matcher_Compare(const char *pszQuery, const char *szValue)
+void SetMatchersEnabled( bool bWildcards, bool bRegex )
 {
-	return Matcher_Match(pszQuery, szValue);
-#if 0
-	// I have to do this so wildcards could test *before* the response system comparison.
-	// I know it removes the operators twice, but I won't worry about it.
-	bool match = Matcher_NamesMatch(Matcher_RemoveOperators(pszQuery), szValue);
-	if (match)
-		return Matcher_Match(pszQuery, szValue);
-	return false;
-#endif
+	g_bWildcardsEnabled = bWildcards;
+	g_bRegexEnabled = bRegex;
 }
-*/

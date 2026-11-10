@@ -1,6 +1,6 @@
 //========= Mapbase - https://github.com/mapbase-source/source-sdk-2013 =================
 //
-// Purpose: General matching functions for things like wildcards and !=.
+// Purpose: Utility functions for comparing strings with wildcards, regex, etc.
 //
 // $NoKeywords: $
 //=============================================================================
@@ -26,14 +26,14 @@ bool Matcher_Regex( const char *pszQuery, const char *szValue );
 // Use Matcher_Match if you want <, !=, etc. as well.
 bool Matcher_NamesMatch( const char *pszQuery, const char *szValue );
 
-// Identical to baseentity.cpp's original NamesMatch().
+// Identical to baseentity.cpp's original NamesMatch(). Only trailing wildcards are supported.
 // pszQuery = The value that should have the wildcard.
 // szValue = The value tested against the query.
 bool Matcher_NamesMatch_Classic( const char *pszQuery, const char *szValue );
 
 // Identical to Matcher_NamesMatch_Classic(), but either value could use a wildcard.
-// pszQuery = The value that serves as the query. This value can use wildcards.
-// szValue = The value tested against the query. This value can use wildcards as well.
+// pszQuery = The value that serves as the query. This value can use a trailing wildcard.
+// szValue = The value tested against the query. This value can use trailing wildcards as well.
 bool Matcher_NamesMatch_MutualWildcard( const char *pszQuery, const char *szValue );
 
 // Returns true if the specified string contains a wildcard character.
@@ -57,5 +57,7 @@ static bool AppearsToBeANumber( char const *token )
 
 	return true;
 }
+
+void SetMatchersEnabled( bool bWildcards = true, bool bRegex = true );
 
 #endif
