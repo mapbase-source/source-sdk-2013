@@ -1321,7 +1321,7 @@ bool CLocatorPanel::ValidateTargetTextures( CLocatorTarget *pTarget )
 		}
 		else
 		{
-			pTarget->m_pIcon_onscreen = HudIcons().GetIcon( szIconTextureName );
+			pTarget->m_pIcon_onscreen = gHUD.GetIcon( szIconTextureName );
 			if ( pTarget->m_pIcon_onscreen )
 			{
 				pTarget->m_widthScale_onscreen = static_cast< float >( pTarget->m_pIcon_onscreen->Width() ) / pTarget->m_pIcon_onscreen->Height();
@@ -1362,7 +1362,7 @@ bool CLocatorPanel::ValidateTargetTextures( CLocatorTarget *pTarget )
 		}
 		else
 		{
-			pTarget->m_pIcon_offscreen = HudIcons().GetIcon( szIconTextureName );
+			pTarget->m_pIcon_offscreen = gHUD.GetIcon( szIconTextureName );
 		}
 
 		return true;
