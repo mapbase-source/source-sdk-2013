@@ -315,8 +315,6 @@ bool ReadWeaponDataFromFileForSlot( IFileSystem* pFilesystem, const char *szWeap
 }
 
 #ifdef MAPBASE
-extern const char *g_MapName;
-
 bool ReadCustomWeaponDataFromFileForSlot( IFileSystem* filesystem, const char *szWeaponName, WEAPON_FILE_INFO_HANDLE *phandle, const unsigned char *pICEKey )
 {
 	if ( !phandle )
@@ -334,8 +332,16 @@ bool ReadCustomWeaponDataFromFileForSlot( IFileSystem* filesystem, const char *s
 	//if ( pFileInfo->bParsedScript && pFileInfo->bCustom )
 	//	return true;
 
+#ifdef CLIENT_DLL
+	// It'd be nice if there was a better way
+	char szMap[MAX_MAP_NAME];
+	Q_FileBase( engine->GetLevelName(), szMap, sizeof( szMap ) );
+#else
+	const char *szMap = STRING( gpGlobals->mapname );
+#endif
+
 	char sz[128];
-	Q_snprintf( sz, sizeof( sz ), "maps/%s_%s", g_MapName, szWeaponName );
+	Q_snprintf( sz, sizeof( sz ), "maps/%s_%s", szMap, szWeaponName );
 
 	KeyValues *pKV = ReadEncryptedKVFile( filesystem, sz, pICEKey,
 #if defined( DOD_DLL )
