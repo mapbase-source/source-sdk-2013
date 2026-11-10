@@ -36,8 +36,8 @@
 #include "sqdbg.h"
 
 #include "tier1/utlbuffer.h"
-#include "tier1/mapbase_con_groups.h"
 #include "tier1/convar.h"
+#include "mapbase_con_groups.h"
 
 #include "vscript_squirrel.nut"
 
