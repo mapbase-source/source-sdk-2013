@@ -232,22 +232,5 @@ public:
 };
 EXPOSE_SINGLE_INTERFACE( CServerGameTags, IServerGameTags, INTERFACEVERSION_SERVERGAMETAGS );
 
-#ifdef MAPBASE
-// 
-// Dynamic mod-based mod title comments
-// 
-typedef struct
-{
-	char pBSPName[64];
-	char pTitleName[64];
-} MODTITLECOMMENT;
-
-typedef struct
-{
-	int iChapter;
-	char pChapterName[64];
-} MODCHAPTER;
-#endif
-
 #endif // GAMEINTERFACE_H
 

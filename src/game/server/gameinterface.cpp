@@ -92,6 +92,7 @@
 #include "player_voice_listener.h"
 #ifdef MAPBASE
 #include "world.h"
+#include "mapbase/mapbase_shared.h"
 #endif
 
 #include "vscript/ivscript.h"
@@ -1771,11 +1772,6 @@ static TITLECOMMENT gTitleComments[] =
 	{ "ep2_outland_12", "#ep2_Chapter6_Title" },
 #endif
 };
-
-#ifdef MAPBASE
-extern CUtlVector<MODTITLECOMMENT> *Mapbase_GetChapterMaps();
-extern CUtlVector<MODCHAPTER> *Mapbase_GetChapterList();
-#endif
 
 #ifdef _XBOX
 void CServerGameDLL::GetTitleName( const char *pMapName, char* pTitleBuff, int titleBuffSize )
