@@ -38,7 +38,7 @@ struct studiohdr_t;
 #include <baseentity_shared.h>
 
 #ifdef MAPBASE
-#include "tier1/mapbase_con_groups.h"
+#include "mapbase/game_con_groups.h"
 #endif
 
 

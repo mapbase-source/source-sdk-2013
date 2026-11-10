@@ -7,8 +7,6 @@
 
 #include "rrbase.h"
 
-#include "tier1/mapbase_con_groups.h"
-
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 

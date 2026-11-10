@@ -56,7 +56,7 @@
 
 ConVar tf_mm_debug_level( "tf_mm_debug_level", "4" );
 
-#define GCMatchmakingDebugSpew( lvl, ...) do { if ( lvl <= GCMATCHMAKING_DEBUG_LEVEL || lvl <= tf_mm_debug_level.GetInt() ) { Msg( __VA_ARGS__); } } while(false)
+#define GCMatchmakingDebugSpew( lvl, ...) do { if ( lvl <= GCMATCHMAKING_DEBUG_LEVEL || lvl <= tf_mm_debug_level.GetInt() ) { CGMsg( 0, ConGroup_GC, __VA_ARGS__); } } while(false)
 
 
 static ConVar mod_inventory_request_timeout( "mod_inventory_request_timeout", "300", FCVAR_NONE, "Seconds to wait for TF inventory before assuming failure" );

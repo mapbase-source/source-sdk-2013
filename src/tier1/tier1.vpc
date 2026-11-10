@@ -82,7 +82,6 @@ $Project "tier1"
 		$File	"snappy.cpp"
 		$File	"snappy-sinksource.cpp"
 		$File	"snappy-stubs-internal.cpp"
-		$File	"mapbase_con_groups.cpp" [$MAPBASE]
 		$File	"mapbase_matchers_base.cpp" [$MAPBASE]
 	}
 

@@ -47,6 +47,19 @@ $Project
 			$File	"$SRCDIR\game\shared\mapbase\matchers.h"
 			$File	"$SRCDIR\game\shared\mapbase\game_timer.cpp"
 			$File	"$SRCDIR\game\shared\mapbase\game_timer.h"
+			$File	"$SRCDIR\game\shared\mapbase\game_con_groups.cpp"
+			$File	"$SRCDIR\game\shared\mapbase\game_con_groups.h"
+			$File	"$SRCDIR\common\mapbase_con_groups.cpp"
+			{
+				$Configuration
+				{
+					$Compiler
+					{
+						$Create/UsePrecompiledHeader	"Not Using Precompiled Headers"
+					}
+				}
+			}
+			$File	"$SRCDIR\common\mapbase_con_groups.h"
 			$File	"$SRCDIR\game\shared\mapbase\vscript_funcs_shared.cpp" [$MAPBASE_VSCRIPT]
 			$File	"$SRCDIR\game\shared\mapbase\vscript_funcs_shared.h" [$MAPBASE_VSCRIPT]
 			$File	"$SRCDIR\game\shared\mapbase\vscript_singletons.cpp" [$MAPBASE_VSCRIPT]
