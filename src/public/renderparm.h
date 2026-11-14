@@ -53,8 +53,9 @@ enum RenderParamInt_t
 
 	INT_RENDERPARM_BACK_BUFFER_INDEX,
 
+	// NOTE: This can only hold half as many pointers in 64-bit. Extended in RenderParamFloat_t
 	INT_FLASHLIGHT_DEPTHTEXTURE_FALLBACK_FIRST,
-	INT_FLASHLIGHT_DEPTHTEXTURE_FALLBACK_LAST = INT_FLASHLIGHT_DEPTHTEXTURE_FALLBACK_FIRST + 4,
+	INT_FLASHLIGHT_DEPTHTEXTURE_FALLBACK_LAST = INT_FLASHLIGHT_DEPTHTEXTURE_FALLBACK_FIRST + 3,
 
 #ifdef SDK_SP
 	// In lieu of dedicated interface functions
@@ -89,6 +90,18 @@ enum RenderParamTexture_t
 enum RenderParamFloat_t
 {
 	FLOAT_RENDERPARM_MINIMUMLIGHTING = 0,
+
+#ifdef PLATFORM_64BITS
+	// Extension of the depth texture fallbacks in RenderParamInt_t, since pointer size is doubled in 64-bit.
+	// To avoid hogging up all of the remaining int params, we use the comparatively vacant float param space.
+	// (this is not ideal at all, of course...)
+	//
+	// If you need float render params, and this is causing problems for you, then please feel free to change this.
+	// We mainly only need to send depth textures across to prevent decals from flickering when multiple flashlights
+	// are shining at once.
+	FLOAT_FLASHLIGHT_DEPTHTEXTURE_FALLBACK_FIRST,
+	FLOAT_FLASHLIGHT_DEPTHTEXTURE_FALLBACK_LAST = FLOAT_FLASHLIGHT_DEPTHTEXTURE_FALLBACK_FIRST + 3,
+#endif
 };
 
 #endif // RENDERPARM_H

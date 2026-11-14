@@ -1898,7 +1898,7 @@ void CBaseVSShader::DrawFlashlight_dx90( IMaterialVar** params, IShaderDynamicAP
 			vshIndex.SetNORMALMAP( vars.m_bBump );
 			vshIndex.SetSEAMLESS( bSeamless );
 			vshIndex.SetDETAIL( bDetail );
-			pShaderShadow->SetVertexShader( "lightmappedgeneric_flashlight_vs20", vshIndex.GetIndex() );
+			pShaderShadow->SetVertexShader( SHADER_PREFIX "lightmappedgeneric_flashlight_vs20", vshIndex.GetIndex() );
 
 			unsigned int flags = VERTEX_POSITION | VERTEX_NORMAL;
 			if( vars.m_bBump )
@@ -1917,7 +1917,7 @@ void CBaseVSShader::DrawFlashlight_dx90( IMaterialVar** params, IShaderDynamicAP
 		{
 			vertexlitgeneric_flashlight_vs11_Static_Index vshIndex;
 			vshIndex.SetTEETH( vars.m_bTeeth );
-			pShaderShadow->SetVertexShader( "vertexlitgeneric_flashlight_vs11", vshIndex.GetIndex() );
+			pShaderShadow->SetVertexShader( SHADER_PREFIX "vertexlitgeneric_flashlight_vs11", vshIndex.GetIndex() );
 
 			unsigned int flags = VERTEX_POSITION | VERTEX_NORMAL;
 			int numTexCoords = 1;
@@ -1941,7 +1941,7 @@ void CBaseVSShader::DrawFlashlight_dx90( IMaterialVar** params, IShaderDynamicAP
 			pshIndex.SetDETAILTEXTURE( bDetail );
 			pshIndex.SetDETAIL_BLEND_MODE( nDetailBlendMode );
 			pshIndex.SetFLASHLIGHTDEPTHFILTERMODE( nShadowFilterMode );
-			pShaderShadow->SetPixelShader( "flashlight_ps20b", pshIndex.GetIndex() );
+			pShaderShadow->SetPixelShader( SHADER_PREFIX "flashlight_ps20b", pshIndex.GetIndex() );
 		}
 		else
 		{
@@ -1952,7 +1952,7 @@ void CBaseVSShader::DrawFlashlight_dx90( IMaterialVar** params, IShaderDynamicAP
 			pshIndex.SetSEAMLESS( bSeamless );
 			pshIndex.SetDETAILTEXTURE( bDetail );
 			pshIndex.SetDETAIL_BLEND_MODE( nDetailBlendMode );
-			pShaderShadow->SetPixelShader( "flashlight_ps20", pshIndex.GetIndex() );
+			pShaderShadow->SetPixelShader( SHADER_PREFIX "flashlight_ps20", pshIndex.GetIndex() );
 		}
 		FogToBlack();
 	}
@@ -1961,6 +1961,14 @@ void CBaseVSShader::DrawFlashlight_dx90( IMaterialVar** params, IShaderDynamicAP
 		VMatrix worldToTexture;
 		ITexture *pFlashlightDepthTexture;
 		FlashlightState_t flashlightState = pShaderAPI->GetFlashlightStateEx( worldToTexture, &pFlashlightDepthTexture );
+
+		if ( pFlashlightDepthTexture == NULL )
+		{
+			pFlashlightDepthTexture = GetFallbackDepthTexture( pShaderAPI, flashlightState );
+		}
+
+		float flFlashlightPos[4] = { XYZ( flashlightState.m_vecLightOrigin ) };
+		pShaderAPI->SetPixelShaderConstant( PSREG_FRESNEL_SPEC_PARAMS, flFlashlightPos );
 
 		SetFlashLightColorFromState( flashlightState, pShaderAPI );
 
@@ -2103,6 +2111,55 @@ void CBaseVSShader::DrawFlashlight_dx90( IMaterialVar** params, IShaderDynamicAP
 }
 
 #endif
+
+ITexture *CBaseVSShader::GetFallbackDepthTexture( IShaderDynamicAPI *pShaderAPI, FlashlightState_t &flashlightState )
+{
+	int iFlashlightShadowIndex = ( flashlightState.m_nShadowQuality >> 16 ) - 1;
+
+	if ( iFlashlightShadowIndex >= 0 )
+	{
+		const int iMaxIntParam = (INT_FLASHLIGHT_DEPTHTEXTURE_FALLBACK_LAST - INT_FLASHLIGHT_DEPTHTEXTURE_FALLBACK_FIRST);
+
+#ifdef PLATFORM_64BITS
+		// Pointer size is doubled
+		iFlashlightShadowIndex *= 2;
+#endif
+
+#ifdef PLATFORM_64BITS
+		if ( iFlashlightShadowIndex <= iMaxIntParam )
+		{
+			// Horrid, but necessary.
+			int iPtr[ sizeof( intp ) / sizeof( int ) ];
+			iPtr[0] = pShaderAPI->GetIntRenderingParameter( INT_FLASHLIGHT_DEPTHTEXTURE_FALLBACK_FIRST + iFlashlightShadowIndex );
+			iPtr[1] = pShaderAPI->GetIntRenderingParameter( INT_FLASHLIGHT_DEPTHTEXTURE_FALLBACK_FIRST + iFlashlightShadowIndex + 1 );
+
+			intp ptr;
+			memcpy( &ptr, &iPtr, sizeof( intp ) );
+			return (ITexture *)ptr;
+		}
+		else if ( iFlashlightShadowIndex <= ( iMaxIntParam + (FLOAT_FLASHLIGHT_DEPTHTEXTURE_FALLBACK_LAST - FLOAT_FLASHLIGHT_DEPTHTEXTURE_FALLBACK_FIRST) ) )
+		{
+			iFlashlightShadowIndex -= iMaxIntParam;
+
+			// Horrid, but necessary.
+			float flPtr[sizeof( intp ) / sizeof( float )];
+			flPtr[0] = pShaderAPI->GetFloatRenderingParameter( FLOAT_FLASHLIGHT_DEPTHTEXTURE_FALLBACK_FIRST + iFlashlightShadowIndex );
+			flPtr[1] = pShaderAPI->GetFloatRenderingParameter( FLOAT_FLASHLIGHT_DEPTHTEXTURE_FALLBACK_FIRST + iFlashlightShadowIndex + 1 );
+
+			intp ptr;
+			memcpy( &ptr, &flPtr, sizeof( intp ) );
+			return (ITexture *)ptr;
+		}
+#else
+		if ( iFlashlightShadowIndex <= iMaxIntParam )
+		{
+			return (ITexture*)pShaderAPI->GetIntRenderingParameter( INT_FLASHLIGHT_DEPTHTEXTURE_FALLBACK_FIRST + iFlashlightShadowIndex );
+		}
+#endif
+	}
+
+	return NULL;
+}
 
 void CBaseVSShader::InitParamsUnlitGeneric_DX8(
 		int baseTextureVar,

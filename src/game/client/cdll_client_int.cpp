@@ -155,6 +155,10 @@
 #endif
 
 
+#ifdef MAPBASE
+#include "mapbase/mapbase_shared.h"
+#endif
+
 #ifdef MAPBASE_VSCRIPT
 #include "vscript_client.h"
 #endif
@@ -1095,6 +1099,11 @@ int CHLClient::Init( CreateInterfaceFn appSystemFactory, CreateInterfaceFn physi
 #endif
 
 	modemanager->Init( );
+
+#ifdef MAPBASE
+	// Need to initialize these ahead of the other game systems
+	g_MapbaseSystem.InitializeRTs();
+#endif
 
 	g_pClientMode->InitViewport();
 

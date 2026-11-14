@@ -327,6 +327,8 @@ public:
 	};
 	void DrawFlashlight_dx90( IMaterialVar** params, 
 		IShaderDynamicAPI *pShaderAPI, IShaderShadow* pShaderShadow, DrawFlashlight_dx90_Vars_t &vars );
+
+	ITexture *GetFallbackDepthTexture( IShaderDynamicAPI *pShaderAPI, FlashlightState_t &flashlightState );
 #endif // GAME_SHADER_DLL
 
 	BlendType_t EvaluateBlendRequirements( int textureVar, bool isBaseTexture, int detailTextureVar = -1 );
