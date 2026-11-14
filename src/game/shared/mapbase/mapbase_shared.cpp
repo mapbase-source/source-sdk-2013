@@ -167,8 +167,6 @@ bool CMapbaseSystem::Init()
 	gameinfo->deleteThis();
 
 #ifdef CLIENT_DLL
-	InitializeRTs();
-
 	// Shared Mapbase scripts to avoid overwriting mod files
 	g_pVGuiLocalize->AddFile( "resource/mapbase_%language%.txt" );
 #ifdef HL2_CLIENT_DLL
@@ -314,6 +312,36 @@ void CMapbaseSystem::InitializeRTs()
 {
 	if (!m_bInitializedRTs)
 	{
+		SetDefLessFunc( m_RenderTargetData );
+
+		KeyValues *pKV = new KeyValues("RenderTargets");
+		if (pKV->LoadFromFile( filesystem, "scripts/render_targets.txt" ))
+		{
+			HKeySymbol hShadowDepthTextures = KeyValuesSystem()->GetSymbolForString( "ShadowDepthTextures", false );
+			for (KeyValues *pKey = pKV->GetFirstSubKey(); pKey; pKey = pKey->GetNextKey())
+			{
+				if ( pKey->GetNameSymbol() == hShadowDepthTextures )
+				{
+					// Depth textures are split into subkeys
+					for (KeyValues *pSub = pKey->GetFirstSubKey(); pSub; pSub = pSub->GetNextKey())
+					{
+						RenderTargetData_t data;
+						data.nRes = pSub->GetInt( "res" );
+						data.nNum = pSub->GetInt( "num" );
+						m_RenderTargetData.Insert( pSub->GetNameSymbol(), data );
+					}
+				}
+				else
+				{
+					RenderTargetData_t data;
+					data.nRes = pKey->GetInt( "res" );
+					data.nNum = pKey->GetInt( "num" );
+					m_RenderTargetData.Insert( pKey->GetNameSymbol(), data );
+				}
+			}
+		}
+		pKV->deleteThis();
+
 		int iNumCameras = CommandLine()->ParmValue( "-numcameratextures", 3 );
 
 		materials->BeginRenderTargetAllocation();

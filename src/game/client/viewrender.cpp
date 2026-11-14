@@ -1535,9 +1535,7 @@ void CViewRender::ViewDrawScene( bool bDrew3dSkybox, SkyboxVisibility_t nSkyboxV
 	if ( r_flashlightdepthtexture.GetBool() && (viewID == VIEW_MAIN) )
 	{
 		g_pClientShadowMgr->ComputeShadowDepthTextures( viewRender );
-#ifdef ASW_PROJECTED_TEXTURES
 		CMatRenderContextPtr pRenderContext( materials );
-#endif
 	}
 
 	m_BaseDrawFlags = baseDrawFlags;
@@ -3351,9 +3349,7 @@ void CViewRender::ViewDrawScene_Intro( const CViewSetup &viewRender, int nClearF
 	if ( r_flashlightdepthtexture.GetBool() )
 	{
 		g_pClientShadowMgr->ComputeShadowDepthTextures( viewRender );
-#ifdef ASW_PROJECTED_TEXTURES
 		CMatRenderContextPtr pRenderContext( materials );
-#endif
 	}
 
 	// -----------------------------------------------------------------------

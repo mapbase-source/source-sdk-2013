@@ -137,6 +137,21 @@ public:
 		const char *string;
 	};
 
+#ifdef CLIENT_DLL
+	struct RenderTargetData_t
+	{
+		short nRes, nNum;
+	};
+
+	inline const RenderTargetData_t *LookupRenderTargetData( HKeySymbol hSymbol )
+	{
+		unsigned short i = m_RenderTargetData.Find( hSymbol );
+		if ( i == m_RenderTargetData.InvalidIndex() )
+			return NULL;
+		return &m_RenderTargetData[i];
+	}
+#endif
+
 private:
 
 	HKeySymbol	m_iManifestFileSymbols[MANIFEST_NUM_TYPES] = { -1 };
@@ -145,9 +160,13 @@ private:
 	bool m_bInitializedRTs = false;
 	CUtlVector<CTextureReference> m_CameraTextures;
 
+	CUtlMap<HKeySymbol, RenderTargetData_t> m_RenderTargetData;
+
 	CUtlVector<CUtlSymbol> m_CloseCaptionFileNames;
 #endif
 };
+
+extern CMapbaseSystem g_MapbaseSystem;
 
 // 
 // Dynamic mod-based mod title comments

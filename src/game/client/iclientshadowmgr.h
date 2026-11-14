@@ -36,6 +36,32 @@ enum ShadowReceiver_t
 };
 
 
+#ifdef MAPBASE
+//-----------------------------------------------------------------------------
+// Extra data for FlashlightState_t
+//-----------------------------------------------------------------------------
+struct FlashlightStateExtras_t
+{
+	// From Alien Swarm SDK
+	// ------------------------------
+	float m_fOrthoLeft;
+	float m_fOrthoRight;
+	float m_fOrthoTop;
+	float m_fOrthoBottom;
+
+	float m_FarZAtten;
+	//float m_fBrightnessScale;
+
+	bool  m_bOrtho = false;
+	bool m_bGlobalLight = false;
+	// ------------------------------
+
+	bool m_bAlwaysDraw = false;
+	float m_flBaseShadowFilterSize = 0.0f;
+};
+#endif
+
+
 //-----------------------------------------------------------------------------
 // The class responsible for dealing with shadows on the client side
 //-----------------------------------------------------------------------------
@@ -97,9 +123,7 @@ public:
 	// Set flashlight light world flag
 	virtual void SetFlashlightLightWorld( ClientShadowHandle_t shadowHandle, bool bLightWorld ) = 0;
 
-#ifdef ASW_PROJECTED_TEXTURES
 	virtual void GetFrustumExtents( ClientShadowHandle_t handle, Vector &vecMin, Vector &vecMax ) = 0;
-#endif
 
 #ifdef DYNAMIC_RTT_SHADOWS
 	// Toggle shadow casting from world light sources
@@ -109,6 +133,10 @@ public:
 	virtual void SetShadowsDisabled( bool bDisabled ) = 0;
 
 	virtual void ComputeShadowDepthTextures( const CViewSetup &pView ) = 0;
+
+#ifdef MAPBASE
+	virtual void SetFlashlightExtras( ClientShadowHandle_t shadowHandle, const FlashlightStateExtras_t &stateExtras ) = 0;
+#endif
 
 };
 
