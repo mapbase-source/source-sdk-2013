@@ -63,9 +63,6 @@
 #include "weapon_striderbuster.h"
 #include "monstermaker.h"
 #include "weapon_rpg.h"
-#ifdef MAPBASE
-#include "mapbase/GlobalStrings.h"
-#endif
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -204,19 +201,11 @@ int g_interactionHunterFoundEnemy = 0;
 //-----------------------------------------------------------------------------
 // Local stuff.
 //-----------------------------------------------------------------------------
-#ifdef MAPBASE
-#define s_iszStriderClassname gm_isz_class_Strider
-#define s_iszPhysPropClassname gm_isz_class_PropPhysics
-static string_t s_iszStriderBusterClassname;
-static string_t s_iszMagnadeClassname;
-static string_t s_iszHuntersToRunOver;
-#else
 static string_t s_iszStriderClassname;
 static string_t s_iszStriderBusterClassname;
 static string_t s_iszMagnadeClassname;
 static string_t s_iszPhysPropClassname;
 static string_t s_iszHuntersToRunOver;
-#endif
 
 
 //-----------------------------------------------------------------------------
@@ -4421,11 +4410,7 @@ void CNPC_Hunter::HandleAnimEvent( animevent_t *pEvent )
 //-----------------------------------------------------------------------------
 void CNPC_Hunter::AddEntityRelationship( CBaseEntity *pEntity, Disposition_t nDisposition, int nPriority )
 {
-#ifdef MAPBASE
-	if ( nDisposition == D_HT && pEntity->ClassMatches(gm_isz_class_Bullseye) )
-#else
-	if ( nDisposition ==  D_HT && pEntity->ClassMatches("npc_bullseye") )
-#endif
+	if ( nDisposition ==  D_HT && pEntity->ClassMatchesDirect("npc_bullseye") )
 		UpdateEnemyMemory( pEntity, pEntity->GetAbsOrigin() );
 	BaseClass::AddEntityRelationship( pEntity, nDisposition, nPriority );
 }
@@ -5060,11 +5045,7 @@ int CNPC_Hunter::RangeAttack2Conditions( float flDot, float flDist )
 	{
 		return COND_TOO_FAR_TO_ATTACK;
 	}
-#ifdef MAPBASE
-	else if ( !bIsBuster && ( !GetEnemy() || !GetEnemy()->ClassMatches( gm_isz_class_Bullseye ) ) && flDist < hunter_flechette_min_range.GetFloat() )
-#else
-	else if ( !bIsBuster && ( !GetEnemy() || !GetEnemy()->ClassMatches( "npc_bullseye" ) ) && flDist < hunter_flechette_min_range.GetFloat() )
-#endif
+	else if ( !bIsBuster && ( !GetEnemy() || !GetEnemy()->ClassMatchesDirect( "npc_bullseye" ) ) && flDist < hunter_flechette_min_range.GetFloat() )
 	{
 		return COND_TOO_CLOSE_TO_ATTACK;
 	}

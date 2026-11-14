@@ -21,7 +21,6 @@
 #ifdef HL2_DLL
 #include "weapon_flaregun.h"
 #endif
-#include "mapbase/GlobalStrings.h"
 #endif
 
 // memdbgon must be the last include file in a .cpp file!!!
@@ -256,11 +255,7 @@ IterationRetval_t CFireSphere::EnumElement( IHandleEntity *pHandleEntity )
 	{
 		// UNDONE: Measure which of these is faster
 //		CFire *pFire = dynamic_cast<CFire *>(pEntity);
-#ifdef MAPBASE
-		if ( !EntIsClass( pEntity, gm_isz_class_EnvFire ) )
-#else
-		if ( !FClassnameIs( pEntity, "env_fire" ) )
-#endif
+		if ( !FClassnameIsDirect( pEntity, "env_fire" ) )
 			return ITERATION_CONTINUE;
 
 		CFire *pFire = static_cast<CFire *>(pEntity);
@@ -1012,11 +1007,7 @@ void CFire::Update( float simTime )
 		{
 			continue;
 		}
-#ifdef MAPBASE
-		else if ( EntIsClass( pOther, gm_isz_class_EnvFire ) )
-#else
-		else if ( FClassnameIs( pOther, "env_fire" ) )
-#endif
+		else if ( FClassnameIsDirect( pOther, "env_fire" ) )
 		{
 			if ( fireCount < ARRAYSIZE(pFires) )
 			{

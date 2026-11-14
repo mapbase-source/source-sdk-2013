@@ -83,8 +83,6 @@ $Project
 			$File	"mapbase\expandedrs_combine.h"
 			$File	"mapbase\func_clientclip.cpp"
 			$File	"mapbase\func_fake_worldportal.cpp"
-			$File	"mapbase\GlobalStrings.cpp"
-			$File	"mapbase\GlobalStrings.h"
 			$File	"mapbase\logic_externaldata.cpp"
 			$File	"mapbase\logic_skill.cpp"
 			$File	"mapbase\logic_substring.cpp"

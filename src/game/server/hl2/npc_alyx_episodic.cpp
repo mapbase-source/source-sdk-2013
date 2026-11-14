@@ -36,9 +36,6 @@
 #include "ai_interactions.h"
 #include "weapon_flaregun.h"
 #include "env_debughistory.h"
-#ifdef MAPBASE
-#include "mapbase/GlobalStrings.h"
-#endif
 
 extern Vector PointOnLineNearestPoint(const Vector& vStartPos, const Vector& vEndPos, const Vector& vPoint);
 
@@ -403,15 +400,9 @@ void CNPC_Alyx::Precache()
 	UTIL_PrecacheOther( "env_alyxemp" );
 
 	CLASSNAME_ALYXGUN = AllocPooledString( "weapon_alyxgun" );
-#ifdef MAPBASE
-	CLASSNAME_SMG1 = gm_iszSMG1Classname;
-	CLASSNAME_SHOTGUN = gm_iszShotgunClassname;
-	CLASSNAME_AR2 = gm_iszAR2Classname;
-#else
 	CLASSNAME_SMG1 = AllocPooledString( "weapon_smg1" );
 	CLASSNAME_SHOTGUN = AllocPooledString( "weapon_shotgun" );
 	CLASSNAME_AR2 = AllocPooledString( "weapon_ar2" );
-#endif
 }	
 
 //-----------------------------------------------------------------------------
