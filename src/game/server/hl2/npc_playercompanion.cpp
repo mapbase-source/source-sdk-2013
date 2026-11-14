@@ -32,7 +32,6 @@
 #include <KeyValues.h>
 #include "physics_npc_solver.h"
 #ifdef MAPBASE
-#include "mapbase/GlobalStrings.h"
 #include "world.h"
 #include "vehicle_base.h"
 #include "npc_headcrab.h"
@@ -169,20 +168,11 @@ END_DATADESC()
 
 CNPC_PlayerCompanion::eCoverType CNPC_PlayerCompanion::gm_fCoverSearchType;
 bool CNPC_PlayerCompanion::gm_bFindingCoverFromAllEnemies;
-#ifdef MAPBASE
-string_t CNPC_PlayerCompanion::gm_iszMortarClassname;
-string_t CNPC_PlayerCompanion::gm_iszGroundTurretClassname;
-#else
 string_t CNPC_PlayerCompanion::gm_iszMortarClassname;
 string_t CNPC_PlayerCompanion::gm_iszFloorTurretClassname;
 string_t CNPC_PlayerCompanion::gm_iszGroundTurretClassname;
 string_t CNPC_PlayerCompanion::gm_iszShotgunClassname;
 string_t CNPC_PlayerCompanion::gm_iszRollerMineClassname;
-#ifdef MAPBASE
-string_t CNPC_PlayerCompanion::gm_iszSMG1Classname;
-string_t CNPC_PlayerCompanion::gm_iszAR2Classname;
-#endif
-#endif
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -233,20 +223,11 @@ bool CNPC_PlayerCompanion::CreateBehaviors()
 //-----------------------------------------------------------------------------
 void CNPC_PlayerCompanion::Precache()
 {
-#ifdef MAPBASE
-	gm_iszMortarClassname = AllocPooledString( "func_tankmortar" );
-	gm_iszGroundTurretClassname = AllocPooledString( "npc_turret_ground" );
-#else
 	gm_iszMortarClassname = AllocPooledString( "func_tankmortar" );
 	gm_iszFloorTurretClassname = AllocPooledString( "npc_turret_floor" );
 	gm_iszGroundTurretClassname = AllocPooledString( "npc_turret_ground" );
 	gm_iszShotgunClassname = AllocPooledString( "weapon_shotgun" );
 	gm_iszRollerMineClassname = AllocPooledString( "npc_rollermine" );
-#ifdef MAPBASE
-	gm_iszSMG1Classname = AllocPooledString( "weapon_smg1" );
-	gm_iszAR2Classname = AllocPooledString( "weapon_ar2" );
-#endif
-#endif
 
 #ifdef MAPBASE
 	// Moved from Spawn()
@@ -397,13 +378,8 @@ Disposition_t CNPC_PlayerCompanion::IRelationType( CBaseEntity *pTarget )
 		else if ( baseRelationship == D_HT && 
 				  pTarget->IsNPC() && 
 				  ((CAI_BaseNPC *)pTarget)->GetActiveWeapon() && 
-#ifdef MAPBASE
-				  (EntIsClass( ((CAI_BaseNPC *)pTarget)->GetActiveWeapon(), gm_iszShotgunClassname ) &&
-				  ( !GetActiveWeapon() || !EntIsClass( GetActiveWeapon(), gm_iszShotgunClassname ) ) ) )
-#else
-				  ((CAI_BaseNPC *)pTarget)->GetActiveWeapon()->ClassMatches( gm_iszShotgunClassname ) &&
-				  ( !GetActiveWeapon() || !GetActiveWeapon()->ClassMatches( gm_iszShotgunClassname ) ) )
-#endif
+				  ((CAI_BaseNPC *)pTarget)->GetActiveWeapon()->ClassMatchesDirect( gm_iszShotgunClassname ) &&
+				  ( !GetActiveWeapon() || !GetActiveWeapon()->ClassMatchesDirect( gm_iszShotgunClassname ) ) )
 		{
 			if ( (pTarget->GetAbsOrigin() - GetAbsOrigin()).LengthSqr() < Square( 25 * 12 ) )
 			{
@@ -1306,21 +1282,13 @@ int CNPC_PlayerCompanion::TranslateSchedule( int scheduleType )
 	case SCHED_CHASE_ENEMY:
 		if ( IsMortar( GetEnemy() ) )
 			return SCHED_TAKE_COVER_FROM_ENEMY;
-#ifdef MAPBASE
-		if ( GetEnemy() && EntIsClass( GetEnemy(), gm_isz_class_Gunship ) )
-#else
-		if ( GetEnemy() && FClassnameIs( GetEnemy(), "npc_combinegunship" ) )
-#endif
+		if ( GetEnemy() && FClassnameIsDirect( GetEnemy(), "npc_combinegunship" ) )
 			return SCHED_ESTABLISH_LINE_OF_FIRE;
 		break;
 
 	case SCHED_ESTABLISH_LINE_OF_FIRE_FALLBACK:
 		// If we're fighting a gunship, try again
-#ifdef MAPBASE
-		if ( GetEnemy() && EntIsClass( GetEnemy(), gm_isz_class_Gunship ) )
-#else
-		if ( GetEnemy() && FClassnameIs( GetEnemy(), "npc_combinegunship" ) )
-#endif
+		if ( GetEnemy() && FClassnameIsDirect( GetEnemy(), "npc_combinegunship" ) )
 			return SCHED_ESTABLISH_LINE_OF_FIRE;
 		break;
 
@@ -2063,7 +2031,7 @@ bool CNPC_PlayerCompanion::IsReadinessCapable()
 		if (LookupActivity( "ACT_IDLE_AIM_RIFLE_STIMULATED" ) == ACT_INVALID)
 			return false;
 
-		if (EntIsClass(GetActiveWeapon(), gm_isz_class_RPG))
+		if (GetActiveWeapon()->ClassMatchesDirect("weapon_rpg"))
 			return false;
 	}
 #else
@@ -2835,11 +2803,7 @@ Vector CNPC_PlayerCompanion::GetActualShootPosition( const Vector &shootOrigin )
 //------------------------------------------------------------------------------
 WeaponProficiency_t CNPC_PlayerCompanion::CalcWeaponProficiency( CBaseCombatWeapon *pWeapon )
 {
-#ifdef MAPBASE
-	if ( EntIsClass(pWeapon, gm_iszAR2Classname) )
-#else
-	if( FClassnameIs( pWeapon, "weapon_ar2" ) )
-#endif
+	if( FClassnameIsDirect( pWeapon, "weapon_ar2" ) )
 	{
 		return WEAPON_PROFICIENCY_VERY_GOOD;
 	}
@@ -2856,16 +2820,13 @@ bool CNPC_PlayerCompanion::Weapon_CanUse( CBaseCombatWeapon *pWeapon )
 		// If this weapon is a shotgun, take measures to control how many
 		// are being used in this squad. Don't allow a companion to pick up
 		// a shotgun if a squadmate already has one.
-#ifdef MAPBASE
-		if (EntIsClass(pWeapon, gm_iszShotgunClassname))
-#else
-		if( pWeapon->ClassMatches( gm_iszShotgunClassname ) )
-#endif
+		//if( pWeapon->ClassMatchesDirect( gm_iszShotgunClassname ) )
+		if( pWeapon->ClassMatchesDirect( gm_iszShotgunClassname ) )
 		{
 			return (NumWeaponsInSquad("weapon_shotgun") < 1 );
 		}
 #ifdef MAPBASE
-		else if (EntIsClass( pWeapon, gm_isz_class_Pistol ) || EntIsClass( pWeapon, gm_isz_class_357 ) || EntIsClass( pWeapon, gm_isz_class_Crossbow ))
+		else if ( pWeapon->ClassMatchesDirect( "weapon_pistol" ) || pWeapon->ClassMatchesDirect( "weapon_357" ) || pWeapon->ClassMatchesDirect( "weapon_crossbow" ) )
 		{
 			// The AI automatically detects these weapons as usable now that there's animations for them, so ensure this behavior can be toggled in situations where that's not desirable
 			return ai_allow_new_weapons.GetBool();
@@ -3513,19 +3474,11 @@ bool CNPC_PlayerCompanion::OverrideMove( float flInterval )
 
 	if ( !overrode && GetNavigator()->GetGoalType() != GOALTYPE_NONE )
 	{
-#ifdef MAPBASE
-		#define iszEnvFire gm_isz_class_EnvFire
-#else
 		string_t iszEnvFire = AllocPooledString( "env_fire" );
-#endif
 		string_t iszBounceBomb = AllocPooledString( "combine_mine" );
 
 #ifdef HL2_EPISODIC			
-#ifdef MAPBASE
-		#define iszNPCTurretFloor gm_isz_class_FloorTurret
-#else
 		string_t iszNPCTurretFloor = AllocPooledString( "npc_turret_floor" );
-#endif
 		string_t iszEntityFlame = AllocPooledString( "entityflame" );
 #endif // HL2_EPISODIC
 

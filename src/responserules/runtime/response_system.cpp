@@ -12,7 +12,6 @@
 #include "convar.h"
 #include "fmtstr.h"
 #include "generichash.h"
-#include "tier1/mapbase_con_groups.h"
 #ifdef MAPBASE
 #include "tier1/mapbase_matchers_base.h"
 #endif

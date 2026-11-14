@@ -27,6 +27,10 @@ extern ConVar in_forceuser;
 #include "iclientmode.h"
 #endif
 
+#if defined(MAPBASE) && (defined(HL2_DLL) || defined(HL2_CLIENT_DLL))
+#include "hl2_weapon_parse.h"
+#endif
+
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
@@ -289,7 +293,7 @@ void CBaseViewModel::AddEffects( int nEffects )
 		SetControlPanelsActive( false );
 	}
 
-#ifdef MAPBASE
+#ifdef GAME_USES_HANDS
 	if (GetOwningWeapon() && GetOwningWeapon()->UsesHands())
 	{
 		// If using hands, apply effect changes to any viewmodel children as well
@@ -315,7 +319,7 @@ void CBaseViewModel::RemoveEffects( int nEffects )
 		SetControlPanelsActive( true );
 	}
 
-#ifdef MAPBASE
+#ifdef GAME_USES_HANDS
 	if (GetOwningWeapon() && GetOwningWeapon()->UsesHands())
 	{
 		// If using hands, apply effect changes to any viewmodel children as well
@@ -366,7 +370,7 @@ void CBaseViewModel::SetWeaponModel( const char *modelname, CBaseCombatWeapon *w
 	}
 #endif
 
-#ifdef MAPBASE
+#ifdef GAME_USES_HANDS
 	// If our owning weapon doesn't support hands, disable the hands viewmodel(s)
 	bool bSupportsHands = weapon != NULL ? weapon->UsesHands() : false;
 	for (CBaseEntity *pChild = FirstMoveChild(); pChild != NULL; pChild = pChild->NextMovePeer())
@@ -532,11 +536,11 @@ void CBaseViewModel::CalcViewModelLag( Vector& origin, QAngle& angles, QAngle& o
 
 		float flSpeed = 5.0f;
 
-#ifdef MAPBASE
+#if defined(MAPBASE) && (defined(HL2_DLL) || defined(HL2_CLIENT_DLL))
 		CBaseCombatWeapon *pWeapon = m_hWeapon.Get();
 		if (pWeapon)
 		{
-			const FileWeaponInfo_t *pInfo = &pWeapon->GetWpnData();
+			const CHL2WeaponInfo *pInfo = assert_cast<const CHL2WeaponInfo*>(&pWeapon->GetWpnData());
 			if (pInfo->m_flSwayScale != 1.0f)
 			{
 				vDifference *= pInfo->m_flSwayScale;

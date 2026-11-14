@@ -40,9 +40,6 @@
 #include "ai_interactions.h"
 #include "rumble_shared.h"
 #include "gamestats.h"
-#ifdef MAPBASE
-#include "mapbase/GlobalStrings.h"
-#endif
 // NVNT haptic utils
 #include "haptics/haptic_utils.h"
 
@@ -2593,11 +2590,7 @@ bool CWeaponPhysCannon::AttachObject( CBaseEntity *pObject, const Vector &vPosit
 	}
 
 #if defined(HL2_DLL)
-#ifdef MAPBASE
-	if( physcannon_right_turrets.GetBool() && EntIsClass(pObject, gm_isz_class_FloorTurret) )
-#else
-	if( physcannon_right_turrets.GetBool() && pObject->ClassMatches("npc_turret_floor") )
-#endif
+	if( physcannon_right_turrets.GetBool() && pObject->ClassMatchesDirect("npc_turret_floor") )
 	{
 		// We just picked up a turret. Is it already upright?
 		Vector vecUp;

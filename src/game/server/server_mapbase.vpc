@@ -39,15 +39,28 @@ $Project
 		$Folder	"Mapbase"
 		{
 			$File	"$SRCDIR\game\shared\mapbase\mapbase_shared.cpp"
+			$File	"$SRCDIR\game\shared\mapbase\mapbase_shared.h"
 			$File	"$SRCDIR\game\shared\mapbase\mapbase_usermessages.cpp"
 			$File	"$SRCDIR\game\shared\mapbase\mapbase_rpc.cpp"
-			$File	"$SRCDIR\game\shared\mapbase\mapbase_game_log.cpp"
 			$File	"$SRCDIR\game\shared\mapbase\MapEdit.cpp"
 			$File	"$SRCDIR\game\shared\mapbase\MapEdit.h"
 			$File	"$SRCDIR\game\shared\mapbase\matchers.cpp"
 			$File	"$SRCDIR\game\shared\mapbase\matchers.h"
 			$File	"$SRCDIR\game\shared\mapbase\game_timer.cpp"
 			$File	"$SRCDIR\game\shared\mapbase\game_timer.h"
+			$File	"$SRCDIR\game\shared\mapbase\game_con_groups.cpp"
+			$File	"$SRCDIR\game\shared\mapbase\game_con_groups.h"
+			$File	"$SRCDIR\common\mapbase_con_groups.cpp"
+			{
+				$Configuration
+				{
+					$Compiler
+					{
+						$Create/UsePrecompiledHeader	"Not Using Precompiled Headers"
+					}
+				}
+			}
+			$File	"$SRCDIR\common\mapbase_con_groups.h"
 			$File	"$SRCDIR\game\shared\mapbase\vscript_funcs_shared.cpp" [$MAPBASE_VSCRIPT]
 			$File	"$SRCDIR\game\shared\mapbase\vscript_funcs_shared.h" [$MAPBASE_VSCRIPT]
 			$File	"$SRCDIR\game\shared\mapbase\vscript_singletons.cpp" [$MAPBASE_VSCRIPT]
@@ -70,8 +83,6 @@ $Project
 			$File	"mapbase\expandedrs_combine.h"
 			$File	"mapbase\func_clientclip.cpp"
 			$File	"mapbase\func_fake_worldportal.cpp"
-			$File	"mapbase\GlobalStrings.cpp"
-			$File	"mapbase\GlobalStrings.h"
 			$File	"mapbase\logic_externaldata.cpp"
 			$File	"mapbase\logic_skill.cpp"
 			$File	"mapbase\logic_substring.cpp"

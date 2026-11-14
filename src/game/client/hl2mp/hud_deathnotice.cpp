@@ -443,7 +443,7 @@ void CHudDeathNotice::FireGameEvent( IGameEvent * event )
 		}
 	}
 
-	Msg( "%s", sDeathMsg );
+	CGMsg( 0, ConGroup_DeathNotice, "%s", sDeathMsg );
 }
 
 #ifdef MAPBASE_MP
@@ -572,7 +572,7 @@ void CHudDeathNotice::OnNonPlayerKilled( IGameEvent * event )
 		}
 	}
 
-	Msg( "%s", sDeathMsg );
+	CGMsg( 0, ConGroup_DeathNotice, "%s", sDeathMsg );
 }
 
 //-----------------------------------------------------------------------------

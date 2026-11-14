@@ -372,7 +372,7 @@ void CAI_Relationship::ChangeRelationships( int disposition, int iReverting, CBa
  	if( iReverting != NOT_REVERTING && m_iPreviousDisposition == -1 )
 	{
 		// Trying to revert without having ever set the relationships!
-		DevMsg( 2, "ai_relationship cannot revert changes before they are applied!\n");
+		CGMsg( 2, ConGroup_NPC_AI, "ai_relationship cannot revert changes before they are applied!\n");
 		return;
 	}
 
@@ -405,7 +405,7 @@ void CAI_Relationship::ChangeRelationships( int disposition, int iReverting, CBa
 	{
 		if ( subjectList.Count() == MAX_HANDLED || targetList.Count() == MAX_HANDLED )
 		{
-			DevMsg( "Too many entities handled by ai_relationship %s\n", GetDebugName() );
+			CGMsg( 1, ConGroup_NPC_AI, "Too many entities handled by ai_relationship %s\n", GetDebugName() );
 			break;
 		}
 
@@ -429,7 +429,7 @@ void CAI_Relationship::ChangeRelationships( int disposition, int iReverting, CBa
 	{
 		if ( subjectList.Count() == MAX_HANDLED || targetList.Count() == MAX_HANDLED )
 		{
-			DevMsg( "Too many entities handled by ai_relationship %s\n", GetDebugName() );
+			CGMsg( 1, ConGroup_NPC_AI, "Too many entities handled by ai_relationship %s\n", GetDebugName() );
 			break;
 		}
 
@@ -451,12 +451,12 @@ void CAI_Relationship::ChangeRelationships( int disposition, int iReverting, CBa
 	// If either list is still empty, we have a problem.
 	if( subjectList.Count() == 0 )
 	{
-		DevMsg( 2, "ai_relationship '%s' finds no subject(s) called: %s\n", GetDebugName(), STRING( m_iszSubject ) );
+		CGMsg( 2, ConGroup_NPC_AI, "ai_relationship '%s' finds no subject(s) called: %s\n", GetDebugName(), STRING( m_iszSubject ) );
 		return;
 	}
 	else if ( targetList.Count() == 0 )
 	{
-		DevMsg( 2, "ai_relationship '%s' finds no target(s) called: %s\n", GetDebugName(), STRING( m_target ) );
+		CGMsg( 2, ConGroup_NPC_AI, "ai_relationship '%s' finds no target(s) called: %s\n", GetDebugName(), STRING( m_target ) );
 		return;
 	}
 
@@ -629,7 +629,7 @@ void CAI_ClassRelationship::ChangeRelationships( int disposition, int iReverting
  	if( iReverting != NOT_REVERTING && m_iPreviousDisposition == -1 )
 	{
 		// Trying to revert without having ever set the relationships!
-		DevMsg( 2, "ai_relationship cannot revert changes before they are applied!\n");
+		CGMsg( 2, ConGroup_NPC_AI, "ai_relationship cannot revert changes before they are applied!\n");
 		return;
 	}
 

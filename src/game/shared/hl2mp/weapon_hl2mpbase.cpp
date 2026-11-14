@@ -11,7 +11,6 @@
 #include "ammodef.h"
 #include "hl2mp_gamerules.h"
 #ifdef MAPBASE
-#include "mapbase/protagonist_system.h"
 #include "eventlist.h"
 #endif
 
@@ -295,68 +294,6 @@ void CWeaponHL2MPBase::FireBullets( const FireBulletsInfo_t &info )
 
 	BaseClass::FireBullets( modinfo );
 }
-
-#ifdef MAPBASE
-//-----------------------------------------------------------------------------
-// Purpose: 
-//-----------------------------------------------------------------------------
-const char *CWeaponHL2MPBase::GetViewModel( int viewmodelindex ) const
-{
-	if (GetOwner() && GetOwner()->IsPlayer() && viewmodelindex == 0)
-	{
-		const char *pszProtagVM = g_ProtagonistSystem.GetProtagonist_ViewModel( static_cast<CBasePlayer *>(GetOwner()), this );
-		if (pszProtagVM)
-			return pszProtagVM;
-	}
-
-	return BaseClass::GetViewModel( viewmodelindex );
-}
-
-//-----------------------------------------------------------------------------
-// Purpose: 
-//-----------------------------------------------------------------------------
-float CWeaponHL2MPBase::GetViewmodelFOVOverride() const
-{
-	if (GetOwner() && GetOwner()->IsPlayer())
-	{
-		float *flVMFOV = g_ProtagonistSystem.GetProtagonist_ViewModelFOV( static_cast<CBasePlayer *>(GetOwner()), this );
-		if (flVMFOV)
-			return *flVMFOV;
-	}
-
-	return BaseClass::GetViewmodelFOVOverride();
-}
-
-//-----------------------------------------------------------------------------
-// Purpose: 
-//-----------------------------------------------------------------------------
-bool CWeaponHL2MPBase::UsesHands() const
-{
-	if (GetOwner() && GetOwner()->IsPlayer())
-	{
-		bool *bProtagUsesHands = g_ProtagonistSystem.GetProtagonist_UsesHands( static_cast<CBasePlayer *>(GetOwner()), this );
-		if (bProtagUsesHands)
-			return *bProtagUsesHands;
-	}
-
-	return BaseClass::UsesHands();
-}
-
-//-----------------------------------------------------------------------------
-// Purpose: 
-//-----------------------------------------------------------------------------
-int CWeaponHL2MPBase::GetHandRig() const
-{
-	if (GetOwner() && GetOwner()->IsPlayer())
-	{
-		int *nProtagHandRig = g_ProtagonistSystem.GetProtagonist_HandRig( static_cast<CBasePlayer *>(GetOwner()), this );
-		if (nProtagHandRig)
-			return *nProtagHandRig;
-	}
-
-	return BaseClass::GetHandRig();
-}
-#endif
 
 
 #if defined( CLIENT_DLL )

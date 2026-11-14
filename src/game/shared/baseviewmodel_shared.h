@@ -26,6 +26,10 @@ class CVGuiScreen;
 #define CBaseCombatWeapon C_BaseCombatWeapon
 #endif
 
+#if defined(MAPBASE) && (defined(HL2_DLL) || defined(HL2_CLIENT_DLL))
+#define GAME_USES_HANDS 1	// Only HL2 for now
+#endif
+
 #define VIEWMODEL_INDEX_BITS 1
 
 class CBaseViewModel : public CBaseAnimating, public IHasOwner

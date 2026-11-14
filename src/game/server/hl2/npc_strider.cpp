@@ -56,7 +56,6 @@
 #include "eventqueue.h"
 #ifdef MAPBASE
 #include "npc_basescanner.h"
-#include "mapbase/GlobalStrings.h"
 #endif
 
 // memdbgon must be the last include file in a .cpp file!!!
@@ -1134,11 +1133,7 @@ void CNPC_Strider::GatherConditions()
 				// Don't switch targets if shooting at a bullseye! Level designers depend on bullseyes.
 				if( GetEnemy() && m_pMinigun->IsShooting() && GetTimeEnemyAcquired() != gpGlobals->curtime )
 				{
-#ifdef MAPBASE
-					if( m_pMinigun->IsOnTarget( 3 ) && !EntIsClass( GetEnemy(), gm_isz_class_Bullseye ) )
-#else
-					if( m_pMinigun->IsOnTarget( 3 ) && !FClassnameIs( GetEnemy(), "npc_bullseye" ) )
-#endif
+					if( m_pMinigun->IsOnTarget( 3 ) && !FClassnameIsDirect( GetEnemy(), "npc_bullseye" ) )
 					{
 						if( m_iVisibleEnemies > 1 )
 						{
@@ -2055,11 +2050,7 @@ Disposition_t CNPC_Strider::IRelationType( CBaseEntity *pTarget )
 //---------------------------------------------------------
 void CNPC_Strider::AddEntityRelationship( CBaseEntity *pEntity, Disposition_t nDisposition, int nPriority )
 {
-#ifdef MAPBASE
-	if ( nDisposition ==  D_HT && EntIsClass(pEntity, gm_isz_class_Bullseye) )
-#else
-	if ( nDisposition ==  D_HT && pEntity->ClassMatches("npc_bullseye") )
-#endif
+	if ( nDisposition ==  D_HT && pEntity->ClassMatchesDirect("npc_bullseye") )
 		UpdateEnemyMemory( pEntity, pEntity->GetAbsOrigin() );
 	BaseClass::AddEntityRelationship( pEntity, nDisposition, nPriority );
 }

@@ -99,6 +99,9 @@
 #include "mapbase/matchers.h"
 #include "items.h"
 #include "point_camera.h"
+#ifdef HL2_DLL
+#include "basehlcombatweapon_shared.h"
+#endif
 #ifdef HL2MP
 #include "hl2mp_gamerules.h"
 #include "hl2mp_player_resource.h"
@@ -16226,9 +16229,15 @@ void CAI_BaseNPC::CalculateValidEnemyInteractions( void )
 					pass = true;
 				}
 
+#ifdef HL2_DLL
 				if (Q_strstr(myweapon, "WEPCLASS"))
-					pass = (GetActiveWeapon()->WeaponClassFromString(myweapon) == GetActiveWeapon()->WeaponClassify()) ? !pass : pass;
+				{
+					CBaseHLCombatWeapon *pHLWeapon = dynamic_cast<CBaseHLCombatWeapon *>(GetActiveWeapon());
+					if ( pHLWeapon )
+						pass = (pHLWeapon->WeaponClassFromString(myweapon) == pHLWeapon->WeaponClassify()) ? !pass : pass;
+				}
 				else
+#endif
 					pass = (GetActiveWeapon()->m_iClassname == pInteraction->iszMyWeapon) ? !pass : pass;
 
 				if (!pass)
@@ -16255,9 +16264,15 @@ void CAI_BaseNPC::CalculateValidEnemyInteractions( void )
 					pass = true;
 				}
 
+#ifdef HL2_DLL
 				if (Q_strstr(theirweapon, "WEPCLASS"))
-					pass = (pNPC->GetActiveWeapon()->WeaponClassFromString(theirweapon) == pNPC->GetActiveWeapon()->WeaponClassify()) ? !pass : pass;
+				{
+					CBaseHLCombatWeapon *pHLWeapon = dynamic_cast<CBaseHLCombatWeapon *>(pNPC->GetActiveWeapon());
+					if ( pHLWeapon )
+						pass = (pHLWeapon->WeaponClassFromString(theirweapon) == pHLWeapon->WeaponClassify()) ? !pass : pass;
+				}
 				else
+#endif
 					pass = (pNPC->GetActiveWeapon()->m_iClassname == pInteraction->iszTheirWeapon) ? !pass : pass;
 
 				if (!pass)

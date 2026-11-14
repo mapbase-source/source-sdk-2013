@@ -32,9 +32,6 @@
 	#include "citadel_effects_shared.h"
 	#include "eventqueue.h"
 	#include "player_pickup.h"
-#ifdef MAPBASE
-	#include "mapbase/GlobalStrings.h"
-#endif
 #endif
 
 #include "gamerules.h"

@@ -77,6 +77,8 @@ $Project "VBSP"
 		$File	"vscript_funcs_vmfs.h" [$MAPBASE_VSCRIPT]
 		$File	"vscript_funcs_vis.cpp" [$MAPBASE_VSCRIPT]
 		$File	"vscript_funcs_vis.h" [$MAPBASE_VSCRIPT]
+		$File	"$SRCDIR\common\mapbase_con_groups.cpp" [$MAPBASE_VSCRIPT]
+		$File	"$SRCDIR\common\mapbase_con_groups.h" [$MAPBASE_VSCRIPT]
 
 		$Folder	"Common Files"
 		{

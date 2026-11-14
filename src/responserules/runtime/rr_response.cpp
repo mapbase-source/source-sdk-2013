@@ -8,7 +8,6 @@
 #include "rrbase.h"
 
 #include <tier1/interval.h>
-#include "tier1/mapbase_con_groups.h"
 
 /*
 #include "AI_Criteria.h"

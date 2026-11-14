@@ -255,7 +255,6 @@ void C_GlobalLight::ClientThink()
 		state.m_fQuadraticAtten = 0.0f;
 		state.m_fLinearAtten = m_flSunDistance * 2.0f;
 		state.m_fConstantAtten = 0.0f;
-		state.m_FarZAtten = m_flSunDistance * 2.0f;
 #ifdef MAPBASE
 		float flAlpha = m_flCurrentLinearFloatLightAlpha * (1.0f / 255.0f);
 		state.m_Color[0] = (m_CurrentLinearFloatLightColor.x * ( 1.0f / 255.0f ) * flAlpha) * m_flCurrentBrightnessScale;
@@ -269,27 +268,6 @@ void C_GlobalLight::ClientThink()
 		state.m_Color[3] = 0.0f; // fixme: need to make ambient work m_flAmbient;
 		state.m_NearZ = 4.0f;
 		state.m_FarZ = m_flSunDistance * 2.0f;
-		state.m_fBrightnessScale = 2.0f;
-		state.m_bGlobalLight = true;
-
-#ifdef MAPBASE
-		float flOrthoSize = m_flOrthoSize;
-#else
-		float flOrthoSize = 1000.0f;
-#endif
-
-		if ( flOrthoSize > 0 )
-		{
-			state.m_bOrtho = true;
-			state.m_fOrthoLeft = -flOrthoSize;
-			state.m_fOrthoTop = -flOrthoSize;
-			state.m_fOrthoRight = flOrthoSize;
-			state.m_fOrthoBottom = flOrthoSize;
-		}
-		else
-		{
-			state.m_bOrtho = false;
-		}
 
 #ifdef MAPBASE
 		//state.m_bDrawShadowFrustum = true; // Don't draw that huge debug thing
@@ -333,6 +311,28 @@ void C_GlobalLight::ClientThink()
 			g_pClientShadowMgr->UpdateFlashlightState( m_LocalFlashlightHandle, state );
 			g_pClientShadowMgr->UpdateProjectedTexture( m_LocalFlashlightHandle, true );
 		}
+
+#ifdef MAPBASE
+		FlashlightStateExtras_t stateExtras;
+		stateExtras.m_FarZAtten = m_flSunDistance * 2.0f;
+
+		if ( m_flOrthoSize > 0 )
+		{
+			stateExtras.m_bOrtho = true;
+			stateExtras.m_fOrthoLeft = -m_flOrthoSize;
+			stateExtras.m_fOrthoTop = -m_flOrthoSize;
+			stateExtras.m_fOrthoRight = m_flOrthoSize;
+			stateExtras.m_fOrthoBottom = m_flOrthoSize;
+		}
+		else
+		{
+			stateExtras.m_bOrtho = false;
+		}
+
+		stateExtras.m_bGlobalLight = true;
+
+		g_pClientShadowMgr->SetFlashlightExtras( m_LocalFlashlightHandle, stateExtras );
+#endif
 
 		bSupressWorldLights = m_bEnableShadows;
 	}

@@ -8,7 +8,7 @@ $Configuration
 {
 	$Compiler
 	{
-		$PreprocessorDefinitions		"$BASE;ASW_PROJECTED_TEXTURES;DYNAMIC_RTT_SHADOWS;GLOWS_ENABLE"
+		$PreprocessorDefinitions		"$BASE;DYNAMIC_RTT_SHADOWS;GLOWS_ENABLE"
 		
 		$PreprocessorDefinitions		"$BASE;MAPBASE_RPC;DISCORD_RPC;STEAM_RPC"	[$MAPBASE_RPC&&!$LINUXALL]
 		$PreprocessorDefinitions		"$BASE;MAPBASE_VSCRIPT"		[$MAPBASE_VSCRIPT]
@@ -41,15 +41,28 @@ $Project
 		$Folder	"Mapbase"
 		{
 			$File	"$SRCDIR\game\shared\mapbase\mapbase_shared.cpp"
+			$File	"$SRCDIR\game\shared\mapbase\mapbase_shared.h"
 			$File	"$SRCDIR\game\shared\mapbase\mapbase_usermessages.cpp"
 			$File	"$SRCDIR\game\shared\mapbase\mapbase_rpc.cpp"
-			$File	"$SRCDIR\game\shared\mapbase\mapbase_game_log.cpp"
 			$File	"$SRCDIR\game\shared\mapbase\MapEdit.cpp"
 			$File	"$SRCDIR\game\shared\mapbase\MapEdit.h"
 			$File	"$SRCDIR\game\shared\mapbase\matchers.cpp"
 			$File	"$SRCDIR\game\shared\mapbase\matchers.h"
 			$File	"$SRCDIR\game\shared\mapbase\game_timer.cpp"
 			$File	"$SRCDIR\game\shared\mapbase\game_timer.h"
+			$File	"$SRCDIR\game\shared\mapbase\game_con_groups.cpp"
+			$File	"$SRCDIR\game\shared\mapbase\game_con_groups.h"
+			$File	"$SRCDIR\common\mapbase_con_groups.cpp"
+			{
+				$Configuration
+				{
+					$Compiler
+					{
+						$Create/UsePrecompiledHeader	"Not Using Precompiled Headers"
+					}
+				}
+			}
+			$File	"$SRCDIR\common\mapbase_con_groups.h"
 			$File	"$SRCDIR\game\shared\mapbase\vscript_funcs_shared.cpp" [$MAPBASE_VSCRIPT]
 			$File	"$SRCDIR\game\shared\mapbase\vscript_funcs_shared.h" [$MAPBASE_VSCRIPT]
 			$File	"$SRCDIR\game\shared\mapbase\vscript_singletons.cpp" [$MAPBASE_VSCRIPT]

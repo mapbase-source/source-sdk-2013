@@ -46,6 +46,9 @@
 #include "const.h"
 #include "edict.h"
 
+// Mapbase
+#include "mapbase_con_groups.h"
+
 // app
 #if defined(_X360)
 #define DISABLE_DEBUG_HISTORY 1

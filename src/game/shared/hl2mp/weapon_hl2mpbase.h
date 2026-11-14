@@ -15,6 +15,7 @@
 #include "hl2mp_weapon_parse.h"
 #ifdef MAPBASE_MP
 #include "npcevent.h"
+#include "basehlcombatweapon_shared.h"
 #endif
 
 #if defined( CLIENT_DLL )
@@ -32,10 +33,23 @@ class CHL2MP_Player;
 // MIKETODO: this should use indexing instead of searching and strcmp()'ing all the time.
 bool IsAmmoType( int iAmmoType, const char *pAmmoName );
 
-class CWeaponHL2MPBase : public CBaseCombatWeapon
+#ifdef MAPBASE_MP
+// CBaseHLCombatWeapon has additional features in Mapbase which makes a direct derivation
+// easier to manage.
+// If this causes problems for your mod, then feel free to change this.
+#define HL2MP_WEAPONS_DERIVE_FROM_HL2 1
+#endif
+
+#if HL2MP_WEAPONS_DERIVE_FROM_HL2
+#define CWeaponHL2MPBaseDerived CBaseHLCombatWeapon
+#else
+#define CWeaponHL2MPBaseDerived CBaseCombatWeapon
+#endif
+
+class CWeaponHL2MPBase : public CWeaponHL2MPBaseDerived
 {
 public:
-	DECLARE_CLASS( CWeaponHL2MPBase, CBaseCombatWeapon );
+	DECLARE_CLASS( CWeaponHL2MPBase, CWeaponHL2MPBaseDerived );
 	DECLARE_NETWORKCLASS(); 
 	DECLARE_PREDICTABLE();
 
@@ -63,13 +77,6 @@ public:
 
 	virtual void FireBullets( const FireBulletsInfo_t &info );
 	virtual void FallInit( void );
-
-#ifdef MAPBASE
-	virtual const char *GetViewModel( int viewmodelindex = 0 ) const;
-	virtual float	GetViewmodelFOVOverride() const;
-	virtual bool	UsesHands( void ) const;
-	virtual int		GetHandRig( void ) const;
-#endif
 	
 public:
 	#if defined( CLIENT_DLL )

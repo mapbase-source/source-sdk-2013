@@ -327,7 +327,7 @@ float CBaseHL2MPCombatWeapon::CalcViewmodelBob( void )
 	g_lateralBob = g_lateralBob*0.3 + g_lateralBob*0.7*sin(cycle);
 	g_lateralBob = clamp( g_lateralBob, -7.0f, 4.0f );
 
-#ifdef MAPBASE
+#if HL2MP_WEAPONS_DERIVE_FROM_HL2
 	if (GetBobScale() != 1.0f)
 	{
 		//g_verticalBob *= GetBobScale();

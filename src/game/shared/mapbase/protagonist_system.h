@@ -35,8 +35,7 @@ private:
 		ProtagonistData_t()
 		{
 #ifndef CLIENT_DLL
-			for (int i = 0; i < NUM_HAND_RIG_TYPES; i++)
-				pszHandModels[i] = NULL;
+			pszHandModel = NULL;
 #endif
 		}
 
@@ -52,7 +51,7 @@ private:
 		int nPlayerBody = -1;
 
 		// Hands
-		const char *pszHandModels[NUM_HAND_RIG_TYPES];
+		const char *pszHandModel;
 		int nHandSkin = -1;
 		int nHandBody = -1;
 
@@ -71,7 +70,6 @@ private:
 		{
 			const char *pszVM = NULL;
 			bool bUsesHands = false;
-			int nHandRig = 0;
 			float flVMFOV = 0.0f;
 		};
 
@@ -121,7 +119,6 @@ public:
 	DeclareProtagonistFunc( const char*,	ViewModel, const CBaseCombatWeapon *pWeapon )
 	DeclareProtagonistFunc( float*,			ViewModelFOV, const CBaseCombatWeapon *pWeapon )
 	DeclareProtagonistFunc( bool*,			UsesHands, const CBaseCombatWeapon *pWeapon )
-	DeclareProtagonistFunc( int*,			HandRig, const CBaseCombatWeapon *pWeapon )
 	
 	//----------------------------------------------------------------------------
 
