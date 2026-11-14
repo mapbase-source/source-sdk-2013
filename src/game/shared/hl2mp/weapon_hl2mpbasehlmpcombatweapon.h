@@ -17,12 +17,6 @@
 #define CBaseHL2MPCombatWeapon C_BaseHL2MPCombatWeapon
 #endif
 
-#ifdef MAPBASE
-	// Alias for migrated HL2 weapons
-	#undef CBaseHLCombatWeapon
-	#define CBaseHLCombatWeapon CBaseHL2MPCombatWeapon
-#endif
-
 class CBaseHL2MPCombatWeapon : public CWeaponHL2MPBase
 {
 #if !defined( CLIENT_DLL )

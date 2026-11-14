@@ -1760,7 +1760,7 @@ void CBasePlayer::RemoveAllItems( bool removeSuit )
 	RemoveAllWeapons();
  	RemoveAllAmmo();
 
-#ifdef MAPBASE
+#ifdef GAME_USES_HANDS
 	// Hide hand viewmodel
 	CBaseViewModel *vm = GetViewModel( 1 );
 	if ( vm )
@@ -5475,7 +5475,7 @@ void CBasePlayer::Spawn( void )
 	enginesound->SetPlayerDSP( user, 0, false );
 
 	CreateViewModel();
-#if defined(MAPBASE) && defined(HL2_DLL)
+#ifdef GAME_USES_HANDS
 	CreateHandModel();
 #endif
 
@@ -5619,7 +5619,7 @@ void CBasePlayer::Precache( void )
 	m_iTrain = TRAIN_NEW;
 #endif
 
-#if defined(MAPBASE) && defined(HL2_DLL)
+#ifdef GAME_USES_HANDS
 	PrecacheModel( g_szDefaultHandsModel );
 #endif
 
