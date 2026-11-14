@@ -133,7 +133,7 @@ void CProtagonistSystem::LoadProtagonistFile( const char *pszFile )
 					if (!pszSubKeyName[0])
 					{
 						// Model
-						pProtag->pszHandModels[HANDRIG_DEFAULT] = AllocateString( pSubKey->GetString() );
+						pProtag->pszHandModel = AllocateString( pSubKey->GetString() );
 					}
 					else if (FStrEq( pszSubKeyName, "_skin" ))
 					{
@@ -144,21 +144,6 @@ void CProtagonistSystem::LoadProtagonistFile( const char *pszFile )
 					{
 						// Bodygroup
 						pProtag->nHandBody = pSubKey->GetInt();
-					}
-					else
-					{
-						// Other Rigs
-						pszSubKeyName += 1;
-						for (int i = 0; i < NUM_HAND_RIG_TYPES; i++)
-						{
-							extern const char *pHandRigs[NUM_HAND_RIG_TYPES];
-
-							if (V_stricmp( pszSubKeyName, pHandRigs[i] ) == 0)
-							{
-								pProtag->pszHandModels[i] = AllocateString( pSubKey->GetString() );
-								break;
-							}
-						}
 					}
 				}
 
@@ -222,29 +207,9 @@ void CProtagonistSystem::LoadProtagonistFile( const char *pszFile )
 						if (pszVM)
 							pProtag->dictWpnData[i].pszVM = AllocateString( pszVM );
 
-						const char *pszHandRig = pWeaponKey->GetString( "hand_rig", NULL );
-						if (pszHandRig)
-						{
-							// If there's a specific rig, then it must use hands
-							pProtag->dictWpnData[i].bUsesHands = true;
-
-							for (int j = 0; j < NUM_HAND_RIG_TYPES; j++)
-							{
-								extern const char *pHandRigs[NUM_HAND_RIG_TYPES];
-
-								if (V_stricmp( pszHandRig, pHandRigs[j] ) == 0)
-								{
-									pProtag->dictWpnData[i].nHandRig = j;
-									break;
-								}
-							}
-						}
-						else
-						{
-							KeyValues *pUsesHands = pWeaponKey->FindKey( "uses_hands" );
-							if (pUsesHands)
-								pProtag->dictWpnData[i].bUsesHands = pUsesHands->GetBool();
-						}
+						KeyValues *pUsesHands = pWeaponKey->FindKey( "uses_hands" );
+						if (pUsesHands)
+							pProtag->dictWpnData[i].bUsesHands = pUsesHands->GetBool();
 
 						KeyValues *pVMFOV = pWeaponKey->FindKey( "viewmodel_fov" );
 						if (pVMFOV)
@@ -348,12 +313,9 @@ void CProtagonistSystem::PrecacheProtagonist( CBaseEntity *pSource, int nIdx )
 	}
 
 	// Hands
-	for (int i = 0; i < NUM_HAND_RIG_TYPES; i++)
+	if (pProtag.pszHandModel)
 	{
-		if (pProtag.pszHandModels[i])
-		{
-			pSource->PrecacheModel( pProtag.pszHandModels[i] );
-		}
+		pSource->PrecacheModel( pProtag.pszHandModel );
 	}
 
 	// Weapon Data
@@ -442,7 +404,6 @@ GetProtagParam( Team,				int,			GetProtagParamInner( Team ) )
 GetProtagParam( ViewModel,			const char*,	GetProtagParamInner( ViewModel, pWeapon ), const CBaseCombatWeapon *pWeapon )
 GetProtagParam( ViewModelFOV,		float*,			GetProtagParamInner( ViewModelFOV, pWeapon ), const CBaseCombatWeapon *pWeapon )
 GetProtagParam( UsesHands,			bool*,			GetProtagParamInner( UsesHands, pWeapon ), const CBaseCombatWeapon *pWeapon )
-GetProtagParam( HandRig,			int*,			GetProtagParamInner( HandRig, pWeapon ), const CBaseCombatWeapon *pWeapon )
 
 //----------------------------------------------------------------------------
 
@@ -503,9 +464,8 @@ int CProtagonistSystem::DoGetProtagonist_PlayerModelBody( ProtagonistData_t &pPr
 
 const char *CProtagonistSystem::DoGetProtagonist_HandModel( ProtagonistData_t &pProtag, const CBaseCombatWeapon *pWeapon )
 {
-	int nRigType = pWeapon ? pWeapon->GetHandRig() : HANDRIG_DEFAULT;
-	if (pProtag.pszHandModels[nRigType])
-		return pProtag.pszHandModels[nRigType];
+	if (pProtag.pszHandModel)
+		return pProtag.pszHandModel;
 
 	// Recursively search parent protagonists
 	GetProtagonistRecurse( DoGetProtagonist_HandModel, pWeapon )
@@ -614,23 +574,6 @@ bool *CProtagonistSystem::DoGetProtagonist_UsesHands( ProtagonistData_t &pProtag
 	return NULL;
 }
 
-int *CProtagonistSystem::DoGetProtagonist_HandRig( ProtagonistData_t &pProtag, const CBaseCombatWeapon *pWeapon )
-{
-	FOR_EACH_DICT_FAST( pProtag.dictWpnData, i )
-	{
-		// HACKHACK: GetClassname is not const
-		if (!FStrEq( pProtag.dictWpnData.GetElementName( i ), const_cast<CBaseCombatWeapon*>(pWeapon)->GetClassname() ))
-			continue;
-
-		return &pProtag.dictWpnData[i].nHandRig;
-	}
-
-	// Recursively search parent protagonists
-	GetProtagonistRecurse( DoGetProtagonist_HandRig, pWeapon )
-
-	return NULL;
-}
-
 //----------------------------------------------------------------------------
 
 const char *CProtagonistSystem::FindString( const char *string )
@@ -701,12 +644,8 @@ void CProtagonistSystem::PrintProtagonistData()
 			Msg( "\t\tTeam: %i\n", pProtag.nTeam );
 #endif
 
-		for (int j = 0; j < NUM_HAND_RIG_TYPES; j++)
-		{
-			extern const char *pHandRigs[NUM_HAND_RIG_TYPES];
-			if (pProtag.pszHandModels[j])
-				Msg( "\t\tHand %s model: \"%s\" (%i, %i)\n", pHandRigs[j], pProtag.pszHandModels[j], pProtag.nPlayerSkin, pProtag.nPlayerBody );
-		}
+		if (pProtag.pszHandModel)
+			Msg( "\t\tHand model: \"%s\" (%i, %i)\n", pProtag.pszHandModel, pProtag.nPlayerSkin, pProtag.nPlayerBody );
 
 		// Weapon Data
 		Msg( "\t\tWeapon Data: %i\n", pProtag.dictWpnData.Count() );
@@ -716,7 +655,7 @@ void CProtagonistSystem::PrintProtagonistData()
 			if (pProtag.dictWpnData[j].pszVM)
 				Msg( "\t\t\t\tViewmodel: \"%s\"\n", pProtag.dictWpnData[j].pszVM );
 
-			Msg( "\t\t\t\tUses hands: %d, hand rig: %i\n", pProtag.dictWpnData[j].bUsesHands, pProtag.dictWpnData[j].nHandRig );
+			Msg( "\t\t\t\tUses hands: %d\n", pProtag.dictWpnData[j].bUsesHands );
 		}
 #endif
 	}

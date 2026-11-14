@@ -500,34 +500,9 @@ float CBaseCombatWeapon::GetViewmodelFOVOverride() const
 	return GetWpnData().m_flViewmodelFOV;
 }
 
-float CBaseCombatWeapon::GetBobScale() const
-{
-	return GetWpnData().m_flBobScale;
-}
-
-float CBaseCombatWeapon::GetSwayScale() const
-{
-	return GetWpnData().m_flSwayScale;
-}
-
-float CBaseCombatWeapon::GetSwaySpeedScale() const
-{
-	return GetWpnData().m_flSwaySpeedScale;
-}
-
 const char *CBaseCombatWeapon::GetDroppedModel() const
 {
 	return GetWpnData().szDroppedModel;
-}
-
-bool CBaseCombatWeapon::UsesHands() const
-{
-	return GetWpnData().m_bUsesHands;
-}
-
-int CBaseCombatWeapon::GetHandRig() const
-{
-	return GetWpnData().m_nHandRig;
 }
 #endif
 
@@ -1109,86 +1084,9 @@ void CBaseCombatWeapon::SetPickupTouch( void )
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-WeaponClass_t CBaseCombatWeapon::WeaponClassify()
-{
-	// For now, check how we map our "angry idle" activity.
-	// The function is virtual, so derived weapons can override this.
-	Activity idleact = ActivityOverride(ACT_IDLE_ANGRY, NULL);
-	switch (idleact)
-	{
-#if EXPANDED_HL2_WEAPON_ACTIVITIES
-	case ACT_IDLE_ANGRY_REVOLVER:
-#endif
-	case ACT_IDLE_ANGRY_PISTOL:		return WEPCLASS_HANDGUN;
-#if EXPANDED_HL2_WEAPON_ACTIVITIES
-	case ACT_IDLE_ANGRY_CROSSBOW:	// For now, crossbows are rifles
-#endif
-#if EXPANDED_HL2_UNUSED_WEAPON_ACTIVITIES
-	case ACT_IDLE_ANGRY_AR1:
-	case ACT_IDLE_ANGRY_SMG2:
-	case ACT_IDLE_ANGRY_SNIPER_RIFLE:
-#endif
-	case ACT_IDLE_ANGRY_SMG1:
-	case ACT_IDLE_ANGRY_AR2:		return WEPCLASS_RIFLE;
-	case ACT_IDLE_ANGRY_SHOTGUN:	return WEPCLASS_SHOTGUN;
-	case ACT_IDLE_ANGRY_RPG:		return WEPCLASS_HEAVY;
-
-	case ACT_IDLE_ANGRY_MELEE:		return WEPCLASS_MELEE;
-	}
-	return WEPCLASS_INVALID;
-}
-
-//-----------------------------------------------------------------------------
-// Purpose: 
-//-----------------------------------------------------------------------------
-WeaponClass_t CBaseCombatWeapon::WeaponClassFromString(const char *str)
-{
-	if (FStrEq(str, "WEPCLASS_HANDGUN"))
-		return WEPCLASS_HANDGUN;
-	else if (FStrEq(str, "WEPCLASS_RIFLE"))
-		return WEPCLASS_RIFLE;
-	else if (FStrEq(str, "WEPCLASS_SHOTGUN"))
-		return WEPCLASS_SHOTGUN;
-	else if (FStrEq(str, "WEPCLASS_HEAVY"))
-		return WEPCLASS_HEAVY;
-
-	else if (FStrEq(str, "WEPCLASS_MELEE"))
-		return WEPCLASS_MELEE;
-
-	return WEPCLASS_INVALID;
-}
-
-#if defined(HL2_DLL) || defined(HL2MP) // HL2MP is effectively used here as "present on client in MP"
-extern acttable_t *GetSMG1Acttable();
-extern int GetSMG1ActtableCount();
-
-extern acttable_t *GetAR2Acttable();
-extern int GetAR2ActtableCount();
-
-extern acttable_t *GetShotgunActtable();
-extern int GetShotgunActtableCount();
-
-extern acttable_t *GetPistolActtable();
-extern int GetPistolActtableCount();
-
-extern acttable_t *Get357Acttable();
-extern int Get357ActtableCount();
-#endif
-
-//-----------------------------------------------------------------------------
-// Purpose: 
-//-----------------------------------------------------------------------------
 bool CBaseCombatWeapon::SupportsBackupActivity(Activity activity)
 {
-	// Derived classes should override this.
-
-#ifdef HL2_DLL
-	// Melee users should not use SMG animations for missing activities.
-	if (IsMeleeWeapon() && GetBackupActivityList() == GetSMG1Acttable())
-		return false;
-#endif
-
-	return true;
+	return false;
 }
 
 acttable_t *CBaseCombatWeapon::GetBackupActivityList()
@@ -1199,63 +1097,6 @@ acttable_t *CBaseCombatWeapon::GetBackupActivityList()
 int CBaseCombatWeapon::GetBackupActivityListCount()
 {
 	return 0;
-}
-
-//-----------------------------------------------------------------------------
-// Purpose: 
-//-----------------------------------------------------------------------------
-acttable_t *CBaseCombatWeapon::GetDefaultBackupActivityList( acttable_t *pTable, int &actCount )
-{
-#if defined(HL2_DLL) || defined(HL2MP) // HL2MP is effectively used here as "present on client in MP"
-	// Ensure this isn't already a default backup activity list
-	if (pTable == GetSMG1Acttable() || pTable == GetPistolActtable())
-		return NULL;
-
-	// Use a backup table based on what ACT_IDLE_ANGRY is translated to
-	Activity actTranslated = ACT_INVALID;
-	for ( int i = 0; i < actCount; i++, pTable++ )
-	{
-		if ( pTable->baseAct == ACT_IDLE_ANGRY )
-		{
-			actTranslated = (Activity)pTable->weaponAct;
-			break;
-		}
-	}
-
-	if (actTranslated == ACT_INVALID)
-		return NULL;
-
-	switch (actTranslated)
-	{
-#if EXPANDED_HL2_WEAPON_ACTIVITIES
-		case ACT_IDLE_ANGRY_REVOLVER:
-#endif
-		case ACT_IDLE_ANGRY_PISTOL:
-			{
-				actCount = GetPistolActtableCount();
-				return GetPistolActtable();
-			}
-#if EXPANDED_HL2_WEAPON_ACTIVITIES
-		case ACT_IDLE_ANGRY_CROSSBOW:	// For now, crossbows are rifles
-#endif
-#if EXPANDED_HL2_UNUSED_WEAPON_ACTIVITIES
-		case ACT_IDLE_ANGRY_AR1:
-		case ACT_IDLE_ANGRY_SMG2:
-		case ACT_IDLE_ANGRY_SNIPER_RIFLE:
-#endif
-		case ACT_IDLE_ANGRY_SMG1:
-		case ACT_IDLE_ANGRY_AR2:
-		case ACT_IDLE_ANGRY_SHOTGUN:
-		case ACT_IDLE_ANGRY_RPG:
-			{
-				actCount = GetSMG1ActtableCount();
-				return GetSMG1Acttable();
-			}
-	}
-#endif
-
-	actCount = 0;
-	return NULL;
 }
 #endif
 
@@ -2947,11 +2788,7 @@ bool CBaseCombatWeapon::IsLocked( CBaseEntity *pAsker )
 
 bool CBaseCombatWeapon::CanBePickedUpByNPCs(void)
 {
-#ifdef MAPBASE
-	return GetWpnData().m_nWeaponRestriction != WPNRESTRICT_PLAYER_ONLY;
-#else
 	return true;
-#endif // MAPBASE
 }
 
 //-----------------------------------------------------------------------------
@@ -3201,7 +3038,6 @@ BEGIN_ENT_SCRIPTDESC( CBaseCombatWeapon, BASECOMBATWEAPON_DERIVED_FROM, "The bas
 	DEFINE_SCRIPTFUNC( GetDroppedModel, "Get the weapon's unique dropped model if it has one." )
 
 	DEFINE_SCRIPTFUNC( UsesHands, "" )
-	DEFINE_SCRIPTFUNC( GetHandRig, "" )
 
 	DEFINE_SCRIPTFUNC( GetWeight, "Get the weapon's weight." )
 	DEFINE_SCRIPTFUNC( GetPrintName, "" )
@@ -3217,7 +3053,6 @@ BEGIN_ENT_SCRIPTDESC( CBaseCombatWeapon, BASECOMBATWEAPON_DERIVED_FROM, "The bas
 	DEFINE_SCRIPTFUNC( GetWeaponIdleTime, "Returns the next time WeaponIdle() will run." )
 	DEFINE_SCRIPTFUNC_SV( SetWeaponIdleTime, "Sets the next time WeaponIdle() will run." )
 
-	DEFINE_SCRIPTFUNC_NAMED( ScriptWeaponClassify, "WeaponClassify", "Returns the weapon's classify class from the WEPCLASS_ constant group" )
 	DEFINE_SCRIPTFUNC_NAMED( ScriptWeaponSound, "WeaponSound", "Plays one of the weapon's sounds." )
 
 	DEFINE_SCRIPTFUNC_NAMED( ScriptGetBulletSpread, "GetBulletSpread", "Returns the weapon's default bullet spread." )

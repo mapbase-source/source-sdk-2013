@@ -3119,7 +3119,8 @@ bool CNPC_Alyx::Crouch( void )
 	// Alyx will ignore crouch requests while she has the shotgun
 #ifdef MAPBASE
 	// Alyx will ignore crouch requests from anything that isn't a "pistol", e.g. her Alyx gun.
-	if ( GetActiveWeapon() && GetActiveWeapon()->WeaponClassify() != WEPCLASS_HANDGUN )
+	CBaseHLCombatWeapon *pHLWeapon = dynamic_cast<CBaseHLCombatWeapon *>(GetActiveWeapon());
+	if ( pHLWeapon && pHLWeapon->WeaponClassify() != WEPCLASS_HANDGUN )
 #else
 	if ( HasShotgun() )
 #endif

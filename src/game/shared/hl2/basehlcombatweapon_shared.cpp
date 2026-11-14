@@ -47,10 +47,36 @@ END_DATADESC()
 
 #endif
 
+#ifdef MAPBASE_VSCRIPT
+BEGIN_ENT_SCRIPTDESC( CBaseHLCombatWeapon, CBaseCombatWeapon, "The base class for Half-Life 2 weapons." )
+
+	DEFINE_SCRIPTFUNC_NAMED( ScriptWeaponClassify, "WeaponClassify", "Returns the weapon's classify class from the WEPCLASS_ constant group" )
+
+END_SCRIPTDESC();
+#endif
+
 BEGIN_PREDICTION_DATA( CBaseHLCombatWeapon )
 END_PREDICTION_DATA()
 
 ConVar sk_auto_reload_time( "sk_auto_reload_time", "3", FCVAR_REPLICATED );
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+const CHL2WeaponInfo &CBaseHLCombatWeapon::GetHL2WpnData() const
+{
+	const FileWeaponInfo_t *pWeaponInfo = &GetWpnData();
+	const CHL2WeaponInfo *pHL2Info;
+
+	#ifdef _DEBUG
+		pHL2Info = dynamic_cast< const CHL2WeaponInfo* >( pWeaponInfo );
+		Assert( pHL2Info );
+	#else
+		pHL2Info = static_cast< const CHL2WeaponInfo* >( pWeaponInfo );
+	#endif
+
+	return *pHL2Info;
+}
 
 //-----------------------------------------------------------------------------
 // Purpose: 
@@ -445,6 +471,146 @@ const WeaponProficiencyInfo_t *CBaseHLCombatWeapon::GetDefaultProficiencyValues(
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
+WeaponClass_t CBaseHLCombatWeapon::WeaponClassify()
+{
+	// For now, check how we map our "angry idle" activity.
+	// The function is virtual, so derived weapons can override this.
+	Activity idleact = ActivityOverride(ACT_IDLE_ANGRY, NULL);
+	switch (idleact)
+	{
+#if EXPANDED_HL2_WEAPON_ACTIVITIES
+	case ACT_IDLE_ANGRY_REVOLVER:
+#endif
+	case ACT_IDLE_ANGRY_PISTOL:		return WEPCLASS_HANDGUN;
+#if EXPANDED_HL2_WEAPON_ACTIVITIES
+	case ACT_IDLE_ANGRY_CROSSBOW:	// For now, crossbows are rifles
+#endif
+#if EXPANDED_HL2_UNUSED_WEAPON_ACTIVITIES
+	case ACT_IDLE_ANGRY_AR1:
+	case ACT_IDLE_ANGRY_SMG2:
+	case ACT_IDLE_ANGRY_SNIPER_RIFLE:
+#endif
+	case ACT_IDLE_ANGRY_SMG1:
+	case ACT_IDLE_ANGRY_AR2:		return WEPCLASS_RIFLE;
+	case ACT_IDLE_ANGRY_SHOTGUN:	return WEPCLASS_SHOTGUN;
+	case ACT_IDLE_ANGRY_RPG:		return WEPCLASS_HEAVY;
+
+	case ACT_IDLE_ANGRY_MELEE:		return WEPCLASS_MELEE;
+	}
+	return WEPCLASS_INVALID;
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+WeaponClass_t CBaseHLCombatWeapon::WeaponClassFromString(const char *str)
+{
+	if (FStrEq(str, "WEPCLASS_HANDGUN"))
+		return WEPCLASS_HANDGUN;
+	else if (FStrEq(str, "WEPCLASS_RIFLE"))
+		return WEPCLASS_RIFLE;
+	else if (FStrEq(str, "WEPCLASS_SHOTGUN"))
+		return WEPCLASS_SHOTGUN;
+	else if (FStrEq(str, "WEPCLASS_HEAVY"))
+		return WEPCLASS_HEAVY;
+
+	else if (FStrEq(str, "WEPCLASS_MELEE"))
+		return WEPCLASS_MELEE;
+
+	return WEPCLASS_INVALID;
+}
+
+#ifdef USE_BACKUP_WEAPON_ACTIVITIES
+extern acttable_t *GetSMG1Acttable();
+extern int GetSMG1ActtableCount();
+
+extern acttable_t *GetAR2Acttable();
+extern int GetAR2ActtableCount();
+
+extern acttable_t *GetShotgunActtable();
+extern int GetShotgunActtableCount();
+
+extern acttable_t *GetPistolActtable();
+extern int GetPistolActtableCount();
+
+extern acttable_t *Get357Acttable();
+extern int Get357ActtableCount();
+#endif
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+bool CBaseHLCombatWeapon::SupportsBackupActivity(Activity activity)
+{
+#ifdef USE_BACKUP_WEAPON_ACTIVITIES
+	// Melee users should not use SMG animations for missing activities.
+	if (IsMeleeWeapon() && GetBackupActivityList() == GetSMG1Acttable())
+		return false;
+#endif
+
+	return true;
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+acttable_t *CBaseHLCombatWeapon::GetDefaultBackupActivityList( acttable_t *pTable, int &actCount )
+{
+#ifdef USE_BACKUP_WEAPON_ACTIVITIES
+	// Ensure this isn't already a default backup activity list
+	if (pTable == GetSMG1Acttable() || pTable == GetPistolActtable())
+		return NULL;
+
+	// Use a backup table based on what ACT_IDLE_ANGRY is translated to
+	Activity actTranslated = ACT_INVALID;
+	for ( int i = 0; i < actCount; i++, pTable++ )
+	{
+		if ( pTable->baseAct == ACT_IDLE_ANGRY )
+		{
+			actTranslated = (Activity)pTable->weaponAct;
+			break;
+		}
+	}
+
+	if (actTranslated == ACT_INVALID)
+		return NULL;
+
+	switch (actTranslated)
+	{
+#if EXPANDED_HL2_WEAPON_ACTIVITIES
+		case ACT_IDLE_ANGRY_REVOLVER:
+#endif
+		case ACT_IDLE_ANGRY_PISTOL:
+			{
+				actCount = GetPistolActtableCount();
+				return GetPistolActtable();
+			}
+#if EXPANDED_HL2_WEAPON_ACTIVITIES
+		case ACT_IDLE_ANGRY_CROSSBOW:	// For now, crossbows are rifles
+#endif
+#if EXPANDED_HL2_UNUSED_WEAPON_ACTIVITIES
+		case ACT_IDLE_ANGRY_AR1:
+		case ACT_IDLE_ANGRY_SMG2:
+		case ACT_IDLE_ANGRY_SNIPER_RIFLE:
+#endif
+		case ACT_IDLE_ANGRY_SMG1:
+		case ACT_IDLE_ANGRY_AR2:
+		case ACT_IDLE_ANGRY_SHOTGUN:
+		case ACT_IDLE_ANGRY_RPG:
+			{
+				actCount = GetSMG1ActtableCount();
+				return GetSMG1Acttable();
+			}
+	}
+#endif
+
+	actCount = 0;
+	return NULL;
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
 const char *CBaseHLCombatWeapon::GetViewModel( int viewmodelindex ) const
 {
 	if (GetOwner() && GetOwner()->IsPlayer() && viewmodelindex == 0)
@@ -472,6 +638,29 @@ float CBaseHLCombatWeapon::GetViewmodelFOVOverride() const
 	return BaseClass::GetViewmodelFOVOverride();
 }
 
+float CBaseHLCombatWeapon::GetBobScale() const
+{
+	return GetHL2WpnData().m_flBobScale;
+}
+
+float CBaseHLCombatWeapon::GetSwayScale() const
+{
+	return GetHL2WpnData().m_flSwayScale;
+}
+
+float CBaseHLCombatWeapon::GetSwaySpeedScale() const
+{
+	return GetHL2WpnData().m_flSwaySpeedScale;
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+bool CBaseHLCombatWeapon::CanBePickedUpByNPCs( void )
+{
+	return GetHL2WpnData().m_nWeaponRestriction != WPNRESTRICT_PLAYER_ONLY;
+}
+
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
@@ -484,21 +673,6 @@ bool CBaseHLCombatWeapon::UsesHands() const
 			return *bProtagUsesHands;
 	}
 
-	return BaseClass::UsesHands();
-}
-
-//-----------------------------------------------------------------------------
-// Purpose: 
-//-----------------------------------------------------------------------------
-int CBaseHLCombatWeapon::GetHandRig() const
-{
-	if (GetOwner() && GetOwner()->IsPlayer())
-	{
-		int *nProtagHandRig = g_ProtagonistSystem.GetProtagonist_HandRig( static_cast<CBasePlayer *>(GetOwner()), this );
-		if (nProtagHandRig)
-			return *nProtagHandRig;
-	}
-
-	return BaseClass::GetHandRig();
+	return GetHL2WpnData().m_bUsesHands;
 }
 #endif

@@ -7,6 +7,9 @@
 
 #include "cbase.h"
 #include "ammodef.h"
+#if defined(HL2_DLL) || defined(HL2_CLIENT_DLL)
+#include "basehlcombatweapon_shared.h"
+#endif
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -243,6 +246,7 @@ void CBaseCombatCharacter::InputSetBloodColor( inputdata_t &inputdata )
 //-----------------------------------------------------------------------------
 static Activity Weapon_BackupActivityFromList( CBaseCombatCharacter *pBCC, acttable_t *pTable, int actCount, Activity activity, bool weaponTranslationWasRequired, CBaseCombatWeapon *pWeapon )
 {
+#ifdef USE_BACKUP_WEAPON_ACTIVITIES
 	int i = 0;
 	for ( ; i < actCount; i++, pTable++ )
 	{
@@ -257,11 +261,12 @@ static Activity Weapon_BackupActivityFromList( CBaseCombatCharacter *pBCC, actta
 	}
 
 	// We didn't succeed in finding an activity. See if we can recurse
-	acttable_t *pBackupTable = CBaseCombatWeapon::GetDefaultBackupActivityList( pTable - i, actCount );
+	acttable_t *pBackupTable = CBaseHLCombatWeapon::GetDefaultBackupActivityList( pTable - i, actCount );
 	if (pBackupTable)
 	{
 		return Weapon_BackupActivityFromList( pBCC, pBackupTable, actCount, activity, weaponTranslationWasRequired, pWeapon );
 	}
+#endif
 
 	return activity;
 }
@@ -272,6 +277,7 @@ static Activity Weapon_BackupActivityFromList( CBaseCombatCharacter *pBCC, actta
 //-----------------------------------------------------------------------------
 Activity CBaseCombatCharacter::Weapon_BackupActivity( Activity activity, bool weaponTranslationWasRequired, CBaseCombatWeapon *pSpecificWeapon )
 {
+#ifdef USE_BACKUP_WEAPON_ACTIVITIES
 	CBaseCombatWeapon *pWeapon = pSpecificWeapon ? pSpecificWeapon : GetActiveWeapon();
 	if (!pWeapon)
 		return activity;
@@ -294,13 +300,14 @@ Activity CBaseCombatCharacter::Weapon_BackupActivity( Activity activity, bool we
 	{
 		// Look for a default list
 		acttable_t *pDefaultTable = pWeapon->ActivityList( actCount );
-		pTable = CBaseCombatWeapon::GetDefaultBackupActivityList( pDefaultTable, actCount );
+		pTable = CBaseHLCombatWeapon::GetDefaultBackupActivityList( pDefaultTable, actCount );
 	}
 
 	if (pTable && GetModelPtr())
 	{
 		return Weapon_BackupActivityFromList( this, pTable, actCount, activity, weaponTranslationWasRequired, pWeapon );
 	}
+#endif
 
 	return activity;
 }

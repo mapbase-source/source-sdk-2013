@@ -11,15 +11,15 @@
 #endif
 
 
-#include "weapon_parse.h"
+#include "hl2_weapon_parse.h"
 #include "networkvar.h"
 
 
 //--------------------------------------------------------------------------------------------------------
-class CHL2MPSWeaponInfo : public FileWeaponInfo_t
+class CHL2MPSWeaponInfo : public CHL2WeaponInfo
 {
 public:
-	DECLARE_CLASS_GAMEROOT( CHL2MPSWeaponInfo, FileWeaponInfo_t );
+	DECLARE_CLASS_GAMEROOT( CHL2MPSWeaponInfo, CHL2WeaponInfo );
 	
 	CHL2MPSWeaponInfo();
 	
