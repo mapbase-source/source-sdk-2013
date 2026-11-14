@@ -84,9 +84,6 @@
 #ifdef HL2_DLL
 #include "combine_mine.h"
 #include "weapon_physcannon.h"
-#ifdef MAPBASE
-#include "mapbase/GlobalStrings.h"
-#endif
 #endif
 
 #ifdef MAPBASE

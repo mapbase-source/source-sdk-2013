@@ -475,25 +475,11 @@ protected:
 
 	//-----------------------------------------------------
 
-#ifdef MAPBASE
-	static string_t gm_iszMortarClassname;
-	#define gm_iszFloorTurretClassname gm_isz_class_FloorTurret
-	static string_t gm_iszGroundTurretClassname;
-	#define gm_iszShotgunClassname gm_isz_class_Shotgun
-	#define gm_iszRollerMineClassname gm_isz_class_Rollermine
-	#define gm_iszSMG1Classname gm_isz_class_SMG1
-	#define gm_iszAR2Classname gm_isz_class_AR2
-#else
 	static string_t gm_iszMortarClassname;
 	static string_t gm_iszFloorTurretClassname;
 	static string_t gm_iszGroundTurretClassname;
 	static string_t gm_iszShotgunClassname;
 	static string_t	gm_iszRollerMineClassname;
-#ifdef MAPBASE
-	static string_t gm_iszSMG1Classname;
-	static string_t gm_iszAR2Classname;
-#endif
-#endif
 
 	//-----------------------------------------------------
 
