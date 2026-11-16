@@ -2409,7 +2409,7 @@ void CTFFlameThrower::StartFlame()
 		}
 		else
 		{
-			char *pchFireHitSound = "Weapon_FlameThrower.FireHit";
+			const char *pchFireHitSound = "Weapon_FlameThrower.FireHit";
 
 			if ( GetFlameThrowerMode() == TF_FLAMETHROWER_MODE_RAINBOW )
 			{

@@ -530,7 +530,7 @@ void CNPC_CScanner::HandleAnimEvent( animevent_t *pEvent )
 //-----------------------------------------------------------------------------
 // Purpose:
 //-----------------------------------------------------------------------------
-char *CNPC_CScanner::GetEngineSound( void )
+const char *CNPC_CScanner::GetEngineSound( void )
 {
 	if( m_bIsClawScanner )
 		return "NPC_SScanner.FlyLoop";
@@ -1793,7 +1793,6 @@ Vector CNPC_CScanner::SpotlightCurrentPos(void)
 	//  Calculate new beam direction
 	// ------------------------------
 	m_vSpotlightDir = m_vSpotlightDir + m_vSpotlightAngVelocity;
-	m_vSpotlightDir = m_vSpotlightDir;
 	VectorNormalize(m_vSpotlightDir);
 
 
@@ -2340,7 +2339,7 @@ void CNPC_CScanner::StartTask( const Task_t *pTask )
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-char *CNPC_CScanner::GetScannerSoundPrefix( void )
+const char *CNPC_CScanner::GetScannerSoundPrefix( void )
 {
 	if( m_bIsClawScanner )
 		return "NPC_SScanner";

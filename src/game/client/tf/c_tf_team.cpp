@@ -87,7 +87,7 @@ void C_TFTeam::OnDataChanged( DataUpdateType_t updateType )
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-char* C_TFTeam::Get_Name( void )
+const char* C_TFTeam::Get_Name( void )
 {
 	// Use Get_Localized_Name() instead
 	AssertMsg( false, "Use Get_Localized_Name() instead" );
@@ -120,7 +120,7 @@ void C_TFTeam::UpdateTeamName( void )
 			if ( g_TF_PR && ( g_TF_PR->HasPremadeParties() || g_TF_PR->GetEventTeamStatus() ) )
 			{
 				wchar_t wszTempName[MAX_TEAM_NAME_LENGTH];
-				wchar_t *pFormat = g_pVGuiLocalize->Find( "#TF_Team_PartyLeader" );
+				const wchar_t *pFormat = g_pVGuiLocalize->Find( "#TF_Team_PartyLeader" );
 				if ( !pFormat )
 				{
 					pFormat = L"%s";

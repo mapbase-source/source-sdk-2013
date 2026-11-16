@@ -285,7 +285,7 @@ static const char *FindDetailVBSPName( void )
 {
 	for( int i = 0; i < num_entities; i++ )
 	{
-		char* pEntity = ValueForKey( &entities[i], "classname" );
+		const char* pEntity = ValueForKey( &entities[i], "classname" );
 		if ( !strcmp( pEntity, "worldspawn" ) )
 		{
 			const char *pDetailVBSP = ValueForKey( &entities[i], "detailvbsp" );
@@ -904,12 +904,12 @@ void EmitDetailModels()
 	Vector2D tex[2];
 	for (int i = 0; i < num_entities; ++i)
 	{
-		char* pEntity = ValueForKey(&entities[i], "classname");
+		const char* pEntity = ValueForKey(&entities[i], "classname");
 		if (!strcmp(pEntity, "detail_prop") || !strcmp(pEntity, "prop_detail"))
 		{
 			GetVectorForKey( &entities[i], "origin", origin );
 			GetAnglesForKey( &entities[i], "angles", angles );
-			char* pModelName = ValueForKey( &entities[i], "model" );
+			const char* pModelName = ValueForKey( &entities[i], "model" );
 			int nOrientation = IntForKey( &entities[i], "detailOrientation" );
 
 			AddDetailToLump( pModelName, origin, angles, nOrientation );

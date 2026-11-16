@@ -1390,7 +1390,7 @@ void CWaveCompleteSummaryPanel::OnTick( void )
 //-----------------------------------------------------------------------------
 // Purpose: updates the target field based on the input args.  Returns TRUE if transitioning to new state
 //-----------------------------------------------------------------------------
-bool CWaveCompleteSummaryPanel::StateUpdateValue( vgui::EditablePanel *parent, char* field, float targetTime, float currentTime, int nextState, int endValue )
+bool CWaveCompleteSummaryPanel::StateUpdateValue( vgui::EditablePanel *parent, const char* field, float targetTime, float currentTime, int nextState, int endValue )
 {
 	float fPercent = currentTime / targetTime;
 	fPercent = 1.0 < fPercent ? 1.0f : fPercent;

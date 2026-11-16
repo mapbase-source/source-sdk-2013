@@ -388,7 +388,7 @@ FORCEINLINE_PIXEL void CPixelWriter::Seek( int x, int y )
 //-----------------------------------------------------------------------------
 // Skips n bytes:
 //-----------------------------------------------------------------------------
-FORCEINLINE_PIXEL void* CPixelWriter::SkipBytes( int n ) RESTRICT
+FORCEINLINE_PIXEL void* CPixelWriter::SkipBytes( int n )
 {
 	m_pBits += n;
 	return m_pBits;

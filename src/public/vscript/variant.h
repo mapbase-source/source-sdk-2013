@@ -128,7 +128,7 @@ public:
 	operator uint() const					{ Assert( m_type == FIELD_UINT );		return m_uint; }
 //	operator int64() const					{ Assert( m_type == FIELD_INTEGER64 );	return m_int64; }
 	operator uint64() const					{ Assert( m_type == FIELD_UINT64 );		return m_uint64; }
-	operator float() const					{ ( m_type == FIELD_INTEGER || m_type == FIELD_FLOAT );		return ( m_type == FIELD_FLOAT ) ? m_float : (float)m_int; }
+	operator float() const					{ Assert( m_type == FIELD_INTEGER || m_type == FIELD_FLOAT );	return ( m_type == FIELD_FLOAT ) ? m_float : (float)m_int; }
 	operator float64() const				{ Assert( m_type == FIELD_FLOAT64 );	return m_float64; }
 	operator const char *() const			{ Assert( m_type == FIELD_CSTRING );	return m_pszString; }
 	operator const Vector2D &() const		{ Assert( m_type == FIELD_VECTOR2D );	return m_pData ? *(Vector2D*)m_pData : vec2_origin; }
@@ -445,7 +445,7 @@ template< class CValueAllocator >
 template< typename T > 
 inline void CVariantBase<CValueAllocator>::CopyData( const T &src, bool bForceCopy )
 {
-	COMPILE_TIME_ASSERT( ( ExtendedFieldType_t )VariantDeduceType( T ) != FIELD_TYPEUNKNOWN );
+	COMPILE_TIME_ASSERT( ( ExtendedFieldType_t )VariantDeducer_t<T>::FIELD_TYPE != FIELD_TYPEUNKNOWN );
 
 	Free();
 	m_type = VariantDeduceType( T );

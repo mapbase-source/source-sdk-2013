@@ -2335,7 +2335,7 @@ void CNPC_PlayerCompanion::SetAimTarget( CBaseEntity *pTarget )
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-void CNPC_PlayerCompanion::StopAiming( char *pszReason )
+void CNPC_PlayerCompanion::StopAiming( const char *pszReason )
 {
 #if 0
 	if( pszReason )

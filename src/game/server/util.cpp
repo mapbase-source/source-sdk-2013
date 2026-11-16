@@ -213,7 +213,7 @@ void CEntityFactoryDictionary::UninstallFactory(const char* pClassName)
 	m_Factories.Remove(pClassName);
 }
 
-int EntityFactory_AutoComplete( const char *cmdname, CUtlVector< CUtlString > &commands, CUtlRBTree< CUtlString > &symbols, char *substring, int checklen = 0 )
+int EntityFactory_AutoComplete( const char *cmdname, CUtlVector< CUtlString > &commands, CUtlRBTree< CUtlString > &symbols, const char *substring, int checklen = 0 )
 {
 	CEntityFactoryDictionary *pFactoryDict = (CEntityFactoryDictionary*)EntityFactoryDictionary();
 	for ( int i = pFactoryDict->m_Factories.First(); i != pFactoryDict->m_Factories.InvalidIndex(); i = pFactoryDict->m_Factories.Next( i ) )

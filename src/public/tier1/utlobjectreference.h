@@ -97,12 +97,6 @@ public:
 		return *this;
 	}
 
-
-	FORCEINLINE bool operator==( const CUtlReference& o ) const
-	{
-		return ( o.m_pObject == m_pObject );
-	}	
-
 public:
 	CUtlReference *m_pNext;
 	CUtlReference *m_pPrev;

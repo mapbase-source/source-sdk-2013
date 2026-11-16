@@ -50,7 +50,7 @@ public:
 private:
 	bool IsValidPath( const char *pszFolder );
 	void LogEvent( EDemoEventType eType, int nValue = 0, const char *pszValue = NULL );
-	void Notify( char *pszMessage );
+	void Notify( const char *pszMessage );
 
 	bool m_bRecording;
 	char m_szFolder[24];

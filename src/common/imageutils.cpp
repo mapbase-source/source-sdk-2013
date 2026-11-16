@@ -863,13 +863,13 @@ unsigned char *ImgUtl_ReadBMPAsRGBA( const char *bmpPath, int &width, int &heigh
 				RGBQUAD *rgbQuad = &(bitmapInfo->bmiColors[colorTableEntry]);
 
 				// copy the pixel's color values to the destination buffer.
-				pDest[0] = pSrc[2]; // R
-				pDest[1] = pSrc[1]; // G
-				pDest[2] = pSrc[0]; // B
+				pDest[0] = rgbQuad->rgbRed; // R
+				pDest[1] = rgbQuad->rgbGreen; // G
+				pDest[2] = rgbQuad->rgbBlue; // B
 				pDest[3] = 0xff; // A
 
 				// make sure we haven't reached the end of the row.
-				if ((x + 1) > bitmap.bmWidth)
+				if ((x + 1) >= bitmap.bmWidth)
 				{
 					break;
 				}
@@ -883,9 +883,9 @@ unsigned char *ImgUtl_ReadBMPAsRGBA( const char *bmpPath, int &width, int &heigh
 				rgbQuad = &(bitmapInfo->bmiColors[colorTableEntry]);
 
 				// copy the pixel's color values to the destination buffer.
-				pDest[0] = pSrc[2]; // R
-				pDest[1] = pSrc[1]; // G
-				pDest[2] = pSrc[0]; // B
+				pDest[0] = rgbQuad->rgbRed; // R
+				pDest[1] = rgbQuad->rgbGreen; // G
+				pDest[2] = rgbQuad->rgbBlue; // B
 				pDest[3] = 0xff; // A
 
 				++pSrc;
@@ -926,9 +926,9 @@ unsigned char *ImgUtl_ReadBMPAsRGBA( const char *bmpPath, int &width, int &heigh
 					}
 
 					// copy this pixel's color values into the destination buffer.
-					pDest[0] = pSrc[2]; // R
-					pDest[1] = pSrc[1]; // G
-					pDest[2] = pSrc[0]; // B
+					pDest[0] = rgbQuad->rgbRed; // R
+					pDest[1] = rgbQuad->rgbGreen; // G
+					pDest[2] = rgbQuad->rgbBlue; // B
 					pDest[3] = 0xff; // A
 					pDest += 4;
 
@@ -1359,16 +1359,16 @@ ConversionErrorType ImgUtl_ConvertTGAToVTF(const char *tgaPath, int nMaxWidth/*=
 		return CE_ERROR_LOADING_DLL;
 	}
 
-	char *vtfParams[4];
+	const char *vtfParams[4];
 
 	// the 0th entry is skipped cause normally thats the program name.
 	vtfParams[0] = "";
 	vtfParams[1] = "-quiet";
 	vtfParams[2] = "-dontusegamedir";
-	vtfParams[3] = (char *)tgaPath;
+	vtfParams[3] = tgaPath;
 
 	// call vtex to do the conversion.
-	vtex->VTex(4, vtfParams);  // how do we know this works?
+	vtex->VTex(4, const_cast<char**>(vtfParams));  // how do we know this works?
 
 	Sys_UnloadModule(vtexmod);
 

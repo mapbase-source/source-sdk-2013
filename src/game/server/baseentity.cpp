@@ -1856,7 +1856,7 @@ int CBaseEntity::TakeDamage( const CTakeDamageInfo &inputInfo )
 			pVM->SetValue( varTable, "player_penetration_count", info.GetPlayerPenetrationCount() );
 			pVM->SetValue( varTable, "damaged_other_players", info.GetDamagedOtherPlayers() );
 			pVM->SetValue( varTable, "crit_type", (int)info.GetCritType() );
-			pVM->SetValue( varTable, "early_out", false );
+			pVM->SetValue( varTable, "early_out", ScriptVariant_t( false ) );
 
 			if ( RunScriptHook( "OnTakeDamage", varTable ) )
 			{
@@ -10901,7 +10901,7 @@ bool CBaseEntity::ScriptDispatchInteraction( int interactionType, HSCRIPT data, 
 
 
 #ifdef MAPBASE
-extern int EntityFactory_AutoComplete( const char *cmdname, CUtlVector< CUtlString > &commands, CUtlRBTree< CUtlString > &symbols, char *substring, int checklen = 0 );
+extern int EntityFactory_AutoComplete( const char *cmdname, CUtlVector< CUtlString > &commands, CUtlRBTree< CUtlString > &symbols, const char *substring, int checklen = 0 );
 
 //------------------------------------------------------------------------------
 // Purpose: Create an entity of the given type

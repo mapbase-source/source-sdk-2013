@@ -1,4 +1,4 @@
-//========== Copyright © 2008, Valve Corporation, All rights reserved. ========
+//========== Copyright Â© 2008, Valve Corporation, All rights reserved. ========
 //
 // Purpose:
 //
@@ -2290,8 +2290,8 @@ static void Script_QueueSpeak( HSCRIPT hEntity, const char *pszConcept, float fl
 		criteria.Merge( pszCriteria );
 	}
 
-	AIConcept_t concept( pszConcept );
-	QueueSpeak( concept, pBaseEntity, flDelay, criteria );
+	AIConcept_t rconcept( pszConcept );
+	QueueSpeak( rconcept, pBaseEntity, flDelay, criteria );
 }
 #endif
 
@@ -2348,7 +2348,7 @@ static void ScriptSetSkyboxTexture( const char* pszSkyboxName )
 	}
 
 	char  name[ MAX_PATH ];
-	char *skyboxsuffix[ 6 ] = { "rt", "bk", "lf", "ft", "up", "dn" };
+	const char *skyboxsuffix[ 6 ] = { "rt", "bk", "lf", "ft", "up", "dn" };
 	for ( int i = 0; i < 6; i++ )
 	{
 		Q_snprintf( name, sizeof( name ), "skybox/%s%s", pszSkyboxName, skyboxsuffix[i] );
@@ -3903,24 +3903,6 @@ CON_COMMAND_F( script_attach_debugger, "Connect the vscript VM to the script deb
 	g_pScriptVM->ConnectDebugger();
 }
 
-CON_COMMAND_F( script_debug, "Toggle the in-game script debug features", FCVAR_CHEAT )
-{
-	if ( !UTIL_IsCommandIssuedByServerAdmin() )
-		return;
-
-	if ( tolower(*args[1]) == 'w'/*atch*/ )
-	{
-		g_pScriptVM->Run( "ScriptDebugDrawWatchesEnabled = !ScriptDebugDrawWatchesEnabled" );
-		return;
-	}
-	else if ( tolower(*args[1]) == 'm'/*essages*/ )
-	{
-		g_pScriptVM->Run( "ScriptDebugDrawTextEnabled = !ScriptDebugDrawTextEnabled" );
-		return;
-	}
-
-	VScriptServerToggleGameDebug();
-}
 
 CON_COMMAND_F( script_add_watch, "Add a watch to the game debug overlay", FCVAR_CHEAT )
 {

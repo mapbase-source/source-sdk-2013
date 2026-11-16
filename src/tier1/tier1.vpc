@@ -83,6 +83,15 @@ $Project "tier1"
 		$File	"snappy-stubs-internal.cpp"
 		$File	"mapbase_con_groups.cpp" [$MAPBASE]
 		$File	"mapbase_matchers_base.cpp" [$MAPBASE]
+		{
+			$Configuration
+			{
+				$Compiler
+				{
+					$EnableC++Exceptions	"Yes (/EHsc)" [$WINDOWS]
+				}
+			}
+		}
 	}
 
 	// Select bits from the LZMA SDK to support lzmaDecoder.h

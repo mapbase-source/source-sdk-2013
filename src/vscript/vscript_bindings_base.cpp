@@ -365,7 +365,7 @@ void CScriptKeyValues::ScriptSetBool( bool bValue )
 
 
 // constructors
-CScriptKeyValues::CScriptKeyValues( KeyValues *pKeyValues = NULL, bool bBorrow = false ) :
+CScriptKeyValues::CScriptKeyValues( KeyValues *pKeyValues, bool bBorrow ) :
 	m_pBase( NULL )
 {
 	if (pKeyValues == NULL)

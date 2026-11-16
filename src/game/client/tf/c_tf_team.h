@@ -35,7 +35,7 @@ public:
 
 	int				GetFlagCaptures( void ) { return m_nFlagCaptures; }
 	int				GetRole( void ) { return m_iRole; }
-	char			*Get_Name( void );
+	const char		*Get_Name( void );
 
 	int				GetNumObjects( int iObjectType = -1 );
 	CBaseObject		*GetObject( int num );

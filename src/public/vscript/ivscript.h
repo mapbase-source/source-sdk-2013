@@ -691,7 +691,7 @@ inline IScriptInstanceHelper *GetScriptInstanceHelper_ScriptNoBase_t()
 struct ScriptNoBase_t;
 
 #ifdef MAPBASE_VSCRIPT
-template <typename T> ScriptClassDesc_t *GetScriptDesc(T *, bool = false);
+template <typename T> ScriptClassDesc_t *GetScriptDesc(T *, bool init = false);
 
 template <> inline ScriptClassDesc_t *GetScriptDesc<ScriptNoBase_t>( ScriptNoBase_t *, bool ) { return NULL; }
 #else

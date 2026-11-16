@@ -244,7 +244,7 @@ void CHudSquadStatus::Paint()
 	}
 
 	// draw our squad status
-	wchar_t *text = NULL;
+	const wchar_t *text = NULL;
 	if (m_bSquadMembersFollowing)
 	{
 		text = g_pVGuiLocalize->Find("#Valve_Hud_SQUAD_FOLLOWING");
