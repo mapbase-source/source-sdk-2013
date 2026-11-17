@@ -109,6 +109,10 @@ public:
 	}
 };
 
+#ifdef SDK_MP
+#define CFltx4StridedPtr CStridedPtr<fltx4>
+#define CFltx4StridedConstPtr CStridedConstPtr<fltx4>
+#else
 class CFltx4StridedPtr
 {
 private:
@@ -197,6 +201,7 @@ public:
 		m_pData += nNumElements*m_nStride;
 	}
 };
+#endif
 
 // allowed field data types. if you change these values, you need to change the tables in the .cpp file
 enum EAttributeDataType

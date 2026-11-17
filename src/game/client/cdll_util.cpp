@@ -919,6 +919,7 @@ void UTIL_ReplaceKeyBindings( const wchar_t *inbuf, int inbufsizebytes, OUT_Z_BY
 				char binding[64];
 				g_pVGuiLocalize->ConvertUnicodeToANSI( token, binding, sizeof(binding) );
 
+#ifdef SDK_MP
 				// Find a Steam Controller mapping, if an action set was specified and steam controller is active.
 				const char* sc_origin = nullptr;
 				if ( actionset != GAME_ACTION_SET_NONE && g_pInputSystem->IsSteamControllerActive() )
@@ -930,6 +931,7 @@ void UTIL_ReplaceKeyBindings( const wchar_t *inbuf, int inbufsizebytes, OUT_Z_BY
 						sc_origin = pSteamController ? pSteamController->GetStringForActionOrigin( origin ) : "";
 					}
 				}
+#endif
 
 				// Find also the keyboard mapping
 				const char *key = engine->Key_LookupBinding( *binding == '+' ? binding + 1 : binding );
@@ -961,6 +963,7 @@ void UTIL_ReplaceKeyBindings( const wchar_t *inbuf, int inbufsizebytes, OUT_Z_BY
 
 				const wchar_t* locName = nullptr;
 
+#ifdef SDK_MP
 				// If we got a Steam Controller key description, use that, otherwise use the (possibly localized) key name
 				CStrAutoEncode sc_origin_encoded( sc_origin );
 
@@ -969,6 +972,7 @@ void UTIL_ReplaceKeyBindings( const wchar_t *inbuf, int inbufsizebytes, OUT_Z_BY
 					locName = sc_origin_encoded.ToWString();
 				}
 				else
+#endif
 				{
 					locName = g_pVGuiLocalize->Find( friendlyName );
 				}

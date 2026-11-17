@@ -2022,8 +2022,14 @@ void CLocatorPanel::DrawTargetCaption( CLocatorTarget *pTarget, int x, int y, bo
 		if ( bDrawGlow )
 		{
 			vgui::surface()->DrawSetTextFont( m_hCaptionGlowFont );
+#ifdef SDK_MP
+			color32 glowColor;
+			UTIL_StringToColor32( &glowColor, locator_text_glow_color.GetString() );
+			vgui::surface()->DrawSetTextColor( glowColor.r, glowColor.g, glowColor.b, ( glowColor.a / 255.0f ) * pTarget->m_alpha );
+#else
 			Color glowColor = locator_text_glow_color.GetColor();
 			vgui::surface()->DrawSetTextColor( glowColor.r(), glowColor.g(), glowColor.b(), ( glowColor.a() / 255.0f ) * pTarget->m_alpha );
+#endif
 			vgui::surface()->DrawSetTextPos( x - 1, y - (fontTall >>1) - 1 );
 			vgui::surface()->DrawUnicodeString( pTarget->GetCaptionText() );
 			vgui::surface()->DrawSetTextFont( m_hCaptionFont );
@@ -2052,7 +2058,12 @@ void CLocatorPanel::DrawTargetCaption( CLocatorTarget *pTarget, int x, int y, bo
 		const wchar_t *pString = pTarget->GetCaptionText();
 		int len = Q_wcslen( pString );
 
+#ifdef SDK_MP
+		color32 glowColor;
+		UTIL_StringToColor32( &glowColor, locator_text_glow_color.GetString() );
+#else
 		Color glowColor = locator_text_glow_color.GetColor();
+#endif
 		for ( int iChar = 0; iChar < len; ++ iChar )
 		{
 			int charW = vgui::surface()->GetCharacterWidth( m_hCaptionFont, pString[ iChar ] );
@@ -2068,7 +2079,11 @@ void CLocatorPanel::DrawTargetCaption( CLocatorTarget *pTarget, int x, int y, bo
 			if ( bDrawGlow )
 			{
 				vgui::surface()->DrawSetTextFont( m_hCaptionGlowFont );
+#ifdef SDK_MP
+				vgui::surface()->DrawSetTextColor( glowColor.r, glowColor.g, glowColor.b, ( glowColor.a / 255.0f ) * pTarget->m_alpha );
+#else
 				vgui::surface()->DrawSetTextColor( glowColor.r(), glowColor.g(), glowColor.b(), ( glowColor.a() / 255.0f ) * pTarget->m_alpha );
+#endif
 				vgui::surface()->DrawSetTextPos( charX - 1, charY );
 				vgui::surface()->DrawUnicodeChar( pString[iChar] );
 				vgui::surface()->DrawSetTextFont( m_hCaptionFont );

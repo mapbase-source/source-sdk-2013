@@ -168,7 +168,9 @@ public:
 	void BindTexture( Sampler_t sampler1, ITexture *pTexture, int nFrame = 0 );
 	void BindTexture( Sampler_t sampler1, Sampler_t sampler2, ITexture *pTexture, int nFrame = 0 );
 
+#ifdef SDK_MP
 	void GetTextureDimensions( float* pOutWidth, float* pOutHeight, int nTextureVar );
+#endif
 
 	// Is the texture translucent?
 	bool TextureIsTranslucent( int textureVar, bool isBaseTexture );

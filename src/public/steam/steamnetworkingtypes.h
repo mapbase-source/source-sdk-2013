@@ -4,6 +4,11 @@
 //
 //=============================================================================
 
+#ifdef SDK_SP
+// Not in SP SDK
+#define STEAMNETWORKINGTYPES
+#endif
+
 #ifndef STEAMNETWORKINGTYPES
 #define STEAMNETWORKINGTYPES
 #pragma once

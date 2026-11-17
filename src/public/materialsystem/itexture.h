@@ -125,6 +125,7 @@ public:
 	// Save texture to a file.
 	virtual bool SaveToFile( const char *fileName ) = 0;
 
+#ifdef SDK_MP
 	// Copy this texture, which must be a render target or a renderable texture, to the destination texture, 
 	// which must have been created with the STAGING bit.
 	virtual void CopyToStagingTexture( ITexture* pDstTex ) = 0;
@@ -134,6 +135,7 @@ public:
 
 	// Download textures, except return true if we were successful and false if we were not.
 	virtual bool BDownload( Rect_t *pRect = 0, int nAdditionalCreationFlags = 0 ) = 0;
+#endif
 };
 
 

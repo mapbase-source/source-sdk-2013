@@ -41,6 +41,7 @@ public:
 	// copies the string passwed
 	virtual void SetParm( int nIndex, char const *pNewParm ) =0;
 
+#ifdef SDK_MP
 	virtual const char *ParmValueByIndex( int nIndex, const char *pDefaultVal = 0 ) const = 0;
 
 	// A bool return of whether param exists, useful for just checking if param that is just a flag is set
@@ -51,6 +52,7 @@ public:
 	// Newer call with flag to control paramfile behavior
 	virtual void		CreateCmdLine1( const char *commandline, bool bParseParamFiles ) = 0;
 	virtual void		CreateCmdLine1( int argc, char **argv, bool bParseParamFiles ) = 0;
+#endif
 };
 
 //-----------------------------------------------------------------------------

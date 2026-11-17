@@ -59,6 +59,9 @@ typedef int32 HSteamUser;
 
 // function prototype
 extern "C" typedef void ( S_CALLTYPE *SteamAPIWarningMessageHook_t )( int, const char * );
+#ifndef SDK_MP
+extern "C" typedef void(*SteamAPI_PostAPIResultInProcess_t)(SteamAPICall_t callHandle, void *, uint32 unCallbackSize, int iCallbackNum);
+#endif
 extern "C" typedef uint32 ( S_CALLTYPE *SteamAPI_CheckCallbackRegistered_t )( int iCallbackNum );
 #if defined( __SNC__ )
 	#pragma diag_suppress=1700	   // warning 1700: class "%s" has virtual functions but non-virtual destructor

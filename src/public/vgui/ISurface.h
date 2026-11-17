@@ -40,11 +40,6 @@ class IImage;
 class Image;
 class Point;
 
-// handles
-typedef uint32 HCursor;
-typedef uint32 HTexture;
-typedef uint32 HFont;
-
 
 //SRC only defines
 

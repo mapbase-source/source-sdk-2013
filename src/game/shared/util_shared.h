@@ -696,6 +696,7 @@ EUniverse GetUniverse();
 
 CSteamID SteamIDFromDecimalString( const char *pszUint64InDecimal );
 
+#ifdef SDK_MP
 //-----------------------------------------------------------------------------
 // Try to parse an un-ambiguous steamID from a string
 //
@@ -713,6 +714,7 @@ CSteamID UTIL_SteamIDFromProperString( const char *pszInputRaw, bool bAllowSteam
 //   or un-ambiugous result
 //-----------------------------------------------------------------------------
 CSteamID UTIL_GuessSteamIDFromFuzzyInput( const char *pszInputRaw, bool bCurrentUniverseOnly = true );
+#endif
 
 // This will return the first active operation string it can find. In the case of multiple
 // operations overlapping, the list order will act as priority.

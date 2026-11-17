@@ -183,7 +183,9 @@ public:
 	bool		 BIsBeingManipulated() const { return m_bMousePressed; }
 
 	studiohdr_t* GetStudioHdr( void ) { return m_RootMDL.m_MDL.GetStudioHdr(); }
+#ifdef SDK_MP
 	CStudioHdr* GetStudioHdrFull( void ) { return m_RootMDL.m_pStudioHdr; }
+#endif
 	void SetBody( unsigned int nBody ) { m_RootMDL.m_MDL.m_nBody = nBody; }
 
 	void		RotateYaw( float flDelta );

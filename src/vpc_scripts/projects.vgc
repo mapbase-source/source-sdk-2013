@@ -28,20 +28,20 @@ $Project "fgdlib"
 
 $Project "game_shader_generic_example"
 {
-	"materialsystem\stdshaders\game_shader_generic_example_hl2mp.vpc" [$HL2MP]
-	"materialsystem\stdshaders\game_shader_generic_example_tf.vpc" [$TF]
-	"materialsystem\stdshaders\game_shader_generic_example_hl2.vpc" [$HL2]
-	"materialsystem\stdshaders\game_shader_generic_example_episodic.vpc" [$EPISODIC]
+	"materialsystem\stdshaders\game_shader_generic_example_hl2mp.vpc" [$HL2MP && ($WIN32||$LINUX32)] // SDK_SP (see sdk_sp_branch.vpc)
+	"materialsystem\stdshaders\game_shader_generic_example_tf.vpc" [$TF && ($WIN32||$LINUX32)] // SDK_SP (see sdk_sp_branch.vpc)
+	"materialsystem\stdshaders\game_shader_generic_example_hl2.vpc" [$HL2 && ($WIN32||$LINUX32)] // SDK_SP (see sdk_sp_branch.vpc)
+	"materialsystem\stdshaders\game_shader_generic_example_episodic.vpc" [$EPISODIC && ($WIN32||$LINUX32)] // SDK_SP (see sdk_sp_branch.vpc)
 }
 
 // Use this project if you want to override all std shaders with your own.
 // By default it will override ALL of them. So feel free to cut it down if you want :)
 $Project "game_shader_generic_std"
 {
-	"materialsystem\stdshaders\game_shader_generic_std_hl2mp.vpc" [$HL2MP]
-	"materialsystem\stdshaders\game_shader_generic_std_tf.vpc" [$TF]
-	"materialsystem\stdshaders\game_shader_generic_std_hl2.vpc" [$HL2]
-	"materialsystem\stdshaders\game_shader_generic_std_episodic.vpc" [$EPISODIC]
+	"materialsystem\stdshaders\game_shader_generic_std_hl2mp.vpc" [$HL2MP && ($WIN64||$LINUX64)] // SDK_MP (see sdk_sp_branch.vpc)
+	"materialsystem\stdshaders\game_shader_generic_std_tf.vpc" [$TF && ($WIN64||$LINUX64)] // SDK_MP (see sdk_sp_branch.vpc)
+	"materialsystem\stdshaders\game_shader_generic_std_hl2.vpc" [$HL2 && ($WIN64||$LINUX64)] // SDK_MP (see sdk_sp_branch.vpc)
+	"materialsystem\stdshaders\game_shader_generic_std_episodic.vpc" [$EPISODIC && ($WIN64||$LINUX64)] // SDK_MP (see sdk_sp_branch.vpc)
 }
 
 $Project "glview"
@@ -66,8 +66,8 @@ $Project "launcher_main"
 {
 	"launcher_main\launcher_main_mod_hl2mp.vpc" [$HL2MP]
 	"launcher_main\launcher_main_mod_tf.vpc" [$TF]
-	"launcher_main\launcher_main_mod_hl2.vpc" [$HL2]
-	"launcher_main\launcher_main_mod_episodic.vpc" [$EPISODIC]
+	"launcher_main\launcher_main_mod_hl2.vpc" [$HL2&&$SP_LAUNCHER] // SDK_SP (see sdk_sp_branch.vpc)
+	"launcher_main\launcher_main_mod_episodic.vpc" [$EPISODIC&&$SP_LAUNCHER] // SDK_SP (see sdk_sp_branch.vpc)
 }
 
 $Project "responserules"
@@ -82,7 +82,7 @@ $Project "mathlib"
 
 $Project "matsys_controls"
 {
-	"vgui2\matsys_controls\matsys_controls.vpc"
+	"vgui2\matsys_controls\matsys_controls.vpc" [$WIN64||$LINUX64] // SDK_MP (see sdk_sp_branch.vpc)
 }
 
 $Project "motionmapper"
@@ -92,7 +92,7 @@ $Project "motionmapper"
 
 $Project "phonemeextractor"
 {
-	"utils\phonemeextractor\phonemeextractor.vpc" [$WIN32]
+	"utils\phonemeextractor\phonemeextractor.vpc" [$WIN32&&!$CI_RUNNER]
 }
 
 $Project "raytrace"

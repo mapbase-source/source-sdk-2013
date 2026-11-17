@@ -91,11 +91,17 @@ static CServerTools g_ServerTools;
 
 // VSERVERTOOLS_INTERFACE_VERSION_1 is compatible with the latest since we're only adding things to the end, so expose that as well.
 EXPOSE_SINGLE_INTERFACE_GLOBALVAR( CServerTools, IServerTools001, VSERVERTOOLS_INTERFACE_VERSION_1, g_ServerTools );
+#ifdef SDK_MP
 EXPOSE_SINGLE_INTERFACE_GLOBALVAR( CServerTools, IServerTools002, VSERVERTOOLS_INTERFACE_VERSION_2, g_ServerTools );
+#endif
 EXPOSE_SINGLE_INTERFACE_GLOBALVAR( CServerTools, IServerTools, VSERVERTOOLS_INTERFACE_VERSION, g_ServerTools );
 
 // When bumping the version to this interface, check that our assumption is still valid and expose the older version in the same way
+#ifdef SDK_MP
 COMPILE_TIME_ASSERT( VSERVERTOOLS_INTERFACE_VERSION_INT == 3 );
+#else
+COMPILE_TIME_ASSERT( VSERVERTOOLS_INTERFACE_VERSION_INT == 2 );
+#endif
 
 
 IServerEntity *CServerTools::GetIServerEntity( IClientEntity *pClientEntity )

@@ -58,7 +58,9 @@ public:
 	// Notify that the player is spawned
 	virtual void			ClientSpawned( edict_t *pPlayer ) OVERRIDE;
 
+#ifdef SDK_MP
 	virtual void			ClientVoice( edict_t* pEdict ) OVERRIDE;
+#endif
 };
 
 
@@ -140,6 +142,7 @@ public:
 	virtual const char *GetServerBrowserMapOverride() OVERRIDE;
 	virtual const char *GetServerBrowserGameData() OVERRIDE;
 
+#ifdef SDK_MP
 	// Called to add output to the status command
 	virtual void 			Status( void (*print) (const char *fmt, ...) ) OVERRIDE;
 
@@ -156,6 +159,7 @@ public:
 	virtual bool			IsManualMapChangeOkay( const char **pszReason ) OVERRIDE;
 
 	virtual bool			GetWorkshopMap( uint32 uIndex, WorkshopMapDesc_t *pDesc ) OVERRIDE;
+#endif
 
 private:
 

@@ -12,6 +12,11 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
+#ifdef SDK_SP
+// Not a default shader
+#include "mapbase_sdk_macros_off.h"
+#endif
+
 ConVar mat_dof_max_blur_radius( "mat_dof_max_blur_radius", "50" );
 ConVar mat_dof_quality( "mat_dof_quality", "3" );
 ConVar mat_dof_constant( "mat_dof_constant", "512" );

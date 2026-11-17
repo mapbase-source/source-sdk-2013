@@ -109,6 +109,7 @@ public:
 	// parameter will set the content-type header for the request so the server may know how to interpret the body.
 	virtual bool SetHTTPRequestRawPostBody( HTTPRequestHandle hRequest, const char *pchContentType, uint8 *pubBody, uint32 unBodyLen ) = 0;
 
+#ifdef SDK_MP
 	// Creates a cookie container handle which you must later free with ReleaseCookieContainer().  If bAllowResponsesToModify=true
 	// than any response to your requests using this cookie container may add new cookies which may be transmitted with
 	// future requests.  If bAllowResponsesToModify=false than only cookies you explicitly set will be sent.  This API is just for
@@ -138,8 +139,10 @@ public:
 
 	// Check if the reason the request failed was because we timed it out (rather than some harder failure)
 	virtual bool GetHTTPRequestWasTimedOut( HTTPRequestHandle hRequest, bool *pbWasTimedOut ) = 0;
+#endif
 };
 
+#ifdef SDK_MP
 #define STEAMHTTP_INTERFACE_VERSION "STEAMHTTP_INTERFACE_VERSION003"
 
 // Global interface accessor
@@ -149,6 +152,9 @@ STEAM_DEFINE_USER_INTERFACE_ACCESSOR( ISteamHTTP *, SteamHTTP, STEAMHTTP_INTERFA
 // Global accessor for the gameserver client
 inline ISteamHTTP *SteamGameServerHTTP();
 STEAM_DEFINE_GAMESERVER_INTERFACE_ACCESSOR( ISteamHTTP *, SteamGameServerHTTP, STEAMHTTP_INTERFACE_VERSION );
+#else
+#define STEAMHTTP_INTERFACE_VERSION "STEAMHTTP_INTERFACE_VERSION002"
+#endif
 
 // callbacks
 #if defined( VALVE_CALLBACK_PACK_SMALL )

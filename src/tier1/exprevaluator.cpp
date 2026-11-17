@@ -87,7 +87,11 @@ bool DefaultConditionalSymbolProc( const char *pKey )
 	}
 
 	// don't know it at compile time, so fall through to installed symbol values
+#ifdef SDK_MP
 	return KeyValuesSystem()->GetKeyValuesExpressionSymbol( pKey );
+#else
+	return false;
+#endif
 }
 
 void DefaultConditionalErrorProc( const char *pReason )

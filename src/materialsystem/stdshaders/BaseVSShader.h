@@ -30,6 +30,12 @@
 extern ConVar mat_specular_disable_on_missing;
 #endif
 
+#ifdef SDK_SP
+// Most shaders are replacements and need this by default in SP.
+// Include "mapbase_sdk_macros_off.h" if you don't want this in your shader
+#include "mapbase_sdk_macros_on.h"
+#endif
+
 //-----------------------------------------------------------------------------
 // Helper macro for vertex shaders
 //-----------------------------------------------------------------------------

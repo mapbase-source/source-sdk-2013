@@ -1,5 +1,10 @@
 ﻿//====== Copyright Valve Corporation, All rights reserved. =======
 
+#ifdef SDK_SP
+// SP counterpart too different to combine cleanly
+#include "../../public_sp/tier1/utlstring.h"
+#endif
+
 #ifndef UTLSTRING_H
 #define UTLSTRING_H
 #ifdef _WIN32

@@ -20,7 +20,9 @@
 
 #include "viewport_panel_names.h"
 
+#ifdef SDK_MP
 #include "inputsystem/InputEnums.h"
+#endif
 
 class KeyValues;
 
@@ -39,7 +41,9 @@ public:
 
 	virtual void ShowPanel( bool state ) = 0; // activate VGUI Frame
 
+#ifdef SDK_MP
 	virtual GameActionSet_t GetPreferredActionSet() = 0;
+#endif
 		
 	// VGUI functions:
 	virtual vgui::VPANEL GetVPanel( void ) = 0; // returns VGUI panel handle

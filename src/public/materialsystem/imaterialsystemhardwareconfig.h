@@ -26,6 +26,13 @@ FORCEINLINE bool IsEmulatingGL()
 	return bIsEmulatingGL;
 }
 
+#ifndef SDK_MP
+FORCEINLINE bool IsOpenGL( void )
+{
+	return IsPlatformOpenGL() || IsEmulatingGL();
+}
+#endif
+
 //-----------------------------------------------------------------------------
 // Material system interface version
 //-----------------------------------------------------------------------------
@@ -86,7 +93,11 @@ public:
 	virtual bool HasSetDeviceGammaRamp() const = 0;
 	DEFCONFIGMETHOD( bool, SupportsCompressedTextures(), true );
 	virtual VertexCompressionType_t SupportsCompressedVertices() const = 0;
+#ifdef SDK_MP
 	virtual bool SupportsNormalMapCompression() const { return false; }
+#else
+	DEFCONFIGMETHOD( bool, SupportsNormalMapCompression(), true );
+#endif
 	DEFCONFIGMETHOD( bool, SupportsVertexAndPixelShaders(), true );
 	DEFCONFIGMETHOD( bool, SupportsPixelShaders_1_4(), true );
 	DEFCONFIGMETHOD( bool, SupportsStaticControlFlow(), true );
@@ -192,7 +203,9 @@ public:
 
 	virtual bool SupportsBorderColor( void ) const = 0;
 	virtual bool SupportsFetch4( void ) const = 0;
+#ifdef SDK_MP
 	virtual bool CanStretchRectFromTextures( void ) const = 0;
+#endif
 
 	inline bool ShouldAlwaysUseShaderModel2bShaders() const { return IsOpenGL(); }
 	inline bool PlatformRequiresNonNullPixelShaders() const { return IsOpenGL(); }

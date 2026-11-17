@@ -30,6 +30,9 @@
 #include "vtf/vtf.h"
 #include "materialsystem/deformations.h"
 #include "materialsystem/IColorCorrection.h"
+#ifdef SDK_SP
+#include "renderparm.h"
+#endif
 
 
 //-----------------------------------------------------------------------------
@@ -67,6 +70,7 @@ typedef uint64 VertexFormat_t;
 // NOTE NOTE NOTE!!!!  If you up this, grep for "NEW_INTERFACE" to see if there is anything
 // waiting to be enabled during an interface revision.
 
+#ifdef SDK_MP
 // V081 - 10/25/2016 - Added new Suspend/Resume texture streaming interfaces. Might also have added more calls here due
 //                     to the streaming work that didn't get bumped, but we're not guarding versions on the TF branch
 //                     very judiciously since we need to audit them when merging to SDK branch either way.
@@ -74,6 +78,9 @@ typedef uint64 VertexFormat_t;
 // misyl: unfrogged this interface to be compatible, added MATERIAL_SYSTEM_INTERFACE_VERSION_OLD for sdk 2013 compat.
 #define MATERIAL_SYSTEM_INTERFACE_VERSION "VMaterialSystem082"
 #define MATERIAL_SYSTEM_INTERFACE_VERSION_OLD "VMaterialSystem080"
+#else
+#define MATERIAL_SYSTEM_INTERFACE_VERSION "VMaterialSystem080"
+#endif
 
 #ifdef POSIX
 #define ABSOLUTE_MINIMUM_DXLEVEL 90
@@ -104,7 +111,9 @@ enum ShaderParamType_t
 	SHADER_PARAM_TYPE_MATRIX,
 	SHADER_PARAM_TYPE_MATERIAL,
 	SHADER_PARAM_TYPE_STRING,
+#ifdef SDK_MP
 	SHADER_PARAM_TYPE_MATRIX4X2
+#endif
 };
 
 enum MaterialMatrixMode_t
@@ -532,6 +541,7 @@ private:
 	int m_nBottom;
 };
 
+#ifdef SDK_MP
 // Passed as the callback object to Async functions in the material system
 // so that callers don't have to worry about memory going out of scope before the 
 // results return.
@@ -545,6 +555,7 @@ public:
 
 	virtual int GetRefCount() const = 0;
 };
+#endif
 
 
 //-----------------------------------------------------------------------------
@@ -594,9 +605,10 @@ enum RenderTargetSizeMode_t
 	RT_SIZE_OFFSCREEN=5,			// Target of specified size, don't mess with dimensions
 	RT_SIZE_FULL_FRAME_BUFFER_ROUNDED_UP=6, // Same size as the frame buffer, rounded up if necessary for systems that can't do non-power of two textures.
 	RT_SIZE_REPLAY_SCREENSHOT = 7,	// Rounded down to power of 2, essentially...
+#ifdef SDK_MP
 	RT_SIZE_LITERAL = 8,			// Use the size passed in. Don't clamp it to the frame buffer size. Really.
 	RT_SIZE_LITERAL_PICMIP = 9		// Use the size passed in, don't clamp to the frame buffer size, but do apply picmip restrictions.
-
+#endif
 };
 
 typedef void (*MaterialBufferReleaseFunc_t)( );
@@ -616,6 +628,7 @@ class CShadowMgr;
 
 DECLARE_POINTER_HANDLE( MaterialLock_t );
 
+#ifdef SDK_MP
 enum RenderBackend_t
 {
 	RENDER_BACKEND_UNKNOWN,
@@ -677,6 +690,7 @@ FORCEINLINE RenderBackend_t DetermineRenderBackend()
 	return RENDER_BACKEND_VULKAN;
 #endif
 }
+#endif
 
 //-----------------------------------------------------------------------------
 // 
@@ -1173,6 +1187,7 @@ public:
 	// returns the display device name that matches the adapter index we were started with
 	virtual char *GetDisplayDeviceName() const = 0;
 
+#ifdef SDK_MP
 	// creates a texture suitable for use with materials from a raw stream of bits.
 	// The bits will be retained by the material system and can be freed upon return.
 	virtual ITexture*			CreateTextureFromBits(int w, int h, int mips, ImageFormat fmt, int srcBufferSize, byte* srcBits) = 0;
@@ -1206,11 +1221,13 @@ public:
 	// operations that shouldn't take usage of textures as a signal to stream them in at full rez.
 	virtual void				SuspendTextureStreaming() = 0;
 	virtual void				ResumeTextureStreaming() = 0;
+#endif
 };
 
 extern IMaterialSystem *materials;
 extern IMaterialSystem *g_pMaterialSystem;
 
+#ifdef SDK_MP
 FORCEINLINE bool IsOpenGL( void )
 {
 #ifndef DX_TO_GL_ABSTRACTION
@@ -1223,6 +1240,7 @@ FORCEINLINE bool IsVulkan( void )
 {
 	return g_pMaterialSystem->GetRenderBackend() == RENDER_BACKEND_VULKAN;
 }
+#endif
 
 //-----------------------------------------------------------------------------
 // 
@@ -1683,6 +1701,7 @@ public:
 
 	virtual void ClearBuffersObeyStencilEx( bool bClearColor, bool bClearAlpha, bool bClearDepth ) = 0;
 
+#ifdef SDK_MP
 	// Create a texture from the specified src render target, then call pRecipient->OnAsyncCreateComplete from the main thread.
 	// The texture will be created using the destination format, and will optionally have mipmaps generated.
 	// In case of error, the provided callback function will be called with the error texture.
@@ -1690,6 +1709,10 @@ public:
 
 	virtual void FogRadial( bool bRadial ) = 0;
 	virtual bool GetFogRadial() = 0;
+#else
+	FORCEINLINE void FogRadial( bool bRadial ) { SetIntRenderingParameter( INT_RENDERPARM_FOG_TYPE, bRadial ? MATERIAL_FOG_RANGE_RADIAL-1 : MATERIAL_FOG_LINEAR-1 ); }
+	//FORCEINLINE bool GetFogRadial() { return GetIntRenderingParameter( INT_RENDERPARM_FOG_TYPE ) == MATERIAL_FOG_RANGE_RADIAL; }
+#endif
 };
 
 template< class E > inline E* IMatRenderContext::LockRenderDataTyped( int nCount, const E* pSrcData )

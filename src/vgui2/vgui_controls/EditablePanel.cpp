@@ -873,9 +873,15 @@ Panel *EditablePanel::HasHotkey(wchar_t key)
 //-----------------------------------------------------------------------------
 // Purpose: Shortcut function to setting enabled state of control
 //-----------------------------------------------------------------------------
+#ifdef SDK_MP
 void EditablePanel::SetControlEnabled(const char *controlName, bool enabled, bool bRecurseDown /*= false*/ )
 {
 	Panel *control = FindChildByName(controlName, bRecurseDown);
+#else
+void EditablePanel::SetControlEnabled(const char *controlName, bool enabled)
+{
+	Panel *control = FindChildByName(controlName);
+#endif
 	if (control)
 	{
 		control->SetEnabled(enabled);
@@ -885,9 +891,15 @@ void EditablePanel::SetControlEnabled(const char *controlName, bool enabled, boo
 //-----------------------------------------------------------------------------
 // Purpose: Shortcut function to setting visibility state of control
 //-----------------------------------------------------------------------------
+#ifdef SDK_MP
 void EditablePanel::SetControlVisible(const char *controlName, bool visible, bool bRecurseDown /*= false*/ )
 {
 	Panel *control = FindChildByName(controlName, bRecurseDown);
+#else
+void EditablePanel::SetControlVisible(const char *controlName, bool visible)
+{
+	Panel *control = FindChildByName(controlName);
+#endif
 	if (control)
 	{
 		control->SetVisible(visible);

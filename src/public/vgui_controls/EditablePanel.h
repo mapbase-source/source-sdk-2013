@@ -69,8 +69,15 @@ public:
 	// as above, but copies the result into the specified buffer instead of a static buffer
 	virtual void GetControlString(const char *controlName, char *buf, int bufSize, const char *defaultString = "");
 	// sets the enabled state of a control
+#ifdef SDK_MP
 	virtual void SetControlEnabled(const char *controlName, bool enabled, bool bRecurseDown = false );
 	virtual void SetControlVisible(const char *controlName, bool visible, bool bRecurseDown = false );
+#else
+	virtual void SetControlEnabled( const char *controlName, bool enabled );
+	virtual void SetControlVisible( const char *controlName, bool visible );
+	inline void SetControlEnabled( const char *controlName, bool enabled, bool bRecurseDown ) { SetControlEnabled( controlName, enabled ); }
+	inline void SetControlVisible( const char *controlName, bool visible, bool bRecurseDown ) { SetControlVisible( controlName, visible ); }
+#endif
 
 	// localization variables (used in constructing UI strings)
 	// after the variable is set, causes all the necessary sub-panels to update

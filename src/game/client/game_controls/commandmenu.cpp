@@ -62,7 +62,11 @@ void CommandMenu::OnMessage(const KeyValues *params, VPANEL fromPanel)
 
 	if ( text[0] )
 	{
+#ifdef SDK_MP
 		UIConVarRef convar( g_pVGui->GetVGUIEngine(), text );
+#else
+		UIConVarRef convar( text );
+#endif
 		if ( convar.IsValid() )
 		{
 			// toggle cvar 
@@ -214,7 +218,11 @@ void CommandMenu::UpdateMenu()
 		if ( text[0] )
 		{
 			// set toggle state equal to cvar state
+#ifdef SDK_MP
 			UIConVarRef convar( g_pVGui->GetVGUIEngine(), text );
+#else
+			UIConVarRef convar( text );
+#endif
 
 			if ( convar.IsValid() )
 			{

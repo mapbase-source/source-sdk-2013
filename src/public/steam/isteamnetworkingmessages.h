@@ -1,5 +1,10 @@
 //====== Copyright Valve Corporation, All rights reserved. ====================
 
+#ifdef SDK_SP
+// Not in SP SDK
+#define ISTEAMNETWORKINGMESSAGES
+#endif
+
 #ifndef ISTEAMNETWORKINGMESSAGES
 #define ISTEAMNETWORKINGMESSAGES
 #pragma once

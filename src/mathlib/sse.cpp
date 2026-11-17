@@ -1009,10 +1009,12 @@ void VectorRotateSSE( const float *in1, const matrix3x4_t& in2, float *out1 )
 #ifdef _WIN32
 void _declspec(naked) _SSE_VectorMA( const float *start, float scale, const float *direction, float *dest )
 {
+#ifndef __clang__
 	// FIXME: This don't work!! It will overwrite memory in the write to dest
 	Assert(0);
 
 	Assert( s_bMathlibInitialized );
+#endif
 	_asm {  // Intel SSE only routine
 		mov	eax, DWORD PTR [esp+0x04]	; *start, s0..s2
 		mov ecx, DWORD PTR [esp+0x0c]	; *direction, d0..d2

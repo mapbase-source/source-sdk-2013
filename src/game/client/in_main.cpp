@@ -314,8 +314,10 @@ CInput::CInput( void )
 	m_pCommands = NULL;
 	m_pCameraThirdData = NULL;
 	m_pVerifiedCommands = NULL;
+#ifdef SDK_MP
 	m_PreferredGameActionSet = GAME_ACTION_SET_MENUCONTROLS;
 	m_bSteamControllerGameActionsInitialized = false;
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -950,7 +952,9 @@ void CInput::ControllerMove( float frametime, CUserCmd *cmd )
 		}
 	}
 
+#ifdef SDK_MP
 	SteamControllerMove( frametime, cmd );
+#endif
 	JoyStickMove( frametime, cmd );
 
 	// NVNT if we have a haptic device..
@@ -1684,8 +1688,10 @@ void CInput::Init_All (void)
 	// Initialize third person camera controls.
 	Init_Camera();
 
+#ifdef SDK_MP
 	// Initialize steam controller action sets
 	m_bSteamControllerGameActionsInitialized = InitializeSteamControllerGameActionSets();
+#endif
 }
 
 /*

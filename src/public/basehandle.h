@@ -37,6 +37,9 @@ public:
 	CBaseHandle( INVALID_EHANDLE_tag );
 	CBaseHandle( const CBaseHandle &other );
 	explicit CBaseHandle( IHandleEntity* pHandleObj );
+#ifndef SDK_MP
+	CBaseHandle( unsigned long value );
+#endif
 	CBaseHandle( int iEntry, int iSerialNumber );
 
 	// NOTE: The following constructor is not type-safe, and can allow creating an
@@ -98,6 +101,13 @@ inline CBaseHandle::CBaseHandle( const CBaseHandle &other )
 {
 	m_Index = other.m_Index;
 }
+
+#ifndef SDK_MP
+inline CBaseHandle::CBaseHandle( unsigned long value )
+{
+	m_Index = value;
+}
+#endif
 
 inline CBaseHandle::CBaseHandle( IHandleEntity* pEntity )
 {

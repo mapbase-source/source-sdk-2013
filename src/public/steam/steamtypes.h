@@ -111,6 +111,7 @@ enum ESteamIPType
 
 #pragma pack( push, 1 )
 
+#ifdef SDK_MP
 struct SteamIPAddress_t
 {
 	union {
@@ -175,6 +176,9 @@ struct SteamIPAddress_t
 		return ipOut;
 	}
 };
+#else
+typedef uint32 SteamIPAddress_t;
+#endif
 
 #pragma pack( pop )
 

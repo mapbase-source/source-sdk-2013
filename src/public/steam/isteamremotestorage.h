@@ -197,12 +197,14 @@ class ISteamRemoteStorage
 		virtual bool	FileWrite( const char *pchFile, const void *pvData, int32 cubData ) = 0;
 		virtual int32	FileRead( const char *pchFile, void *pvData, int32 cubDataToRead ) = 0;
 		
+#ifdef SDK_MP
 		STEAM_CALL_RESULT( RemoteStorageFileWriteAsyncComplete_t )
 		virtual SteamAPICall_t FileWriteAsync( const char *pchFile, const void *pvData, uint32 cubData ) = 0;
 		
 		STEAM_CALL_RESULT( RemoteStorageFileReadAsyncComplete_t )
 		virtual SteamAPICall_t FileReadAsync( const char *pchFile, uint32 nOffset, uint32 cubToRead ) = 0;
 		virtual bool	FileReadAsyncComplete( SteamAPICall_t hReadCall, void *pvBuffer, uint32 cubToRead ) = 0;
+#endif
 		
 		virtual bool	FileForget( const char *pchFile ) = 0;
 		virtual bool	FileDelete( const char *pchFile ) = 0;
@@ -228,7 +230,11 @@ class ISteamRemoteStorage
 		virtual const char *GetFileNameAndSize( int iFile, int32 *pnFileSizeInBytes ) = 0;
 
 		// configuration management
+#ifdef SDK_MP
 		virtual bool GetQuota( uint64 *pnTotalBytes, uint64 *puAvailableBytes ) = 0;
+#else
+		virtual bool GetQuota( int32 *pnTotalBytes, int32 *puAvailableBytes ) = 0;
+#endif
 		virtual bool IsCloudEnabledForAccount() = 0;
 		virtual bool IsCloudEnabledForApp() = 0;
 		virtual void SetCloudEnabledForApp( bool bEnabled ) = 0;
@@ -310,6 +316,7 @@ class ISteamRemoteStorage
 		STEAM_CALL_RESULT( RemoteStorageDownloadUGCResult_t )
 		virtual SteamAPICall_t UGCDownloadToLocation( UGCHandle_t hContent, const char *pchLocation, uint32 unPriority ) = 0;
 
+#ifdef SDK_MP
 		// Cloud dynamic state change notification
 		virtual int32 GetLocalFileChangeCount() = 0;
 		virtual const char *GetLocalFileChange( int iFile, ERemoteStorageLocalFileChange *pEChangeType, ERemoteStorageFilePathType *pEFilePathType ) = 0;
@@ -318,13 +325,18 @@ class ISteamRemoteStorage
 		// operations - for example, writing a game save that requires updating two files.
 		virtual bool BeginFileWriteBatch() = 0;
 		virtual bool EndFileWriteBatch() = 0;
+#endif
 };
 
+#ifdef SDK_MP
 #define STEAMREMOTESTORAGE_INTERFACE_VERSION "STEAMREMOTESTORAGE_INTERFACE_VERSION016"
 
 // Global interface accessor
 inline ISteamRemoteStorage *SteamRemoteStorage();
 STEAM_DEFINE_USER_INTERFACE_ACCESSOR( ISteamRemoteStorage *, SteamRemoteStorage, STEAMREMOTESTORAGE_INTERFACE_VERSION );
+#else
+#define STEAMREMOTESTORAGE_INTERFACE_VERSION "STEAMREMOTESTORAGE_INTERFACE_VERSION012"
+#endif
 
 // callbacks
 #if defined( VALVE_CALLBACK_PACK_SMALL )

@@ -64,8 +64,10 @@ void CClientSteamContext::Activate()
 	SteamAPI_SetTryCatchCallbacks( false ); // We don't use exceptions, so tell steam not to use try/catch in callback handlers
 	Init(); // Steam API context init
 
+#ifdef SDK_MP
 	if ( SteamUtils() )
 		SteamUtils()->InitFilterText();
+#endif
 	
 	UpdateLoggedOnState();
 	Msg( "CClientSteamContext logged on = %d\n", m_bLoggedOn );

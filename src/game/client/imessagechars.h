@@ -21,7 +21,6 @@
 namespace vgui
 {
 class Panel;
-typedef uint32 HFont;
 }
 
 abstract_class IMessageChars

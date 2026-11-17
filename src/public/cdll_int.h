@@ -548,13 +548,15 @@ public:
 	//  returns the string name of the key to which this string is bound. Returns NULL if no such binding exists
 	// Unlike Key_LookupBinding, leading '+' characters are not stripped from bindings.
 	virtual	const char		*Key_LookupBindingExact( const char *pBinding ) = 0;
-	
+
+#ifdef SDK_MP
 	virtual void			AddPhonemeFile( const char *pszPhonemeFile ) = 0;
 	virtual float			GetPausedExpireTime( void ) = 0;
 
 	virtual bool			StartDemoRecording( const char *pszFilename, const char *pszFolder = NULL ) = 0;
 	virtual void			StopDemoRecording( void ) = 0;
 	virtual void			TakeScreenshot( const char *pszFilename, const char *pszFolder = NULL ) = 0;
+#endif
 };
 
 abstract_class IVEngineClient : public IVEngineClient013
@@ -576,7 +578,9 @@ public:
 
 	virtual int GetInstancesRunningCount( ) = 0;
 
+#ifdef SDK_MP
 	virtual void SetRichPresenceConnect( const char *pszOverride ) = 0;
+#endif
 };
 
 
@@ -792,9 +796,11 @@ public:
 
 	virtual bool IsConnectedUserInfoChangeAllowed( IConVar *pCvar ) = 0;
 
+#ifdef SDK_MP
 	virtual bool BHaveChatSuspensionInCurrentMatch() = 0;
 
 	virtual void DisplayVoiceUnavailableMessage() = 0;
+#endif
 };
 
 #define CLIENT_DLL_INTERFACE_VERSION		"VClient017"

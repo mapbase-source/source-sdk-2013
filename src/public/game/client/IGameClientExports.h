@@ -45,7 +45,9 @@ public:
     //=============================================================================
 
 	virtual const char *GetHolidayString() = 0;
+#ifdef SDK_MP
 	virtual const char *GetOperationString() = 0;
+#endif
 };
 
 #define GAMECLIENTEXPORTS_INTERFACE_VERSION "GameClientExports001"

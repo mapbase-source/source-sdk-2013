@@ -10,7 +10,7 @@
 #
 # See mapbase_build-base.yml for more information on how this works.
 
-name: Build All Projects #(SP Release)
+name: Build All
 
 on:
   pull_request:
@@ -22,8 +22,16 @@ jobs:
     strategy:
       matrix:
         configuration: [Release, Debug]
+        arch: [32, 64]
+        include:
+          - game: 'tf /hl2mp'
+            arch: 64
+          - game: 'hl2 /episodic'
+            arch: 32
     uses: ./.github/workflows/mapbase_build-base.yml
     with:
       configuration: ${{ matrix.configuration }}
+      game: ${{ matrix.game }}
       project-group: 'everything'
-      build-on-linux: true # Disable this if you don't want to compile for Linux
+      build-linux: true # Disable this if you don't want to compile for Linux
+      arch: ${{ matrix.arch }}

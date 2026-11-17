@@ -47,17 +47,25 @@ public:
 	//
 	// return value - returns the number of bytes written to pBlob. If the return is 0, then the buffer passed in was too small, and the call has failed
 	// The contents of pBlob should then be sent to the game server, for it to use to complete the authentication process.
+#ifdef SDK_MP
 	//
 	// DEPRECATED!  This function will be removed from the SDK in an upcoming version.
 	//              Please migrate to BeginAuthSession and related functions.
 	virtual int InitiateGameConnection_DEPRECATED( void *pAuthBlob, int cbMaxAuthBlob, CSteamID steamIDGameServer, uint32 unIPServer, uint16 usPortServer, bool bSecure ) = 0;
+#else
+	virtual int InitiateGameConnection( void *pAuthBlob, int cbMaxAuthBlob, CSteamID steamIDGameServer, uint32 unIPServer, uint16 usPortServer, bool bSecure ) = 0;
+#endif
 
 	// notify of disconnect
 	// needs to occur when the game client leaves the specified game server, needs to match with the InitiateGameConnection() call
+#ifdef SDK_MP
 	//
 	// DEPRECATED!  This function will be removed from the SDK in an upcoming version.
 	//              Please migrate to BeginAuthSession and related functions.
 	virtual void TerminateGameConnection_DEPRECATED( uint32 unIPServer, uint16 usPortServer ) = 0;
+#else
+	virtual void TerminateGameConnection( uint32 unIPServer, uint16 usPortServer ) = 0;
+#endif
 
 	// Legacy functions
 
@@ -128,12 +136,16 @@ public:
 	// if an IP address is passed Steam will only allow the ticket to be used by an entity with that IP address
 	// if a Steam ID is passed Steam will only allow the ticket to be used by that Steam ID
 	// not to be used for "ISteamUserAuth\AuthenticateUserTicket" - it will fail
+#ifdef SDK_MP
 	virtual HAuthTicket GetAuthSessionTicket( void *pTicket, int cbMaxTicket, uint32 *pcbTicket, const SteamNetworkingIdentity *pSteamNetworkingIdentity ) = 0;
 
 	// Request a ticket which will be used for webapi "ISteamUserAuth\AuthenticateUserTicket"
 	// pchIdentity is an optional input parameter to identify the service the ticket will be sent to
 	// the ticket will be returned in callback GetTicketForWebApiResponse_t
 	virtual HAuthTicket GetAuthTicketForWebApi( const char *pchIdentity ) = 0;
+#else
+	virtual HAuthTicket GetAuthSessionTicket( void *pTicket, int cbMaxTicket, uint32 *pcbTicket ) = 0;
+#endif
 
 	// Authenticate ticket from entity steamID to be sure it is valid and isnt reused
 	// Registers for callbacks if the entity goes offline or cancels the ticket ( see ValidateAuthTicketResponse_t callback and EAuthSessionResponse )
@@ -180,6 +192,7 @@ public:
 	// gets the Steam Level of the user, as shown on their profile
 	virtual int GetPlayerSteamLevel() = 0;
 
+#ifdef SDK_MP
 	// Requests a URL which authenticates an in-game browser for store check-out,
 	// and then redirects to the specified URL. As long as the in-game browser
 	// accepts and handles session cookies, Steam microtransaction checkout pages
@@ -216,14 +229,19 @@ public:
 	// This will prevent offline gameplay time from counting against a user's
 	// playtime limits.
 	virtual bool BSetDurationControlOnlineState( EDurationControlOnlineState eNewState ) = 0;
+#endif
 
 };
 
+#ifdef SDK_MP
 #define STEAMUSER_INTERFACE_VERSION "SteamUser023"
 
 // Global interface accessor
 inline ISteamUser *SteamUser();
 STEAM_DEFINE_USER_INTERFACE_ACCESSOR( ISteamUser *, SteamUser, STEAMUSER_INTERFACE_VERSION );
+#else
+#define STEAMUSER_INTERFACE_VERSION "SteamUser017"
+#endif
 
 // callbacks
 #if defined( VALVE_CALLBACK_PACK_SMALL )

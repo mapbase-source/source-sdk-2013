@@ -44,9 +44,11 @@ public:
 
 #define STEAMMUSIC_INTERFACE_VERSION "STEAMMUSIC_INTERFACE_VERSION001"
 
+#ifdef SDK_MP
 // Global interface accessor
 inline ISteamMusic *SteamMusic();
 STEAM_DEFINE_USER_INTERFACE_ACCESSOR( ISteamMusic *, SteamMusic, STEAMMUSIC_INTERFACE_VERSION );
+#endif
 
 // callbacks
 #if defined( VALVE_CALLBACK_PACK_SMALL )

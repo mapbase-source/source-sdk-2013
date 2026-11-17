@@ -1080,7 +1080,11 @@ void C_BaseAnimating::LockStudioHdr()
 	
 	if ( pNewWrapper->GetVirtualModel() )
 	{
+#ifdef SDK_MP
 		MDLHandle_t hVirtualModel = VoidPtrToMDLHandle( pStudioHdr->VirtualModel() );
+#else
+		MDLHandle_t hVirtualModel = (MDLHandle_t)(int)(pStudioHdr->virtualModel)&0xffff;
+#endif
 		mdlcache->LockStudioHdr( hVirtualModel );
 	}
 
@@ -1112,7 +1116,11 @@ void C_BaseAnimating::UnlockStudioHdr()
 			// Immediate-mode rendering, can unlock immediately
 			if ( pStudioHdr->GetVirtualModel() )
 			{
+#ifdef SDK_MP
 				MDLHandle_t hVirtualModel = VoidPtrToMDLHandle( pStudioHdr->VirtualModel() );
+#else
+				MDLHandle_t hVirtualModel = (MDLHandle_t)(int)pStudioHdr->virtualModel&0xffff;
+#endif
 				mdlcache->UnlockStudioHdr( hVirtualModel );
 			}
 			mdlcache->UnlockStudioHdr( m_hStudioHdr );
@@ -3547,10 +3555,12 @@ int C_BaseAnimating::DrawModel( int flags )
 			extraFlags |= STUDIO_GENERATE_STATS;
 		}
 
+#ifdef SDK_MP
 		if ( flags & ( STUDIO_NO_OVERRIDE_FOR_ATTACH ) ) 
 		{
 			extraFlags |= STUDIO_NO_OVERRIDE_FOR_ATTACH;
 		}
+#endif
 
 		// Necessary for lighting blending
 		CreateModelInstance();

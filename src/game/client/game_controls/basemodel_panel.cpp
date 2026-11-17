@@ -274,7 +274,11 @@ void CBaseModelPanel::SetModelAnim( int iAnim )
 
 	if ( iSequence != ACT_INVALID )
 	{
+#ifdef SDK_MP
 		SetSequence( iSequence, true );
+#else
+		SetSequence( iSequence );
+#endif
 	}
 }
 
@@ -401,6 +405,7 @@ void CBaseModelPanel::PerformLayout()
 //-----------------------------------------------------------------------------
 void CBaseModelPanel::OnTick()
 {
+#ifdef SDK_MP
 	// Cycle stuff gets handled in mdlpanel::OnTick, so we want to fix up
 	// what our sequence is before it gets called.
 
@@ -417,6 +422,7 @@ void CBaseModelPanel::OnTick()
 			SetupModelDefaults();
 		}
 	}
+#endif
 
 	BaseClass::OnTick();
 }
@@ -483,8 +489,10 @@ void CBaseModelPanel::OnMousePressed ( vgui::MouseCode code )
 
 	EnableMouseCapture( true, code );
 
+#ifdef SDK_MP
 	// Save where they clicked
 	input()->GetCursorPosition( m_nClickStartX, m_nClickStartY );
+#endif
 
 	// Warp the mouse to the center of the screen
 	int width, height;
@@ -519,8 +527,10 @@ void CBaseModelPanel::OnMouseReleased( vgui::MouseCode code )
 	EnableMouseCapture( false );
 	m_bMousePressed = false;
 
+#ifdef SDK_MP
 	// Restore the cursor to where the clicked
 	input()->SetCursorPos( m_nClickStartX, m_nClickStartY );
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -628,7 +638,11 @@ void CBaseModelPanel::PlaySequence( const char *pszSequenceName )
 	{
 		m_nActiveSequence = iSeq;
 		m_flActiveSequenceDuration = Studio_Duration( &studioHDR, iSeq, NULL );
+#ifdef SDK_MP
 		SetSequence( m_nActiveSequence, true );
+#else
+		SetSequence( m_nActiveSequence );
+#endif
 	}
 }
 

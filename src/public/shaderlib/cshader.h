@@ -34,6 +34,9 @@
 // make "local variable is initialized but not referenced" warnings errors for combo checking macros
 #pragma warning ( error : 4189 )
 
+// Set for SP compatibility
+#define SHADER_PREFIX
+
 //-----------------------------------------------------------------------------
 // Global interfaces
 //-----------------------------------------------------------------------------
@@ -122,7 +125,7 @@ inline bool CShader_IsFlag2Set( IMaterialVar **params, MaterialVarFlags2_t _flag
 	{\
 		typedef _baseclass CBaseClass;\
 		static const char *s_HelpString = help; \
-		static const char *s_Name = #name; \
+		static const char *s_Name = SHADER_PREFIX #name; \
 		static int s_nFlags = flags; \
 		class CShaderParam;\
 		static CUtlVector<CShaderParam *> s_ShaderParams;\
@@ -299,7 +302,7 @@ inline bool CShader_IsFlag2Set( IMaterialVar **params, MaterialVarFlags2_t _flag
 	BEGIN_SHADER( _shadername, "" )	\
 	BEGIN_SHADER_PARAMS	\
 	END_SHADER_PARAMS \
-	SHADER_FALLBACK { return #_fallbackshadername; }	\
+	SHADER_FALLBACK { return SHADER_PREFIX #_fallbackshadername; }	\
 	SHADER_INIT {} \
 	SHADER_DRAW {} \
 	END_SHADER
@@ -333,7 +336,7 @@ inline bool CShader_IsFlag2Set( IMaterialVar **params, MaterialVarFlags2_t _flag
 	{\
 		namespace _name\
 		{\
-			static const char *s_Name = #_name; \
+			static const char *s_Name = SHADER_PREFIX #_name; \
 			static const char *s_HelpString = _help;\
 			static int s_nFlags = _flags;\
 			class CShader : public _base::CShader\
@@ -351,6 +354,7 @@ inline bool CShader_IsFlag2Set( IMaterialVar **params, MaterialVarFlags2_t _flag
 #define BEGIN_INHERITED_SHADER( _name, _base, _help ) BEGIN_INHERITED_SHADER_FLAGS( _name, _base, _help, 0 )
 #define END_INHERITED_SHADER END_SHADER }
 
+#ifdef SDK_MP
 // psh ## shader is used here to generate a warning if you don't ever call SET_DYNAMIC_PIXEL_SHADER
 #define DECLARE_DYNAMIC_PIXEL_SHADER( shader ) \
 	int declaredynpixshader_ ## shader ## _missingcurlybraces = 0; \
@@ -488,5 +492,144 @@ inline bool CShader_IsFlag2Set( IMaterialVar **params, MaterialVarFlags2_t _flag
 	NOTE_UNUSED( vsh_testAllCombos ); \
 	NOTE_UNUSED( vsh ## shader ); \
 	pShaderShadow->SetVertexShader( #shader, _vshIndex.GetIndex() )
+#else
+// psh ## shader is used here to generate a warning if you don't ever call SET_DYNAMIC_PIXEL_SHADER
+#define DECLARE_DYNAMIC_PIXEL_SHADER( shader ) \
+	int declaredynpixshader_ ## shader ## _missingcurlybraces = 0; \
+	declaredynpixshader_ ## shader ## _missingcurlybraces = declaredynpixshader_ ## shader ## _missingcurlybraces; \
+	shader ## _Dynamic_Index _pshIndex; \
+	int psh ## shader = 0
+
+// vsh ## shader is used here to generate a warning if you don't ever call SET_DYNAMIC_VERTEX_SHADER
+#define DECLARE_DYNAMIC_VERTEX_SHADER( shader ) \
+	int declaredynvertshader_ ## shader ## _missingcurlybraces = 0; \
+	declaredynvertshader_ ## shader ## _missingcurlybraces = declaredynvertshader_ ## shader ## _missingcurlybraces; \
+	shader ## _Dynamic_Index _vshIndex; \
+	int vsh ## shader = 0
+
+
+// psh ## shader is used here to generate a warning if you don't ever call SET_STATIC_PIXEL_SHADER
+#define DECLARE_STATIC_PIXEL_SHADER( shader ) \
+	int declarestaticpixshader_ ## shader ## _missingcurlybraces = 0; \
+	declarestaticpixshader_ ## shader ## _missingcurlybraces = declarestaticpixshader_ ## shader ## _missingcurlybraces; \
+	shader ## _Static_Index _pshIndex; \
+	int psh ## shader = 0
+
+// vsh ## shader is used here to generate a warning if you don't ever call SET_STATIC_VERTEX_SHADER
+#define DECLARE_STATIC_VERTEX_SHADER( shader ) \
+	int declarestaticvertshader_ ## shader ## _missingcurlybraces = 0; \
+	declarestaticvertshader_ ## shader ## _missingcurlybraces = declarestaticvertshader_ ## shader ## _missingcurlybraces; \
+	shader ## _Static_Index _vshIndex; \
+	int vsh ## shader = 0
+
+
+// psh_forgot_to_set_dynamic_ ## var is used to make sure that you set all
+// all combos.  If you don't, you will get an undefined variable used error 
+// in the SET_DYNAMIC_PIXEL_SHADER block.
+#define SET_DYNAMIC_PIXEL_SHADER_COMBO( var, val ) \
+	int dynpixshadercombo_ ## var ## _missingcurlybraces = 0; \
+	dynpixshadercombo_ ## var ## _missingcurlybraces = dynpixshadercombo_ ## var ## _missingcurlybraces; \
+	_pshIndex.Set ## var( ( val ) );  if(g_shaderConfigDumpEnable){printf("\n   PS dyn  var %s = %d (%s)", #var, (int) val, #val );}; \
+	int psh_forgot_to_set_dynamic_ ## var = 0
+
+// vsh_forgot_to_set_dynamic_ ## var is used to make sure that you set all
+// all combos.  If you don't, you will get an undefined variable used error 
+// in the SET_DYNAMIC_VERTEX_SHADER block.
+#define SET_DYNAMIC_VERTEX_SHADER_COMBO( var, val ) \
+	int dynvertshadercombo_ ## var ## _missingcurlybraces = 0; \
+	dynvertshadercombo_ ## var ## _missingcurlybraces = dynvertshadercombo_ ## var ## _missingcurlybraces; \
+	_vshIndex.Set ## var( ( val ) );  if(g_shaderConfigDumpEnable){printf("\n   VS dyn  var %s = %d (%s)", #var, (int) val, #val );}; \
+	int vsh_forgot_to_set_dynamic_ ## var = 0
+
+
+// psh_forgot_to_set_static_ ## var is used to make sure that you set all
+// all combos.  If you don't, you will get an undefined variable used error 
+// in the SET_STATIC_PIXEL_SHADER block.
+#define SET_STATIC_PIXEL_SHADER_COMBO( var, val ) \
+	int staticpixshadercombo_ ## var ## _missingcurlybraces = 0; \
+	staticpixshadercombo_ ## var ## _missingcurlybraces = staticpixshadercombo_ ## var ## _missingcurlybraces; \
+	_pshIndex.Set ## var( ( val ) ); if(g_shaderConfigDumpEnable){printf("\n   PS stat var %s = %d (%s)", #var, (int) val, #val );}; \
+	int psh_forgot_to_set_static_ ## var = 0
+
+// vsh_forgot_to_set_static_ ## var is used to make sure that you set all
+// all combos.  If you don't, you will get an undefined variable used error 
+// in the SET_STATIC_VERTEX_SHADER block.
+#define SET_STATIC_VERTEX_SHADER_COMBO( var, val ) \
+	int staticvertshadercombo_ ## var ## _missingcurlybraces = 0; \
+	staticvertshadercombo_ ## var ## _missingcurlybraces = staticvertshadercombo_ ## var ## _missingcurlybraces; \
+	_vshIndex.Set ## var( ( val ) ); if(g_shaderConfigDumpEnable){printf("\n   VS stat var %s = %d (%s)", #var, (int) val, #val );}; \
+	int vsh_forgot_to_set_static_ ## var = 0
+
+
+// psh_testAllCombos adds up all of the psh_forgot_to_set_dynamic_ ## var's from 
+// SET_DYNAMIC_PIXEL_SHADER_COMBO so that an error is generated if they aren't set.
+// psh_testAllCombos is set to itself to avoid an unused variable warning.
+// psh ## shader being set to itself ensures that DECLARE_DYNAMIC_PIXEL_SHADER 
+// was called for this particular shader.
+#define SET_DYNAMIC_PIXEL_SHADER( shader ) \
+	int dynamicpixshader_ ## shader ## _missingcurlybraces = 0; \
+	dynamicpixshader_ ## shader ## _missingcurlybraces = dynamicpixshader_ ## shader ## _missingcurlybraces; \
+	int psh_testAllCombos = shaderDynamicTest_ ## shader; \
+	psh_testAllCombos = psh_testAllCombos; \
+	psh ## shader = psh ## shader; \
+	pShaderAPI->SetPixelShaderIndex( _pshIndex.GetIndex() )
+
+#define SET_DYNAMIC_PIXEL_SHADER_CMD( cmdstream, shader ) \
+	int dynamicpixshader_ ## shader ## _missingcurlybraces = 0; \
+	dynamicpixshader_ ## shader ## _missingcurlybraces = dynamicpixshader_ ## shader ## _missingcurlybraces; \
+	int psh_testAllCombos = shaderDynamicTest_ ## shader; \
+	psh_testAllCombos = psh_testAllCombos; \
+	psh ## shader = psh ## shader; \
+	cmdstream.SetPixelShaderIndex( _pshIndex.GetIndex() )
+
+
+// vsh_testAllCombos adds up all of the vsh_forgot_to_set_dynamic_ ## var's from 
+// SET_DYNAMIC_VERTEX_SHADER_COMBO so that an error is generated if they aren't set.
+// vsh_testAllCombos is set to itself to avoid an unused variable warning.
+// vsh ## shader being set to itself ensures that DECLARE_DYNAMIC_VERTEX_SHADER 
+// was called for this particular shader.
+#define SET_DYNAMIC_VERTEX_SHADER( shader ) \
+	int dynamicvertshader_ ## shader ## _missingcurlybraces = 0; \
+	dynamicvertshader_ ## shader ## _missingcurlybraces = dynamicvertshader_ ## shader ## _missingcurlybraces; \
+	int vsh_testAllCombos = shaderDynamicTest_ ## shader; \
+	vsh_testAllCombos = vsh_testAllCombos; \
+	vsh ## shader = vsh ## shader; \
+	pShaderAPI->SetVertexShaderIndex( _vshIndex.GetIndex() )
+
+#define SET_DYNAMIC_VERTEX_SHADER_CMD( cmdstream, shader ) \
+	int dynamicvertshader_ ## shader ## _missingcurlybraces = 0; \
+	dynamicvertshader_ ## shader ## _missingcurlybraces = dynamicvertshader_ ## shader ## _missingcurlybraces; \
+	int vsh_testAllCombos = shaderDynamicTest_ ## shader; \
+	vsh_testAllCombos = vsh_testAllCombos; \
+	vsh ## shader = vsh ## shader; \
+	cmdstream.SetVertexShaderIndex( _vshIndex.GetIndex() )
+
+
+// psh_testAllCombos adds up all of the psh_forgot_to_set_static_ ## var's from 
+// SET_STATIC_PIXEL_SHADER_COMBO so that an error is generated if they aren't set.
+// psh_testAllCombos is set to itself to avoid an unused variable warning.
+// psh ## shader being set to itself ensures that DECLARE_STATIC_PIXEL_SHADER 
+// was called for this particular shader.
+#define SET_STATIC_PIXEL_SHADER( shader ) \
+	int staticpixshader_ ## shader ## _missingcurlybraces = 0; \
+	staticpixshader_ ## shader ## _missingcurlybraces = staticpixshader_ ## shader ## _missingcurlybraces; \
+	int psh_testAllCombos = shaderStaticTest_ ## shader; \
+	psh_testAllCombos = psh_testAllCombos; \
+	psh ## shader = psh ## shader; \
+	pShaderShadow->SetPixelShader( SHADER_PREFIX #shader, _pshIndex.GetIndex() )
+
+// vsh_testAllCombos adds up all of the vsh_forgot_to_set_static_ ## var's from 
+// SET_STATIC_VERTEX_SHADER_COMBO so that an error is generated if they aren't set.
+// vsh_testAllCombos is set to itself to avoid an unused variable warning.
+// vsh ## shader being set to itself ensures that DECLARE_STATIC_VERTEX_SHADER 
+// was called for this particular shader.
+#define SET_STATIC_VERTEX_SHADER( shader ) \
+	int staticvertshader_ ## shader ## _missingcurlybraces = 0; \
+	staticvertshader_ ## shader ## _missingcurlybraces = staticvertshader_ ## shader ## _missingcurlybraces; \
+	int vsh_testAllCombos = shaderStaticTest_ ## shader; \
+	vsh_testAllCombos = vsh_testAllCombos; \
+	vsh ## shader = vsh ## shader; \
+	pShaderShadow->SetVertexShader( SHADER_PREFIX #shader, _vshIndex.GetIndex() )
+#endif
 
 #endif // CSHADER_H

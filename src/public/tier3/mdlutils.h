@@ -76,7 +76,9 @@ public:
 	bool		m_bWorldSpaceViewTarget;
 	void		*m_pProxyData;
 
+#ifdef SDK_MP
 	CJiggleBones *m_pJiggleBones;
+#endif
 };
 
 

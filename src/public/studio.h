@@ -106,6 +106,7 @@ struct mstudiodata_t
 #define STUDIO_PROC_AIMATATTACH 4
 #define STUDIO_PROC_JIGGLE 5
 
+#ifdef SDK_MP
 // If you want to embed a pointer into one of the structures that is serialized, use this class! It will ensure that the pointers consume the 
 // right amount of space and work correctly across 32 and 64 bit. It also makes sure that there is no surprise about how large the structure
 // is when placed in the middle of another structure, and supports Intel's desired behavior on 64-bit that pointers are always 8-byte aligned.
@@ -137,6 +138,7 @@ struct ALIGN4 serializedstudioptr_t
 } ALIGN4_POST;
 
 #pragma pack( pop )
+#endif
 
 
 struct mstudioaxisinterpbone_t

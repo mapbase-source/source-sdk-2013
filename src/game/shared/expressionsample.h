@@ -69,7 +69,9 @@ private:
 class ICurveDataAccessor
 {
 public:
+#ifdef SDK_MP
 	virtual ~ICurveDataAccessor(){}
+#endif
 	virtual float	GetDuration() = 0;
 	virtual bool	CurveHasEndTime() = 0; // only matters for events
 	virtual int		GetDefaultCurveType() = 0;

@@ -158,6 +158,7 @@ public:
 	// returns true if Steam itself is running in VR mode
 	virtual bool IsSteamRunningInVR() = 0;
 	
+#ifdef SDK_MP
 	// Sets the inset of the overlay notification from the corner specified by SetOverlayNotificationPosition.
 	virtual void SetOverlayNotificationInset( int nHorizontalInset, int nVerticalInset ) = 0;
 
@@ -215,8 +216,10 @@ public:
 
 	// Dismisses the floating keyboard.
 	virtual bool DismissFloatingGamepadTextInput() = 0;
+#endif
 };
 
+#ifdef SDK_MP
 #define STEAMUTILS_INTERFACE_VERSION "SteamUtils010"
 
 // Global interface accessor
@@ -226,6 +229,9 @@ STEAM_DEFINE_INTERFACE_ACCESSOR( ISteamUtils *, SteamUtils, SteamInternal_FindOr
 // Global accessor for the gameserver client
 inline ISteamUtils *SteamGameServerUtils();
 STEAM_DEFINE_INTERFACE_ACCESSOR( ISteamUtils *, SteamGameServerUtils, SteamInternal_FindOrCreateGameServerInterface( 0, STEAMUTILS_INTERFACE_VERSION ), "gameserver", STEAMUTILS_INTERFACE_VERSION );
+#else
+#define STEAMUTILS_INTERFACE_VERSION "SteamUtils007"
+#endif
 
 // callbacks
 #if defined( VALVE_CALLBACK_PACK_SMALL )
@@ -262,8 +268,10 @@ struct SteamAPICallCompleted_t
 {
 	enum { k_iCallback = k_iSteamUtilsCallbacks + 3 };
 	SteamAPICall_t m_hAsyncCall;
+#ifdef SDK_MP
 	int m_iCallback;
 	uint32 m_cubParam;
+#endif
 };
 
 
