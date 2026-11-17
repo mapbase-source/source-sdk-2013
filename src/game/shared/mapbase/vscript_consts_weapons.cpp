@@ -7,6 +7,9 @@
 
 #include "cbase.h"
 #include "basecombatweapon_shared.h"
+#if defined(HL2_DLL) || defined(HL2_CLIENT_DLL)
+#include "basehlcombatweapon_shared.h"
+#endif
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -43,6 +46,7 @@ END_SCRIPTENUM();
 
 void RegisterWeaponScriptConstants()
 {
+#if defined(HL2_DLL) || defined(HL2_CLIENT_DLL)
 	//
 	// Weapon classify
 	//
@@ -53,6 +57,7 @@ void RegisterWeaponScriptConstants()
 	ScriptRegisterConstant( g_pScriptVM, WEPCLASS_HEAVY, "Weapon class for RPGs, etc." );
 
 	ScriptRegisterConstant( g_pScriptVM, WEPCLASS_MELEE, "Weapon class for melee weapons." );
+#endif
 
 	//
 	// Vector cones

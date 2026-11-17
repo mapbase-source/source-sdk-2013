@@ -8,7 +8,6 @@
 #define ENV_PROJECTEDTEXTURE_STARTON			(1<<0)
 #define ENV_PROJECTEDTEXTURE_ALWAYSUPDATE		(1<<1)
 
-#ifdef ASW_PROJECTED_TEXTURES
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
@@ -52,6 +51,7 @@ public:
 	void InputSetAmbient( inputdata_t &inputdata );
 #ifdef MAPBASE
 	void InputSetSpotlightFrame( inputdata_t &inputdata );
+	void InputSetShadowQuality( inputdata_t &inputdata );
 	void InputSetBrightness( inputdata_t &inputdata );
 	void InputSetColorTransitionTime( inputdata_t &inputdata );
 	void InputSetConstant( inputdata_t &inputdata ) { m_flConstantAtten = CorrectConstantAtten(inputdata.value.Float()); }
@@ -116,7 +116,6 @@ private:
 	bool m_bProjectedTextureVersion;
 #endif
 };
-#endif
 
 
 #endif	// ENV_PROJECTEDTEXTURE_H

@@ -518,9 +518,9 @@ void CCrossbowBolt::BubbleThink( void )
 #define CWeaponCrossbow C_WeaponCrossbow
 #endif
 
-class CWeaponCrossbow : public CBaseHLCombatWeapon
+class CWeaponCrossbow : public CBaseHL2MPCombatWeapon
 {
-	DECLARE_CLASS( CWeaponCrossbow, CBaseHLCombatWeapon );
+	DECLARE_CLASS( CWeaponCrossbow, CBaseHL2MPCombatWeapon );
 public:
 
 	CWeaponCrossbow( void );

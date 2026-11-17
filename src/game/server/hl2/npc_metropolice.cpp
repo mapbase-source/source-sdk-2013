@@ -21,7 +21,6 @@
 #include "hl2_gamerules.h"
 #ifdef MAPBASE
 #include "grenade_frag.h"
-#include "mapbase/GlobalStrings.h"
 #endif
 
 // memdbgon must be the last include file in a .cpp file!!!
@@ -758,7 +757,7 @@ void CNPC_MetroPolice::Spawn( void )
 		pWeapon = GetActiveWeapon();
 
 #ifdef MAPBASE
-		if (!EntIsClass(pWeapon, gm_isz_class_Pistol) && !EntIsClass(pWeapon, gm_isz_class_357))
+		if( !FClassnameIsDirect( pWeapon, "weapon_pistol" ) && !FClassnameIsDirect( pWeapon, "weapon_357" ) )
 #else
 		if( !FClassnameIs( pWeapon, "weapon_pistol" ) )
 #endif
@@ -786,11 +785,7 @@ void CNPC_MetroPolice::Spawn( void )
 	// Clear out spawnflag if we're missing the smg1
 	if( HasSpawnFlags( SF_METROPOLICE_ALWAYS_STITCH ) )
 	{
-#ifdef MAPBASE
-		if ( !Weapon_OwnsThisType( STRING(gm_isz_class_SMG1) ) )
-#else
 		if ( !Weapon_OwnsThisType( "weapon_smg1" ) )
-#endif
 		{
 			Warning( "Warning! Metrocop is trying to use the stitch behavior but he has no smg1!\n" );
 			RemoveSpawnFlags( SF_METROPOLICE_ALWAYS_STITCH );
@@ -1545,7 +1540,7 @@ void CNPC_MetroPolice::OnUpdateShotRegulator( )
 	// FIXME: This code (except the burst interval) could be used for all weapon types 
 #ifdef MAPBASE
 	// Only if we actually have the pistol out
-	if ( GetActiveWeapon() && EntIsClass( GetActiveWeapon(), gm_isz_class_Pistol ) )
+	if ( GetActiveWeapon() && GetActiveWeapon()->ClassMatchesDirect( "weapon_pistol" ) )
 #else
 	if( Weapon_OwnsThisType( "weapon_pistol" ) )
 #endif
@@ -5048,7 +5043,7 @@ int CNPC_MetroPolice::SelectSchedule( void )
 
 		case NPC_STATE_COMBAT:
 #ifdef MAPBASE
-			if (!IsEnemyInAnAirboat() || !GetActiveWeapon() || !EntIsClass(GetActiveWeapon(), gm_isz_class_SMG1))
+			if (!IsEnemyInAnAirboat() || !GetActiveWeapon() || !GetActiveWeapon()->ClassMatchesDirect( "weapon_smg1" ))
 #else
 			if (!IsEnemyInAnAirboat() || !Weapon_OwnsThisType( "weapon_smg1" ) )
 #endif
@@ -5172,7 +5167,7 @@ int CNPC_MetroPolice::TranslateSchedule( int scheduleType )
 #endif
 
 #ifdef MAPBASE
-		if (GetActiveWeapon() && EntIsClass(GetActiveWeapon(), gm_isz_class_SMG1))
+		if ( GetActiveWeapon() && GetActiveWeapon()->ClassMatchesDirect( "weapon_smg1" ) )
 #else
 		if( Weapon_OwnsThisType( "weapon_smg1" ) )
 #endif
@@ -5228,7 +5223,7 @@ int CNPC_MetroPolice::TranslateSchedule( int scheduleType )
 		if ( m_NextChargeTimer.Expired() && metropolice_charge.GetBool() )
 		{	
 #ifdef MAPBASE
-			if (GetActiveWeapon() && EntIsClass(GetActiveWeapon(), gm_isz_class_Pistol))
+			if ( GetActiveWeapon() && GetActiveWeapon()->ClassMatchesDirect( "weapon_pistol" ) )
 #else
 			if ( Weapon_OwnsThisType( "weapon_pistol" ) )
 #endif
@@ -5939,20 +5934,12 @@ void CNPC_MetroPolice::BuildScheduleTestBits( void )
 //-----------------------------------------------------------------------------
 WeaponProficiency_t CNPC_MetroPolice::CalcWeaponProficiency( CBaseCombatWeapon *pWeapon )
 {
-#ifdef MAPBASE
-	if (EntIsClass(pWeapon, gm_isz_class_Pistol))
-#else
-	if( FClassnameIs( pWeapon, "weapon_pistol" ) )
-#endif
+	if( FClassnameIsDirect( pWeapon, "weapon_pistol" ) )
 	{
 		return WEAPON_PROFICIENCY_POOR;
 	}
 
-#ifdef MAPBASE
-	if (EntIsClass(pWeapon, gm_isz_class_SMG1))
-#else
-	if( FClassnameIs( pWeapon, "weapon_smg1" ) )
-#endif
+	if( FClassnameIsDirect( pWeapon, "weapon_smg1" ) )
 	{
 		return WEAPON_PROFICIENCY_VERY_GOOD;
 	}
@@ -6038,11 +6025,7 @@ bool CNPC_MetroPolice::HasBaton( void )
 	CBaseCombatWeapon *pWeapon = GetActiveWeapon();
 
 	if ( pWeapon )
-#ifdef MAPBASE
-		return EntIsClass(pWeapon, gm_isz_class_Stunstick);
-#else
-		return FClassnameIs( pWeapon, "weapon_stunstick" );
-#endif
+		return FClassnameIsDirect( pWeapon, "weapon_stunstick" );
 
 	return false;
 }

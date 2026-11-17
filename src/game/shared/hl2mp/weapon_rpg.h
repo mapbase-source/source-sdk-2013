@@ -186,9 +186,9 @@ extern ConVar weapon_rpg_fire_rate;
 #define CWeaponRPG C_WeaponRPG
 #endif
 
-class CWeaponRPG : public CBaseHLCombatWeapon
+class CWeaponRPG : public CBaseHL2MPCombatWeapon
 {
-	DECLARE_CLASS( CWeaponRPG, CBaseHLCombatWeapon );
+	DECLARE_CLASS( CWeaponRPG, CBaseHL2MPCombatWeapon );
 public:
 
 	CWeaponRPG();

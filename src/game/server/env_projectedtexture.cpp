@@ -6,14 +6,10 @@
 
 #include "cbase.h"
 #include "shareddefs.h"
-#ifdef ASW_PROJECTED_TEXTURES
 #include "env_projectedtexture.h"
-#endif
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
-
-#ifdef ASW_PROJECTED_TEXTURES
 
 LINK_ENTITY_TO_CLASS( env_projectedtexture, CEnvProjectedTexture );
 
@@ -72,6 +68,7 @@ BEGIN_DATADESC( CEnvProjectedTexture )
 	DEFINE_INPUTFUNC( FIELD_STRING, "SpotlightTexture", InputSetSpotlightTexture ),
 #ifdef MAPBASE
 	DEFINE_INPUTFUNC( FIELD_INTEGER, "SetSpotlightFrame", InputSetSpotlightFrame ),
+	DEFINE_INPUTFUNC( FIELD_INTEGER, "SetShadowQuality", InputSetShadowQuality ),
 	DEFINE_INPUTFUNC( FIELD_FLOAT, "SetBrightness", InputSetBrightness ),
 	DEFINE_INPUTFUNC( FIELD_FLOAT, "SetColorTransitionTime", InputSetColorTransitionTime ),
 	DEFINE_INPUTFUNC( FIELD_FLOAT, "SetQuadratic", InputSetQuadratic ),
@@ -112,8 +109,8 @@ IMPLEMENT_SERVERCLASS_ST( CEnvProjectedTexture, DT_EnvProjectedTexture )
 	SendPropInt( SENDINFO( m_nSpotlightTextureFrame ) ),
 	SendPropFloat( SENDINFO( m_flNearZ ), 16, SPROP_ROUNDDOWN, 0.0f,  500.0f ),
 	SendPropFloat( SENDINFO( m_flFarZ ),  18, SPROP_ROUNDDOWN, 0.0f, 1500.0f ),
-	SendPropInt( SENDINFO( m_nShadowQuality ), 1, SPROP_UNSIGNED ),  // Just one bit for now
 #ifdef MAPBASE
+	SendPropInt( SENDINFO( m_nShadowQuality ), 3, SPROP_UNSIGNED ),
 	SendPropFloat( SENDINFO( m_flConstantAtten ) ),
 	SendPropFloat( SENDINFO( m_flLinearAtten ) ),
 	SendPropFloat( SENDINFO( m_flQuadraticAtten ) ),
@@ -123,6 +120,8 @@ IMPLEMENT_SERVERCLASS_ST( CEnvProjectedTexture, DT_EnvProjectedTexture )
 
 	// Not needed on the client right now, change when it actually is needed
 	//SendPropBool( SENDINFO( m_bProjectedTextureVersion ) ),
+#else
+	SendPropInt( SENDINFO( m_nShadowQuality ), 1, SPROP_UNSIGNED ),  // Just one bit for now
 #endif
 END_SEND_TABLE()
 
@@ -378,6 +377,11 @@ void CEnvProjectedTexture::InputSetSpotlightFrame( inputdata_t &inputdata )
 	m_nSpotlightTextureFrame = inputdata.value.Int();
 }
 
+void CEnvProjectedTexture::InputSetShadowQuality( inputdata_t &inputdata )
+{
+	m_nShadowQuality = inputdata.value.Int();
+}
+
 void CEnvProjectedTexture::InputSetBrightness( inputdata_t &inputdata )
 {
 	m_flBrightnessScale = inputdata.value.Float();
@@ -465,317 +469,6 @@ int CEnvProjectedTexture::UpdateTransmitState()
 	return SetTransmitState( FL_EDICT_ALWAYS );
 }
 
-#else
-
-#define ENV_PROJECTEDTEXTURE_STARTON			(1<<0)
-#ifdef MAPBASE
-#define ENV_PROJECTEDTEXTURE_ALWAYSUPDATE		(1<<1)
-#endif
-
-//-----------------------------------------------------------------------------
-// Purpose: 
-//-----------------------------------------------------------------------------
-class CEnvProjectedTexture : public CPointEntity
-{
-	DECLARE_CLASS( CEnvProjectedTexture, CPointEntity );
-public:
-	DECLARE_DATADESC();
-	DECLARE_SERVERCLASS();
-
-	CEnvProjectedTexture();
-	bool KeyValue( const char *szKeyName, const char *szValue );
-
-	// Always transmit to clients
-	virtual int UpdateTransmitState();
-	virtual void Activate( void );
-
-	void InputTurnOn( inputdata_t &inputdata );
-	void InputTurnOff( inputdata_t &inputdata );
-#ifdef MAPBASE
-	void InputAlwaysUpdateOn( inputdata_t &inputdata );
-	void InputAlwaysUpdateOff( inputdata_t &inputdata );
-#endif
-	void InputSetFOV( inputdata_t &inputdata );
-	void InputSetTarget( inputdata_t &inputdata );
-	void InputSetCameraSpace( inputdata_t &inputdata );
-	void InputSetLightOnlyTarget( inputdata_t &inputdata );
-	void InputSetLightWorld( inputdata_t &inputdata );
-	void InputSetEnableShadows( inputdata_t &inputdata );
-#ifndef MAPBASE
-//	void InputSetLightColor( inputdata_t &inputdata );
-#else
-	void InputSetLightColor( inputdata_t &inputdata );
-#endif
-	void InputSetSpotlightTexture( inputdata_t &inputdata );
-	void InputSetAmbient( inputdata_t &inputdata );
-
-	void InitialThink( void );
-
-	CNetworkHandle( CBaseEntity, m_hTargetEntity );
-
-private:
-
-	CNetworkVar( bool, m_bState );
-#ifdef MAPBASE
-	CNetworkVar( bool, m_bAlwaysUpdate );
-#endif
-	CNetworkVar( float, m_flLightFOV );
-	CNetworkVar( bool, m_bEnableShadows );
-	CNetworkVar( bool, m_bLightOnlyTarget );
-	CNetworkVar( bool, m_bLightWorld );
-	CNetworkVar( bool, m_bCameraSpace );
-	CNetworkVector( m_LinearFloatLightColor );
-	CNetworkVar( float, m_flAmbient );
-	CNetworkString( m_SpotlightTextureName, MAX_PATH );
-	CNetworkVar( int, m_nSpotlightTextureFrame );
-	CNetworkVar( float, m_flNearZ );
-	CNetworkVar( float, m_flFarZ );
-	CNetworkVar( int, m_nShadowQuality );
-};
-
-LINK_ENTITY_TO_CLASS( env_projectedtexture, CEnvProjectedTexture );
-
-BEGIN_DATADESC( CEnvProjectedTexture )
-	DEFINE_FIELD( m_hTargetEntity, FIELD_EHANDLE ),
-	DEFINE_FIELD( m_bState, FIELD_BOOLEAN ),
-	DEFINE_KEYFIELD( m_flLightFOV, FIELD_FLOAT, "lightfov" ),
-	DEFINE_KEYFIELD( m_bEnableShadows, FIELD_BOOLEAN, "enableshadows" ),
-	DEFINE_KEYFIELD( m_bLightOnlyTarget, FIELD_BOOLEAN, "lightonlytarget" ),
-	DEFINE_KEYFIELD( m_bLightWorld, FIELD_BOOLEAN, "lightworld" ),
-	DEFINE_KEYFIELD( m_bCameraSpace, FIELD_BOOLEAN, "cameraspace" ),
-	DEFINE_KEYFIELD( m_flAmbient, FIELD_FLOAT, "ambient" ),
-#ifndef MAPBASE
-	DEFINE_AUTO_ARRAY_KEYFIELD( m_SpotlightTextureName, FIELD_CHARACTER, "texturename" ),
-#else
-	DEFINE_AUTO_ARRAY( m_SpotlightTextureName, FIELD_CHARACTER ),
-#endif
-	DEFINE_KEYFIELD( m_nSpotlightTextureFrame, FIELD_INTEGER, "textureframe" ),
-	DEFINE_KEYFIELD( m_flNearZ, FIELD_FLOAT, "nearz" ),
-	DEFINE_KEYFIELD( m_flFarZ, FIELD_FLOAT, "farz" ),
-	DEFINE_KEYFIELD( m_nShadowQuality, FIELD_INTEGER, "shadowquality" ),
-	DEFINE_FIELD( m_LinearFloatLightColor, FIELD_VECTOR ), 
-
-	DEFINE_INPUTFUNC( FIELD_VOID, "TurnOn", InputTurnOn ),
-	DEFINE_INPUTFUNC( FIELD_VOID, "TurnOff", InputTurnOff ),
-#ifdef MAPBASE
-	DEFINE_INPUTFUNC( FIELD_VOID, "AlwaysUpdateOn", InputAlwaysUpdateOn ),
-	DEFINE_INPUTFUNC( FIELD_VOID, "AlwaysUpdateOff", InputAlwaysUpdateOff ),
-#endif
-	DEFINE_INPUTFUNC( FIELD_FLOAT, "FOV", InputSetFOV ),
-	DEFINE_INPUTFUNC( FIELD_EHANDLE, "Target", InputSetTarget ),
-	DEFINE_INPUTFUNC( FIELD_BOOLEAN, "CameraSpace", InputSetCameraSpace ),
-	DEFINE_INPUTFUNC( FIELD_BOOLEAN, "LightOnlyTarget", InputSetLightOnlyTarget ),
-	DEFINE_INPUTFUNC( FIELD_BOOLEAN, "LightWorld", InputSetLightWorld ),
-	DEFINE_INPUTFUNC( FIELD_BOOLEAN, "EnableShadows", InputSetEnableShadows ),
-#ifndef MAPBASE
-	// this is broken . . need to be able to set color and intensity like light_dynamic
-//	DEFINE_INPUTFUNC( FIELD_COLOR32, "LightColor", InputSetLightColor ),
-#else
-	DEFINE_INPUTFUNC( FIELD_STRING, "LightColor", InputSetLightColor ),
-#endif
-	DEFINE_INPUTFUNC( FIELD_FLOAT, "Ambient", InputSetAmbient ),
-	DEFINE_INPUTFUNC( FIELD_STRING, "SpotlightTexture", InputSetSpotlightTexture ),
-	DEFINE_THINKFUNC( InitialThink ),
-END_DATADESC()
-
-IMPLEMENT_SERVERCLASS_ST( CEnvProjectedTexture, DT_EnvProjectedTexture )
-	SendPropEHandle( SENDINFO( m_hTargetEntity ) ),
-	SendPropBool( SENDINFO( m_bState ) ),
-#ifdef MAPBASE
-	SendPropBool( SENDINFO( m_bAlwaysUpdate ) ),
-#endif
-	SendPropFloat( SENDINFO( m_flLightFOV ) ),
-	SendPropBool( SENDINFO( m_bEnableShadows ) ),
-	SendPropBool( SENDINFO( m_bLightOnlyTarget ) ),
-	SendPropBool( SENDINFO( m_bLightWorld ) ),
-	SendPropBool( SENDINFO( m_bCameraSpace ) ),
-	SendPropVector( SENDINFO( m_LinearFloatLightColor ) ),
-	SendPropFloat( SENDINFO( m_flAmbient ) ),
-	SendPropString( SENDINFO( m_SpotlightTextureName ) ),
-	SendPropInt( SENDINFO( m_nSpotlightTextureFrame ) ),
-	SendPropFloat( SENDINFO( m_flNearZ ), 16, SPROP_ROUNDDOWN, 0.0f,  500.0f ),
-	SendPropFloat( SENDINFO( m_flFarZ ),  18, SPROP_ROUNDDOWN, 0.0f, 1500.0f ),
-	SendPropInt( SENDINFO( m_nShadowQuality ), 1, SPROP_UNSIGNED ),  // Just one bit for now
-END_SEND_TABLE()
-
-//-----------------------------------------------------------------------------
-// Purpose: 
-//-----------------------------------------------------------------------------
-CEnvProjectedTexture::CEnvProjectedTexture( void )
-{
-	m_bState = true;
-	m_flLightFOV = 45.0f;
-	m_bEnableShadows = false;
-	m_bLightOnlyTarget = false;
-	m_bLightWorld = true;
-	m_bCameraSpace = false;
-
-// if ( g_pHardwareConfig->SupportsBorderColor() )
-#if defined( _X360 )
-		Q_strcpy( m_SpotlightTextureName.GetForModify(), "effects/flashlight_border" );
-#else
-		Q_strcpy( m_SpotlightTextureName.GetForModify(), "effects/flashlight001" );
-#endif
-
-	m_nSpotlightTextureFrame = 0;
-	m_LinearFloatLightColor.Init( 1.0f, 1.0f, 1.0f );
-	m_flAmbient = 0.0f;
-	m_flNearZ = 4.0f;
-	m_flFarZ = 750.0f;
-	m_nShadowQuality = 0;
-}
-
-void UTIL_ColorStringToLinearFloatColor( Vector &color, const char *pString )
-{
-	float tmp[4];
-	UTIL_StringToFloatArray( tmp, 4, pString );
-	if( tmp[3] <= 0.0f )
-	{
-		tmp[3] = 255.0f;
-	}
-	tmp[3] *= ( 1.0f / 255.0f );
-	color.x = GammaToLinear( tmp[0] * ( 1.0f / 255.0f ) ) * tmp[3];
-	color.y = GammaToLinear( tmp[1] * ( 1.0f / 255.0f ) ) * tmp[3];
-	color.z = GammaToLinear( tmp[2] * ( 1.0f / 255.0f ) ) * tmp[3];
-}
-
-bool CEnvProjectedTexture::KeyValue( const char *szKeyName, const char *szValue )
-{
-	if ( FStrEq( szKeyName, "lightcolor" ) )
-	{
-		Vector tmp;
-		UTIL_ColorStringToLinearFloatColor( tmp, szValue );
-		m_LinearFloatLightColor = tmp;
-	}
-#ifdef MAPBASE
-	else if ( FStrEq(szKeyName, "texturename") )
-	{
-		Q_strcpy(m_SpotlightTextureName.GetForModify(), szValue);
-	}
-#endif
-	else
-	{
-		return BaseClass::KeyValue( szKeyName, szValue );
-	}
-
-	return true;
-}
-
-void CEnvProjectedTexture::InputTurnOn( inputdata_t &inputdata )
-{
-	m_bState = true;
-}
-
-void CEnvProjectedTexture::InputTurnOff( inputdata_t &inputdata )
-{
-	m_bState = false;
-}
-
-#ifdef MAPBASE
-void CEnvProjectedTexture::InputAlwaysUpdateOn( inputdata_t &inputdata )
-{
-	m_bAlwaysUpdate = true;
-}
-
-void CEnvProjectedTexture::InputAlwaysUpdateOff( inputdata_t &inputdata )
-{
-	m_bAlwaysUpdate = false;
-}
-#endif
-
-void CEnvProjectedTexture::InputSetFOV( inputdata_t &inputdata )
-{
-	m_flLightFOV = inputdata.value.Float();
-}
-
-void CEnvProjectedTexture::InputSetTarget( inputdata_t &inputdata )
-{
-	m_hTargetEntity = inputdata.value.Entity();
-}
-
-void CEnvProjectedTexture::InputSetCameraSpace( inputdata_t &inputdata )
-{
-	m_bCameraSpace = inputdata.value.Bool();
-}
-
-void CEnvProjectedTexture::InputSetLightOnlyTarget( inputdata_t &inputdata )
-{
-	m_bLightOnlyTarget = inputdata.value.Bool();
-}
-
-void CEnvProjectedTexture::InputSetLightWorld( inputdata_t &inputdata )
-{
-	m_bLightWorld = inputdata.value.Bool();
-}
-
-void CEnvProjectedTexture::InputSetEnableShadows( inputdata_t &inputdata )
-{
-	m_bEnableShadows = inputdata.value.Bool();
-}
-
-#ifndef MAPBASE
-//void CEnvProjectedTexture::InputSetLightColor( inputdata_t &inputdata )
-//{
-//	m_cLightColor = inputdata.value.Color32();
-//}
-#else
-void CEnvProjectedTexture::InputSetLightColor( inputdata_t &inputdata )
-{
-	Vector tmp;
-	UTIL_ColorStringToLinearFloatColor( tmp, inputdata.value.String() );
-	m_LinearFloatLightColor = tmp;
-}
-#endif
-
-void CEnvProjectedTexture::InputSetAmbient( inputdata_t &inputdata )
-{
-	m_flAmbient = inputdata.value.Float();
-}
-
-void CEnvProjectedTexture::InputSetSpotlightTexture( inputdata_t &inputdata )
-{
-	Q_strcpy( m_SpotlightTextureName.GetForModify(), inputdata.value.String() );
-}
-
-void CEnvProjectedTexture::Activate( void )
-{
-	if ( GetSpawnFlags() & ENV_PROJECTEDTEXTURE_STARTON )
-	{
-		m_bState = true;
-	}
-#ifdef MAPBASE
-	m_bAlwaysUpdate = ( ( GetSpawnFlags() & ENV_PROJECTEDTEXTURE_ALWAYSUPDATE ) != 0 );
-#endif
-
-	SetThink( &CEnvProjectedTexture::InitialThink );
-	SetNextThink( gpGlobals->curtime + 0.1f );
-
-	BaseClass::Activate();
-}
-
-void CEnvProjectedTexture::InitialThink( void )
-{
-#ifndef MAPBASE
-	m_hTargetEntity = gEntList.FindEntityByName( NULL, m_target );
-#else
-	if (m_hTargetEntity == NULL && m_target != NULL_STRING)
-		m_hTargetEntity = gEntList.FindEntityByName(NULL, m_target);
-	if (m_hTargetEntity == NULL)
-		return;
-	Vector vecToTarget = (m_hTargetEntity->GetAbsOrigin() - GetAbsOrigin());
-	QAngle vecAngles;
-	VectorAngles(vecToTarget, vecAngles);
-	SetAbsAngles(vecAngles);
-	SetNextThink(gpGlobals->curtime + 0.1);
-#endif
-}
-
-int CEnvProjectedTexture::UpdateTransmitState()
-{
-	return SetTransmitState( FL_EDICT_ALWAYS );
-}
-
-#endif
 
 
 // Console command for creating env_projectedtexture entities

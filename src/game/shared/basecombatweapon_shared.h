@@ -49,9 +49,7 @@ class CUserCmd;
 #define SF_WEAPON_NO_PLAYER_PICKUP	(1<<1)
 #define SF_WEAPON_NO_PHYSCANNON_PUNT (1<<2)
 #ifdef MAPBASE
-// I really, REALLY hope no weapon uses their own spawnflags.
-// If you want yours to use spawnflags, start at 16 just to be safe.
-
+// If you want your weapon to have its own spawnflags, start at 16 or seek an alternate solution.
 #define SF_WEAPON_NO_NPC_PICKUP	(1<<3) // Prevents NPCs from picking up the weapon.
 #define SF_WEAPON_PRESERVE_AMMO (1<<4) // Prevents the weapon from filling up to max automatically when dropped or picked up by players.
 #define SF_WEAPON_PRESERVE_NAME	(1<<5) // Prevents the weapon's name from being cleared upon being picked up by a player.
@@ -105,26 +103,6 @@ namespace vgui2
 {
 	typedef unsigned long HFont;
 }
-
-#ifdef MAPBASE
-// ------------------
-// Weapon classes
-// ------------------
-// I found myself in situations where this is useful.
-// Their purpose is similar to Class_T on NPCs.
-
-enum WeaponClass_t
-{
-	WEPCLASS_INVALID = 0,
-
-	WEPCLASS_HANDGUN,
-	WEPCLASS_RIFLE,
-	WEPCLASS_SHOTGUN,
-	WEPCLASS_HEAVY,
-
-	WEPCLASS_MELEE,
-};
-#endif
 
 // -----------------------------------------
 //	Vector cones
@@ -222,13 +200,9 @@ public:
 	virtual void			SetSubType( int iType ) { m_iSubType = iType; }
 
 #ifdef MAPBASE
-	virtual WeaponClass_t	WeaponClassify();
-	static WeaponClass_t	WeaponClassFromString(const char *str);
-
 	virtual bool			SupportsBackupActivity(Activity activity);
 	virtual acttable_t		*GetBackupActivityList();
 	virtual int				GetBackupActivityListCount();
-	static acttable_t		*GetDefaultBackupActivityList( acttable_t *pTable, int &actCount );
 #endif
 
 	virtual void			Equip( CBaseCombatCharacter *pOwner );
@@ -424,12 +398,8 @@ public:
 	bool					IsMeleeWeapon() const;
 #ifdef MAPBASE
 	virtual float			GetViewmodelFOVOverride() const;
-	float					GetBobScale() const;
-	float					GetSwayScale() const;
-	float					GetSwaySpeedScale() const;
 	virtual const char		*GetDroppedModel( void ) const;
-	virtual bool			UsesHands( void ) const;
-	virtual int				GetHandRig( void ) const;
+	virtual bool			UsesHands( void ) const { return false; }	// For viewmodels with swappable arms
 #endif
 
 	// derive this function if you mod uses encrypted weapon info files
@@ -477,7 +447,6 @@ public:
 	HSCRIPT				ScriptGetOwner();
 	void				ScriptSetOwner( HSCRIPT owner );
 
-	int					ScriptWeaponClassify() { return WeaponClassify(); }
 	void				ScriptWeaponSound( int sound_type, float soundtime = 0.0f ) { WeaponSound( (WeaponSound_t)sound_type, soundtime ); }
 
 	const Vector&		ScriptGetBulletSpread( void ) { return GetBulletSpread(); }

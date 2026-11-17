@@ -27,7 +27,6 @@
 
 #ifdef MAPBASE
 #include "hl2_gamerules.h"
-#include "mapbase/GlobalStrings.h"
 #include "collisionutils.h"
 #endif
 
@@ -939,11 +938,7 @@ void CNPC_Citizen::SelectExpressionType()
 void CNPC_Citizen::FixupMattWeapon()
 {
 	CBaseCombatWeapon *pWeapon = GetActiveWeapon();
-#ifdef MAPBASE
-	if ( pWeapon && EntIsClass( pWeapon, gm_isz_class_Crowbar ) && NameMatches( "matt" ) )
-#else
-	if ( pWeapon && pWeapon->ClassMatches( "weapon_crowbar" ) && NameMatches( "matt" ) )
-#endif
+	if ( pWeapon && pWeapon->ClassMatchesDirect( "weapon_crowbar" ) && NameMatches( "matt" ) )
 	{
 		Weapon_Drop( pWeapon );
 		UTIL_Remove( pWeapon );
@@ -1402,7 +1397,7 @@ int CNPC_Citizen::SelectSchedule()
 #endif
 
 #ifdef MAPBASE
-	if ( GetActiveWeapon() && EntIsClass(GetActiveWeapon(), gm_isz_class_RPG) )
+	if ( GetActiveWeapon() && GetActiveWeapon()->ClassMatchesDirect( "weapon_rpg" ) )
 	{
 		CWeaponRPG *pRPG = static_cast<CWeaponRPG*>(GetActiveWeapon());
 #else
@@ -1723,15 +1718,9 @@ int CNPC_Citizen::TranslateSchedule( int scheduleType )
 
 	case SCHED_RANGE_ATTACK1:
 		// If we have an RPG, we use a custom schedule for it
-#ifdef MAPBASE
-		if ( !IsMortar( GetEnemy() ) && GetActiveWeapon() && EntIsClass(GetActiveWeapon(), gm_isz_class_RPG) )
+		if ( !IsMortar( GetEnemy() ) && GetActiveWeapon() && FClassnameIsDirect( GetActiveWeapon(), "weapon_rpg" ) )
 		{
-			if ( GetEnemy() && EntIsClass(GetEnemy(), gm_isz_class_Strider) )
-#else
-		if ( !IsMortar( GetEnemy() ) && GetActiveWeapon() && FClassnameIs( GetActiveWeapon(), "weapon_rpg" ) )
-		{
-			if ( GetEnemy() && GetEnemy()->ClassMatches( "npc_strider" ) )
-#endif
+			if ( GetEnemy() && GetEnemy()->ClassMatchesDirect( "npc_strider" ) )
 			{
 				if (OccupyStrategySlotRange( SQUAD_SLOT_CITIZEN_RPG1, SQUAD_SLOT_CITIZEN_RPG2 ) )
 				{
@@ -2418,8 +2407,8 @@ Vector CNPC_Citizen::GetActualShootPosition( const Vector &shootOrigin )
 	Vector vecTarget = BaseClass::GetActualShootPosition( shootOrigin );
 
 #ifdef MAPBASE
-	// The gunship RPG code does not appear to be funcitonal, so only set the laser position.
-	if ( GetActiveWeapon() && EntIsClass(GetActiveWeapon(), gm_isz_class_RPG) && GetEnemy() )
+	// The gunship RPG code does not appear to be functional, so only set the laser position.
+	if ( GetActiveWeapon() && GetActiveWeapon()->ClassMatchesDirect( "weapon_rpg" ) && GetEnemy() )
 	{
 		CWeaponRPG *pRPG = static_cast<CWeaponRPG*>(GetActiveWeapon());
 		pRPG->SetNPCLaserPosition( vecTarget );
@@ -2516,31 +2505,19 @@ bool CNPC_Citizen::ShouldLookForBetterWeapon()
 		{
 			bool bDefer = false;
 
-#ifdef MAPBASE
-			if ( EntIsClass(pWeapon, gm_isz_class_AR2) )
-#else
-			if( FClassnameIs( pWeapon, "weapon_ar2" ) )
-#endif
+			if( FClassnameIsDirect( pWeapon, "weapon_ar2" ) )
 			{
 				// Content to keep this weapon forever
 				m_flNextWeaponSearchTime = OTHER_DEFER_SEARCH_TIME;
 				bDefer = true;
 			}
-#ifdef MAPBASE
-			else if( EntIsClass(pWeapon, gm_isz_class_RPG) )
-#else
-			else if( FClassnameIs( pWeapon, "weapon_rpg" ) )
-#endif
+			else if( FClassnameIsDirect( pWeapon, "weapon_rpg" ) )
 			{
 				// Content to keep this weapon forever
 				m_flNextWeaponSearchTime = OTHER_DEFER_SEARCH_TIME;
 				bDefer = true;
 			}
-#ifdef MAPBASE
-			else if ( EntIsClass(pWeapon, gm_isz_class_Shotgun) )
-#else
-			else if( FClassnameIs( pWeapon, "weapon_shotgun" ) )
-#endif
+			else if( FClassnameIsDirect( pWeapon, "weapon_shotgun" ) )
 			{
 				// Shotgunners do not defer their weapon search indefinitely.
 				// If more than one citizen in the squad has a shotgun, we force

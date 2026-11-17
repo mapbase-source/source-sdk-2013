@@ -588,16 +588,10 @@ void DrawLightmappedGenericFlashlight_DX9_Internal( CBaseVSShader *pShader, IMat
 		ITexture *pFlashlightDepthTexture;
 		FlashlightState_t flashlightState = pShaderAPI->GetFlashlightStateEx( worldToTexture, &pFlashlightDepthTexture );
 
-		/*if ( pFlashlightDepthTexture == NULL )
+		if ( pFlashlightDepthTexture == NULL )
 		{
-			const int iFlashlightShadowIndex = ( flashlightState.m_nShadowQuality >> 16 ) - 1;
-
-			if ( iFlashlightShadowIndex >= 0
-				&& iFlashlightShadowIndex <= ( INT_FLASHLIGHT_DEPTHTEXTURE_FALLBACK_LAST - INT_FLASHLIGHT_DEPTHTEXTURE_FALLBACK_FIRST ) )
-			{
-				pFlashlightDepthTexture = (ITexture*)pShaderAPI->GetIntRenderingParameter( INT_FLASHLIGHT_DEPTHTEXTURE_FALLBACK_FIRST + iFlashlightShadowIndex );
-			}
-		}*/
+			pFlashlightDepthTexture = pShader->GetFallbackDepthTexture( pShaderAPI, flashlightState );
+		}
 
 		SetFlashLightColorFromState( flashlightState, pShaderAPI );
 

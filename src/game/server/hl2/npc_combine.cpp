@@ -30,7 +30,6 @@
 #include "SoundEmitterSystem/isoundemittersystembase.h"
 #include "npc_headcrab.h"
 #ifdef MAPBASE
-#include "mapbase/GlobalStrings.h"
 #include "globalstate.h"
 #include "sceneentity.h"
 #endif
@@ -80,11 +79,7 @@ ConVar npc_combine_fixed_shootpos( "npc_combine_fixed_shootpos", "0", FCVAR_NONE
 //-----------------------------------------------------------------------------
 // This is the index to the name of the shotgun's classname in the string pool
 // so that we can get away with an integer compare rather than a string compare.
-#ifdef MAPBASE
-#define s_iszShotgunClassname gm_isz_class_Shotgun
-#else
 string_t	s_iszShotgunClassname;
-#endif
 
 //-----------------------------------------------------------------------------
 // Interactions
@@ -430,9 +425,7 @@ void CNPC_Combine::Precache()
 //-----------------------------------------------------------------------------
 void CNPC_Combine::Activate()
 {
-#ifndef MAPBASE
 	s_iszShotgunClassname = FindPooledString( "weapon_shotgun" );
-#endif
 	BaseClass::Activate();
 }
 
@@ -493,7 +486,7 @@ void CNPC_Combine::Spawn( void )
 
 #ifdef MAPBASE
 	// This was moved from CalcWeaponProficiency() so soldiers don't change skin unnaturally and uncontrollably
-	if ( GetActiveWeapon() && EntIsClass(GetActiveWeapon(), gm_isz_class_Shotgun) && m_nSkin != COMBINE_SKIN_SHOTGUNNER )
+	if ( GetActiveWeapon() && FClassnameIsDirect( GetActiveWeapon(), "weapon_shotgun" ) && m_nSkin != COMBINE_SKIN_SHOTGUNNER )
 	{
 		m_nSkin = COMBINE_SKIN_SHOTGUNNER;
 	}
@@ -2290,7 +2283,7 @@ int CNPC_Combine::SelectScheduleAttack()
 	// If I'm fighting a combine turret (it's been hacked to attack me), I can't really
 	// hurt it with bullets, so become grenade happy.
 #ifdef MAPBASE
-	if ( GetEnemy() && ( (IsUsingTacticalVariant(TACTICAL_VARIANT_GRENADE_HAPPY)) || GetEnemy()->ClassMatches(gm_isz_class_FloorTurret) ) )
+	if ( GetEnemy() && ( (IsUsingTacticalVariant(TACTICAL_VARIANT_GRENADE_HAPPY)) || FClassnameIsDirect(GetEnemy(), "npc_turret_floor") ) )
 #else
 	if ( GetEnemy() && GetEnemy()->Classify() == CLASS_COMBINE && FClassnameIs(GetEnemy(), "npc_turret_floor") )
 #endif
@@ -3827,11 +3820,7 @@ void CNPC_Combine::OnEndMoveAndShoot()
 //-----------------------------------------------------------------------------
 WeaponProficiency_t CNPC_Combine::CalcWeaponProficiency( CBaseCombatWeapon *pWeapon )
 {
-#ifdef MAPBASE
-	if( pWeapon->ClassMatches( gm_isz_class_AR2 ) )
-#else
-	if( FClassnameIs( pWeapon, "weapon_ar2" ) )
-#endif
+	if( FClassnameIsDirect( pWeapon, "weapon_ar2" ) )
 	{
 		if( hl2_episodic.GetBool() )
 		{
@@ -3842,11 +3831,7 @@ WeaponProficiency_t CNPC_Combine::CalcWeaponProficiency( CBaseCombatWeapon *pWea
 			return WEAPON_PROFICIENCY_GOOD;
 		}
 	}
-#ifdef MAPBASE
-	else if( pWeapon->ClassMatches( gm_isz_class_Shotgun ) )
-#else
-	else if( FClassnameIs( pWeapon, "weapon_shotgun" )	)
-#endif
+	else if( FClassnameIsDirect( pWeapon, "weapon_shotgun" )	)
 	{
 #ifndef MAPBASE // Moved so soldiers don't change skin unnaturally and uncontrollably
 		if( m_nSkin != COMBINE_SKIN_SHOTGUNNER )
@@ -3857,16 +3842,12 @@ WeaponProficiency_t CNPC_Combine::CalcWeaponProficiency( CBaseCombatWeapon *pWea
 
 		return WEAPON_PROFICIENCY_PERFECT;
 	}
-#ifdef MAPBASE
-	else if( pWeapon->ClassMatches( gm_isz_class_SMG1 ) )
-#else
-	else if( FClassnameIs( pWeapon, "weapon_smg1" ) )
-#endif
+	else if( FClassnameIsDirect( pWeapon, "weapon_smg1" ) )
 	{
 		return WEAPON_PROFICIENCY_GOOD;
 	}
 #ifdef MAPBASE
-	else if ( pWeapon->ClassMatches( gm_isz_class_Pistol ) )
+	else if( FClassnameIsDirect( pWeapon, "weapon_pistol" ) )
 	{
 		// Mods which need a lower soldier pistol accuracy can either change this value or use proficiency override in Hammer.
 		return WEAPON_PROFICIENCY_VERY_GOOD;

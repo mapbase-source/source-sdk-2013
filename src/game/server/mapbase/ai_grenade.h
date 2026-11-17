@@ -18,7 +18,6 @@
 #include "grenade_frag.h"
 #include "basegrenade_shared.h"
 #include "ai_squad.h"
-#include "GlobalStrings.h"
 #include "gameweaponmanager.h"
 #include "hl2_gamerules.h"
 #include "weapon_physcannon.h"
@@ -380,7 +379,7 @@ bool CAI_GrenadeUser<BASE_NPC>::CanAltFireEnemy( bool bUseFreeKnowledge )
 	if( !this->GetEnemy() )
 		return false;
 
-	if (!EntIsClass(this->GetActiveWeapon(), gm_isz_class_AR2) && !EntIsClass(this->GetActiveWeapon(), gm_isz_class_SMG1))
+	if (!FClassnameIsDirect(this->GetActiveWeapon(), "weapon_ar2") && !FClassnameIsDirect(this->GetActiveWeapon(), "weapon_smg1"))
 		return false;
 
 	CBaseEntity *pEnemy = this->GetEnemy();

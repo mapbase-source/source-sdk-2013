@@ -26,7 +26,7 @@
 #include "ai_hint.h"
 #include "tier0/icommandline.h"
 #ifdef MAPBASE
-#include "gameinterface.h"
+#include "mapbase/mapbase_shared.h"
 #endif
 
 // memdbgon must be the last include file in a .cpp file!!!
@@ -76,9 +76,6 @@ ConVar g_ai_norebuildgraph( "ai_norebuildgraph", "0" );
 ConVar g_ai_norebuildgraphmessage( "ai_norebuildgraphmessage", "0", FCVAR_ARCHIVE, "Stops the \"Node graph out of date\" message from appearing when rebuilding node graph" );
 
 ConVar g_ai_norebuildgraph_if_in_chapters( "ai_norebuildgraph_if_in_chapters", "0", FCVAR_NONE, "Ignores rebuilding nodegraph if it's in chapters.txt. This allows for bypassing problems with Steam rebuilding nodegraphs in a mod's main maps without affecting custom maps." );
-
-extern CUtlVector<MODTITLECOMMENT> *Mapbase_GetChapterMaps();
-extern CUtlVector<MODCHAPTER> *Mapbase_GetChapterList();
 #endif
 
 

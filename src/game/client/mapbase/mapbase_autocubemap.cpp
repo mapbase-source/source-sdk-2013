@@ -21,8 +21,6 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
-extern const char *g_MapName;
-
 ConVar autocubemap_hdr_do_both( "autocubemap_hdr_do_both", "1" );
 ConVar autocubemap_hdr_value( "autocubemap_hdr_value", "2" );
 
@@ -132,7 +130,7 @@ public:
 			}
 
 			// Just do this map
-			m_AutoCubemapMaps.AddToTail( strdup( g_MapName ) );
+			m_AutoCubemapMaps.AddToTail( strdup( MapName() ) );
 		}
 
 		if (autocubemap_hdr_do_both.GetBool())
@@ -145,7 +143,7 @@ public:
 		m_bAutoCubemapActive = true;
 		m_AutoCubemapMapsIndex = 0;
 
-		if (FStrEq( m_AutoCubemapMaps[m_AutoCubemapMapsIndex], g_MapName ))
+		if (FStrEq( m_AutoCubemapMaps[m_AutoCubemapMapsIndex], MapName() ))
 		{
 			// Build cubemaps right here, right now
 			m_bAutoCubemapBuildingCubemaps = true;

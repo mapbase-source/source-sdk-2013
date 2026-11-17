@@ -667,6 +667,11 @@ public:
 	bool		NameMatches( string_t nameStr );
 	bool		ClassMatches( string_t nameStr );
 
+	// Variant of ClassMatches() optimized for hardcoded classnames with no wildcards.
+	// Use this when you are matching a single string literal classname.
+	bool		ClassMatchesDirect( const char *pszStrLiteralClass );
+	bool		ClassMatchesDirect( string_t strPooledString );
+
 private:
 	bool		NameMatchesComplex( const char *pszNameOrWildcard );
 	bool		ClassMatchesComplex( const char *pszClassOrWildcard );
@@ -2534,6 +2539,17 @@ inline bool CBaseEntity::ClassMatches( string_t nameStr )
 	return ClassMatchesComplex( STRING(nameStr) );
 }
 
+inline bool CBaseEntity::ClassMatchesDirect( const char *pszStrLiteralClass )
+{
+	const string_t str = AllocPooledString_StaticConstantStringPointer( pszStrLiteralClass );
+	return ( m_iClassname == str );
+}
+
+inline bool CBaseEntity::ClassMatchesDirect( string_t strPooledString )
+{
+	return ( m_iClassname == strPooledString );
+}
+
 inline EHANDLE CBaseEntity::ScriptGetEHandle( void )
 {
 	return EHANDLE( this );
@@ -3228,6 +3244,13 @@ inline void CBaseEntity::FireBullets( int cShots, const Vector &vecSrc,
 inline bool FClassnameIs(CBaseEntity *pEntity, const char *szClassname)
 { 
 	return pEntity->ClassMatches(szClassname); 
+}
+
+// Variant of FClassnameIs() optimized for hardcoded classnames with no wildcards.
+// Use this when you are matching a single string literal classname.
+inline bool FClassnameIsDirect(CBaseEntity *pEntity, const char *szStrLiteralClassname)
+{ 
+	return pEntity->ClassMatchesDirect(szStrLiteralClassname); 
 }
 
 class CPointEntity : public CBaseEntity

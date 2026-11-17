@@ -3243,11 +3243,6 @@ int CLogicBranch::DrawDebugTextOverlays( void )
 	return text_offset;
 }
 
-#ifdef MAPBASE
-extern void MapbaseGameLog_Record( const char *szContext );
-extern ConVar mapbase_game_log_on_autosave;
-#endif
-
 //-----------------------------------------------------------------------------
 // Purpose: Autosaves when triggered
 //-----------------------------------------------------------------------------
@@ -3284,13 +3279,6 @@ END_DATADESC()
 //-----------------------------------------------------------------------------
 void CLogicAutosave::InputSave( inputdata_t &inputdata )
 {
-#ifdef MAPBASE
-	if (mapbase_game_log_on_autosave.GetBool())
-	{
-		MapbaseGameLog_Record( "autosave" );
-	}
-#endif
-
 	if ( m_bForceNewLevelUnit )
 	{
 		engine->ClearSaveDir();
@@ -3304,13 +3292,6 @@ void CLogicAutosave::InputSave( inputdata_t &inputdata )
 //-----------------------------------------------------------------------------
 void CLogicAutosave::InputSaveDangerous( inputdata_t &inputdata )
 {
-#ifdef MAPBASE
-	if (mapbase_game_log_on_autosave.GetBool())
-	{
-		MapbaseGameLog_Record( "autosave_dangerous" );
-	}
-#endif
-
 #ifdef MAPBASE_MP // From SecobMod
 	CBasePlayer *pPlayer = UTIL_GetLocalPlayer();
 #else

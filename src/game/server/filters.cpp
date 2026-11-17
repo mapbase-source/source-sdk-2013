@@ -13,7 +13,6 @@
 #include "mapbase/matchers.h"
 #include "AI_Criteria.h"
 #include "ai_hint.h"
-#include "mapbase/GlobalStrings.h"
 #endif
 
 // memdbgon must be the last include file in a .cpp file!!!
@@ -750,9 +749,7 @@ private:
 	float		m_flRadius;					// Radius (enemies are acquired at this range)
 	float		m_flOuterRadius;			// Outer radius (enemies are LOST at this range)
 	int		m_nMaxSquadmatesPerEnemy;	// Maximum number of squadmates who may share the same enemy
-#ifndef MAPBASE
 	string_t	m_iszPlayerName;			// "!player"
-#endif
 };
 
 //-----------------------------------------------------------------------------
@@ -811,9 +808,6 @@ bool CFilterEnemy::PassesNameFilter( CBaseEntity *pEnemy )
 	if ( m_iszEnemyName	== NULL_STRING )
 		return true;
 
-#ifdef MAPBASE
-	if ( m_iszEnemyName == gm_isz_name_player )
-#else
 	// Cache off the special case player name
 	if ( m_iszPlayerName == NULL_STRING )
 	{
@@ -821,7 +815,6 @@ bool CFilterEnemy::PassesNameFilter( CBaseEntity *pEnemy )
 	}
 
 	if ( m_iszEnemyName == m_iszPlayerName )
-#endif
 	{
 		if ( pEnemy->IsPlayer() )
 		{

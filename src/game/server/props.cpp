@@ -42,7 +42,6 @@
 #include "gamestats.h"
 #include "vehicle_base.h"
 #ifdef MAPBASE
-#include "mapbase/GlobalStrings.h"
 #include "collisionutils.h"
 #include "vstdlib/IKeyValuesSystem.h" // From Alien Swarm SDK
 #endif
@@ -3077,13 +3076,9 @@ void CPhysicsProp::Spawn( )
 	}
 
 	// Condense classname's to one, except for "prop_physics_override"
-	if ( FClassnameIs( this, "physics_prop" ) )
+	if ( FClassnameIsDirect( this, "physics_prop" ) )
 	{
-#ifdef MAPBASE
-		m_iClassname = gm_isz_class_PropPhysics;
-#else
 		SetClassname( "prop_physics" );
-#endif
 	}
 
 	BaseClass::Spawn();
@@ -3092,17 +3087,10 @@ void CPhysicsProp::Spawn( )
 		return;
 
 	// Now condense all classnames to one
-#ifdef MAPBASE
-	if ( EntIsClass( this, gm_isz_class_PropPhysicsOverride ) )
-	{
-		m_iClassname = gm_isz_class_PropPhysics;
-	}
-#else
-	if ( FClassnameIs( this, "prop_physics_override") )
+	if ( FClassnameIsDirect( this, "prop_physics_override") )
 	{
 		SetClassname( "prop_physics" );
 	}
-#endif
 
 	if ( HasSpawnFlags( SF_PHYSPROP_DEBRIS ) || HasInteraction( PROPINTER_PHYSGUN_CREATE_FLARE ) )
 	{
@@ -3252,11 +3240,7 @@ bool CPhysicsProp::CanBePickedUpByPhyscannon( void )
 //-----------------------------------------------------------------------------
 bool CPhysicsProp::OverridePropdata( void )
 {
-#ifdef MAPBASE
-	return EntIsClass(this, gm_isz_class_PropPhysicsOverride);
-#else
-	return ( FClassnameIs(this, "prop_physics_override" ) );
-#endif
+	return ( FClassnameIsDirect(this, "prop_physics_override" ) );
 }
 
 //-----------------------------------------------------------------------------
