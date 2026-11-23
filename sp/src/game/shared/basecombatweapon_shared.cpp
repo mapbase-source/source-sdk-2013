@@ -1271,8 +1271,8 @@ void CBaseCombatWeapon::Equip( CBaseCombatCharacter *pOwner )
 
 #ifdef MAPBASE
 	// Ammo may be overridden to 0, in which case we shouldn't autoswitch
-const bool bEmptyClip1 = (UsesClipsForAmmo1() ? m_iClip1 <= 0 : pOwner->GetAmmoCount( m_iPrimaryAmmoType ) <= 0);
-const bool bEmptyClip2 = (UsesClipsForAmmo2() ? m_iClip2 <= 0 : pOwner->GetAmmoCount( m_iSecondaryAmmoType ) <= 0);
+	const bool bEmptyClip1 = UsesClipsForAmmo1() ? m_iClip1 <= 0 : pOwner->GetAmmoCount( m_iPrimaryAmmoType ) <= 0;
+	const bool bEmptyClip2 = UsesClipsForAmmo2() ? m_iClip2 <= 0 : pOwner->GetAmmoCount( m_iSecondaryAmmoType ) <= 0;
 
 	if ( bEmptyClip1 && bEmptyClip2 )
 		AddSpawnFlags( SF_WEAPON_NO_AUTO_SWITCH_WHEN_EMPTY );
