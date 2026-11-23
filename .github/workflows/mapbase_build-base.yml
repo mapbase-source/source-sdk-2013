@@ -51,10 +51,10 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
 
     - name: Add MSBuild to PATH
-      uses: compnerd/gha-setup-vsdevenv@v6
+      uses: compnerd/gha-setup-vsdevenv@v7
 
     - name: Enable VS2022
       working-directory: '${{inputs.branch}}/src/vpc_scripts'
@@ -89,7 +89,7 @@ jobs:
 
     - name: Publish game binaries
       if: inputs.project-group == 'game' || inputs.project-group == 'shaders'
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: '${{inputs.project-group}}_${{inputs.game}}_win32_${{ inputs.configuration }}'
         path: |
@@ -98,7 +98,7 @@ jobs:
 
     - name: Publish map tools
       if: inputs.project-group == 'maptools'
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: '${{inputs.project-group}}_win32_${{ inputs.configuration }}'
         path: |
@@ -108,7 +108,7 @@ jobs:
 
     - name: Publish everything
       if: inputs.project-group == 'all'
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: 'everything_win32_${{ inputs.configuration }}'
         path: |
@@ -119,12 +119,12 @@ jobs:
   build_ubuntu:
     if: inputs.build-on-linux == true && inputs.project-group != 'maptools' # No Linux map tools for now
     name: Ubuntu (GCC/G++)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       config: ${{ inputs.configuration }}
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v7
 
     - name: Install GCC/G++ multilib
       run: |
@@ -159,7 +159,7 @@ jobs:
 
     - name: Publish game binaries
       if: inputs.project-group == 'game' || inputs.project-group == 'shaders'
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: '${{inputs.project-group}}_${{inputs.game}}_linux32_${{ inputs.configuration }}'
         path: |
@@ -169,7 +169,7 @@ jobs:
 
     #- name: Publish map tools
     #  if: inputs.project-group == 'maptools'
-    #  uses: actions/upload-artifact@v4
+    #  uses: actions/upload-artifact@v7
     #  with:
     #    name: '${{inputs.project-group}}_linux32_${{ inputs.configuration }}'
     #    path: |
@@ -184,7 +184,7 @@ jobs:
     # (they're too big)
     - name: Publish everything
       if: inputs.project-group == 'all'
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: 'everything_linux32_${{ inputs.configuration }}'
         path: |
