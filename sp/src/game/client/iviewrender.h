@@ -145,6 +145,11 @@ public:
 	virtual void		FreezeFrame( float flFreezeTime ) = 0;
 
 	virtual IReplayScreenshotSystem *GetReplayScreenshotSystem() = 0;
+
+#ifdef MAPBASE
+	virtual bool		BSetupSkyBox( const char *pszSkyName ) = 0;
+	virtual void		DrawSkyBox( const CViewSetup &View, bool bNoHeightClip ) = 0;
+#endif //MAPBASE
 };
 
 extern IViewRender *view;
