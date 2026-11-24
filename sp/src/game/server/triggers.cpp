@@ -5678,3 +5678,86 @@ bool IsTriggerClass( CBaseEntity *pEntity )
 	
 	return false;
 }
+
+#ifdef MAPBASE
+LINK_ENTITY_TO_CLASS(trigger_userinput, CTriggerUserInput);
+
+BEGIN_DATADESC(CTriggerUserInput)
+DEFINE_KEYFIELD(m_eKey, FIELD_INTEGER, "lookedkey"),
+DEFINE_OUTPUT(m_OnKeyPressed, "OnKeyPressed"),
+DEFINE_OUTPUT(m_OnKeyHeld, "OnKeyHeld"),
+DEFINE_OUTPUT(m_OnKeyReleased, "OnKeyReleased"),
+END_DATADESC();
+
+CTriggerUserInput::CTriggerUserInput()
+{
+	m_eKey = KEY_FORWARD;
+	m_ButtonRep = IN_FORWARD;
+}
+
+void CTriggerUserInput::Spawn()
+{
+	switch (m_eKey)
+	{
+	case KEY_FORWARD:
+		m_ButtonRep = IN_FORWARD;
+		break;
+	case KEY_BACK:
+		m_ButtonRep = IN_BACK;
+		break;
+	case KEY_MOVELEFT:
+		m_ButtonRep = IN_MOVELEFT;
+		break;
+	case KEY_MOVERIGHT:
+		m_ButtonRep = IN_MOVERIGHT;
+		break;
+	case KEY_JUMP:
+		m_ButtonRep = IN_JUMP;
+		break;
+	case KEY_DUCK:
+		m_ButtonRep = IN_DUCK;
+		break;
+	case KEY_ATTACK:
+		m_ButtonRep = IN_ATTACK;
+		break;
+	case KEY_ATTACK2:
+		m_ButtonRep = IN_ATTACK2;
+		break;
+	case KEY_RELOAD:
+		m_ButtonRep = IN_RELOAD;
+		break;
+	default:
+		DevWarning("Passed unhandled key press");
+		m_ButtonRep = 0;
+		break;
+	}
+
+	BaseClass::Spawn();
+	BaseClass::InitTrigger();
+}
+
+void CTriggerUserInput::Touch(CBaseEntity* pOther)
+{
+	if (PassesTriggerFilters(pOther))
+	{
+		CBasePlayer* pPlayer = ToBasePlayer(pOther);
+		if (pPlayer)
+		{
+			if (pPlayer->m_afButtonPressed & m_ButtonRep)
+			{
+				m_OnKeyPressed.FireOutput(pPlayer, this);
+			}
+
+			if (pPlayer->m_nButtons & m_ButtonRep)
+			{
+				m_OnKeyHeld.FireOutput(pPlayer, this);
+			}
+
+			if (pPlayer->m_afButtonReleased & m_ButtonRep)
+			{
+				m_OnKeyReleased.FireOutput(pPlayer, this);
+			}
+		}
+	}
+}
+#endif // MAPBASE
