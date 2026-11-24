@@ -846,13 +846,21 @@ ConVarRef suitcharger( "sk_suitcharger" );
 					}
 					else
 					{
+#ifdef MAPBASE
+						killer_weapon_name = pInflictor->GetClassname();
+#else
 						killer_weapon_name = STRING( pInflictor->m_iClassname );  // it's just that easy
+#endif
 					}
 				}
 			}
 			else
 			{
+#ifdef MAPBASE
+				killer_weapon_name = pInflictor->GetClassname();
+#else
 				killer_weapon_name = STRING( pInflictor->m_iClassname );
+#endif
 			}
 
 			// strip the NPC_* or weapon_* from the inflictor's classname

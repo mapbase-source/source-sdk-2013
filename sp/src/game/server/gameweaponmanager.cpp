@@ -87,7 +87,7 @@ void WeaponManager_AmmoMod( CBaseCombatWeapon *pWeapon )
 {
 	for ( int i = 0; i < g_Managers.Count(); i++ )
 	{
-		if ( g_Managers[i]->m_iszWeaponName == pWeapon->m_iClassname )
+		if (FClassnameIs(pWeapon, g_Managers[i]->m_iszWeaponName.ToCStr()))
 		{
 			int iNewClip = (int)(pWeapon->m_iClip1 * g_Managers[i]->m_flAmmoMod);
 			int iNewRandomClip = iNewClip + RandomInt( -2, 2 );
@@ -111,7 +111,7 @@ void WeaponManager_AddManaged( CBaseEntity *pWeapon )
 {
 	for ( int i = 0; i < g_Managers.Count(); i++ )
 	{
-		if ( g_Managers[i]->m_iszWeaponName == pWeapon->m_iClassname )
+		if (FClassnameIs(pWeapon, g_Managers[i]->m_iszWeaponName.ToCStr()))
 		{
 			Assert( g_Managers[i]->m_ManagedNonWeapons.Find( pWeapon ) == g_Managers[i]->m_ManagedNonWeapons.InvalidIndex() );
 			g_Managers[i]->m_ManagedNonWeapons.AddToTail( pWeapon );
@@ -124,7 +124,7 @@ void WeaponManager_RemoveManaged( CBaseEntity *pWeapon )
 {
 	for ( int i = 0; i < g_Managers.Count(); i++ )
 	{
-		if ( g_Managers[i]->m_iszWeaponName == pWeapon->m_iClassname )
+		if (FClassnameIs(pWeapon, g_Managers[i]->m_iszWeaponName.ToCStr()))
 		{
 			int j = g_Managers[i]->m_ManagedNonWeapons.Find( pWeapon );
 			if ( j != g_Managers[i]->m_ManagedNonWeapons.InvalidIndex() )
@@ -213,7 +213,7 @@ void CGameWeaponManager::Think()
 			CBaseEntity *pEntity = m_ManagedNonWeapons[i];
 			if ( pEntity )
 			{
-				Assert( pEntity->m_iClassname == m_iszWeaponName );
+				Assert(FClassnameIs(pEntity, m_iszWeaponName.ToCStr()));
 				if ( !pEntity->IsEffectActive( EF_NODRAW ) )
 				{
 					candidates.AddToTail( pEntity );

@@ -191,6 +191,54 @@ void C_BaseCombatWeapon::OnDataChanged( DataUpdateType_t updateType )
 	m_iOldState = m_iState;
 
 	m_bJustRestored = false;
+	
+#ifdef MAPBASE
+	if (updateType == DATA_UPDATE_CREATED)
+	{
+		Precache(); //cache weapon on client again, otherwise the client will always use default script name while server not
+	}
+
+	//update script in case if wanted, but not when restored (or it will cause hud issues)
+	if (m_iOldNeedsUpdate != m_iNeedsUpdate && !m_bJustRestored)
+	{
+		Precache();
+		m_iOldNeedsUpdate = m_iNeedsUpdate; //assign new value to prevent updates on client when we don't want
+
+		//don't reset local ammo value in mp, needed only for sp
+		if (gpGlobals->maxClients > 1)
+			return;
+
+		ConVarRef resetmode("sv_weapon_clips_reset_mode");
+
+		//we don't want to reset clips at all, return
+		if (!resetmode.IsValid() || resetmode.GetInt() == 0)
+			return;
+
+		//we want to set max clips vals
+		if (resetmode.GetInt() == 1)
+		{
+			if (UsesClipsForAmmo1())
+				m_iClip1 = GetMaxClip1();
+
+			if (UsesClipsForAmmo2())
+				m_iClip2 = GetMaxClip2();
+			
+			return;
+		}
+
+		//we want to set max clip only if this weapon has more ammo in clips than max
+		if (resetmode.GetInt() == 2)
+		{
+			if (UsesClipsForAmmo1() && m_iClip1 > GetMaxClip1())
+				m_iClip1 = GetMaxClip1();
+
+			if (UsesClipsForAmmo2() && m_iClip2 > GetMaxClip2())
+				m_iClip2 = GetMaxClip2();
+			
+			return;
+		}
+	}
+#endif
 }
 
 //-----------------------------------------------------------------------------
