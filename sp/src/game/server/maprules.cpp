@@ -336,6 +336,9 @@ BEGIN_DATADESC( CGameText )
 	DEFINE_KEYFIELD( m_textParms.fxTime, FIELD_FLOAT, "fxtime" ),
 
 #ifdef MAPBASE
+	DEFINE_KEYFIELD( m_textParms.boxSize, FIELD_FLOAT, "boxsize" ),
+	DEFINE_KEYFIELD( m_textParms.boxColor, FIELD_COLOR32, "boxcolor" ),
+
 	DEFINE_KEYFIELD( m_strFont, FIELD_STRING, "font" ),
 	DEFINE_KEYFIELD( m_bAutobreak, FIELD_BOOLEAN, "autobreak" ),
 #endif
