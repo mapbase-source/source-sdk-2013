@@ -55,6 +55,11 @@
 extern float dispchop; // "-dispchop" tightest number of luxel widths for a patch, used on edges
 extern float g_MaxDispPatchRadius;
 
+#ifdef MAPBASE
+extern int g_iSunSamplesAreaLight;
+extern int g_iAmbientCubesPerLeaf;
+#endif // MAPBASE
+
 //-----------------------------------------------------------------------------
 // forward declarations
 //-----------------------------------------------------------------------------
