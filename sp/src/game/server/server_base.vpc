@@ -264,6 +264,7 @@ $Project
 		$File	"$SRCDIR\game\shared\baseviewmodel_shared.h"
 		$File	"$SRCDIR\game\shared\beam_shared.cpp"
 		$File	"$SRCDIR\game\shared\beam_shared.h"
+		$File	"beamspotlight.cpp"
 		$File	"bitstring.cpp"
 		$File	"bitstring.h"
 		$File	"bmodels.cpp"
