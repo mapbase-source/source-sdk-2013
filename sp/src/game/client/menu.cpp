@@ -22,7 +22,19 @@
 #include <KeyValues.h>
 #include <vgui_controls/AnimationController.h>
 
+#ifdef MAPBASE
+#include "hud_closecaption.h"
+
+ConVar hud_menu_complex_max_pixels( "hud_menu_complex_max_pixels", "800" );
+ConVar hud_menu_center_border_x( "hud_menu_center_border_x", "64" );
+ConVar hud_menu_center_cc_margin( "hud_menu_center_cc_margin", "4" );
+ConVar hud_menu_big_text_margin( "hud_menu_big_text_margin", "12" );
+
+#define MENU_CC_SPEED_REVERT	1.0f
+#define MAX_MENU_STRING	1024
+#else
 #define MAX_MENU_STRING	512
+#endif
 wchar_t g_szMenuString[MAX_MENU_STRING];
 char g_szPrelocalisedMenuString[MAX_MENU_STRING];
 
@@ -167,6 +179,16 @@ bool CHudMenu::ShouldDraw( void )
 			g_pClientMode->GetViewportAnimationController()->StartAnimationSequence( "MenuClose" );
 			m_bMenuTakesInput = false;
 			m_bPlayingFadeout = true;
+
+			if ( IsCentered() )
+			{
+				CHudCloseCaption *pHudCloseCaption = (CHudCloseCaption *)GET_HUDELEMENT( CHudCloseCaption );
+				if ( pHudCloseCaption && pHudCloseCaption->IsUsingCustomDimensions( ToHandle() ) )
+				{
+					// Reset if it's still using custom dimensions we defined
+					pHudCloseCaption->StopUsingCustomDimensions( MENU_CC_SPEED_REVERT );
+				}
+			}
 		}
 		else
 #endif
@@ -196,6 +218,22 @@ void CHudMenu::PaintString( const wchar_t *text, int textlen, vgui::HFont& font,
 
 	for ( int ch = 0; ch < textlen; ch++ )
 	{
+#ifdef MAPBASE
+		if ( text[ch] == '\n' )
+		{
+			// Line break
+			y += vgui::surface()->GetFontTall( font );
+			vgui::surface()->DrawSetTextPos( x, y );
+			continue;
+		}
+		else if ( ch == 3 && text[1] == '.' && text[2] == ' ' )
+		{
+			// If this is a menu item (e.g. '1. Item') and we've drawn the number part,
+			// store the text pos so that line breaks are indented
+			vgui::surface()->DrawGetTextPos( x, y );
+		}
+#endif
+
 		vgui::surface()->DrawUnicodeChar( text[ch] );
 	}
 }
@@ -214,6 +252,10 @@ void CHudMenu::Paint()
 
 	Color	menuColor = m_MenuColor;
 	Color itemColor = m_ItemColor;
+	Color boxColor = m_BoxColor;
+
+	vgui::HFont hItemFont = m_hItemFont;
+	vgui::HFont hItemFontPulsing = m_hItemFontPulsing;
 
 	int c = m_Processed.Count();
 
@@ -222,9 +264,44 @@ void CHudMenu::Paint()
 
 	int y = ( ScreenHeight() - tall ) * 0.5f;
 
-	DrawBox( x - m_nBorder/2, y - m_nBorder/2, wide, tall, m_BoxColor, m_flSelectionAlphaOverride / 255.0f );
+	int borderX = m_nBorder / 2;
+	int borderY = borderX;
 
-	//DrawTexturedBox( x - m_nBorder/2, y - m_nBorder/2, wide, tall, m_BoxColor, m_flSelectionAlphaOverride / 255.0f );
+#ifdef MAPBASE
+	if ( IsCentered() )
+	{
+		y = m_nCenterY;
+		borderX += (hud_menu_center_border_x.GetInt() / 2);
+
+		if ( m_nCenterX == 0 )
+		{
+			// Center with existing menu width
+			x = ( ScreenWidth() - wide ) * 0.5f;
+			wide += hud_menu_center_border_x.GetInt();
+		}
+		else
+		{
+			x = m_nCenterX + (hud_menu_center_border_x.GetInt()/2);
+			wide = m_nCenterWide /*- (hud_menu_center_border_x.GetInt()/2)*/;
+		}
+	}
+
+	if ( IsUsingBigFonts() )
+	{
+		if ( m_hItemFontBig != vgui::INVALID_FONT && m_hItemFontBigPulsing != vgui::INVALID_FONT )
+		{
+			hItemFont = m_hItemFontBig;
+			hItemFontPulsing = m_hItemFontBigPulsing;
+		}
+	}
+
+	if ( m_flBoxAlphaOverride != 0.0f )
+		boxColor[3] = m_flBoxAlphaOverride;
+#endif
+
+	DrawBox( x - borderX, y - borderY, wide, tall, boxColor, m_flSelectionAlphaOverride / 255.0f );
+
+	//DrawTexturedBox( x - borderX, y - borderY, wide, tall, boxColor, m_flSelectionAlphaOverride / 255.0f );
 
 	menuColor[3] = menuColor[3] * ( m_flSelectionAlphaOverride / 255.0f );
 	itemColor[3] = itemColor[3] * ( m_flSelectionAlphaOverride / 255.0f );
@@ -263,10 +340,40 @@ void CHudMenu::Paint()
 			drawLen *= m_flTextScan;
 		}
 
-		vgui::surface()->DrawSetTextFont( isItem ? m_hItemFont : m_hTextFont );
+		vgui::surface()->DrawSetTextFont( isItem ? hItemFont : m_hTextFont );
 
+		int itemX = x;
+
+#ifdef MAPBASE
+		if ( IsCentered() )
+		{
+			if ( !isItem )
+			{
+				// Center title
+				itemX = ( ScreenWidth() - line->pixels ) * 0.5f;
+
+				PaintString( &g_szMenuString[ line->startchar ], drawLen,
+					isItem ? hItemFont : m_hTextFont, itemX, y );
+			}
+			else
+			{
+				// Paint the numbers with the title color
+				vgui::surface()->DrawSetTextColor( menuColor );
+				PaintString( &g_szMenuString[ line->startchar ], 3,
+					hItemFont, itemX, y );
+				vgui::surface()->DrawSetTextColor( itemColor );
+
+				int nTextX, nTextY;
+				vgui::surface()->DrawGetTextPos( nTextX, nTextY );
+
+				PaintString( &g_szMenuString[ line->startchar + 3 ], drawLen - 3,
+					isItem ? hItemFont : m_hTextFont, nTextX, nTextY );
+			}
+		}
+		else
+#endif
 		PaintString( &g_szMenuString[ line->startchar ], drawLen, 
-			isItem ? m_hItemFont : m_hTextFont, x, y );
+			isItem ? hItemFont : m_hTextFont, itemX, y );
 
 		if ( canblur )
 		{
@@ -275,7 +382,7 @@ void CHudMenu::Paint()
 			{
 				if (fl >= 1.0f)
 				{
-					PaintString( &g_szMenuString[ line->startchar ], drawLen, m_hItemFontPulsing, x, y );
+					PaintString( &g_szMenuString[ line->startchar ], drawLen, hItemFontPulsing, itemX, y );
 				}
 				else
 				{
@@ -283,7 +390,7 @@ void CHudMenu::Paint()
 					Color col = clr;
 					col[3] *= fl;
 					vgui::surface()->DrawSetTextColor(col);
-					PaintString( &g_szMenuString[ line->startchar ], drawLen, m_hItemFontPulsing, x, y );
+					PaintString( &g_szMenuString[ line->startchar ], drawLen, hItemFontPulsing, itemX, y );
 				}
 			}
 		}
@@ -326,6 +433,18 @@ void CHudMenu::SelectMenuItem( int menu_item )
 		m_bMenuTakesInput = false;
 		m_flShutoffTime = GetMenuTime() + m_flOpenCloseTime;
 		g_pClientMode->GetViewportAnimationController()->StartAnimationSequence("MenuClose");
+
+#ifdef MAPBASE
+		if ( IsCentered() )
+		{
+			CHudCloseCaption *pHudCloseCaption = (CHudCloseCaption *)GET_HUDELEMENT( CHudCloseCaption );
+			if ( pHudCloseCaption && pHudCloseCaption->IsUsingCustomDimensions( ToHandle() ) )
+			{
+				// Reset if it's still using custom dimensions we defined
+				pHudCloseCaption->StopUsingCustomDimensions( MENU_CC_SPEED_REVERT );
+			}
+		}
+#endif
 	}
 }
 
@@ -418,6 +537,52 @@ void CHudMenu::ProcessText( void )
 		int pixels = 0;
 		vgui::HFont font = isItem ? m_hItemFont : m_hTextFont;
 
+#ifdef MAPBASE
+		if ( IsUsingBigFonts() && font == m_hItemFont)
+			font = m_hItemFontBig;
+
+		// We use a more complex algorithm to support breaking lines when word wrapping is enabled
+		int nMaxPixels = ( IsFillingWidth() ? m_nCenterWide - hud_menu_center_border_x.GetInt() : hud_menu_complex_max_pixels.GetInt() ) - (m_nBorder*2);
+		int nHighestPixels = 0, nItemPixels = 0, nNumLines = 1, iLastSpace = 0;
+		for ( int ch = 0; ch < l->length; ch++ )
+		{
+			pixels += vgui::surface()->GetCharacterWidth( font, g_szMenuString[ ch + l->startchar ] );
+
+			if ( ShouldWordWrap() )
+			{
+				if ( pixels > nMaxPixels && iLastSpace != 0 )
+				{
+					// Replace last space with a newline and increment lines
+					g_szMenuString[iLastSpace] = '\n';
+					nNumLines++;
+					if ( nNumLines == 2 )
+					{
+						// Account for indent
+						nMaxPixels -= nItemPixels;
+					}
+
+					if ( pixels > nHighestPixels )
+						nHighestPixels = pixels;
+					pixels = 0;
+				}
+				else if ( ch == 3 && isItem )
+				{
+					// If this is a menu item (e.g. '1. Item') and we've drawn the number part,
+					// store how many pixels it is so that line breaks are indented properly
+					nItemPixels = pixels;
+				}
+			}
+			
+			if ( g_szMenuString[ ch + l->startchar ] == ' ' )
+				iLastSpace = ch + l->startchar;
+		}
+
+		l->pixels = nHighestPixels == 0 ? pixels : nHighestPixels;
+		l->height = vgui::surface()->GetFontTall( font ) * nNumLines;
+
+		if ( IsUsingBigFonts() && i+1 != c ) // All but the last
+			l->height += hud_menu_big_text_margin.GetInt();
+#else
 		for ( int ch = 0; ch < l->length; ch++ )
 		{
 			pixels += vgui::surface()->GetCharacterWidth( font, g_szMenuString[ ch + l->startchar ] );
@@ -425,9 +590,11 @@ void CHudMenu::ProcessText( void )
 
 		l->pixels = pixels;
 		l->height = vgui::surface()->GetFontTall( font );
-		if ( pixels > m_nMaxPixels )
+#endif
+
+		if ( l->pixels > m_nMaxPixels )
 		{
-			m_nMaxPixels = pixels;
+			m_nMaxPixels = l->pixels;
 		}
 		m_nHeight += l->height;
 	}
@@ -441,6 +608,15 @@ void CHudMenu::HideMenu( void )
 	m_bMenuTakesInput = false;
 	m_flShutoffTime = GetMenuTime() + m_flOpenCloseTime;
 	g_pClientMode->GetViewportAnimationController()->StartAnimationSequence("MenuClose");
+
+#ifdef MAPBASE
+	CHudCloseCaption *pHudCloseCaption = (CHudCloseCaption *)GET_HUDELEMENT( CHudCloseCaption );
+	if ( pHudCloseCaption && pHudCloseCaption->IsUsingCustomDimensions( ToHandle() ) )
+	{
+		// Reset if it's still using custom dimensions we defined
+		pHudCloseCaption->StopUsingCustomDimensions( MENU_CC_SPEED_REVERT );
+	}
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -460,6 +636,15 @@ void CHudMenu::ShowMenu( const char * menuName, int validSlots )
 #ifdef MAPBASE
 	m_bMapDefinedMenu = false;
 	m_bPlayingFadeout = false;
+	m_nMenuFlags = 0;
+	m_flBoxAlphaOverride = 0.0f;
+
+	CHudCloseCaption *pHudCloseCaption = (CHudCloseCaption *)GET_HUDELEMENT( CHudCloseCaption );
+	if ( pHudCloseCaption && pHudCloseCaption->IsUsingCustomDimensions( ToHandle() ) )
+	{
+		// Reset if it's still using custom dimensions we defined
+		pHudCloseCaption->StopUsingCustomDimensions();
+	}
 #endif
 
 	Q_strncpy( g_szPrelocalisedMenuString, menuName, sizeof( g_szPrelocalisedMenuString ) );
@@ -492,6 +677,16 @@ void CHudMenu::ShowMenu_KeyValueItems( KeyValues *pKV )
 #ifdef MAPBASE
 	m_bMapDefinedMenu = false;
 	m_bPlayingFadeout = false;
+	
+	m_nMenuFlags = 0;
+	m_flBoxAlphaOverride = 0.0f;
+
+	CHudCloseCaption *pHudCloseCaption = (CHudCloseCaption *)GET_HUDELEMENT( CHudCloseCaption );
+	if ( pHudCloseCaption && pHudCloseCaption->IsUsingCustomDimensions( ToHandle() ) )
+	{
+		// Reset if it's still using custom dimensions we defined
+		pHudCloseCaption->StopUsingCustomDimensions();
+	}
 #endif
 
 	g_pClientMode->GetViewportAnimationController()->StartAnimationSequence("MenuOpen");
@@ -607,6 +802,16 @@ void CHudMenu::MsgFunc_ShowMenu( bf_read &msg)
 #ifdef MAPBASE
 	m_bMapDefinedMenu = false;
 	m_bPlayingFadeout = false;
+	
+	m_nMenuFlags = 0;
+	m_flBoxAlphaOverride = 0.0f;
+
+	CHudCloseCaption *pHudCloseCaption = (CHudCloseCaption *)GET_HUDELEMENT( CHudCloseCaption );
+	if ( pHudCloseCaption && pHudCloseCaption->IsUsingCustomDimensions( ToHandle() ) )
+	{
+		// Reset if it's still using custom dimensions we defined
+		pHudCloseCaption->StopUsingCustomDimensions();
+	}
 #endif
 }
 
@@ -627,6 +832,7 @@ void CHudMenu::MsgFunc_ShowMenuComplex( bf_read &msg)
 	m_bitsValidSlots = (short)msg.ReadWord();
 	float DisplayTime = msg.ReadFloat();
 	int NeedMore = msg.ReadByte();
+	m_nMenuFlags = msg.ReadByte();
 
 	m_nBorder = hud_menu_complex_border.GetInt();
 	m_bMapDefinedMenu = true;
@@ -657,7 +863,26 @@ void CHudMenu::MsgFunc_ShowMenuComplex( bf_read &msg)
 
 		if ( !NeedMore )
 		{  
-			g_pClientMode->GetViewportAnimationController()->StartAnimationSequence("MenuOpenFlash");
+			if ( IsFillingWidth() )
+			{
+				CHudCloseCaption *pHudCloseCaption = (CHudCloseCaption *)GET_HUDELEMENT( CHudCloseCaption );
+				if ( pHudCloseCaption )
+				{
+					// Need to get this before we process the text
+					m_nCenterWide = pHudCloseCaption->GetWide();
+				}
+			}
+
+			const char *pszAnimName = "MenuOpenSlow";
+			if ( ShouldMenuFlash() )
+			{
+				if ( IsCentered() )
+					pszAnimName = "MenuOpenFlashTitle";
+				else
+					pszAnimName = "MenuOpenFlash";
+			}
+
+			g_pClientMode->GetViewportAnimationController()->StartAnimationSequence( pszAnimName );
 			m_nSelectedItem = -1;
 			
 			// we have the whole string, so we can localise it now
@@ -672,7 +897,7 @@ void CHudMenu::MsgFunc_ShowMenuComplex( bf_read &msg)
 				if (!*pszToken || *pszToken == ' ')
 					continue;
 
-				wchar_t wszMenuItem[128];
+				wchar_t wszMenuItem[256];
 
 				const wchar_t *wLocalizedItem = g_pVGuiLocalize->Find( pszToken );
 				if (wLocalizedItem)
@@ -708,6 +933,23 @@ void CHudMenu::MsgFunc_ShowMenuComplex( bf_read &msg)
 			}
 			
 			ProcessText();
+
+			if ( IsCentered() )
+			{
+				int tall = m_nHeight + m_nBorder;
+				RepositionAndFollowCloseCaption( tall );
+			}
+			else
+			{
+				m_flBoxAlphaOverride = 0.0f;
+
+				CHudCloseCaption *pHudCloseCaption = (CHudCloseCaption *)GET_HUDELEMENT( CHudCloseCaption );
+				if ( pHudCloseCaption && pHudCloseCaption->IsUsingCustomDimensions( ToHandle() ) )
+				{
+					// Reset if it's still using custom dimensions we defined
+					pHudCloseCaption->StopUsingCustomDimensions();
+				}
+			}
 		}
 
 		m_bMenuDisplayed = true;
@@ -725,6 +967,41 @@ void CHudMenu::MsgFunc_ShowMenuComplex( bf_read &msg)
 	}
 
 	m_fWaitingForMore = NeedMore;
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+void CHudMenu::RepositionAndFollowCloseCaption( int yOffset )
+{
+	// Invert the Y axis
+	//SetPos( m_iTypeAudioX, ScreenHeight() - m_iTypeAudioY );
+
+	// Place underneath the close caption element
+	CHudCloseCaption *pHudCloseCaption = (CHudCloseCaption *)GET_HUDELEMENT( CHudCloseCaption );
+	if (pHudCloseCaption /*&& !pHudCloseCaption->IsUsingCustomDimensions()*/)
+	{
+		int ccX, ccY;
+		pHudCloseCaption->GetDefaultPos( ccX, ccY );
+
+		//if (!pHudCloseCaption->IsUsingCustomDimensions( ToHandle() ))
+		{
+			pHudCloseCaption->StartUsingCustomDimensions( ToHandle(), -1, ccY - yOffset - hud_menu_center_cc_margin.GetInt() );
+		}
+
+		m_nCenterY = ccY + pHudCloseCaption->GetTall() - yOffset + m_nBorder/2;
+
+		if ( IsFillingWidth() )
+		{
+			m_nCenterX = ccX + m_nBorder/2;
+		}
+		else
+		{
+			m_nCenterX = 0;
+		}
+
+		m_flBoxAlphaOverride = pHudCloseCaption->GetBackgroundAlpha();
+	}
 }
 #endif
 

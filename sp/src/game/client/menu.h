@@ -33,6 +33,7 @@ public:
 	void MsgFunc_ShowMenu( bf_read &msg );
 #ifdef MAPBASE
 	void MsgFunc_ShowMenuComplex( bf_read &msg );
+	void RepositionAndFollowCloseCaption( int yOffset );
 #endif
 	void HideMenu( void );
 	void ShowMenu( const char * menuName, int keySlot );
@@ -40,6 +41,14 @@ public:
 
 	bool IsMenuOpen( void );
 	void SelectMenuItem( int menu_item );
+
+#ifdef MAPBASE
+	bool IsCentered() const { return m_nMenuFlags & MenuFlags_Centered; }
+	bool IsFillingWidth() const { return m_nMenuFlags & MenuFlags_FillWidth; }
+	bool IsUsingBigFonts() const { return m_nMenuFlags & MenuFlags_BigFonts; }
+	bool ShouldMenuFlash() const { return !(m_nMenuFlags & MenuFlags_NoFlash); }
+	bool ShouldWordWrap() const { return m_nMenuFlags & MenuFlags_WordWrap; }
+#endif
 
 private:
 	virtual void OnThink();
@@ -80,6 +89,22 @@ private:
 	// Indicates this menu is defined by game_menu
 	bool			m_bMapDefinedMenu;
 	bool			m_bPlayingFadeout;
+
+	// Menu flags
+	enum MenuFlags_t
+	{
+		MenuFlags_Centered		= (1 << 0),		// Centered in caption area
+		MenuFlags_FillWidth		= (1 << 1),		// Box takes up entire caption width (centered only)
+		MenuFlags_BigFonts		= (1 << 2),		// Use big fonts
+		MenuFlags_NoFlash		= (1 << 3),		// Don't flash when opening
+		MenuFlags_WordWrap		= (1 << 4),		// Wrap menu items when they get too long
+	};
+
+	int				m_nMenuFlags;
+
+	// Centered menu
+	int				m_nCenterX, m_nCenterY, m_nCenterWide;
+	float			m_flBoxAlphaOverride;
 #endif
 
 	CPanelAnimationVar( float, m_flOpenCloseTime, "OpenCloseTime", "1" );
@@ -93,6 +118,11 @@ private:
 	CPanelAnimationVar( vgui::HFont, m_hTextFont, "TextFont", "MenuTextFont" );
 	CPanelAnimationVar( vgui::HFont, m_hItemFont, "ItemFont", "MenuItemFont" );
 	CPanelAnimationVar( vgui::HFont, m_hItemFontPulsing, "ItemFontPulsing", "MenuItemFontPulsing" );
+
+#ifdef MAPBASE
+	CPanelAnimationVar( vgui::HFont, m_hItemFontBig, "ItemFontBig", "MenuItemFontBig" );
+	CPanelAnimationVar( vgui::HFont, m_hItemFontBigPulsing, "ItemFontBigPulsing", "MenuItemFontBigPulsing" );
+#endif
 
 	CPanelAnimationVar( Color, m_MenuColor, "MenuColor", "MenuColor" );
 	CPanelAnimationVar( Color, m_ItemColor, "MenuItemColor", "ItemColor" );

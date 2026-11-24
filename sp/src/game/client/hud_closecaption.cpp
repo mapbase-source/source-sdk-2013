@@ -22,6 +22,9 @@
 #include "filesystem.h"
 #include "datacache/idatacache.h"
 #include "SoundEmitterSystem/isoundemittersystembase.h"
+#ifdef MAPBASE
+#include <vgui_controls/AnimationController.h>
+#endif
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -839,6 +842,12 @@ CHudCloseCaption::CHudCloseCaption( const char *pElementName )
 	m_bLocked = false;
 	m_bVisibleDueToDirect = false;
 
+#ifdef MAPBASE
+	m_hCustomDimensionsOwner = vgui::INVALID_PANEL;
+	m_flCustomDimensionsAnimTime = 0.0f;
+	m_nDefaultX = m_nDefaultY = 0;
+#endif
+
 	SetPaintBorderEnabled( false );
 	SetPaintBackgroundEnabled( false );
 
@@ -890,6 +899,17 @@ void CHudCloseCaption::LevelInit( void )
 
 	// Wipe any stale pending work items...
 	ClearAsyncWork();
+
+#ifdef MAPBASE
+	if ( IsUsingCustomDimensions() )
+	{
+		// Reset position immediately
+		SetPos( m_nDefaultX, m_nDefaultY );
+		m_hCustomDimensionsOwner = vgui::INVALID_PANEL;
+	}
+
+	m_nDefaultX = m_nDefaultY = 0;
+#endif
 }
 
 static ConVar cc_minvisibleitems( "cc_minvisibleitems", "1", 0, "Minimum number of caption items to show." );
@@ -3160,3 +3180,71 @@ void CHudCloseCaption::FindSound( char const *pchANSI )
 		delete[] block;
 	}
 }
+
+#ifdef MAPBASE
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+void CHudCloseCaption::GetDefaultPos( int &x, int &y )
+{
+	GetPos( x, y );
+
+	if ( m_nDefaultX != 0 )
+		x = m_nDefaultX;
+
+	if ( m_nDefaultY != 0 )
+		y = m_nDefaultY;
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+void CHudCloseCaption::StartUsingCustomDimensions( vgui::HPanel hOwner, int nNewX, int nNewY, float flAnimTime )
+{
+	int x, y;
+	GetPos( x, y );
+
+	if ( m_hCustomDimensionsOwner == vgui::INVALID_PANEL && m_nDefaultY == 0 )
+	{
+		m_nDefaultX = x;
+		m_nDefaultY = y;
+	}
+
+	// Run animation commands instead of setting the position directly
+	if ( x != nNewX && nNewX != -1 )
+	{
+		g_pClientMode->GetViewportAnimationController()->RunAnimationCommand( this, "XPos", nNewX, 0.0f, flAnimTime, vgui::AnimationController::INTERPOLATOR_DEACCEL );
+	}
+	
+	if ( y != nNewY && nNewY != -1 )
+	{
+		g_pClientMode->GetViewportAnimationController()->RunAnimationCommand( this, "YPos", nNewY, 0.0f, flAnimTime, vgui::AnimationController::INTERPOLATOR_DEACCEL );
+	}
+
+	m_hCustomDimensionsOwner = hOwner;
+	m_flCustomDimensionsAnimTime = gpGlobals->curtime + flAnimTime;
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+void CHudCloseCaption::StopUsingCustomDimensions( float flAnimTime )
+{
+	int x, y;
+	GetPos( x, y );
+
+	// Run animation commands instead of setting the position directly
+	if ( x != m_nDefaultX )
+	{
+		g_pClientMode->GetViewportAnimationController()->RunAnimationCommand( this, "XPos", m_nDefaultX, 0.0f, flAnimTime, vgui::AnimationController::INTERPOLATOR_SIMPLESPLINE );
+	}
+	
+	if ( y != m_nDefaultY )
+	{
+		g_pClientMode->GetViewportAnimationController()->RunAnimationCommand( this, "YPos", m_nDefaultY, 0.0f, flAnimTime, vgui::AnimationController::INTERPOLATOR_SIMPLESPLINE );
+	}
+
+	m_hCustomDimensionsOwner = vgui::INVALID_PANEL;
+	m_flCustomDimensionsAnimTime = gpGlobals->curtime + flAnimTime;
+}
+#endif
