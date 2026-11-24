@@ -159,7 +159,7 @@ void CGlowOverlay::UpdateSkyGlowObstruction( float zFar, bool bCacheFullSceneSta
 	if ( PixelVisibility_IsAvailable() )
 	{
 		// Trace a ray at the object. 
-		Vector pos = CurrentViewOrigin() + m_vDirection * zFar * 0.999f;
+		Vector pos = CurrentViewOrigin() + m_vDirection * zFar * 0.99f;
 
 		// UNDONE: Can probably do only the pixelvis query in this case if you can figure out where
 		// to put it - or save the position of this trace
@@ -207,7 +207,7 @@ void CGlowOverlay::UpdateGlowObstruction( const Vector &vToGlow, bool bCacheFull
 		if ( m_bInSky )
 		{
 			const CViewSetup *pViewSetup = view->GetViewSetup();
-			Vector pos = CurrentViewOrigin() + m_vDirection * (pViewSetup->zFar * 0.999f);
+			Vector pos = CurrentViewOrigin() + m_vDirection * (pViewSetup->zFar * 0.99f);
 			pixelvis_queryparams_t params;
 			params.Init( pos, m_flProxyRadius, CalcGlowAspect() );
 			params.bSizeInScreenspace = true;
