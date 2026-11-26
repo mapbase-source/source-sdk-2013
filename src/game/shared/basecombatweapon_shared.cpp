@@ -3171,6 +3171,8 @@ BEGIN_ENT_SCRIPTDESC( CBaseCombatWeapon, BASECOMBATWEAPON_DERIVED_FROM, "The bas
 	DEFINE_SCRIPTFUNC( GetMaxClip2, "Get the weapon's maximum secondary ammo." )
 	DEFINE_SCRIPTFUNC( GetDefaultClip1, "Get the weapon's default primary ammo." )
 	DEFINE_SCRIPTFUNC( GetDefaultClip2, "Get the weapon's default secondary ammo." )
+	DEFINE_SCRIPTFUNC( GetPrimaryAmmoCount, "Get the weapon's current primary ammo (only for weapons that don't use clips)." )
+	DEFINE_SCRIPTFUNC( GetSecondaryAmmoCount, "Get the weapon's current secondary ammo (only for weapons that don't use clips)." )
 
 	DEFINE_SCRIPTFUNC( HasAnyAmmo, "Check if the weapon currently has ammo or doesn't need ammo." )
 	DEFINE_SCRIPTFUNC( HasPrimaryAmmo, "Check if the weapon currently has ammo or doesn't need primary ammo." )
@@ -3209,10 +3211,15 @@ BEGIN_ENT_SCRIPTDESC( CBaseCombatWeapon, BASECOMBATWEAPON_DERIVED_FROM, "The bas
 	DEFINE_SCRIPTFUNC( GetHandRig, "" )
 
 	DEFINE_SCRIPTFUNC( GetWeight, "Get the weapon's weight." )
+	DEFINE_SCRIPTFUNC( GetWeaponFlags, "Get the weapon's flags." )
+
+	DEFINE_SCRIPTFUNC( GetName, "Get the weapon's name." )
 	DEFINE_SCRIPTFUNC( GetPrintName, "" )
 
 	DEFINE_SCRIPTFUNC( GetSlot, "" )
 	DEFINE_SCRIPTFUNC( GetPosition, "" )
+
+	DEFINE_SCRIPTFUNC( IsMeleeWeapon, "Returns true if the weapon is a melee weapon." )
 
 	DEFINE_SCRIPTFUNC( CanBePickedUpByNPCs, "Check if the weapon can be picked up by NPCs." )
 
