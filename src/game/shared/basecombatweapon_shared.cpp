@@ -3160,8 +3160,13 @@ BEGIN_ENT_SCRIPTDESC( CBaseCombatWeapon, BASECOMBATWEAPON_DERIVED_FROM, "The bas
 
 	DEFINE_SCRIPTFUNC( Clip1, "Get the weapon's current primary ammo." )
 	DEFINE_SCRIPTFUNC( Clip2, "Get the weapon's current secondary ammo." )
+#ifdef VSCRIPT_PRIORITIZE_TF2_SYNTAX
+	DEFINE_SCRIPTFUNC_SV( SetClip1, "Set the weapon's current primary ammo." )
+	DEFINE_SCRIPTFUNC_SV( SetClip2, "Set the weapon's current secondary ammo." )
+#else
 	DEFINE_SCRIPTFUNC_NAMED_SV( ScriptSetClip1, "SetClip1", "Set the weapon's current primary ammo." )
 	DEFINE_SCRIPTFUNC_NAMED_SV( ScriptSetClip2, "SetClip2", "Set the weapon's current secondary ammo." )
+#endif
 	DEFINE_SCRIPTFUNC( GetMaxClip1, "Get the weapon's maximum primary ammo." )
 	DEFINE_SCRIPTFUNC( GetMaxClip2, "Get the weapon's maximum secondary ammo." )
 	DEFINE_SCRIPTFUNC( GetDefaultClip1, "Get the weapon's default primary ammo." )
