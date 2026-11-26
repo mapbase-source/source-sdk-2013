@@ -4982,7 +4982,11 @@ public:
 #endif
 	}
 #ifdef GAME_DLL
+#ifdef VSCRIPT_PRIORITIZE_TF2_SYNTAX
+	const char *GetClientConvarValue( const char* cvar, int index )
+#else
 	const char *GetClientConvarValue( int index, const char* cvar )
+#endif
 	{
 		return engine->GetClientConVarValue( index, cvar );
 	}
