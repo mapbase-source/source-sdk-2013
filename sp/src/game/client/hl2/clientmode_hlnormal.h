@@ -37,6 +37,10 @@ public:
 
 	virtual void	Init();
 	virtual bool	ShouldDrawCrosshair( void );
+
+#ifdef MAPBASE
+	virtual void	ReloadScheme( void );
+#endif
 };
 
 extern IClientMode *GetClientModeNormal();

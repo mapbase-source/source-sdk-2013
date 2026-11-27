@@ -445,6 +445,21 @@ const WeaponProficiencyInfo_t *CBaseHLCombatWeapon::GetDefaultProficiencyValues(
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
+const char *CBaseHLCombatWeapon::GetPrintName() const
+{
+	if (GetOwner() && GetOwner()->IsPlayer())
+	{
+		const char *pszProtagPrintName = g_ProtagonistSystem.GetProtagonist_PrintName( static_cast<CBasePlayer *>(GetOwner()), this );
+		if (pszProtagPrintName)
+			return pszProtagPrintName;
+	}
+
+	return BaseClass::GetPrintName();
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
 const char *CBaseHLCombatWeapon::GetViewModel( int viewmodelindex ) const
 {
 	if (GetOwner() && GetOwner()->IsPlayer() && viewmodelindex == 0)

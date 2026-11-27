@@ -64,13 +64,6 @@ static char *CopyString( const char *in )
 	return n;
 }
 
-#ifdef MAPBASE
-ConVar vgui_mapbase_custom_schemes( "vgui_mapbase_custom_schemes", "1" );
-
-// This is used in mapbase_shared.cpp
-HScheme g_iCustomClientSchemeOverride;
-#endif
-
 #if defined( VGUI_USEDRAGDROP )
 //-----------------------------------------------------------------------------
 // Purpose: 
@@ -1633,15 +1626,6 @@ HScheme Panel::GetScheme()
 	{
 		iScheme = scheme()->GetDefaultScheme();
 	}
-
-#ifdef MAPBASE
-	// If a custom client scheme is available, use the custom scheme.
-	// TODO: Need a better way to detect that this panel actually uses ClientScheme.res
-	if (g_iCustomClientSchemeOverride != 0 && iScheme == scheme()->GetScheme( "ClientScheme" ) && vgui_mapbase_custom_schemes.GetBool())
-	{
-		return g_iCustomClientSchemeOverride;
-	}
-#endif
 
 	return iScheme;
 }
@@ -4827,6 +4811,34 @@ void Panel::GetSettings( KeyValues *outResourceData )
 		}
 	}
 }
+
+#ifdef MAPBASE
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+void Panel::SetApplyDefaultSettings( bool state )
+{
+	_flags.SetFlag( NEEDS_DEFAULT_SETTINGS_APPLIED, state );
+
+	for (int i = 0; i < GetChildCount(); i++)
+	{
+		vgui::Panel* panel = GetChild(i);
+		if ( panel )
+		{
+			panel->SetApplyDefaultSettings( state );
+		}
+	}
+}
+
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+bool Panel::IsApplyDefaultSettingsSet()
+{
+	return _flags.IsFlagSet( NEEDS_DEFAULT_SETTINGS_APPLIED );
+}
+#endif
 
 //-----------------------------------------------------------------------------
 // Purpose: After applying settings, apply overridable colors.

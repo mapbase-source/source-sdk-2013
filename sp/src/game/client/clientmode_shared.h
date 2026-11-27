@@ -75,6 +75,12 @@ public:
 	virtual void	Layout();
 
 	virtual void	ReloadScheme( void );
+#ifdef MAPBASE
+	virtual void	SetCustomClientScheme( const char *pszFile );
+	virtual void	SetCustomHudLayout( const char *pszFile );
+	virtual bool	LoadCustomHudAnimations( const char *pszFile );
+	virtual bool	LoadCustomHudAnimationsManifest( const char *pszFile );
+#endif
 	virtual void	OverrideView( CViewSetup *pSetup );
 	virtual bool	ShouldDrawDetailObjects( );
 	virtual bool	ShouldDrawEntity(C_BaseEntity *pEnt);
@@ -179,6 +185,9 @@ private:
 	CountdownTimer m_PostProcessLerpTimer;
 
 	CHandle<C_ColorCorrection> m_pCurrentColorCorrection;
+
+	// When using a custom client scheme
+	bool	m_bResetSchemeOnReload;
 #endif
 };
 

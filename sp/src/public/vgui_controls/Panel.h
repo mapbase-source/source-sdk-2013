@@ -356,6 +356,12 @@ public:
 	// records the settings into the resource data
 	virtual void GetSettings(KeyValues *outResourceData);
 
+#ifdef MAPBASE
+	// Apply default settings (for when scheme is being changed)
+	virtual void SetApplyDefaultSettings( bool state );
+	virtual bool IsApplyDefaultSettingsSet();
+#endif
+
 	// gets a description of the resource for use in the UI
 	// format: <type><whitespace | punctuation><keyname><whitespace| punctuation><type><whitespace | punctuation><keyname>...
 	// unknown types as just displayed as strings in the UI (for future UI expansion)

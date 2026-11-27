@@ -142,6 +142,7 @@ public:
 
 	virtual CStudioHdr*	OnNewModel();
 
+	virtual void		ModifyEmitSoundParams( EmitSound_t &params );
 	virtual const char *GetOverrideStepSound( const char *pszBaseStepSoundName );
 #endif
 

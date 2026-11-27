@@ -83,6 +83,12 @@ void CHudBattery::Reset( void )
 void CHudBattery::VidInit( void )
 {
 	Reset();
+
+#ifdef MAPBASE
+	// If the HUD was reloaded, then the battery indicator's alpha will be reset
+	// Resetting m_iBat allows OnThink() to run and set the correct visibility
+	m_iBat = INIT_BAT;
+#endif
 }
 
 //-----------------------------------------------------------------------------

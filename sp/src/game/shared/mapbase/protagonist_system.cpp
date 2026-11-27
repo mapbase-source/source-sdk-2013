@@ -100,6 +100,21 @@ void CProtagonistSystem::LoadProtagonistFile( const char *pszFile )
 				}
 
 #ifdef CLIENT_DLL
+				//----------------------------------------------------------------------------
+				// User Interface
+				//----------------------------------------------------------------------------
+				else if (FStrEq( pszSubKeyName, "hudscheme" ))
+				{
+					pProtag->pszClientScheme = AllocateString( pSubKey->GetString() );
+				}
+				else if (FStrEq( pszSubKeyName, "hudlayout" ))
+				{
+					pProtag->pszHUDLayout = AllocateString( pSubKey->GetString() );
+				}
+				else if (FStrEq( pszSubKeyName, "hudanims" ))
+				{
+					pProtag->pszHUDAnims = AllocateString( pSubKey->GetString() );
+				}
 #else
 				//----------------------------------------------------------------------------
 				// Playermodel
@@ -169,7 +184,6 @@ void CProtagonistSystem::LoadProtagonistFile( const char *pszFile )
 				{
 					pProtag->pszResponseContexts = AllocateString( pSubKey->GetString() );
 				}
-
 				//----------------------------------------------------------------------------
 				// Multiplayer
 				//----------------------------------------------------------------------------
@@ -193,6 +207,17 @@ void CProtagonistSystem::LoadProtagonistFile( const char *pszFile )
 				}
 #endif
 				//----------------------------------------------------------------------------
+				// Sounds
+				//----------------------------------------------------------------------------
+				else if (FStrEq( pszSubKeyName, "sounds" ))
+				{
+					FOR_EACH_SUBKEY( pSubKey, pSoundKey )
+					{
+						int iStringIdx = AllocateStringIdx( pSoundKey->GetString() );
+						pProtag->dictSoundOverrides.Insert( pSoundKey->GetName(), iStringIdx );
+					}
+				}
+				//----------------------------------------------------------------------------
 				// Weapon Data
 				//----------------------------------------------------------------------------
 				else if (V_strnicmp( pszSubKeyName, "wpn_viewmodels", 14 ) == 0)
@@ -210,6 +235,17 @@ void CProtagonistSystem::LoadProtagonistFile( const char *pszFile )
 						pProtag->dictWpnData[i].bUsesHands = bHands;
 					}
 				}
+				else if (V_strnicmp( pszSubKeyName, "wpn_printnames", 14 ) == 0)
+				{
+					FOR_EACH_SUBKEY( pSubKey, pWeaponKey )
+					{
+						int i = pProtag->dictWpnData.Find( pWeaponKey->GetName() );
+						if (i == pProtag->dictWpnData.InvalidIndex())
+							i = pProtag->dictWpnData.Insert( pWeaponKey->GetName() );
+
+						pProtag->dictWpnData[i].pszPrintName = AllocateString( pWeaponKey->GetString() );
+					}
+				}
 				else if (FStrEq( pszSubKeyName, "wpn_data" )) // More expanded/explicit
 				{
 					FOR_EACH_SUBKEY( pSubKey, pWeaponKey )
@@ -217,6 +253,10 @@ void CProtagonistSystem::LoadProtagonistFile( const char *pszFile )
 						int i = pProtag->dictWpnData.Find( pWeaponKey->GetName() );
 						if (i == pProtag->dictWpnData.InvalidIndex())
 							i = pProtag->dictWpnData.Insert( pWeaponKey->GetName() );
+
+						const char *pszPrintName = pWeaponKey->GetString( "printname", NULL );
+						if (pszPrintName)
+							pProtag->dictWpnData[i].pszPrintName = AllocateString( pszPrintName );
 
 						const char *pszVM = pWeaponKey->GetString( "viewmodel", NULL );
 						if (pszVM)
@@ -329,7 +369,6 @@ const char *CProtagonistSystem::FindProtagonistByModel( const char *pszModelName
 
 void CProtagonistSystem::PrecacheProtagonist( CBaseEntity *pSource, int nIdx )
 {
-#ifndef CLIENT_DLL
 	if (nIdx < 0)
 		return;
 
@@ -341,6 +380,7 @@ void CProtagonistSystem::PrecacheProtagonist( CBaseEntity *pSource, int nIdx )
 
 	CBaseEntity::SetAllowPrecache( true );
 
+#ifndef CLIENT_DLL
 	// Playermodel
 	if (pProtag.pszPlayerModel)
 	{
@@ -364,8 +404,13 @@ void CProtagonistSystem::PrecacheProtagonist( CBaseEntity *pSource, int nIdx )
 			pSource->PrecacheModel( pProtag.dictWpnData[i].pszVM );
 		}
 	}
+#endif
 
-	CBaseEntity::SetAllowPrecache( false );
+	// Sounds/Responses
+	FOR_EACH_DICT_FAST( pProtag.dictSoundOverrides, i )
+	{
+		pSource->PrecacheScriptSound( m_Strings[pProtag.dictSoundOverrides[i]] );
+	}
 
 	// Precache parents
 	FOR_EACH_VEC( pProtag.vecParents, i )
@@ -373,8 +418,9 @@ void CProtagonistSystem::PrecacheProtagonist( CBaseEntity *pSource, int nIdx )
 		PrecacheProtagonist( pSource, pProtag.vecParents[i] );
 	}
 
+	CBaseEntity::SetAllowPrecache( false );
+
 	pProtag.bPrecached = true;
-#endif
 }
 
 //----------------------------------------------------------------------------
@@ -418,6 +464,9 @@ type CProtagonistSystem::GetProtagonist_##name( const int nProtagonistIndex, ##_
 } \
 
 #ifdef CLIENT_DLL
+GetProtagParam( ClientScheme,		const char*,	GetProtagParamInner( ClientScheme ) )
+GetProtagParam( HUDLayout,			const char*,	GetProtagParamInner( HUDLayout ) )
+GetProtagParam( HUDAnims,			const char*,	GetProtagParamInner( HUDAnims ) )
 #else
 GetProtagParam( PlayerModel,			const char*,	GetProtagParamInner( PlayerModel ) )
 GetProtagParam( PlayerModelSkin,		int,			GetProtagParamInner( PlayerModelSkin ) )
@@ -438,7 +487,9 @@ GetProtagParamBody( ResponseContexts,	bool,			GetProtagParamInner( ResponseConte
 	}, char *pszContexts, int nContextsSize )
 GetProtagParam( Team,				int,			GetProtagParamInner( Team ) )
 #endif
+GetProtagParam( SoundOverride,		const char*,	GetProtagParamInner( SoundOverride, pszSound ), const char *pszSound )
 
+GetProtagParam( PrintName,			const char*,	GetProtagParamInner( PrintName, pWeapon ), const CBaseCombatWeapon *pWeapon )
 GetProtagParam( ViewModel,			const char*,	GetProtagParamInner( ViewModel, pWeapon ), const CBaseCombatWeapon *pWeapon )
 GetProtagParam( ViewModelFOV,		float*,			GetProtagParamInner( ViewModelFOV, pWeapon ), const CBaseCombatWeapon *pWeapon )
 GetProtagParam( UsesHands,			bool*,			GetProtagParamInner( UsesHands, pWeapon ), const CBaseCombatWeapon *pWeapon )
@@ -467,6 +518,38 @@ GetProtagParam( HandRig,			int*,			GetProtagParamInner( HandRig, pWeapon ), cons
 	} \
 
 #ifdef CLIENT_DLL
+const char *CProtagonistSystem::DoGetProtagonist_ClientScheme( ProtagonistData_t &pProtag )
+{
+	if (pProtag.pszClientScheme)
+		return pProtag.pszClientScheme;
+
+	// Recursively search parent protagonists
+	GetProtagonistRecurse( DoGetProtagonist_ClientScheme )
+
+	return NULL;
+}
+
+const char *CProtagonistSystem::DoGetProtagonist_HUDLayout( ProtagonistData_t &pProtag )
+{
+	if (pProtag.pszHUDLayout)
+		return pProtag.pszHUDLayout;
+
+	// Recursively search parent protagonists
+	GetProtagonistRecurse( DoGetProtagonist_HUDLayout )
+
+	return NULL;
+}
+
+const char *CProtagonistSystem::DoGetProtagonist_HUDAnims( ProtagonistData_t &pProtag )
+{
+	if (pProtag.pszHUDAnims)
+		return pProtag.pszHUDAnims;
+
+	// Recursively search parent protagonists
+	GetProtagonistRecurse( DoGetProtagonist_HUDAnims )
+
+	return NULL;
+}
 #else
 const char *CProtagonistSystem::DoGetProtagonist_PlayerModel( ProtagonistData_t &pProtag )
 {
@@ -561,6 +644,41 @@ int CProtagonistSystem::DoGetProtagonist_Team( ProtagonistData_t &pProtag )
 }
 #endif
 
+const char *CProtagonistSystem::DoGetProtagonist_SoundOverride( ProtagonistData_t &pProtag, const char *pszSound )
+{
+	FOR_EACH_DICT_FAST( pProtag.dictSoundOverrides, i )
+	{
+		if ( !FStrEq( pProtag.dictSoundOverrides.GetElementName( i ), pszSound ) )
+			continue;
+
+		return m_Strings[pProtag.dictSoundOverrides[i]];
+	}
+
+	// Recursively search parent protagonists
+	GetProtagonistRecurse( DoGetProtagonist_SoundOverride, pszSound )
+
+	return NULL;
+}
+
+const char *CProtagonistSystem::DoGetProtagonist_PrintName( ProtagonistData_t &pProtag, const CBaseCombatWeapon *pWeapon )
+{
+	FOR_EACH_DICT_FAST( pProtag.dictWpnData, i )
+	{
+		// HACKHACK: GetClassname is not const
+		if (!FStrEq( pProtag.dictWpnData.GetElementName( i ), const_cast<CBaseCombatWeapon*>(pWeapon)->GetClassname() ))
+			continue;
+
+		if (pProtag.dictWpnData[i].pszPrintName)
+			return pProtag.dictWpnData[i].pszPrintName;
+		break;
+	}
+
+	// Recursively search parent protagonists
+	GetProtagonistRecurse( DoGetProtagonist_PrintName, pWeapon )
+
+	return NULL;
+}
+
 const char *CProtagonistSystem::DoGetProtagonist_ViewModel( ProtagonistData_t &pProtag, const CBaseCombatWeapon *pWeapon )
 {
 	FOR_EACH_DICT_FAST( pProtag.dictWpnData, i )
@@ -605,7 +723,11 @@ bool *CProtagonistSystem::DoGetProtagonist_UsesHands( ProtagonistData_t &pProtag
 		if (!FStrEq( pProtag.dictWpnData.GetElementName( i ), const_cast<CBaseCombatWeapon*>(pWeapon)->GetClassname() ))
 			continue;
 
-		return &pProtag.dictWpnData[i].bUsesHands;
+		// Only return if we have a viewmodel specified
+		// (covers derived classes which have weapon data but only parents have VM)
+		if (pProtag.dictWpnData[i].pszVM)
+			return &pProtag.dictWpnData[i].bUsesHands;
+		break;
 	}
 
 	// Recursively search parent protagonists
@@ -622,7 +744,11 @@ int *CProtagonistSystem::DoGetProtagonist_HandRig( ProtagonistData_t &pProtag, c
 		if (!FStrEq( pProtag.dictWpnData.GetElementName( i ), const_cast<CBaseCombatWeapon*>(pWeapon)->GetClassname() ))
 			continue;
 
-		return &pProtag.dictWpnData[i].nHandRig;
+		// Only return if we have a viewmodel specified
+		// (covers derived classes which have weapon data but only parents have VM)
+		if (pProtag.dictWpnData[i].pszVM)
+			return &pProtag.dictWpnData[i].nHandRig;
+		break;
 	}
 
 	// Recursively search parent protagonists
@@ -653,6 +779,22 @@ const char *CProtagonistSystem::AllocateString( const char *string )
 	out[len] = 0;
 
 	return m_Strings[m_Strings.Insert( out )];
+}
+
+int CProtagonistSystem::AllocateStringIdx( const char *string )
+{
+	int i = m_Strings.Find( string );
+	if (i != m_Strings.InvalidIndex())
+	{
+		return i;
+	}
+
+	int len = Q_strlen( string );
+	char *out = new char[len + 1];
+	Q_memcpy( out, string, len );
+	out[len] = 0;
+
+	return m_Strings.Insert( out );
 }
 
 //----------------------------------------------------------------------------
@@ -705,7 +847,14 @@ void CProtagonistSystem::PrintProtagonistData()
 		{
 			extern const char *pHandRigs[NUM_HAND_RIG_TYPES];
 			if (pProtag.pszHandModels[j])
-				Msg( "\t\tHand %s model: \"%s\" (%i, %i)\n", pHandRigs[j], pProtag.pszHandModels[j], pProtag.nPlayerSkin, pProtag.nPlayerBody );
+				Msg( "\t\tHand %s model: \"%s\" (%i, %i)\n", pHandRigs[j], pProtag.pszHandModels[j], pProtag.nHandSkin, pProtag.nHandBody );
+		}
+
+		// Sounds
+		Msg( "\t\tSound Overrides: %i\n", pProtag.dictSoundOverrides.Count() );
+		FOR_EACH_DICT_FAST( pProtag.dictSoundOverrides, j )
+		{
+			Msg( "\t\t\t%s -> %s\n", pProtag.dictSoundOverrides.GetElementName( j ), m_Strings[ pProtag.dictSoundOverrides.Element( j ) ] );
 		}
 
 		// Weapon Data

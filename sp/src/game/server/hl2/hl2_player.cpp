@@ -4688,6 +4688,21 @@ void CHL2_Player::ModifyOrAppendPlayerCriteria( AI_CriteriaSet& set )
 }
 
 #ifdef MAPBASE
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+void CHL2_Player::ModifyEmitSoundParams( EmitSound_t &params )
+{
+	BaseClass::ModifyEmitSoundParams( params );
+
+	if ( m_nProtagonistIndex != -1 )
+	{
+		const char *pszSoundOverride = g_ProtagonistSystem.GetProtagonist_SoundOverride( this, params.m_pSoundName );
+		if ( pszSoundOverride )
+			params.m_pSoundName = pszSoundOverride;
+	}
+}
+
 const char *CHL2_Player::GetOverrideStepSound( const char *pszBaseStepSoundName )
 {
 	int idx = FindContextByName("footsteps");

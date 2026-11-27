@@ -170,6 +170,68 @@ bool CBaseViewport::LoadCustomHudAnimations( const char *pszFile )
 {
 	return m_pAnimController->SetScriptFile( GetVPanel(), pszFile, true );
 }
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+bool CBaseViewport::LoadCustomHudAnimationsManifest( const char *pszFile )
+{
+	// First load the custom manifest
+	KeyValues *manifest = new KeyValues( pszFile );
+	if ( manifest->LoadFromFile( g_pFullFileSystem, pszFile, "GAME" ) == false )
+	{
+		manifest->deleteThis();
+		return false;
+	}
+
+	// Then load the default manifest
+	const char *HUDANIMATION_MANIFEST_FILE = "scripts/hudanimations_manifest.txt";
+	KeyValues *defaultManifest = new KeyValues( HUDANIMATION_MANIFEST_FILE );
+	if ( defaultManifest->LoadFromFile( g_pFullFileSystem, HUDANIMATION_MANIFEST_FILE, "GAME" ) == false )
+	{
+		defaultManifest->deleteThis();
+		manifest->deleteThis();
+		return false;
+	}
+
+	bool bClearScript = true;
+
+	// Load each file defined in the text
+	for ( KeyValues *sub = defaultManifest->GetFirstSubKey(); sub != NULL; sub = sub->GetNextKey() )
+	{
+		if ( !Q_stricmp( sub->GetName(), "file" ) )
+		{
+			const char *pszLoadFile = sub->GetString();
+
+			// Check if this is remapped by the custom manifest
+			for ( KeyValues *csub = manifest->GetFirstSubKey(); csub != NULL; csub = csub->GetNextKey() )
+			{
+				if ( Q_strstr( pszLoadFile, csub->GetName() ) )
+				{
+					// Use the custom manifest's file instead
+					pszLoadFile = csub->GetString();
+					break;
+				}
+			}
+
+			if ( !pszLoadFile || !*pszLoadFile )
+				continue;
+
+			// Add it
+			if ( m_pAnimController->SetScriptFile( GetVPanel(), pszLoadFile, bClearScript ) == false )
+			{
+				Assert( 0 );
+			}
+
+			bClearScript = false;
+			continue;
+		}
+	}
+
+	defaultManifest->deleteThis();
+	manifest->deleteThis();
+	return true;
+}
 #endif
 
 //================================================================
@@ -692,11 +754,22 @@ void CBaseViewport::ReloadScheme(const char *fromFile)
 	CETWScope timer( "CBaseViewport::ReloadScheme" );
 
 	// See if scheme should change
+
+	bool bSchemeChange = false;
 	
 	if ( fromFile != NULL )
 	{
 		// "resource/ClientScheme.res"
 		vgui::HScheme scheme = vgui::scheme()->LoadSchemeFromFileEx( enginevgui->GetPanel( PANEL_CLIENTDLL ), fromFile, "HudScheme" );
+
+#ifdef MAPBASE
+		if ( scheme != GetScheme() )
+		{
+			// If this is a different scheme from what we had before, then we need to re-apply default settings for stuff like fonts
+			SetApplyDefaultSettings( true );
+			bSchemeChange = true;
+		}
+#endif
 
 		SetScheme(scheme);
 		SetProportional( true );
@@ -719,6 +792,11 @@ void CBaseViewport::ReloadScheme(const char *fromFile)
 	g_pClientMode->ComputeVguiResConditions( pConditions );
 
 	// reload the .res file from disk
+#ifdef MAPBASE
+	if ( m_szCustomHUDLayout[0] )
+		LoadControlSettings( m_szCustomHUDLayout, NULL, NULL, pConditions );
+	else
+#endif
 	LoadControlSettings( "scripts/HudLayout.res", NULL, NULL, pConditions );
 
 	gHUD.RefreshHudTextures();
@@ -726,8 +804,32 @@ void CBaseViewport::ReloadScheme(const char *fromFile)
 	InvalidateLayout( true, true );
 
 	// reset the hud
+#ifdef MAPBASE
+	if ( bSchemeChange )
+	{
+		// Need to initialize values
+		gHUD.VidInit();
+	}
+	else
+#endif
 	gHUD.ResetHUD();
 }
+
+#ifdef MAPBASE
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+void CBaseViewport::SetCustomHUDLayout( const char *pszHUDLayout )
+{
+	if ( !pszHUDLayout )
+	{
+		m_szCustomHUDLayout[0] = NULL;
+		return;
+	}
+
+	V_strncpy( m_szCustomHUDLayout, pszHUDLayout, sizeof( m_szCustomHUDLayout ) );
+}
+#endif
 
 int CBaseViewport::GetDeathMessageStartHeight( void )
 {

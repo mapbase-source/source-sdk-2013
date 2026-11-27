@@ -49,6 +49,9 @@ public:
 	virtual void SetParent(vgui::VPANEL parent);
 
 	virtual void ReloadScheme(const char *fromFile);
+#ifdef MAPBASE
+	virtual void SetCustomHUDLayout( const char *pszHUDLayout );
+#endif
 	virtual void ActivateClientUI();
 	virtual void HideClientUI();
 	virtual bool AllowedToPrintText( void );
@@ -75,6 +78,7 @@ public: // IGameEventListener:
 
 #ifdef MAPBASE
 	bool LoadCustomHudAnimations( const char *pszFile );
+	bool LoadCustomHudAnimationsManifest( const char *pszFile );
 	void ReloadHudAnimations( void );
 #endif
 
@@ -146,6 +150,10 @@ protected:
 	vgui::HCursor		m_hCursorNone;
 	vgui::AnimationController *m_pAnimController;
 	int					m_OldSize[2];
+
+#ifdef MAPBASE
+	char				m_szCustomHUDLayout[MAX_PATH];
+#endif
 };
 
 

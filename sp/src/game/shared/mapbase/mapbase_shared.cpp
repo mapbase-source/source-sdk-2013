@@ -71,11 +71,7 @@ static bool g_bMapContainsCustomTalker;
 // This constant should change with each Mapbase update
 ConVar mapbase_version_client( "mapbase_version_client", MAPBASE_VERSION, FCVAR_NONE, "The version of Mapbase currently being used in this mod's client.dll" );
 
-// This is from the vgui_controls library
-extern vgui::HScheme g_iCustomClientSchemeOverride;
-
 extern bool g_bUsingCustomHudAnimations;
-bool g_bUsingCustomHudLayout = false;
 #endif
 
 extern void AddSurfacepropFile( const char *pFileName, IPhysicsSurfaceProps *pProps, IFileSystem *pFileSystem );
@@ -319,35 +315,9 @@ public:
 		}
 		m_CloseCaptionFileNames.RemoveAll();
 
-		if (g_iCustomClientSchemeOverride != 0 || g_bUsingCustomHudAnimations || g_bUsingCustomHudLayout)
+		if (g_bUsingCustomHudAnimations)
 		{
-			CGMsg( 1, CON_GROUP_MAPBASE_MISC, "Mapbase: Reloading client mode and viewport scheme\n" );
-
-			// TODO: We currently have no way of actually cleaning up custom schemes upon level unload.
-			// That may or may not be sustainable if there's a ton of custom schemes loaded at once
-			g_iCustomClientSchemeOverride = 0;
-
 			g_bUsingCustomHudAnimations = false;
-			g_bUsingCustomHudLayout = false;
-
-			// Reload scheme
-			ClientModeShared *mode = ( ClientModeShared * )GetClientModeNormal();
-			if ( mode )
-			{
-				mode->ReloadScheme();
-
-				// We need to reload default values, so load a special "hudlayout_mapbase.res" file that only contains
-				// default Mapbase definitions identical to the defaults in the code
-				CBaseViewport *pViewport = dynamic_cast<CBaseViewport *>(g_pClientMode->GetViewport());
-				if (pViewport)
-				{
-					KeyValuesAD pConditions( "conditions" );
-					g_pClientMode->ComputeVguiResConditions( pConditions );
-
-					// reload the .res file from disk
-					pViewport->LoadControlSettings( "scripts/hudlayout_mapbase.res", NULL, NULL, pConditions );
-				}
-			}
 		}
 #endif
 	}
@@ -573,27 +543,24 @@ private:
 	// Custom scheme loading
 	void ManifestLoadCustomScheme( const char *pszFile )
 	{
-		g_iCustomClientSchemeOverride = vgui::scheme()->LoadSchemeFromFile( pszFile, "CustomClientScheme" );
-
 		// Reload scheme
 		ClientModeShared *mode = ( ClientModeShared * )GetClientModeNormal();
 		if ( mode )
 		{
-			mode->ReloadScheme();
+			mode->SetCustomClientScheme( pszFile );
 		}
 	}
 
 	void ManifestLoadCustomHudAnimations( const char *pszFile )
 	{
-		CBaseViewport *pViewport = dynamic_cast<CBaseViewport *>(g_pClientMode->GetViewport());
-		if (pViewport)
+		ClientModeShared *mode = ( ClientModeShared * )GetClientModeNormal();
+		if ( mode )
 		{
 			g_bUsingCustomHudAnimations = true;
-			if (!pViewport->LoadCustomHudAnimations( pszFile ))
+			if (!mode->LoadCustomHudAnimations( pszFile ))
 			{
 				g_bUsingCustomHudAnimations = false;
 				CGWarning( 0, CON_GROUP_MAPBASE_MISC, "Custom HUD animations file \"%s\" failed to load\n", pszFile );
-				pViewport->ReloadHudAnimations();
 			}
 			else
 			{
@@ -604,17 +571,10 @@ private:
 
 	void ManifestLoadCustomHudLayout( const char *pszFile )
 	{
-		CBaseViewport *pViewport = dynamic_cast<CBaseViewport *>(g_pClientMode->GetViewport());
-		if (pViewport)
+		ClientModeShared *mode = ( ClientModeShared * )GetClientModeNormal();
+		if ( mode )
 		{
-			g_bUsingCustomHudLayout = true;
-
-			KeyValuesAD pConditions( "conditions" );
-			g_pClientMode->ComputeVguiResConditions( pConditions );
-
-			// reload the .res file from disk
-			pViewport->LoadControlSettings( pszFile, NULL, NULL, pConditions );
-
+			mode->SetCustomHudLayout( pszFile );
 			CGMsg( 1, CON_GROUP_MAPBASE_MISC, "Loaded custom HUD layout file \"%s\"\n", pszFile );;
 		}
 	}

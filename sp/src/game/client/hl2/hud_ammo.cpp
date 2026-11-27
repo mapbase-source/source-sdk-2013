@@ -77,16 +77,6 @@ void CHudAmmo::Init( void )
 	m_iAmmo2	= -1;
 	
 	m_iconPrimaryAmmo = NULL;
-
-	wchar_t *tempString = g_pVGuiLocalize->Find("#Valve_Hud_AMMO");
-	if (tempString)
-	{
-		SetLabelText(tempString);
-	}
-	else
-	{
-		SetLabelText(L"AMMO");
-	}
 }
 
 //-----------------------------------------------------------------------------
@@ -109,6 +99,17 @@ void CHudAmmo::Reset()
 	m_iAmmo2 = 0;
 
 	UpdateAmmoDisplays();
+
+	// Moved from CHudAmmo::Init so that it can be reset on HUD reload
+	wchar_t *tempString = g_pVGuiLocalize->Find("#Valve_Hud_AMMO");
+	if (tempString)
+	{
+		SetLabelText(tempString);
+	}
+	else
+	{
+		SetLabelText(L"AMMO");
+	}
 }
 
 //-----------------------------------------------------------------------------

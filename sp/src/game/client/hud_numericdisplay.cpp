@@ -13,6 +13,9 @@
 #include <vgui/ISurface.h>
 #include <vgui/ISystem.h>
 #include <vgui/IVGui.h>
+#ifdef MAPBASE
+#include <vgui/ILocalize.h>
+#endif
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -81,6 +84,12 @@ void CHudNumericDisplay::SetShouldDisplaySecondaryValue(bool state)
 //-----------------------------------------------------------------------------
 void CHudNumericDisplay::SetLabelText(const wchar_t *text)
 {
+#ifdef MAPBASE
+	// Refuse further inputs from the code if the control settings have their own definition
+	if ( m_bOverrideLabel )
+		return;
+#endif
+
 	wcsncpy(m_LabelText, text, sizeof(m_LabelText) / sizeof(wchar_t));
 	m_LabelText[(sizeof(m_LabelText) / sizeof(wchar_t)) - 1] = 0;
 }
@@ -144,6 +153,37 @@ void CHudNumericDisplay::PaintNumbers(HFont font, int xpos, int ypos, int value)
 	surface()->DrawSetTextPos(xpos, ypos);
 	surface()->DrawUnicodeString( unicode );
 }
+
+#ifdef MAPBASE
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+void CHudNumericDisplay::ApplySettings( KeyValues *inResourceData )
+{
+	BaseClass::ApplySettings( inResourceData );
+
+	m_bOverrideLabel = false;
+
+	const char *text = inResourceData->GetString( "text", NULL );
+	if (text)
+	{
+		// Override label text
+		wchar_t *tempString = g_pVGuiLocalize->Find( text );
+		if ( tempString )
+		{
+			SetLabelText( tempString );
+		}
+		else
+		{
+			wchar_t szText[128];
+			V_UTF8ToUnicode( text, szText, sizeof( szText ) );
+			SetLabelText( szText );
+		}
+
+		m_bOverrideLabel = true;
+	}
+}
+#endif
 
 //-----------------------------------------------------------------------------
 // Purpose: draws the text

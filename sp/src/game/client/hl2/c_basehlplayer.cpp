@@ -11,6 +11,10 @@
 #include "c_ai_basenpc.h"
 #include "in_buttons.h"
 #include "collisionutils.h"
+#ifdef MAPBASE
+#include "mapbase/protagonist_system.h"
+#include "clientmode_shared.h"
+#endif
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -83,7 +87,7 @@ C_BaseHLPlayer::C_BaseHLPlayer()
 	ConVarRef scissor("r_flashlightscissor");
 	scissor.SetValue("0");
 
-	m_nProtagonistIndex = -1;
+	m_nProtagonistIndex = m_nOldProtagonistIndex = -1;
 #endif
 }
 
@@ -98,6 +102,14 @@ void C_BaseHLPlayer::OnDataChanged( DataUpdateType_t updateType )
 	{
 		SetNextClientThink( CLIENT_THINK_ALWAYS );
 	}
+
+#ifdef MAPBASE
+	if ( m_nProtagonistIndex != m_nOldProtagonistIndex )
+	{
+		OnChangeProtagonist();
+		m_nOldProtagonistIndex = m_nProtagonistIndex;
+	}
+#endif
 
 #ifdef SP_ANIM_STATE
 	if (m_flAnimRenderYaw != FLT_MAX)
@@ -693,6 +705,69 @@ void C_BaseHLPlayer::BuildTransformations( CStudioHdr *hdr, Vector *pos, Quatern
 	BuildFirstPersonMeathookTransformations( hdr, pos, q, cameraTransform, boneMask, boneComputed, "ValveBiped.Bip01_Head1" );
 }
 
+
+#ifdef MAPBASE
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+void C_BaseHLPlayer::ModifyEmitSoundParams( EmitSound_t &params )
+{
+	BaseClass::ModifyEmitSoundParams( params );
+
+	if ( m_nProtagonistIndex != -1 )
+	{
+		const char *pszSoundOverride = g_ProtagonistSystem.GetProtagonist_SoundOverride( this, params.m_pSoundName );
+		if ( pszSoundOverride )
+			params.m_pSoundName = pszSoundOverride;
+	}
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+void C_BaseHLPlayer::OnChangeProtagonist()
+{
+	g_ProtagonistSystem.PrecacheProtagonist( this, m_nProtagonistIndex );
+
+	// Check if this protagonist has a custom HUD
+	const char *pszClientScheme = g_ProtagonistSystem.GetProtagonist_ClientScheme( this );
+	if ( pszClientScheme )
+	{
+		ClientModeShared *mode = ( ClientModeShared * )GetClientModeNormal();
+		if ( !mode )
+			return;
+
+		CBaseViewport *pViewport = ( CBaseViewport * )mode->GetViewport();
+		if ( pViewport )
+		{
+			mode->SetCustomHudLayout( g_ProtagonistSystem.GetProtagonist_HUDLayout( this ) );
+			mode->SetCustomClientScheme( pszClientScheme );
+
+			const char *pszHUDAnims = g_ProtagonistSystem.GetProtagonist_HUDAnims( this );
+			if ( pszHUDAnims )
+				pViewport->LoadCustomHudAnimationsManifest( pszHUDAnims );
+		}
+	}
+	else if ( m_nOldProtagonistIndex != -1 )
+	{
+		// Check if the previous protagonist had a custom HUD. If it did, then load the default scheme
+		pszClientScheme = g_ProtagonistSystem.GetProtagonist_ClientScheme( m_nOldProtagonistIndex );
+		if ( pszClientScheme )
+		{
+			ClientModeShared *mode = ( ClientModeShared * )GetClientModeNormal();
+			if ( !mode )
+				return;
+
+			CBaseViewport *pViewport = ( CBaseViewport * )mode->GetViewport();
+			if ( pViewport )
+			{
+				mode->SetCustomHudLayout( NULL );
+				mode->ReloadScheme();
+			}
+		}
+	}
+}
+#endif
 
 #ifdef SP_ANIM_STATE
 //-----------------------------------------------------------------------------

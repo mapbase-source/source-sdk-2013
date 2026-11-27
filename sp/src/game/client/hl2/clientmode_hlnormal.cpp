@@ -13,6 +13,10 @@
 #include <vgui_controls/AnimationController.h>
 #include "iinput.h"
 #include "ienginevgui.h"
+#ifdef MAPBASE
+#include "c_basehlplayer.h"
+#include "mapbase/protagonist_system.h"
+#endif
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -94,6 +98,28 @@ bool ClientModeHLNormal::ShouldDrawCrosshair( void )
 {
 	return ( g_bRollingCredits == false );
 }
+
+#ifdef MAPBASE
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+void ClientModeHLNormal::ReloadScheme()
+{
+	C_BaseHLPlayer *pPlayer = static_cast<C_BaseHLPlayer*>( C_BasePlayer::GetLocalPlayer() );
+	if ( pPlayer && pPlayer->GetProtagonistIndex() != -1 )
+	{
+		// Use the protagonist's scheme instead, if it exists
+		const char *pszClientScheme = g_ProtagonistSystem.GetProtagonist_ClientScheme( pPlayer );
+		if ( pszClientScheme != NULL )
+		{
+			SetCustomClientScheme( pszClientScheme );
+			return;
+		}
+	}
+
+	BaseClass::ReloadScheme();
+}
+#endif
 
 
 

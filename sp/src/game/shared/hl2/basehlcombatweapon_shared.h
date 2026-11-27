@@ -54,6 +54,7 @@ public:
 	virtual void	ItemHolsterFrame( void );
 
 #ifdef MAPBASE
+	virtual char const *GetPrintName( void ) const;
 	virtual const char *GetViewModel( int viewmodelindex = 0 ) const;
 	virtual float	GetViewmodelFOVOverride() const;
 	virtual bool	UsesHands( void ) const;
