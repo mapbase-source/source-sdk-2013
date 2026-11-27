@@ -18,6 +18,9 @@ BEGIN_VS_SHADER( SDK_Refract_DX90, "Help for SDK_Refract" )
 		SHADER_PARAM_OVERRIDE( ALPHA, SHADER_PARAM_TYPE_FLOAT, "1.0", "unused", SHADER_PARAM_NOT_EDITABLE )
 		SHADER_PARAM( REFRACTAMOUNT, SHADER_PARAM_TYPE_FLOAT, "2", "" )
 		SHADER_PARAM( REFRACTTINT, SHADER_PARAM_TYPE_COLOR, "[1 1 1]", "refraction tint" )
+#ifdef MAPBASE
+		SHADER_PARAM( REFRACTTINTRESPECTAMOUNT, SHADER_PARAM_TYPE_BOOL, "0", "" )
+#endif
 		SHADER_PARAM( NORMALMAP, SHADER_PARAM_TYPE_TEXTURE, "models/shadertest/shader1_normal", "normal map" )
 		SHADER_PARAM( NORMALMAP2, SHADER_PARAM_TYPE_TEXTURE, "models/shadertest/shader1_normal", "normal map" )
 		SHADER_PARAM( BUMPFRAME, SHADER_PARAM_TYPE_INTEGER, "0", "frame number for $normalmap" )
@@ -48,6 +51,9 @@ BEGIN_VS_SHADER( SDK_Refract_DX90, "Help for SDK_Refract" )
 		info.m_nFrame = FRAME;
 		info.m_nRefractAmount = REFRACTAMOUNT;
 		info.m_nRefractTint = REFRACTTINT;
+#ifdef MAPBASE
+		info.m_nRefractTintRespectAmount = REFRACTTINTRESPECTAMOUNT;
+#endif
 		info.m_nNormalMap = NORMALMAP;
 		info.m_nNormalMap2 = NORMALMAP2;
 		info.m_nBumpFrame = BUMPFRAME;

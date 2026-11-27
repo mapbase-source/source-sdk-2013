@@ -211,6 +211,27 @@ public:
 		m_bSHADER_SRGB_READ = true;
 #endif
 	}
+private:
+	int m_nREFRACTTINTRESPECTAMOUNT;
+#ifdef _DEBUG
+	bool m_bREFRACTTINTRESPECTAMOUNT;
+#endif
+public:
+	void SetREFRACTTINTRESPECTAMOUNT( int i )
+	{
+		Assert( i >= 0 && i <= 1 );
+		m_nREFRACTTINTRESPECTAMOUNT = i;
+#ifdef _DEBUG
+		m_bREFRACTTINTRESPECTAMOUNT = true;
+#endif
+	}
+	void SetREFRACTTINTRESPECTAMOUNT( bool i )
+	{
+		m_nREFRACTTINTRESPECTAMOUNT = i ? 1 : 0;
+#ifdef _DEBUG
+		m_bREFRACTTINTRESPECTAMOUNT = true;
+#endif
+	}
 public:
 	sdk_refract_ps20b_Static_Index( )
 	{
@@ -254,19 +275,23 @@ public:
 		m_bSHADER_SRGB_READ = false;
 #endif // _DEBUG
 		m_nSHADER_SRGB_READ = 0;
+#ifdef _DEBUG
+		m_bREFRACTTINTRESPECTAMOUNT = false;
+#endif // _DEBUG
+		m_nREFRACTTINTRESPECTAMOUNT = 0;
 	}
 	int GetIndex()
 	{
 		// Asserts to make sure that we aren't using any skipped combinations.
 		// Asserts to make sure that we are setting all of the combination vars.
 #ifdef _DEBUG
-		bool bAllStaticVarsDefined = m_bCONVERT_TO_SRGB && m_bBLUR && m_bFADEOUTONSILHOUETTE && m_bCUBEMAP && m_bREFRACTTINTTEXTURE && m_bMASKED && m_bCOLORMODULATE && m_bSECONDARY_NORMAL && m_bNORMAL_DECODE_MODE && m_bSHADER_SRGB_READ;
+		bool bAllStaticVarsDefined = m_bCONVERT_TO_SRGB && m_bBLUR && m_bFADEOUTONSILHOUETTE && m_bCUBEMAP && m_bREFRACTTINTTEXTURE && m_bMASKED && m_bCOLORMODULATE && m_bSECONDARY_NORMAL && m_bNORMAL_DECODE_MODE && m_bSHADER_SRGB_READ && m_bREFRACTTINTRESPECTAMOUNT;
 		Assert( bAllStaticVarsDefined );
 #endif // _DEBUG
-		return ( 4 * m_nCONVERT_TO_SRGB ) + ( 8 * m_nBLUR ) + ( 16 * m_nFADEOUTONSILHOUETTE ) + ( 32 * m_nCUBEMAP ) + ( 64 * m_nREFRACTTINTTEXTURE ) + ( 128 * m_nMASKED ) + ( 256 * m_nCOLORMODULATE ) + ( 512 * m_nSECONDARY_NORMAL ) + ( 1024 * m_nNORMAL_DECODE_MODE ) + ( 1024 * m_nSHADER_SRGB_READ ) + 0;
+		return ( 4 * m_nCONVERT_TO_SRGB ) + ( 8 * m_nBLUR ) + ( 16 * m_nFADEOUTONSILHOUETTE ) + ( 32 * m_nCUBEMAP ) + ( 64 * m_nREFRACTTINTTEXTURE ) + ( 128 * m_nMASKED ) + ( 256 * m_nCOLORMODULATE ) + ( 512 * m_nSECONDARY_NORMAL ) + ( 1024 * m_nNORMAL_DECODE_MODE ) + ( 1024 * m_nSHADER_SRGB_READ ) + ( 2048 * m_nREFRACTTINTRESPECTAMOUNT ) + 0;
 	}
 };
-#define shaderStaticTest_sdk_refract_ps20b psh_forgot_to_set_static_BLUR + psh_forgot_to_set_static_FADEOUTONSILHOUETTE + psh_forgot_to_set_static_CUBEMAP + psh_forgot_to_set_static_REFRACTTINTTEXTURE + psh_forgot_to_set_static_MASKED + psh_forgot_to_set_static_COLORMODULATE + psh_forgot_to_set_static_SECONDARY_NORMAL + psh_forgot_to_set_static_NORMAL_DECODE_MODE + psh_forgot_to_set_static_SHADER_SRGB_READ + 0
+#define shaderStaticTest_sdk_refract_ps20b psh_forgot_to_set_static_BLUR + psh_forgot_to_set_static_FADEOUTONSILHOUETTE + psh_forgot_to_set_static_CUBEMAP + psh_forgot_to_set_static_REFRACTTINTTEXTURE + psh_forgot_to_set_static_MASKED + psh_forgot_to_set_static_COLORMODULATE + psh_forgot_to_set_static_SECONDARY_NORMAL + psh_forgot_to_set_static_NORMAL_DECODE_MODE + psh_forgot_to_set_static_SHADER_SRGB_READ + psh_forgot_to_set_static_REFRACTTINTRESPECTAMOUNT + 0
 class sdk_refract_ps20b_Dynamic_Index
 {
 private:

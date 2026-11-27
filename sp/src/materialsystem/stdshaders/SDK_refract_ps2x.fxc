@@ -14,6 +14,7 @@
 // STATIC: "NORMAL_DECODE_MODE"				"0..0"	[XBOX]
 // STATIC: "NORMAL_DECODE_MODE"				"0..0"	[PC]
 // STATIC: "SHADER_SRGB_READ"				"0..1"	[ps20b]
+// STATIC: "REFRACTTINTRESPECTAMOUNT"		"0..1"	[ps20b]
 
 // DYNAMIC: "PIXELFOGTYPE"					"0..1"
 // DYNAMIC: "WRITE_DEPTH_TO_DESTALPHA"		"0..1"	[ps20b] [PC]
@@ -106,6 +107,10 @@ float4 main( PS_INPUT i ) : COLOR
 	float3 refractTintColor = 2.0 * g_RefractTint * tex2D( RefractTintSampler, i.vBumpTexCoord.xy );
 #else
 	float3 refractTintColor = g_RefractTint;
+#endif
+
+#if REFRACTTINTRESPECTAMOUNT
+	refractTintColor = lerp( float3(1,1,1), refractTintColor, g_RefractScale );
 #endif
 
 #if COLORMODULATE
