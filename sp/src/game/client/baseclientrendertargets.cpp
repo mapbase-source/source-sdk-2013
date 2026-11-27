@@ -45,6 +45,30 @@ ITexture* CBaseClientRenderTargets::CreateCameraTexture( IMaterialSystem* pMater
 		CREATERENDERTARGETFLAGS_HDR );
 }
 
+#ifdef MAPBASE
+ITexture* CBaseClientRenderTargets::CreateCustomCameraTexture( IMaterialSystem* pMaterialSystem, const char *pszTextureName, int iSize )
+{
+	return pMaterialSystem->CreateNamedRenderTargetTextureEx2(
+		pszTextureName,
+		iSize, iSize, RT_SIZE_DEFAULT,
+		pMaterialSystem->GetBackBufferFormat(),
+		MATERIAL_RT_DEPTH_SHARED, 
+		0,
+		CREATERENDERTARGETFLAGS_HDR );
+}
+
+ITexture* CBaseClientRenderTargets::CreateColCorrectMaskTexture( IMaterialSystem* pMaterialSystem, int iSize )
+{
+	return pMaterialSystem->CreateNamedRenderTargetTextureEx2(
+		"_rt_ColCorrectMask",
+		iSize, iSize, RT_SIZE_PICMIP,
+		pMaterialSystem->GetBackBufferFormat(), //IMAGE_FORMAT_A8
+		MATERIAL_RT_DEPTH_SHARED, 
+		TEXTUREFLAGS_CLAMPS | TEXTUREFLAGS_CLAMPT,
+		CREATERENDERTARGETFLAGS_HDR );
+}
+#endif
+
 //-----------------------------------------------------------------------------
 // Purpose: Called by the engine in material system init and shutdown.
 //			Clients should override this in their inherited version, but the base
@@ -60,6 +84,21 @@ void CBaseClientRenderTargets::InitClientRenderTargets( IMaterialSystem* pMateri
 
 	// Monitors
 	m_CameraTexture.Init( CreateCameraTexture( pMaterialSystem, iCameraTextureSize ) );
+
+#ifdef MAPBASE
+	int iNumCameras = CommandLine()->ParmValue( "-numcameratextures", 3 );
+	for ( int i = 0; i < iNumCameras; i++ )
+	{
+		char szName[32];
+		Q_snprintf( szName, sizeof(szName), "_rt_Camera%i", i );
+
+		int iRefIndex = m_CameraTextures.AddToTail();
+		m_CameraTextures[iRefIndex].Init( CreateCustomCameraTexture( pMaterialSystem, szName, iCameraTextureSize ) );
+	}
+
+	// Miscellaneous
+	m_ColCorrectMaskTexture.Init( CreateColCorrectMaskTexture( pMaterialSystem ) );
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -75,4 +114,14 @@ void CBaseClientRenderTargets::ShutdownClientRenderTargets()
 
 	// Monitors
 	m_CameraTexture.Shutdown();
+
+#ifdef MAPBASE
+	for ( int i = 0; i < m_CameraTextures.Count(); i++ )
+	{
+		m_CameraTextures[i].Shutdown();
+	}
+
+	// Miscellaneous
+	m_ColCorrectMaskTexture.Shutdown();
+#endif
 }

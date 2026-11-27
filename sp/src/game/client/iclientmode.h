@@ -135,6 +135,11 @@ public:
 
 	virtual bool	DoPostScreenSpaceEffects( const CViewSetup *pSetup ) = 0;
 
+#ifdef MAPBASE
+	// For effects that assume the viewmodel has been drawn
+	virtual bool	DoPostScreenSpaceEffectsPostViewModel( const CViewSetup *pSetup ) = 0;
+#endif
+
 	virtual void	DisplayReplayMessage( const char *pLocalizeName, float flDuration, bool bUrgent,
 										  const char *pSound, bool bDlg ) = 0;
 

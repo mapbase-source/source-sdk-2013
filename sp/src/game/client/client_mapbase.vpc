@@ -74,6 +74,7 @@ $Project
 			$File	"mapbase\c_point_glow.cpp"
 			$File	"mapbase\c_vgui_text_display.cpp"
 			$File	"mapbase\c_weapon_custom_hl2.cpp"
+			$File	"mapbase\colorcorrectionmgr_exclude.cpp"
 			$File	"mapbase\mapbase_autocubemap.cpp"
 			$File	"mapbase\hud_generic_timer.cpp"
 		}
@@ -83,6 +84,9 @@ $Project
 			// Original stunstick files are conditional'd out in the HL2 VPCs
 			$File	"$SRCDIR\game\shared\hl2mp\weapon_stunstick.cpp"
 			$File	"$SRCDIR\game\shared\hl2mp\weapon_stunstick.h"
+
+			$File	"hl2\hl2_rendertargets.cpp"
+			$File	"hl2\hl2_rendertargets.h"
 		}
 		
 		$Folder	"HL2MP"

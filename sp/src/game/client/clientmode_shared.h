@@ -139,6 +139,9 @@ public:
 	//=============================================================================
 
 	virtual bool	DoPostScreenSpaceEffects( const CViewSetup *pSetup );
+#ifdef MAPBASE
+	virtual bool	DoPostScreenSpaceEffectsPostViewModel( const CViewSetup *pSetup );
+#endif
 
 	virtual void	DisplayReplayMessage( const char *pLocalizeName, float flDuration, bool bUrgent,
 										  const char *pSound, bool bDlg );

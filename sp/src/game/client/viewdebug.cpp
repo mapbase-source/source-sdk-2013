@@ -31,6 +31,7 @@ static ConVar mat_framebuffercopyoverlaysize( "mat_framebuffercopyoverlaysize", 
 static ConVar mat_showcamerarendertarget( "mat_showcamerarendertarget", "0", FCVAR_CHEAT );
 #ifdef MAPBASE
 static ConVar mat_showcamerarendertarget_all( "mat_showcamerarendertarget_all", "0", FCVAR_CHEAT );
+static ConVar mat_showccmaskrendertarget( "mat_showccmaskrendertarget", "0", FCVAR_CHEAT );
 #endif
 static ConVar mat_camerarendertargetoverlaysize( "mat_camerarendertargetoverlaysize", "256", FCVAR_CHEAT );
 static ConVar mat_hsv( "mat_hsv", "0", FCVAR_CHEAT );
@@ -672,6 +673,16 @@ void CDebugViewRender::Draw2DDebuggingInfo( const CViewSetup &view )
 	if ( mat_drawColorRamp.GetBool() )
 	{
 		OverlayColorRamp( mat_drawColorRamp.GetInt() == 2 );
+	}
+#endif
+
+#ifdef MAPBASE
+	if ( mat_showccmaskrendertarget.GetBool() )
+	{
+		float w = mat_camerarendertargetoverlaysize.GetFloat();
+		float h = mat_camerarendertargetoverlaysize.GetFloat();
+
+		OverlayCameraRenderTarget( "debug/debugccmaskrendertarget", 0, 0, w, h );
 	}
 #endif
 
